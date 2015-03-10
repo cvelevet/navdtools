@@ -1,0 +1,9 @@
+CFLAGS = -O3 -std=gnu99 -Wno-unused-result -D_GNU_SOURCE
+LDLIBS = -lm
+
+all:
+	$(MAKE) -f Makefile CFLAGS="$(CFLAGS)" LDLIBS="$(LDLIBS)" all
+
+.PHONY: clean
+clean:
+	$(MAKE) -f Makefile clean
