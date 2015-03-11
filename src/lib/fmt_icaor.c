@@ -197,13 +197,52 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                             break;
                         }
                     }
-                    if (!awy1id && ndt_navdata_get_waypoint(ndb, prefix, NULL))
+                    if (!awy1id)
                     {
-                         dstidt = prefix;
+                        ndt_route_segment *rsg1 = ndt_list_item(flp->rte, ndt_list_count(flp->rte) - 1);
+                        /*
+                         * If and only if the previous segment is a direct, then
+                         * src was chosen somewhat randomly (based on distance).
+                         * There may actually be a waypoint with an identical
+                         * name that's a valid startpoint for this airway.
+                         *
+                         * Check all valid startpoints matching src->info.idnt
+                         * (which is also rsg1->dst->info.idnt), and if we find
+                         * one, overwrite src (which is also rsg1->dst).
+                         *
+                         * Else resume normal behavior (try it as waypoint, or
+                         * set awy1id so we can print an airway-specific error).
+                         */
+                        if (rsg1 && rsg1->type == NDT_RSTYPE_DCT)
+                        {
+                            for (size_t dstidx = 0; (dst = ndt_navdata_get_waypoint(ndb, rsg1->dst->info.idnt, &dstidx)); dstidx++)
+                            {
+                                for (size_t awy1idx = 0; (awy1 = ndt_navdata_get_airway(ndb, prefix, &awy1idx)); awy1idx++)
+                                {
+                                    if (ndt_airway_startpoint(awy1, dst->info.idnt, dst->position))
+                                    {
+                                        src    = rsg1->dst = dst;
+                                        awy1id = strdup(prefix);
+                                        break;
+                                    }
+                                }
+                                if (awy1id)
+                                {
+                                    break;
+                                }
+                            }
+                        }
                     }
-                    if (!awy1id && !dstidt)
+                    if (!awy1id)
                     {
-                         awy1id = strdup(prefix);
+                        if (ndt_navdata_get_waypoint(ndb, prefix, NULL))
+                        {
+                            dstidt = prefix;
+                        }
+                        else
+                        {
+                            awy1id = strdup(prefix);
+                        }
                     }
                 }
             }
