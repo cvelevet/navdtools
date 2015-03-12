@@ -1,7 +1,8 @@
-SOURCE_DIR = src
-NDCONV_EXE = navdconv
-CFLAGS     = -O3 -std=c99
-GITVERSION = $(shell find . -name ".git" -type d -exec git describe --long --always --dirty=/m --abbrev=1 --tags \;)
+SOURCE_DIR  = src
+NDCONV_EXE  = navdconv
+CFLAGS      = -O3 -std=c99
+TARGET_ARCH = -arch i386 -arch x86_64
+GITVERSION  = $(shell find . -name ".git" -type d -exec git describe --long --always --dirty=/m --abbrev=1 --tags \;)
 
 override CFLAGS      += -I$(SOURCE_DIR) -DNDCONV_EXE="\"$(NDCONV_EXE)\""
 override NDC_SOURCES  =   $(SOURCE_DIR)/tools/navdconv.c

@@ -1,8 +1,9 @@
-CFLAGS = -O3 -std=gnu99 -Wno-unused-result -D_GNU_SOURCE
-LDLIBS = -lm
+CFLAGS      = -O3 -std=gnu99 -Wno-unused-result -D_GNU_SOURCE
+LDLIBS      = -lm
+TARGET_ARCH =
 
 all:
-	$(MAKE) -f Makefile CFLAGS="$(CFLAGS)" LDLIBS="$(LDLIBS)" all
+	$(MAKE) -f Makefile CFLAGS="$(CFLAGS)" LDLIBS="$(LDLIBS)" TARGET_ARCH="$(TARGET_ARCH)" all
 
 .PHONY: clean
 clean:
