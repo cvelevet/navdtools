@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "compat/compat.h"
 
@@ -523,4 +524,45 @@ ndt_frequency ndt_frequency_init(double f)
 double ndt_frequency_get(ndt_frequency f)
 {
     return f.value / 120.;
+}
+
+ndt_date ndt_date_init(time_t time)
+{
+    ndt_date date = { 0 };
+    struct tm zulu;
+
+#ifdef _WIN32
+    if (gmtime_s(&zulu, &time) == 0)
+#else
+    if (gmtime_r(&time, &zulu) != NULL)
+#endif
+    {
+        date.year    = zulu.tm_year + 1900;
+        date.month   = zulu.tm_mon  + 1;
+        date.day     = zulu.tm_mday;
+        date.hours   = zulu.tm_hour;
+        date.minutes = zulu.tm_min;
+        date.seconds = zulu.tm_sec;
+    }
+
+    return date;
+}
+
+time_t ndt_date_get(ndt_date date)
+{
+    struct tm zulu = { 0 };
+
+    zulu.tm_year = date.year  - 1900;
+    zulu.tm_mon  = date.month - 1;
+    zulu.tm_mday = date.day;
+    zulu.tm_hour = date.hours;
+    zulu.tm_min  = date.minutes;
+    zulu.tm_sec  = date.seconds;
+
+    return mktime(&zulu);
+}
+
+ndt_date ndt_date_now(void)
+{
+    return ndt_date_init(time(NULL));
 }

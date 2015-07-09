@@ -24,6 +24,7 @@
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <time.h>
 
 int ndt_fprintf(FILE *stream, const char *format, ...);
 
@@ -133,5 +134,20 @@ typedef struct ndt_frequency
 
 ndt_frequency ndt_frequency_init(double        frequency);
 double        ndt_frequency_get (ndt_frequency frequency);
+
+typedef struct ndt_date
+{
+    int     year;
+    uint8_t month;      // 1-12
+    uint8_t day;        // 1-31
+
+    uint8_t hours;      // 0-23
+    uint8_t minutes;    // 0-59
+    uint8_t seconds;    // 0-60
+} ndt_date;
+
+ndt_date ndt_date_init(time_t time);
+time_t   ndt_date_get (ndt_date date);
+ndt_date ndt_date_now (void);
 
 #endif /* NDT_COMMON_H */
