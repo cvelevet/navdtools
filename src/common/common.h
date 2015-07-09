@@ -26,6 +26,9 @@
 #include <stdio.h>
 #include <time.h>
 
+/* Remainder of a floored division (sign follows the divisor) */
+double ndt_mod(double y, double x);
+
 int ndt_fprintf(FILE *stream, const char *format, ...);
 
 char* ndt_file_slurp  (const char *name, int *ret);

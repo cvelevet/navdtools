@@ -31,6 +31,11 @@
 
 #include "common.h"
 
+double ndt_mod(double y, double x)
+{
+    return  y - x * floor(y / x);
+}
+
 int ndt_fprintf(FILE *fd, const char *fmt, ...)
 {
     if (fd && fmt)
