@@ -42,6 +42,8 @@ typedef struct ndt_navdatabase
     ndt_list *airports;    // list of all airports  in database (struct ndt_airport)
     ndt_list *airways;     // list of all airways   in database (struct ndt_airway)
     ndt_list *waypoints;   // list of all waypoints in database (struct ndt_waypoint)
+
+    void *wmm;             // World Magnetic Model library wrapper
 } ndt_navdatabase;
 
 ndt_navdatabase* ndt_navdatabase_init (const char            *root, ndt_navdataformat fmt);

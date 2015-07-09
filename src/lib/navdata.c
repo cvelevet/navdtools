@@ -30,6 +30,8 @@
 
 #include "compat/compat.h"
 
+#include "wmm/wmm.h"
+
 #include "airport.h"
 #include "airway.h"
 #include "navdata.h"
@@ -59,6 +61,14 @@ ndt_navdatabase* ndt_navdatabase_init(const char *ndr, ndt_navdataformat fmt)
     if (!ndb->airports || !ndb->airways || !ndb->waypoints || !ndr)
     {
         err = ENOMEM;
+        goto end;
+    }
+
+    ndb->wmm = ndt_wmm_init();
+    if (ndb->wmm == NULL)
+    {
+        fprintf(stderr, "navdata: failed to open World Magnetic Model\n");
+        err = -1;
         goto end;
     }
 
@@ -134,6 +144,11 @@ void ndt_navdatabase_close(ndt_navdatabase **_ndb)
                 ndt_waypoint_close               (               &wpt);
             }
             ndt_list_close(&ndb->waypoints);
+        }
+
+        if (ndb->wmm)
+        {
+            ndt_wmm_close(&ndb->wmm);
         }
 
         free(ndb);
