@@ -16,11 +16,14 @@ override COM_OBJECTS  =   $(addsuffix .o,$(basename $(notdir $(COM_SOURCES))))
 override CPT_HEADERS  =   $(SOURCE_DIR)/compat/compat.h
 override CPT_SOURCES  =   $(SOURCE_DIR)/compat/compat.c
 override CPT_OBJECTS  =   $(addsuffix .o,$(basename $(notdir $(CPT_SOURCES))))
+override WMM_HEADERS  =   $(wildcard $(SOURCE_DIR)/wmm/*.h)
+override WMM_SOURCES  =   $(wildcard $(SOURCE_DIR)/wmm/*.c)
+override WMM_OBJECTS  =   $(addsuffix .o,$(basename $(notdir $(WMM_SOURCES))))
 
 all: navdconv
 
-navdconv: ndcobj libobj comobj compat
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(TARGET_ARCH) -o $(NDCONV_EXE) $(NDC_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(LDLIBS)
+navdconv: ndcobj libobj comobj compat wmmobj
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(TARGET_ARCH) -o $(NDCONV_EXE) $(NDC_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(WMM_OBJECTS) $(LDLIBS)
 
 ndcobj: $(NDC_SOURCES)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c $(NDC_SOURCES)
@@ -34,6 +37,9 @@ comobj: $(COM_SOURCES) $(COM_HEADERS)
 compat: $(CPT_SOURCES) $(CPT_HEADERS)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c $(CPT_SOURCES)
 
+wmmobj: $(WMM_SOURCES) $(WMM_HEADERS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c $(WMM_SOURCES)
+
 .PHONY: version
 version:
 ifneq ($(strip $(GITVERSION)),)
@@ -42,4 +48,4 @@ endif
 
 .PHONY: clean
 clean:
-	$(RM) $(NDCONV_EXE) $(NDC_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS)
+	$(RM) $(NDCONV_EXE) $(NDC_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(WMM_OBJECTS)
