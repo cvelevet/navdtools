@@ -198,7 +198,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                  */
                 continue;
             }
-            else if (ndt_navdata_get_airway(ndb, prefix, NULL))
+            else if (ndt_navdata_get_airway(ndb, elem, NULL))
             {
                 ndt_airway_leg *in;
                 ndt_airway     *awy1, *awy2;
@@ -216,11 +216,11 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                     {
                         if ((in = ndt_airway_startpoint(awy1, src->info.idnt, src->position)))
                         {
-                            for (size_t awy2idx = 0; (awy2 = ndt_navdata_get_airway(ndb, prefix, &awy2idx)); awy2idx++)
+                            for (size_t awy2idx = 0; (awy2 = ndt_navdata_get_airway(ndb, elem, &awy2idx)); awy2idx++)
                             {
                                 if (ndt_airway_intersect(in, awy2))
                                 {
-                                    awy2id = strdup(prefix);
+                                    awy2id = strdup(elem);
                                     break;
                                 }
                             }
@@ -244,7 +244,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                     }
                     if (!awy2id && !dstidt)
                     {
-                         awy2id = strdup(prefix);
+                         awy2id = strdup(elem);
                     }
                 }
                 else
@@ -255,11 +255,11 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                      * waypoint and an airway in AIRAC 1405). If both fail, set
                      * awy1id so we can print an airway-specific error later.
                      */
-                    for (size_t awy1idx = 0; (awy1 = ndt_navdata_get_airway(ndb, prefix, &awy1idx)); awy1idx++)
+                    for (size_t awy1idx = 0; (awy1 = ndt_navdata_get_airway(ndb, elem, &awy1idx)); awy1idx++)
                     {
                         if (ndt_airway_startpoint(awy1, src->info.idnt, src->position))
                         {
-                            awy1id = strdup(prefix);
+                            awy1id = strdup(elem);
                             break;
                         }
                     }
@@ -283,12 +283,12 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                         {
                             for (size_t dstidx = 0; (dst = ndt_navdata_get_waypoint(ndb, rsg1->dst->info.idnt, &dstidx)); dstidx++)
                             {
-                                for (size_t awy1idx = 0; (awy1 = ndt_navdata_get_airway(ndb, prefix, &awy1idx)); awy1idx++)
+                                for (size_t awy1idx = 0; (awy1 = ndt_navdata_get_airway(ndb, elem, &awy1idx)); awy1idx++)
                                 {
                                     if (ndt_airway_startpoint(awy1, dst->info.idnt, dst->position))
                                     {
                                         src    = rsg1->dst = dst;
-                                        awy1id = strdup(prefix);
+                                        awy1id = strdup(elem);
                                         break;
                                     }
                                 }
@@ -307,7 +307,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                         }
                         else
                         {
-                            awy1id = strdup(prefix);
+                            awy1id = strdup(elem);
                         }
                     }
                 }
