@@ -29,8 +29,10 @@
 /* Remainder of a floored division (sign follows the divisor) */
 double ndt_mod(double y, double x);
 
-int ndt_log    (              const char *format, ...);
-int ndt_fprintf(FILE *stream, const char *format, ...);
+typedef int (ndt_log_callback)(const char *format, va_list ap);
+int  ndt_log    (              const char *format, ...);
+int  ndt_fprintf(FILE *stream, const char *format, ...);
+void ndt_log_set_callback  (ndt_log_callback *callback);
 
 char* ndt_file_slurp  (const char *name, int *ret);
 int   ndt_file_getline(      char **buf, int *cap, char **pos);

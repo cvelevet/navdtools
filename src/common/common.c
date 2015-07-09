@@ -36,11 +36,21 @@ double ndt_mod(double y, double x)
     return  y - x * floor(y / x);
 }
 
+static ndt_log_callback *log_callback = NULL;
+
 int ndt_log(const char *fmt, ...)
 {
+    int ret;
     va_list ap;
     va_start(ap, fmt);
-    int ret = vfprintf(stderr, fmt, ap);
+    if (log_callback)
+    {
+        ret = log_callback(fmt, ap);
+    }
+    else
+    {
+        ret = vfprintf(stderr, fmt, ap);
+    }
     va_end(ap);
     return ret;
 }
@@ -56,6 +66,11 @@ int ndt_fprintf(FILE *fd, const char *fmt, ...)
         return ret < 0 ? errno : 0;
     }
     return !fd ? EBADF : EINVAL;
+}
+
+void ndt_log_set_callback(ndt_log_callback *callback)
+{
+    log_callback = callback;
 }
 
 char* ndt_file_slurp(const char *name, int *p)
