@@ -451,12 +451,12 @@ void ndt_position_setprecision(ndt_position *pos, ndt_distance p[2])
     }
 }
 
-int ndt_position_calcbearing(ndt_position from, ndt_position to)
+double ndt_position_calcbearing(ndt_position from, ndt_position to)
 {
     if (!memcmp(&from.latitude,  &to.latitude,  sizeof(to.latitude)) &&
         !memcmp(&from.longitude, &to.longitude, sizeof(to.longitude)))
     {
-        return 0;
+        return 0.;
     }
 
     /*
@@ -466,20 +466,12 @@ int ndt_position_calcbearing(ndt_position from, ndt_position to)
     double lat2 = ndt_position_getlatitude (to,   NDT_ANGUNIT_RAD);
     double lon1 = ndt_position_getlongitude(from, NDT_ANGUNIT_RAD);
     double lon2 = ndt_position_getlongitude(to,   NDT_ANGUNIT_RAD);
-    double brng = atan2(sin(lon1 - lon2) * cos(lat2),
-                        cos(lat1) * sin(lat2) -
-                        sin(lat1) * cos(lat2) * cos(lon1 - lon2));
+    double brng = 2 * M_PI - ndt_mod(atan2(sin(lon1 - lon2) * cos(lat2),
+                                           cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(lon1 - lon2)),
+                                     2 * M_PI);
 
-    /*
-     * Because of atan2:
-     *
-     * (brng)                                  is in ]- pi;   pi ]
-     * (brng * 180. / M_PI)                    is in ]-180.; 180.]
-     * (360. - (brng * 180. / M_PI))           is in [ 180.; 540.[
-     * fmod(360. - (brng * 180. / M_PI), 360.) is in [   0.; 360.[
-     */
-    int    degr = round(fmod(360. - (brng * 180. / M_PI), 360.));
-    return degr ? degr : 360;
+    int    degr = brng * 180. / M_PI;
+    return degr ? degr : 360.;
 }
 
 ndt_distance ndt_position_calcdistance(ndt_position from, ndt_position to)
@@ -515,6 +507,46 @@ int ndt_position_calcintercept(ndt_position from, ndt_position to, ndt_position 
 {
     /* TODO: implement */
     return 0;
+}
+
+ndt_position ndt_position_calcpos4pbd(ndt_position from, double trub, ndt_distance dist)
+{
+    /*
+     * Earth radius (ellipsoidal quadratic mean): approx. 6,372,800 meters
+     */
+    double brg0 = (360. - trub) / 180. * M_PI;
+    double dis0 = (double)ndt_distance_get (dist, NDT_ALTUNIT_ME) / 6372800.;
+    double lat1 = ndt_position_getlatitude (from, NDT_ANGUNIT_RAD);
+    double lon1 = ndt_position_getlongitude(from, NDT_ANGUNIT_RAD);
+
+    /*
+     * http://williams.best.vwh.net/avform.htm#LL
+     */
+    double lat2 = asin (sin(lat1) * cos(dis0) +
+                        cos(lat1) * sin(dis0) * cos(brg0));
+    double dlon = atan2(sin(brg0) * sin(dis0) * cos(lat1),
+                        cos(dis0) - sin(lat1) * sin(lat2));
+    double lon2 = ndt_mod(lon1 - dlon + M_PI, 2 * M_PI) - M_PI;
+
+    if (0)//debug
+    {
+        ndt_position pos = ndt_position_init(lat2 * 180. / M_PI,
+                                             lon2 * 180. / M_PI,
+                                             ndt_distance_init(0,
+                                                               NDT_ALTUNIT_NA));
+        ndt_distance dis = ndt_position_calcdistance(from, pos);
+        double       tru = ndt_position_calcbearing (from, pos);
+        ndt_fprintf(stderr, "Distance: expected %.2lf, actual %.2lf\n",
+                    ndt_distance_get(dist, NDT_ALTUNIT_ME) /1852.,
+                    ndt_distance_get(dis,  NDT_ALTUNIT_ME) /1852.);
+        ndt_fprintf(stderr, "Bearing (°T): expected %03.1lf, actual %03.1lf\n",
+                    trub, tru);
+    }
+
+    /* Don't forget to convert radians to decimal degrees */
+    return ndt_position_init(lat2 * 180. / M_PI,
+                             lon2 * 180. / M_PI,
+                             ndt_distance_init(0, NDT_ALTUNIT_NA));
 }
 
 ndt_frequency ndt_frequency_init(double f)

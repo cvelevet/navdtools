@@ -79,5 +79,6 @@ typedef struct ndt_waypoint
 ndt_waypoint* ndt_waypoint_init (                        );
 void          ndt_waypoint_close(ndt_waypoint **_waypoint);
 ndt_waypoint* ndt_waypoint_llc  (const char    *format   );
+ndt_waypoint* ndt_waypoint_pbd  (ndt_waypoint  *place, double magbearing, ndt_distance distance, ndt_date date, void *wmm);
 
 #endif /* NDT_WAYPOINT_H */

@@ -28,6 +28,8 @@
 
 #include "compat/compat.h"
 
+#include "wmm/wmm.h"
+
 #include "waypoint.h"
 
 ndt_waypoint* ndt_waypoint_init()
@@ -60,7 +62,7 @@ void ndt_waypoint_close(ndt_waypoint **_wpt)
 
 ndt_waypoint* ndt_waypoint_llc(const char *fmt)
 {
-    ndt_waypoint *wpt = NULL;
+    ndt_waypoint *wpt;
 
     if (!fmt || !(wpt = ndt_waypoint_init()))
     {
@@ -290,6 +292,38 @@ ndt_waypoint* ndt_waypoint_llc(const char *fmt)
 
     wpt->position = ndt_position_init(lat, lon, ndt_distance_init(0, NDT_ALTUNIT_NA));
     wpt->type     = NDT_WPTYPE_LLC;
+
+end:
+    return wpt;
+}
+
+ndt_waypoint* ndt_waypoint_pbd(ndt_waypoint *plce, double magb, ndt_distance dist, ndt_date date, void *wmm)
+{
+    ndt_waypoint *wpt = NULL;
+
+    if (!plce || !(wpt = ndt_waypoint_init()))
+    {
+        goto end;
+    }
+
+    /* PBD is just a latitude/longitude waypoint with a special identifier */
+    wpt->type     = NDT_WPTYPE_LLC;
+    wpt->position = ndt_position_calcpos4pbd(plce->position,
+                                             ndt_wmm_getbearing_tru(wmm, magb, plce->position, date),
+                                             dist);
+    snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s%05.1lf/%05.1lf",
+             plce->info.idnt, magb,
+             ndt_distance_get(dist, NDT_ALTUNIT_ME) / 1852.);
+
+    if (0)//debug
+    {
+        double trub = ndt_position_calcbearing(plce->position, wpt->position);
+        ndt_fprintf(stderr,
+                    "Bearing: expected %03.1lf° actual %03.1lf° (%03.1lf° T)\n",
+                    magb,
+                    ndt_wmm_getbearing_mag(wmm, trub, plce->position, date),
+                    trub);
+    }
 
 end:
     return wpt;

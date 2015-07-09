@@ -125,10 +125,11 @@ double       ndt_position_getlatitude  (ndt_position  position, ndt_angle_unit u
 double       ndt_position_getlongitude (ndt_position  position, ndt_angle_unit unit                              );
 void         ndt_position_getprecision (ndt_position  position, ndt_distance  *precision[2]                      );
 void         ndt_position_setprecision (ndt_position *position, ndt_distance   precision[2]                      );
-int          ndt_position_calcbearing  (ndt_position  from,     ndt_position   to                                );
+double       ndt_position_calcbearing  (ndt_position  from,     ndt_position   to                                );
 ndt_distance ndt_position_calcdistance (ndt_position  from,     ndt_position   to                                );
 int          ndt_position_calcduration (ndt_position  from,     ndt_position   to,          ndt_airspeed at      );
 int          ndt_position_calcintercept(ndt_position  from,     ndt_position   to,          ndt_position orig    );
+ndt_position ndt_position_calcpos4pbd  (ndt_position  from,     double trubearing,          ndt_distance dist    );
 
 typedef struct ndt_frequency
 {
