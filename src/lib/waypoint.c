@@ -62,7 +62,7 @@ void ndt_waypoint_close(ndt_waypoint **_wpt)
 
 ndt_waypoint* ndt_waypoint_llc(const char *fmt)
 {
-    ndt_waypoint *wpt;
+    ndt_waypoint *wpt = NULL;
 
     if (!fmt || !(wpt = ndt_waypoint_init()))
     {
