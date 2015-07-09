@@ -318,11 +318,10 @@ ndt_waypoint* ndt_waypoint_pbd(ndt_waypoint *plce, double magb, ndt_distance dis
     if (0)//debug
     {
         double trub = ndt_position_calcbearing(plce->position, wpt->position);
-        ndt_fprintf(stderr,
-                    "Bearing: expected %03.1lf° actual %03.1lf° (%03.1lf° T)\n",
-                    magb,
-                    ndt_wmm_getbearing_mag(wmm, trub, plce->position, date),
-                    trub);
+        ndt_log("Bearing: expected %03.1lf° actual %03.1lf° (%03.1lf° T)\n",
+                magb,
+                ndt_wmm_getbearing_mag(wmm, trub, plce->position, date),
+                trub);
     }
 
 end:

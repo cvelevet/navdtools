@@ -36,6 +36,15 @@ double ndt_mod(double y, double x)
     return  y - x * floor(y / x);
 }
 
+int ndt_log(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    int ret = vfprintf(stderr, fmt, ap);
+    va_end(ap);
+    return ret;
+}
+
 int ndt_fprintf(FILE *fd, const char *fmt, ...)
 {
     if (fd && fmt)
@@ -536,11 +545,10 @@ ndt_position ndt_position_calcpos4pbd(ndt_position from, double trub, ndt_distan
                                                                NDT_ALTUNIT_NA));
         ndt_distance dis = ndt_position_calcdistance(from, pos);
         double       tru = ndt_position_calcbearing (from, pos);
-        ndt_fprintf(stderr, "Distance: expected %.2lf, actual %.2lf\n",
-                    ndt_distance_get(dist, NDT_ALTUNIT_ME) /1852.,
-                    ndt_distance_get(dis,  NDT_ALTUNIT_ME) /1852.);
-        ndt_fprintf(stderr, "Bearing (°T): expected %03.1lf, actual %03.1lf\n",
-                    trub, tru);
+        ndt_log("Distance: expected %.2lf, actual %.2lf\n",
+                ndt_distance_get(dist, NDT_ALTUNIT_ME) /1852.,
+                ndt_distance_get(dis,  NDT_ALTUNIT_ME) /1852.);
+        ndt_log("Bearing (°T): expected %03.1lf, actual %03.1lf\n", trub, tru);
     }
 
     /* Don't forget to convert radians to decimal degrees */

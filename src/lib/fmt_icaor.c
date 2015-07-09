@@ -94,8 +94,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                  */
                 if (!flp->dep.apt && (err = ndt_flightplan_set_departure(flp, ndb, prefix, NULL)))
                 {
-                    fprintf(stderr,
-                            "[fmt_icaor]: invalid departure airport '%s'\n",
+                    ndt_log("[fmt_icaor]: invalid departure airport '%s'\n",
                             prefix);
                     goto end;
                 }
@@ -329,7 +328,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
             }
             else
             {
-                fprintf(stderr, "[fmt_icaor]: invalid element '%s'\n", elem);
+                ndt_log("[fmt_icaor]: invalid element '%s'\n", elem);
                 err = EINVAL;
                 goto end;
             }
@@ -419,8 +418,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
     {
         if (rsg == NULL || rsg->dst->type != NDT_WPTYPE_APT || (err = ndt_flightplan_set_arrival(flp, ndb, rsg->dst->info.idnt, NULL)))
         {
-            fprintf(stderr,
-                    "[fmt_icaor]: invalid arrival airport '%s'\n",
+            ndt_log("[fmt_icaor]: invalid arrival airport '%s'\n",
                     rsg ? rsg->dst->info.idnt : NULL);
             goto end;
         }
@@ -455,7 +453,7 @@ int ndt_fmt_icaor_flightplan_write(ndt_flightplan *flp, FILE *fd)
 
     if (!flp->dep.apt || !flp->arr.apt)
     {
-        fprintf(stderr, "[fmt_icaor]: departure or arrival airport not set\n");
+        ndt_log("[fmt_icaor]: departure or arrival airport not set\n");
         ret = EINVAL;
         goto end;
     }
@@ -497,7 +495,7 @@ int ndt_fmt_sbrif_flightplan_write(ndt_flightplan *flp, FILE *fd)
 
     if (!flp->dep.apt || !flp->arr.apt)
     {
-        fprintf(stderr, "[fmt_sbrif]: departure or arrival airport not set\n");
+        ndt_log("[fmt_sbrif]: departure or arrival airport not set\n");
         ret = EINVAL;
         goto end;
     }
@@ -530,7 +528,7 @@ int ndt_fmt_svect_flightplan_write(ndt_flightplan *flp, FILE *fd)
 
     if (!flp->dep.apt || !flp->arr.apt)
     {
-        fprintf(stderr, "[fmt_svect]: departure or arrival airport not set\n");
+        ndt_log("[fmt_svect]: departure or arrival airport not set\n");
         ret = EINVAL;
         goto end;
     }
@@ -606,7 +604,7 @@ static int icao_printrt(FILE *fd, ndt_list *rte, int (*print_llc)(FILE *fd, ndt_
                 break;
 
             default:
-                fprintf(stderr, "[icao_printrt]: unknown segment type '%d'\n", rsg->type);
+                ndt_log("[icao_printrt]: unknown segment type '%d'\n", rsg->type);
                 ret = EINVAL;
                 break;
         }
@@ -670,7 +668,7 @@ static int icao_printlg(FILE *fd, ndt_list *lgs, int (*print_llc)(FILE *fd, ndt_
                 break;
 
             default:
-                fprintf(stderr, "[icao_printlg]: unknown leg type '%d'\n", leg->type);
+                ndt_log("[icao_printlg]: unknown leg type '%d'\n", leg->type);
                 ret = EINVAL;
                 break;
         }

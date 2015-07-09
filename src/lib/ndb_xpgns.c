@@ -269,12 +269,12 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
                        &elevation,
                        &transition) != 6)
             {
-                fprintf(stderr, "[ndb_xpgns] parse_airports: failed to parse \"");
+                ndt_log("[ndb_xpgns] parse_airports: failed to parse \"");
                 for (int i = 0; line[i] != '\r' && line[i] != '\n'; i++)
                 {
-                    fprintf(stderr, "%c", line[i]);
+                    ndt_log("%c", line[i]);
                 }
-                fprintf(stderr, "\"\n");
+                ndt_log("\"\n");
                 ndt_waypoint_close(&wpt);
                 ret = EINVAL;
                 goto end;
@@ -391,12 +391,12 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
 end:
     if (ret == EINVAL)
     {
-        fprintf(stderr, "[ndb_xpgns] parse_airports: failed to parse \"");
+        ndt_log("[ndb_xpgns] parse_airports: failed to parse \"");
         for (int i = 0; line[i] != '\r' && line[i] != '\n'; i++)
         {
-            fprintf(stderr, "%c", line[i]);
+            ndt_log("%c", line[i]);
         }
-        fprintf(stderr, "\"\n");
+        ndt_log("\"\n");
     }
     free(line);
     return ret;
@@ -531,12 +531,12 @@ static int parse_airways(char *src, ndt_navdatabase *ndb)
 end:
     if (ret == EINVAL)
     {
-        fprintf(stderr, "[ndb_xpgns] parse_airways: failed to parse \"");
+        ndt_log("[ndb_xpgns] parse_airways: failed to parse \"");
         for (int i = 0; line[i] != '\r' && line[i] != '\n'; i++)
         {
-            fprintf(stderr, "%c", line[i]);
+            ndt_log("%c", line[i]);
         }
-        fprintf(stderr, "\"\n");
+        ndt_log("\"\n");
     }
     free(line);
     return ret;
@@ -646,12 +646,12 @@ static int parse_navaids(char *src, ndt_navdatabase *ndb)
 end:
     if (ret == EINVAL)
     {
-        fprintf(stderr, "[ndb_xpgns] parse_navaids: failed to parse \"");
+        ndt_log("[ndb_xpgns] parse_navaids: failed to parse \"");
         for (int i = 0; line[i] != '\r' && line[i] != '\n'; i++)
         {
-            fprintf(stderr, "%c", line[i]);
+            ndt_log("%c", line[i]);
         }
-        fprintf(stderr, "\"\n");
+        ndt_log("\"\n");
     }
     free(line);
     return ret;
@@ -732,12 +732,12 @@ static int parse_waypoints(char *src, ndt_navdatabase *ndb)
 end:
     if (ret == EINVAL)
     {
-        fprintf(stderr, "[ndb_xpgns] parse_waypoints: failed to parse \"");
+        ndt_log("[ndb_xpgns] parse_waypoints: failed to parse \"");
         for (int i = 0; line[i] != '\r' && line[i] != '\n'; i++)
         {
-            fprintf(stderr, "%c", line[i]);
+            ndt_log("%c", line[i]);
         }
-        fprintf(stderr, "\"\n");
+        ndt_log("\"\n");
     }
     free(line);
     return ret;

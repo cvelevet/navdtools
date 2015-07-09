@@ -158,7 +158,7 @@ end:
     if (err)
     {
         strerror_r(err, errbuf, sizeof(errbuf));
-        fprintf(stderr, "flightplan: failed to set departure [%s%s%s] (%s)\n",
+        ndt_log("flightplan: failed to set departure [%s%s%s] (%s)\n",
                 icao ? icao : "",
                 rwid ? ", " : "",
                 rwid ? rwid : "", errbuf);
@@ -203,7 +203,7 @@ end:
     if (err)
     {
         strerror_r(err, errbuf, sizeof(errbuf));
-        fprintf(stderr, "flightplan: failed to set arrival [%s%s%s] (%s)\n",
+        ndt_log("flightplan: failed to set arrival [%s%s%s] (%s)\n",
                 icao ? icao : "",
                 rwid ? ", " : "",
                 rwid ? rwid : "", errbuf);
@@ -245,7 +245,7 @@ end:
     if (err)
     {
         strerror_r(err, errbuf, sizeof(errbuf));
-        fprintf(stderr, "flightplan: failed to parse route (%s)\n", errbuf);
+        ndt_log("flightplan: failed to parse route (%s)\n", errbuf);
         return err;
     }
     return route_leg_update(flp, ndb);
@@ -293,7 +293,7 @@ end:
     if (err)
     {
         strerror_r(err, errbuf, sizeof(errbuf));
-        fprintf(stderr, "flightplan: failed to write file (%s)\n", errbuf);
+        ndt_log("flightplan: failed to write file (%s)\n", errbuf);
     }
     return err;
 }
@@ -506,8 +506,7 @@ static int route_leg_airway(ndt_flightplan *flp, ndt_navdatabase *ndb, ndt_route
         if (!dst)
         {
             // navdata bug
-            fprintf(stderr,
-                    "Waypoint '%s' @ '%+010.6lf/%+011.6lf' not found for airway '%s'\n",
+            ndt_log("Waypoint '%s' @ '%+010.6lf/%+011.6lf' not found for airway '%s'\n",
                     in->out.info.idnt,
                     ndt_position_getlatitude (in->out.position, NDT_ANGUNIT_DEG),
                     ndt_position_getlongitude(in->out.position, NDT_ANGUNIT_DEG),

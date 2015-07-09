@@ -72,7 +72,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
         {
             if (*line != 'I' && *line != 'A' && *line != 'L')
             {
-                fprintf(stderr, "[fmt_xpfms]: invalid header (line 1)\n");
+                ndt_log("[fmt_xpfms]: invalid header (line 1)\n");
                 err = EINVAL;
                 goto end;
             }
@@ -83,7 +83,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
         {
             if (strncmp(line, "3 version", 9))
             {
-                fprintf(stderr, "[fmt_xpfms]: invalid header (line 2)\n");
+                ndt_log("[fmt_xpfms]: invalid header (line 2)\n");
                 err = EINVAL;
                 goto end;
             }
@@ -100,7 +100,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
         {
             if (sscanf(line, "%d", &nwaypoints) != 1)
             {
-                fprintf(stderr, "[fmt_xpfms]: invalid header (line 4)\n");
+                ndt_log("[fmt_xpfms]: invalid header (line 4)\n");
                 err = EINVAL;
                 goto end;
             }
@@ -131,7 +131,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
             {
                 if (typ != 1)
                 {
-                    fprintf(stderr, "[fmt_xpfms]: departure airport not set\n");
+                    ndt_log("[fmt_xpfms]: departure airport not set\n");
                     err = EINVAL;
                     goto end;
                 }
@@ -149,7 +149,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
             }
             if (!src)
             {
-                fprintf(stderr, "[fmt_xpfms]: invalid departure airport '%s'\n",
+                ndt_log("[fmt_xpfms]: invalid departure airport '%s'\n",
                         flp->dep.apt->info.idnt);
                 err = EINVAL;
                 goto end;
@@ -212,8 +212,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
         {
             if (round(fabs(lat)) > 90. || round(fabs(lon)) > 180.)
             {
-                fprintf(stderr,
-                        "[fmt_xpfms]: invalid coordinates (%lf, %lf)\n",
+                ndt_log("[fmt_xpfms]: invalid coordinates (%lf, %lf)\n",
                         lat, lon);
                 err = EINVAL;
                 goto end;
@@ -331,13 +330,13 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
     {
         if (rsg->dst->type != NDT_WPTYPE_APT)
         {
-            fprintf(stderr, "[fmt_xpfms]: arrival airport not set\n");
+            ndt_log("[fmt_xpfms]: arrival airport not set\n");
             err = EINVAL;
             goto end;
         }
         if ((err = ndt_flightplan_set_arrival(flp, ndb, rsg->dst->info.idnt, NULL)))
         {
-            fprintf(stderr, "[fmt_xpfms]: invalid arrival airport '%s'\n",
+            ndt_log("[fmt_xpfms]: invalid arrival airport '%s'\n",
                     flp->arr.apt->info.idnt);
             err = EINVAL;
             goto end;
@@ -354,12 +353,12 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
 end:
     if (err == EINVAL)
     {
-        fprintf(stderr, "[fmt_xpfms]: failed to parse \"");
+        ndt_log("[fmt_xpfms]: failed to parse \"");
         for (int i = 0; line[i] != '\r' && line[i] != '\n'; i++)
         {
-            fprintf(stderr, "%c", line[i]);
+            ndt_log("%c", line[i]);
         }
-        fprintf(stderr, "\"\n");
+        ndt_log("\"\n");
     }
     free(start);
     free(line);
@@ -378,7 +377,7 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
 
     if (!flp->dep.apt || !flp->arr.apt)
     {
-        fprintf(stderr, "[fmt_xpfms]: departure or arrival airport not set\n");
+        ndt_log("[fmt_xpfms]: departure or arrival airport not set\n");
         ret = EINVAL;
         goto end;
     }

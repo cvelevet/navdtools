@@ -74,7 +74,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
         {
             if (strncmp(line, "[CoRte]", 7))
             {
-                fprintf(stderr, "[fmt_aibxt]: invalid header\n");
+                ndt_log("[fmt_aibxt]: invalid header\n");
                 err = EINVAL;
                 goto end;
             }
@@ -195,8 +195,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
             {
                 if (dep_apt && strcasecmp(dep_apt, flp->dep.apt->info.idnt))
                 {
-                    fprintf(stderr,
-                            "[fmt_aibxt]: departure airport mismatch ('%s', '%s')\n",
+                    ndt_log("[fmt_aibxt]: departure airport mismatch ('%s', '%s')\n",
                             dep_apt, flp->dep.apt->info.idnt);
                     err = EINVAL;
                     goto end;
@@ -206,8 +205,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
             {
                 if (dep_rwy && strcasecmp(dep_rwy, flp->dep.rwy->info.idnt))
                 {
-                    fprintf(stderr,
-                            "[fmt_aibxt]: departure runway mismatch ('%s', '%s')\n",
+                    ndt_log("[fmt_aibxt]: departure runway mismatch ('%s', '%s')\n",
                             dep_rwy, flp->dep.rwy->info.idnt);
                     err = EINVAL;
                     goto end;
@@ -228,7 +226,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
             }
             if (!src)
             {
-                fprintf(stderr, "[fmt_aibxt]: invalid airport '%s'\n", dep_apt);
+                ndt_log("[fmt_aibxt]: invalid airport '%s'\n", dep_apt);
                 err = EINVAL;
                 goto end;
             }
@@ -238,7 +236,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
 
         if (!dstidt)
         {
-            fprintf(stderr, "[fmt_aibxt]: next waypoint not set\n");
+            ndt_log("[fmt_aibxt]: next waypoint not set\n");
             err = EINVAL;
             goto end;
         }
@@ -260,8 +258,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                 if (round(fabs(latitude))  >  90. ||
                     round(fabs(longitude)) > 180.)
                 {
-                    fprintf(stderr,
-                            "[fmt_aibxt]: invalid coordinates (%lf, %lf)\n",
+                    ndt_log("[fmt_aibxt]: invalid coordinates (%lf, %lf)\n",
                             latitude, longitude);
                     ndt_waypoint_close(&dst);
                     err = EINVAL;
@@ -294,7 +291,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
             ndt_waypoint  *wpt1 = ndt_navdata_get_wptnear2(ndb, srcidt, NULL, src->position);
             if (!wpt1 && !(wpt1 = ndt_waypoint_llc(srcidt)))
             {
-                fprintf(stderr, "[fmt_aibxt]: invalid waypoint '%s'\n", srcidt);
+                ndt_log("[fmt_aibxt]: invalid waypoint '%s'\n", srcidt);
                 err = EINVAL;
                 goto end;
             }
@@ -302,7 +299,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
             ndt_waypoint  *wpt2 = ndt_navdata_get_wptnear2(ndb, dstidt, NULL, wpt1->position);
             if (!wpt2 && !(wpt2 = ndt_waypoint_llc(dstidt)))
             {
-                fprintf(stderr, "[fmt_aibxt]: invalid waypoint '%s'\n", dstidt);
+                ndt_log("[fmt_aibxt]: invalid waypoint '%s'\n", dstidt);
                 err = EINVAL;
                 goto end;
             }
@@ -399,8 +396,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
     {
         if (arr_apt && strcasecmp(arr_apt, flp->arr.apt->info.idnt))
         {
-            fprintf(stderr,
-                    "[fmt_aibxt]: arrival airport mismatch ('%s', '%s')\n",
+            ndt_log("[fmt_aibxt]: arrival airport mismatch ('%s', '%s')\n",
                     arr_apt, flp->arr.apt->info.idnt);
             err = EINVAL;
             goto end;
@@ -410,8 +406,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
     {
         if (arr_rwy && strcasecmp(dep_rwy, flp->dep.rwy->info.idnt))
         {
-            fprintf(stderr,
-                    "[fmt_aibxt]: arrival runway mismatch ('%s', '%s')\n",
+            ndt_log("[fmt_aibxt]: arrival runway mismatch ('%s', '%s')\n",
                     arr_rwy, flp->arr.rwy->info.idnt);
             err = EINVAL;
             goto end;
@@ -427,12 +422,12 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
 end:
     if (err == EINVAL)
     {
-        fprintf(stderr, "[fmt_aibxt]: failed to parse \"");
+        ndt_log("[fmt_aibxt]: failed to parse \"");
         for (int i = 0; line[i] != '\r' && line[i] != '\n'; i++)
         {
-            fprintf(stderr, "%c", line[i]);
+            ndt_log("%c", line[i]);
         }
-        fprintf(stderr, "\"\n");
+        ndt_log("\"\n");
     }
     free(dep_apt);
     free(arr_apt);
@@ -456,7 +451,7 @@ int ndt_fmt_aibxt_flightplan_write(ndt_flightplan *flp, FILE *fd)
 
     if (!flp->dep.apt || !flp->arr.apt)
     {
-        fprintf(stderr, "[fmt_aibxt]: departure or arrival airport not set\n");
+        ndt_log("[fmt_aibxt]: departure or arrival airport not set\n");
         err = EINVAL;
         goto end;
     }
@@ -541,7 +536,7 @@ int ndt_fmt_aibxt_flightplan_write(ndt_flightplan *flp, FILE *fd)
                 break;
 
             default:
-                fprintf(stderr, "[fmt_aibxt]: unknown segment type '%d'\n", rsg->type);
+                ndt_log("[fmt_aibxt]: unknown segment type '%d'\n", rsg->type);
                 err = EINVAL;
                 break;
         }

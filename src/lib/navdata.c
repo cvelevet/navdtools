@@ -67,7 +67,7 @@ ndt_navdatabase* ndt_navdatabase_init(const char *ndr, ndt_navdataformat fmt)
     ndb->wmm = ndt_wmm_init();
     if (ndb->wmm == NULL)
     {
-        fprintf(stderr, "navdata: failed to open World Magnetic Model\n");
+        ndt_log("navdata: failed to open World Magnetic Model\n");
         err = -1;
         goto end;
     }
@@ -101,7 +101,7 @@ end:
     {
         ndt_navdatabase_close(&ndb);
         strerror_r(err, errbuf, sizeof(errbuf));
-        fprintf(stderr, "navdata: failed to open database (%s)\n", errbuf);
+        ndt_log("navdata: failed to open database (%s)\n", errbuf);
     }
     return ndb;
 }
@@ -315,14 +315,12 @@ ndt_waypoint* ndt_navdata_get_wpt4aws(ndt_navdatabase *ndb, ndt_waypoint *src, c
 
     if (last_in)
     {
-        fprintf(stderr,
-                "ndt_navdata_get_wpt4aws: airways '%s', '%s' have no intersection\n",
+        ndt_log("ndt_navdata_get_wpt4aws: airways '%s', '%s' have no intersection\n",
                 awyidt, awy2id);
     }
     else
     {
-        fprintf(stderr,
-                "ndt_navdata_get_wpt4aws: invalid startpoint '%s' for airway '%s'\n",
+        ndt_log("ndt_navdata_get_wpt4aws: invalid startpoint '%s' for airway '%s'\n",
                 src->info.idnt, awyidt);
     }
 
@@ -361,14 +359,12 @@ ndt_waypoint* ndt_navdata_get_wpt4awy(ndt_navdatabase *ndb, ndt_waypoint *src, c
 
     if (last_in)
     {
-        fprintf(stderr,
-                "ndt_navdata_get_wpt4awy: invalid endpoint '%s' for airway '%s'\n",
+        ndt_log("ndt_navdata_get_wpt4awy: invalid endpoint '%s' for airway '%s'\n",
                 dstidt, awyidt);
     }
     else
     {
-        fprintf(stderr,
-                "ndt_navdata_get_wpt4awy: invalid startpoint '%s' for airway '%s'\n",
+        ndt_log("ndt_navdata_get_wpt4awy: invalid startpoint '%s' for airway '%s'\n",
                 src->info.idnt, awyidt);
     }
 
