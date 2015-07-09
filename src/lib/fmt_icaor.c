@@ -46,7 +46,7 @@ static int latlon_svect(FILE *fd, ndt_position pos);
 int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb, const char *rte)
 {
     int           err      = 0;
-    ndt_waypoint *src      = NULL;
+    ndt_waypoint *src      = NULL, *lastpl = NULL;
     char         *awy1id   = NULL, *awy2id = NULL;
     char         *rtestart = NULL, *prefix = NULL, *rtenext, *elem;
 
@@ -84,7 +84,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
             {
                 free(prefix);
             }
-            prefix = strsep(&suffix, "/-");
+            prefix = strsep(&suffix, "/");
 
             if (!src)
             {
@@ -120,7 +120,73 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                 }
             }
 
-            if (0)
+            /*
+             * Place-bearing-distance; supported formats:
+             *
+             *     PlaceBearingDistance   (bearing and distance must be 3-digit)
+             *     Place/Bearing/Distance
+             *     Place-Bearing-Distance
+             *
+             * TODO: place cannot be a runway threshold as of yet.
+             * TODO: Boeing-style PPP[PP]BBB[.B]/DDD[.D] support (?)
+             *
+             * Place-Bearing/Place-Bearing: not yet implemented.
+             *
+             * Note: trailing character specifier avoids false matches.
+             */
+            char place[6];
+            int  pbbuf[6], bearing, distance, plbrdist = 0;
+            if (sscanf(prefix, "%5[^0-9]%1d%1d%1d%1d%1d%1d%c", place,
+                       &pbbuf[0],
+                       &pbbuf[1],
+                       &pbbuf[2],
+                       &pbbuf[3],
+                       &pbbuf[4],
+                       &pbbuf[5], place) == 7)
+            {
+                bearing  = pbbuf[0] * 100 + pbbuf[1] * 10 + pbbuf[2];
+                distance = pbbuf[3] * 100 + pbbuf[4] * 10 + pbbuf[5];
+                plbrdist = bearing <= 360 && ndt_navdata_get_waypoint(ndb, place, NULL);
+            }
+            else if (sscanf(elem, "%5[^/]/%3d/%3d%c", place, &bearing, &distance, place) == 3 ||
+                     sscanf(elem, "%5[^-]-%3d-%3d%c", place, &bearing, &distance, place) == 3)
+            {
+                plbrdist = bearing <= 360 && ndt_navdata_get_waypoint(ndb, place, NULL);
+            }
+
+            if (plbrdist)
+            {
+                /*
+                 * Handled first because we have a specific, reliable match.
+                 *
+                 * Check if we already have a named waypoint matching the place
+                 * in our flightplan and use it, else select the closest one.
+                 *
+                 * This avoids the following hypothetical situation:
+                 *
+                 * "[...] place foo place/bearing/distance [...]"
+                 *
+                 * ...where a second, distinct "place" waypoint exists and is
+                 * closer to "foo" than the first "place" waypoint. Assume the
+                 * intention is for "place/bearing/distance" to refer to the
+                 * same waypoint as the first "place" waypoint.
+                 */
+                if (lastpl == NULL || strcasecmp(lastpl->info.idnt, place))
+                {
+                    lastpl  = ndt_navdata_get_wptnear2(ndb, place, NULL, src->position);
+                }
+                if (lastpl == NULL)
+                {
+                    err = ENOMEM; // should never happen
+                    goto end;
+                }
+                cuswpt = ndt_waypoint_pbd(lastpl,
+                                          bearing,
+                                          ndt_distance_init(distance, NDT_ALTUNIT_NM),
+                                          ndt_date_now(),
+                                          ndb->wmm);
+            }
+            else if (0)
             {
                 /* TODO: handle or skip SID and STAR procedures */
             }
@@ -250,8 +316,8 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
             {
                 dstidt = prefix;
             }
-            else if ((cuswpt = ndt_waypoint_llc(elem)) ||
-                     (cuswpt = ndt_waypoint_llc(prefix)))
+            else if (cuswpt == NULL && ((cuswpt = ndt_waypoint_llc(elem)) ||
+                                        (cuswpt = ndt_waypoint_llc(prefix))))
             {
                 /*
                  * Valid latitude and longitude coordinates.
@@ -331,6 +397,10 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                 }
 
                 /* We have a leg, our last endpoint becomes our new startpoint */
+                if (rsg->dst->type != NDT_WPTYPE_LLC)
+                {
+                    lastpl = rsg->dst;
+                }
                 src = rsg->dst;
 
                 /* Let's not forget to add our new segment to the route */
