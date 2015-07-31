@@ -31,8 +31,8 @@
 struct ndt_list
 {
     void **items;
-    size_t count;
-    size_t alloc;
+    int    count;
+    int    alloc;
 };
 
 ndt_list* ndt_list_init()
@@ -56,24 +56,52 @@ ndt_list* ndt_list_init()
 
 size_t ndt_list_count(const ndt_list *l)
 {
-    return l ? l->count : 0;
+    return l && l->count > 0 ? l->count : 0;
 }
 
-void* ndt_list_item(const ndt_list *l, size_t i)
+void* ndt_list_item(const ndt_list *l, int i)
 {
-    if (!l || i >= l->count)
+    if (!l || l->count <= 0 || l->count <= i)
     {
         return NULL;
+    }
+
+    // negative index means start from the end and never fail
+    if (i < 0)
+    {
+        i += l->count;
+    }
+    if (i < 0)
+    {
+        i = 0;
+    }
+    if (i > l->count - 1)
+    {
+        i = l->count - 1;
     }
 
     return l->items[i];
 }
 
-void ndt_list_insert(ndt_list *l, void *p, size_t i)
+void ndt_list_insert(ndt_list *l, void *p, int i)
 {
-    if (!l || !p || i > l->count)
+    if (!l || !p)
     {
         return;
+    }
+
+    // negative index means start from the end and never fail
+    if (i < 0)
+    {
+        i += l->count;
+    }
+    if (i < 0)
+    {
+        i = 0;
+    }
+    if (i > l->count)
+    {
+        i = l->count;
     }
 
     if (l->alloc == l->count)
