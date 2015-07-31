@@ -181,7 +181,7 @@ static int execute_task(void)
         goto end;
     }
 
-    if (path_in)
+    if (path_in && !icao_route)
     {
         flp_rte = ndt_file_slurp(path_in, &ret);
         if (ret)
