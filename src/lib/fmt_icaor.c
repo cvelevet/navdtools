@@ -429,20 +429,43 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                 /* Check for duplicate waypoints */
                 if (rsg->src == rsg->dst)
                 {
-                    ndt_route_segment_close(&rsg);
-                    continue;
+                    goto remove_segment;
                 }
                 if (!lastapt)
                 {
                     ndt_position a = rsg->src->position;
                     ndt_position b = rsg->dst->position;
-                    if (!ndt_distance_get(ndt_position_calcdistance(a, b),
-                                          NDT_ALTUNIT_NA))
+                    if (ndt_distance_get(ndt_position_calcdistance(a, b),
+                                         NDT_ALTUNIT_NA) == 0)
                     {
-                        ndt_route_segment_close(&rsg);
-                        continue;
+                        goto remove_segment;
                     }
                 }
+                /*
+                 * Segment from the departure airport to a runway
+                 * threshold, 16 miles or less in lenth. Skip it,
+                 * the user should set the departure runway instead.
+                 */
+                if (dst->type    == NDT_WPTYPE_RWY &&
+                    src->type    == NDT_WPTYPE_APT &&
+                    flp->dep.apt == ndt_navdata_get_airport(ndb, src->info.idnt))
+                {
+                    ndt_position a = src->position;
+                    ndt_position b = dst->position;
+                    if (ndt_distance_get(ndt_position_calcdistance(a, b),
+                                         NDT_ALTUNIT_NM) <= 16)
+                    {
+                        goto remove_segment;
+                    }
+                }
+                /*
+                 * TODO: also skip segments from a runway threshold to the
+                 * destination airport, 16 miles or less in length (remove
+                 * previous segment and make this one a direct from the
+                 * previous segment's src to this segment's dst).
+                 *
+                 * Caveat: flp->arr.apt may not be set yet, maybe handle later?
+                 */
 
                 /* We have a leg, our last endpoint becomes our new startpoint */
                 if (rsg->dst->type != NDT_WPTYPE_LLC)
@@ -453,6 +476,11 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
 
                 /* Let's not forget to add our new segment to the route */
                 ndt_list_add(flp->rte, rsg);
+                continue;
+
+            remove_segment:
+                ndt_route_segment_close(&rsg);
+                continue;
             }
         }
     }
