@@ -217,10 +217,11 @@ end:
 
 static int parse_airports(char *src, ndt_navdatabase *ndb)
 {
-    char        *pos  = src;
-    ndt_airport *apt  = NULL;
-    char        *line = NULL;
-    int          linecap, ret = 0;
+    char         *pos  = src;
+    ndt_airport  *apt  = NULL;
+    ndt_waypoint *wpt = NULL;
+    char         *line = NULL;
+    int           linecap, ret = 0;
 
     while ((ret = ndt_file_getline(&line, &linecap, &pos)) > 0)
     {
@@ -234,16 +235,15 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
             int    elevation, transition;
             double latitude,  longitude;
 
-            apt = ndt_airport_init();
-            if (!apt)
+            wpt = ndt_waypoint_init();
+            if (!wpt)
             {
                 ret = ENOMEM;
                 goto end;
             }
 
-            // airports are waypoints, too
-            ndt_waypoint *wpt = ndt_waypoint_init();
-            if (!wpt)
+            apt = ndt_airport_init();
+            if (!apt)
             {
                 ret = ENOMEM;
                 goto end;
@@ -275,7 +275,7 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
                     ndt_log("%c", line[i]);
                 }
                 ndt_log("\"\n");
-                ndt_waypoint_close(&wpt);
+                ndt_airport_close(&apt);
                 ret = EINVAL;
                 goto end;
             }
@@ -295,12 +295,12 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
 
             ndt_list_add(ndb->airports,  apt);
             ndt_list_add(ndb->waypoints, wpt);
+            wpt = NULL;
             continue;
         }
 
         if (!strncmp(line, "R,", 2))
         {
-            ndt_runway *rwy;
             double      frequency, latitude, longitude;
             int         length, width, altitude;
 
@@ -310,7 +310,14 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
                 goto end;
             }
 
-            rwy = ndt_runway_init();
+            wpt = ndt_waypoint_init();
+            if (!wpt)
+            {
+                ret = ENOMEM;
+                goto end;
+            }
+
+            ndt_runway *rwy = ndt_runway_init();
             if (!rwy)
             {
                 ret = ENOMEM;
@@ -358,17 +365,25 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
 
             if (rwy->ils.avail)
             {
-                size_t len    = strlen(rwy->info.desc);
-                rwy->ils.freq = ndt_frequency_init(frequency);
+                size_t len     = strlen(rwy->info.desc);
+                wpt->frequency = rwy->ils.freq = ndt_frequency_init(frequency);
                 snprintf(rwy->info.desc + len, sizeof(rwy->info.desc) - len,
                          ", ILS %.3lf course %03d°",
                          ndt_frequency_get(rwy->ils.freq), rwy->ils.course);
             }
 
+            strncpy (wpt->region, "", sizeof(wpt->region));
+            snprintf(wpt->info.idnt,  sizeof(wpt->info.idnt), "%s%s",                   apt->info.idnt, rwy->info.idnt);
+            snprintf(wpt->info.desc,  sizeof(wpt->info.desc), "Runway %s, airport: %s", rwy->info.idnt, apt->info.idnt);
+
+            wpt->type      = NDT_WPTYPE_RWY;
+            wpt->position  =
             rwy->threshold = ndt_position_init(latitude, longitude, ndt_distance_init(altitude, NDT_ALTUNIT_FT));
             rwy->length    = ndt_distance_init(length, NDT_ALTUNIT_FT);
             rwy->width     = ndt_distance_init(width,  NDT_ALTUNIT_FT);
-            ndt_list_add(apt->runways, rwy);
+            ndt_list_add(apt->runways,   rwy);
+            ndt_list_add(ndb->waypoints, wpt);
+            wpt = NULL;
             continue;
         }
 
@@ -397,6 +412,12 @@ end:
             ndt_log("%c", line[i]);
         }
         ndt_log("\"\n");
+    }
+    if (wpt)
+    {
+        // note: we don't need to clean apt as it's guaranteed to be in the
+        // list or already closed; thus global cleanup will take care of it
+        ndt_waypoint_close(&wpt);
     }
     free(line);
     return ret;

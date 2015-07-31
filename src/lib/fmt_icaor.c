@@ -149,7 +149,6 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
              *     Place/Bearing/Distance
              *     Place-Bearing-Distance
              *
-             * TODO: place cannot be a runway threshold as of yet.
              * TODO: Boeing-style PPP[PP]BBB[.B]/DDD[.D] support (?)
              *
              * Place-Bearing/Place-Bearing: not yet implemented.
