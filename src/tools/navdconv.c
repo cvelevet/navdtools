@@ -181,12 +181,7 @@ static int execute_task(void)
         goto end;
     }
 
-    if (icao_route)
-    {
-        flp_rte   = icao_route;
-        format_in = NDT_FLTPFMT_ICAOR;
-    }
-    else
+    if (path_in)
     {
         flp_rte = ndt_file_slurp(path_in, &ret);
         if (ret)
@@ -194,8 +189,14 @@ static int execute_task(void)
             goto end;
         }
     }
+    else
+    {
+        flp_rte   = icao_route;
+        format_in = NDT_FLTPFMT_ICAOR;
+    }
 
-    if ((ret = ndt_flightplan_set_route(fltplan, navdata, flp_rte, format_in)))
+    if (flp_rte && (ret = ndt_flightplan_set_route(fltplan, navdata,
+                                                   flp_rte, format_in)))
     {
         goto end;
     }
@@ -456,9 +457,9 @@ static int validate_options(void)
         goto end;
     }
 
-    if (!path_in && !icao_route)
+    if (!path_in && !icao_route && !dep_apt && !arr_apt)
     {
-        fprintf(stderr, "No input (file or route string) provided\n");
+        fprintf(stderr, "No input file or route provided\n");
         ret = EINVAL;
         goto end;
     }
