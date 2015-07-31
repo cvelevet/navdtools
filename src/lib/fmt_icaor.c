@@ -46,6 +46,8 @@ static int latlon_svect(FILE *fd, ndt_position pos);
 int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb, const char *rte)
 {
     int           err      = 0;
+    ndt_airport  *lastapt  = NULL;
+    ndt_runway   *lastrwy  = NULL;
     ndt_waypoint *src      = NULL, *lastpl = NULL;
     char         *awy1id   = NULL, *awy2id = NULL;
     char         *rtestart = NULL, *prefix = NULL, *rtenext, *elem;
@@ -86,17 +88,38 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
             }
             prefix = strsep(&suffix, "/");
 
+            /* New element, reset last airport & runway. */
+            lastapt = NULL;
+            lastrwy = NULL;
+
             if (!src)
             {
                 /*
-                 * The first waypoint must be an airport, either set beforehand
-                 * or present in the route.
+                 * If the first waypoint is an airport, save the matching
+                 * airport (and runway, if applicable) for later use.
                  */
-                if (!flp->dep.apt && (err = ndt_flightplan_set_departure(flp, ndb, prefix, NULL)))
+                lastapt = ndt_navdata_get_airport(ndb, prefix);
+                if (lastapt && suffix)
                 {
-                    ndt_log("[fmt_icaor]: invalid departure airport '%s'\n",
-                            prefix);
-                    goto end;
+                    lastrwy = ndt_runway_get(lastapt, suffix);
+                }
+                else
+                {
+                    lastrwy = NULL;
+                }
+
+                /* Set or update the departure airport and runway. */
+                if (!flp->dep.apt || (!flp->dep.rwy && lastapt == flp->dep.apt))
+                {
+                    if ((err = ndt_flightplan_set_departure(flp, ndb,
+                                                            lastapt ? lastapt->info.idnt : NULL,
+                                                            lastrwy ? lastrwy->info.idnt : NULL)))
+                    {
+                        ndt_log("[fmt_icaor]: invalid departure '%s%s'\n",
+                                lastapt ? lastapt->info.idnt : NULL,
+                                lastrwy ? lastrwy->info.idnt : "");
+                        goto end;
+                    }
                 }
 
                 /*
@@ -112,9 +135,9 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                     }
                 }
 
-                if (!strncasecmp(prefix, flp->dep.apt->info.idnt, sizeof(flp->dep.apt->info.idnt)))
+                /* Don't store the departure airport in the route */
+                if (lastapt == flp->dep.apt)
                 {
-                    /* Don't store the departure airport in the route */
                     continue;
                 }
             }
@@ -360,6 +383,23 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                 else if (dstidt)
                 {
                     dst = ndt_navdata_get_wptnear2(ndb, dstidt, NULL, src->position);
+
+                    /*
+                     * If the last waypoint is an airport, save the matching
+                     * airport (and runway, if applicable) for later use.
+                     */
+                    if (dst && dst->type == NDT_WPTYPE_APT)
+                    {
+                        lastapt = ndt_navdata_get_airport(ndb, dst->info.idnt);
+                        if (lastapt && suffix)
+                        {
+                            lastrwy = ndt_runway_get(lastapt, suffix);
+                        }
+                        else
+                        {
+                            lastrwy = NULL;
+                        }
+                    }
                 }
                 else if (cuswpt)
                 {
@@ -388,11 +428,21 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                 }
 
                 /* Check for duplicate waypoints */
-                if (rsg->src == rsg->dst || !ndt_distance_get(ndt_position_calcdistance(rsg->src->position,
-                                                                                        rsg->dst->position), NDT_ALTUNIT_NA))
+                if (rsg->src == rsg->dst)
                 {
                     ndt_route_segment_close(&rsg);
                     continue;
+                }
+                if (!lastapt)
+                {
+                    ndt_position a = rsg->src->position;
+                    ndt_position b = rsg->dst->position;
+                    if (!ndt_distance_get(ndt_position_calcdistance(a, b),
+                                          NDT_ALTUNIT_NA))
+                    {
+                        ndt_route_segment_close(&rsg);
+                        continue;
+                    }
                 }
 
                 /* We have a leg, our last endpoint becomes our new startpoint */
@@ -408,27 +458,24 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
         }
     }
 
-    /*
-     * The last waypoint must also be an airport, either set beforehand or
-     * present in the route.
-     */
-    ndt_route_segment *rsg = ndt_list_item(flp->rte, ndt_list_count(flp->rte) - 1);
-
-    if (!flp->arr.apt)
+    /* Set or update the arrival airport and runway. */
+    if (!flp->arr.apt || (!flp->arr.rwy && lastapt == flp->arr.apt))
     {
-        if (rsg == NULL || rsg->dst->type != NDT_WPTYPE_APT || (err = ndt_flightplan_set_arrival(flp, ndb, rsg->dst->info.idnt, NULL)))
+        if ((err = ndt_flightplan_set_arrival(flp, ndb,
+                                              lastapt ? lastapt->info.idnt : NULL,
+                                              lastrwy ? lastrwy->info.idnt : NULL)))
         {
-            ndt_log("[fmt_icaor]: invalid arrival airport '%s'\n",
-                    rsg ? rsg->dst->info.idnt : NULL);
+            ndt_log("[fmt_icaor]: invalid arrival '%s%s'\n",
+                    lastapt ? lastapt->info.idnt : NULL,
+                    lastrwy ? lastrwy->info.idnt : "");
             goto end;
         }
     }
 
-    if (rsg && rsg->dst->type == NDT_WPTYPE_APT && !strncasecmp(rsg->dst->info.idnt,
-                                                                flp->arr.apt->info.idnt,
-                                                                sizeof(flp->arr.apt->info.idnt)))
+    /* Don't store the arrival airport in the route */
+    if (lastapt == flp->arr.apt)
     {
-        /* Don't store the arrival airport in the route */
+        ndt_route_segment *rsg = ndt_list_item(flp->rte, ndt_list_count(flp->rte) - 1);
         ndt_list_rem  (flp->rte, rsg);
         ndt_route_segment_close(&rsg);
     }
