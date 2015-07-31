@@ -506,7 +506,8 @@ int ndt_fmt_icaor_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
 
     // departure airport
-    ret = ndt_fprintf(fd, "%s SID ", flp->dep.apt->info.idnt);
+    ret = ndt_fprintf(fd, "%s SID%s", flp->dep.apt->info.idnt,
+                      ndt_list_count(flp->rte) ? " " : "");
     if (ret)
     {
         goto end;
