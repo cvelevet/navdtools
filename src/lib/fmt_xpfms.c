@@ -194,10 +194,11 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                 }
                 if (dst)
                 {
-                    if (ndt_distance_get(ndt_position_calcdistance(dst->position,
-                                                                   ndt_position_init(lat,
-                                                                                     lon,
-                                                                                     ndt_distance_init(0, NDT_ALTUNIT_NA))), NDT_ALTUNIT_NM) > 1)
+                    ndt_position a = dst->position;
+                    ndt_position b = ndt_position_init(lat, lon,
+                                                       ndt_distance_init(0, NDT_ALTUNIT_NA));
+
+                    if (ndt_distance_get(ndt_position_calcdistance(a, b), NDT_ALTUNIT_NM) > 1)
                     {
                         dst = NULL; // too far
                     }
