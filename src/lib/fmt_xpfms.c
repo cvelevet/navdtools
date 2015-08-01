@@ -38,6 +38,7 @@
 static int print_line    (FILE *fd, const char   *idt, int alt, ndt_position pos, int row);
 static int print_waypoint(FILE *fd, ndt_waypoint *wpt, int alt                           );
 static int print_airport (FILE *fd, ndt_airport  *apt                                    );
+static int print_runway  (FILE *fd, ndt_airport  *apt, ndt_runway           *rwy         );
 
 int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb, const char *rte)
 {
@@ -409,10 +410,17 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
         goto end;
     }
 
-    // departure airport
+    // departure airport and runway
     if ((ret = print_airport(fd, flp->dep.apt)))
     {
         goto end;
+    }
+    if (flp->dep.rwy)
+    {
+        if ((ret = print_runway(fd, flp->dep.apt, flp->dep.rwy)))
+        {
+            goto end;
+        }
     }
 
     for (size_t i = 0; i < ndt_list_count(flp->legs); i++)
@@ -492,7 +500,14 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
         }
     }
 
-    // arrival airport
+    // arrival runway and airport
+    if (flp->arr.rwy)
+    {
+        if ((ret = print_runway(fd, flp->arr.apt, flp->arr.rwy)))
+        {
+            goto end;
+        }
+    }
     if ((ret = print_airport(fd, flp->arr.apt)))
     {
         goto end;
@@ -564,6 +579,20 @@ static int print_airport(FILE *fd, ndt_airport *apt)
         ndt_distance distance = ndt_position_getaltitude(apt->coordinates);
         int          altitude = ndt_distance_get(distance, NDT_ALTUNIT_FT);
         return print_line(fd, apt->info.idnt, altitude, apt->coordinates, 1);
+    }
+
+    return -1;
+}
+
+static int print_runway(FILE *fd, ndt_airport *apt, ndt_runway *rwy)
+{
+    if (fd && apt && rwy)
+    {
+        char idnt[8];
+        ndt_distance distance = ndt_position_getaltitude(rwy->threshold);
+        int          altitude = ndt_distance_get(distance, NDT_ALTUNIT_FT);
+        snprintf(idnt, sizeof(idnt), "%s%s", apt->info.idnt, rwy->info.idnt);
+        return print_line(fd, idnt, altitude, rwy->threshold, 28);
     }
 
     return -1;
