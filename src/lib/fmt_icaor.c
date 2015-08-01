@@ -441,31 +441,6 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                         goto remove_segment;
                     }
                 }
-                /*
-                 * Segment from the departure airport to a runway
-                 * threshold, 16 miles or less in lenth. Skip it,
-                 * the user should set the departure runway instead.
-                 */
-                if (dst->type    == NDT_WPTYPE_RWY &&
-                    src->type    == NDT_WPTYPE_APT &&
-                    flp->dep.apt == ndt_navdata_get_airport(ndb, src->info.idnt))
-                {
-                    ndt_position a = src->position;
-                    ndt_position b = dst->position;
-                    if (ndt_distance_get(ndt_position_calcdistance(a, b),
-                                         NDT_ALTUNIT_NM) <= 16)
-                    {
-                        goto remove_segment;
-                    }
-                }
-                /*
-                 * TODO: also skip segments from a runway threshold to the
-                 * destination airport, 16 miles or less in length (remove
-                 * previous segment and make this one a direct from the
-                 * previous segment's src to this segment's dst).
-                 *
-                 * Caveat: flp->arr.apt may not be set yet, maybe handle later?
-                 */
 
                 /* We have a leg, our last endpoint becomes our new startpoint */
                 if (rsg->dst->type != NDT_WPTYPE_LLC)
@@ -502,9 +477,29 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
     /* Don't store the arrival airport in the route */
     if (lastapt == flp->arr.apt)
     {
-        ndt_route_segment *rsg = ndt_list_item(flp->rte, ndt_list_count(flp->rte) - 1);
+        ndt_route_segment *rsg = ndt_list_item(flp->rte, -1);
         ndt_list_rem  (flp->rte, rsg);
         ndt_route_segment_close(&rsg);
+    }
+
+    /*
+     * Remove segments from/to the departure/arrival
+     * airport, with a runway threshold as endpoint.
+     *
+     * Users who want runway thresholds in the flight plan should set the
+     * departure and arrival runways via dedicated options, not the route.
+     */
+    ndt_route_segment *fst = ndt_list_item(flp->rte,  0);
+    ndt_route_segment *lst = ndt_list_item(flp->rte, -1);
+    if (fst && fst->dst->type == NDT_WPTYPE_RWY)
+    {
+        ndt_list_rem  (flp->rte, fst);
+        ndt_route_segment_close(&fst);
+    }
+    if (lst && lst->dst->type == NDT_WPTYPE_RWY)
+    {
+        ndt_list_rem  (flp->rte, lst);
+        ndt_route_segment_close(&lst);
     }
 
 end:
