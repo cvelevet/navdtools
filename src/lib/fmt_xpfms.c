@@ -200,14 +200,11 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                     ndt_position a = dst->position;
                     ndt_position b = llc;
 
-                    if (ndt_distance_get(ndt_position_calcdistance(a, b), NDT_ALTUNIT_NM) > 1)
-                    {
-                        dst = NULL; // too far
-                    }
-                    else
+                    if (ndt_distance_get(ndt_position_calcdistance(a, b), NDT_ALTUNIT_NM) <= 1)
                     {
                         break; // we have our waypoint
                     }
+                    dst = NULL; // too far
                 }
             }
         }
