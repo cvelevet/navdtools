@@ -48,6 +48,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
     int           linecap, header = 0, err = 0;
     int           alt, typ, nwaypoints, discontinuity = 0;
     double        lat, lon;
+    ndt_position  llc;
 
     if (!flp || !ndb || !rte)
     {
@@ -118,6 +119,8 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
             err = EINVAL;
             goto end;
         }
+
+        llc = ndt_position_init(lat, lon, ndt_distance_init(0, NDT_ALTUNIT_NA));
 
         if (typ == 0)
         {
@@ -195,8 +198,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                 if (dst)
                 {
                     ndt_position a = dst->position;
-                    ndt_position b = ndt_position_init(lat, lon,
-                                                       ndt_distance_init(0, NDT_ALTUNIT_NA));
+                    ndt_position b = llc;
 
                     if (ndt_distance_get(ndt_position_calcdistance(a, b), NDT_ALTUNIT_NM) > 1)
                     {
