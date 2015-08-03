@@ -307,9 +307,10 @@ static int parse_options(int argc, char **argv)
                     format_out = NDT_FLTPFMT_SBRIF;
                     break;
                 }
-                if (!strcasecmp(optarg, "skyvector"))
+                if (!strcasecmp(optarg, "skyvector") || // legacy name for flat, decoded route
+                    !strcasecmp(optarg, "decoded"))
                 {
-                    format_out = NDT_FLTPFMT_SVECT;
+                    format_out = NDT_FLTPFMT_DCDED;
                     break;
                 }
                 if (!strcasecmp(optarg, "xplane"))
@@ -564,7 +565,7 @@ static int print_help(void)
             "                            airbusx     Airbus X Extended CoRte    \n"
             "                            icao        ICAO flight plan route,    \n"
             "                                        without specific SID/STAR  \n"
-            "                            skyvector   Decoded route, all legs on \n"
+            "                            decoded     Decoded route, all legs on \n"
             "                                        a single line              \n"
             "                            xplane      X-Plane .fms flight plan   \n"
             "                                        with QPAC enhancements for \n"
@@ -626,7 +627,7 @@ static int print_examples(void)
             " Convert an ICAO route with airways to a list of waypoints for use \n"
             " on e.g. SkyVector, and write it to the terminal:                  \n"
             "                                                                   \n"
-            "     %s --xplane $XPLANE --rte \"LSGG MOLUS UN871 BERSU LSZH\" --ofmt skyvector\n"
+            "     %s --xplane $XPLANE --rte \"LSGG MOLUS UN871 BERSU LSZH\" --ofmt decoded\n"
             "                                                                   \n"
             " Sanitize an Airbus X Extended company route, converting it from   \n"
             " the old format (DCT as airway) to the new (DCT with coordinates): \n"
@@ -642,7 +643,7 @@ static int print_examples(void)
             "     MOLUS UN871 BERSU                                             \n"
             "     SUROX 5620N 5630N 5540N 5350N YAY J580 YQY SCUPP              \n"
             "                                                                   \n"
-            " \"skyvector\" (output only):                                      \n"
+            " \"decoded\" (output only):                                      \n"
             "     LSGG MOLUS SOSAL TELNO KORED KONOL BERSU LSZH                 \n"
             "     EIDW SUROX +56.000000/-020.000000 +56.000000/-030.000000 +55.000000/-040.000000 +53.000000/-050.000000 YAY YJT YQY SCUPP KBOS\n"
             "                                                                   \n"

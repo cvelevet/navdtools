@@ -586,7 +586,7 @@ end:
     return ret;
 }
 
-int ndt_fmt_svect_flightplan_write(ndt_flightplan *flp, FILE *fd)
+int ndt_fmt_dcded_flightplan_write(ndt_flightplan *flp, FILE *fd)
 {
     int ret = 0;
 
@@ -598,7 +598,7 @@ int ndt_fmt_svect_flightplan_write(ndt_flightplan *flp, FILE *fd)
 
     if (!flp->dep.apt || !flp->arr.apt)
     {
-        ndt_log("[fmt_svect]: departure or arrival airport not set\n");
+        ndt_log("[fmt_dcded]: departure or arrival airport not set\n");
         ret = EINVAL;
         goto end;
     }
@@ -823,7 +823,13 @@ static int latlon_sbrif(FILE *fd, ndt_position pos)
 static int latlon_svect(FILE *fd, ndt_position pos)
 {
     // compatible with e.g. SkyVector
-    return ndt_fprintf(fd, "%+010.6lf/%+011.6lf",
-                       ndt_position_getlatitude (pos, NDT_ANGUNIT_DEG),
-                       ndt_position_getlongitude(pos, NDT_ANGUNIT_DEG));
+    return ndt_fprintf(fd, "%02d%02d%02d%c%03d%02d%02d%c",
+                       pos.latitude. degrees,
+                       pos.latitude. minutes,
+                       pos.latitude. seconds,
+                       pos.latitude. equator  == 1 ? 'N' : 'S',
+                       pos.longitude.degrees,
+                       pos.longitude.minutes,
+                       pos.longitude.seconds,
+                       pos.longitude.meridian == 1 ? 'E' : 'W');
 }

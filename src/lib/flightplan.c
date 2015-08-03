@@ -276,8 +276,8 @@ int ndt_flightplan_write(ndt_flightplan *flp, FILE *file, ndt_fltplanformat fmt)
             err = ndt_fmt_sbrif_flightplan_write(flp, file);
             break;
 
-        case NDT_FLTPFMT_SVECT:
-            err = ndt_fmt_svect_flightplan_write(flp, file);
+        case NDT_FLTPFMT_DCDED:
+            err = ndt_fmt_dcded_flightplan_write(flp, file);
             break;
 
         case NDT_FLTPFMT_XPFMS:
