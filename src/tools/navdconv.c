@@ -643,7 +643,7 @@ static int print_examples(void)
             "     MOLUS UN871 BERSU                                             \n"
             "     SUROX 5620N 5630N 5540N 5350N YAY J580 YQY SCUPP              \n"
             "                                                                   \n"
-            " \"decoded\" (output only):                                      \n"
+            " \"decoded\" (output only):                                        \n"
             "     LSGG MOLUS SOSAL TELNO KORED KONOL BERSU LSZH                 \n"
             "     EIDW SUROX +56.000000/-020.000000 +56.000000/-030.000000 +55.000000/-040.000000 +53.000000/-050.000000 YAY YJT YQY SCUPP KBOS\n"
             "                                                                   \n"
