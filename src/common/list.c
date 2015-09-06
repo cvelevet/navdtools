@@ -135,7 +135,7 @@ void ndt_list_add(ndt_list *l, void *p)
 
 void ndt_list_rem(ndt_list *l, void *p)
 {
-    if (!l || !p)
+    if (!l || !p || !ndt_list_count(l))
     {
         return;
     }
