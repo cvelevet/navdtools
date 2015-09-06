@@ -494,7 +494,7 @@ double ndt_position_calcbearing(ndt_position from, ndt_position to)
                                            cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(lon1 - lon2)),
                                      2 * M_PI);
 
-    int    degr = brng * 180. / M_PI;
+    double degr = brng * 180. / M_PI;
     return degr ? degr : 360.;
 }
 
@@ -550,9 +550,9 @@ ndt_position ndt_position_calcpos4pbd(ndt_position from, double trub, ndt_distan
                         cos(lat1) * sin(dis0) * cos(brg0));
     double dlon = atan2(sin(brg0) * sin(dis0) * cos(lat1),
                         cos(dis0) - sin(lat1) * sin(lat2));
-    double lon2 = ndt_mod(lon1 - dlon + M_PI, 2 * M_PI) - M_PI;
+    double lon2 = ndt_mod(lon1 - dlon + M_PI, 2. * M_PI) - M_PI;
 
-    if (0)//debug
+#if 0 //debug
     {
         ndt_position pos = ndt_position_init(lat2 * 180. / M_PI,
                                              lon2 * 180. / M_PI,
@@ -565,6 +565,7 @@ ndt_position ndt_position_calcpos4pbd(ndt_position from, double trub, ndt_distan
                 ndt_distance_get(dis,  NDT_ALTUNIT_ME) /1852.);
         ndt_log("Bearing (°T): expected %03.1lf, actual %03.1lf\n", trub, tru);
     }
+#endif
 
     /* Don't forget to convert radians to decimal degrees */
     return ndt_position_init(lat2 * 180. / M_PI,

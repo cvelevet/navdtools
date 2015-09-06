@@ -203,7 +203,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                 }
                 cuswpt = ndt_waypoint_pbd(lastpl,
                                           bearing,
-                                          ndt_distance_init(distance, NDT_ALTUNIT_NM),
+                                          ndt_distance_init(distance * 1852, NDT_ALTUNIT_ME),
                                           ndt_date_now(),
                                           ndb->wmm);
             }

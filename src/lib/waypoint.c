@@ -315,14 +315,23 @@ ndt_waypoint* ndt_waypoint_pbd(ndt_waypoint *plce, double magb, ndt_distance dis
              plce->info.idnt, magb,
              ndt_distance_get(dist, NDT_ALTUNIT_ME) / 1852.);
 
-    if (0)//debug
+#if 1 //debug
     {
-        double trub = ndt_position_calcbearing(plce->position, wpt->position);
-        ndt_log("Bearing: expected %03.1lf° actual %03.1lf° (%03.1lf° T)\n",
+        double       trub = ndt_position_calcbearing (plce->position, wpt->position);
+        ndt_distance d1st = ndt_position_calcdistance(plce->position, wpt->position);
+        ndt_log("-------------------------------------------------------------\n");
+        ndt_log("%s\n", wpt->info.idnt);
+        ndt_log("Bearing:  expected %5.1lf° (%05.1lf° T) actual %5.1lf° (%05.1lf° T)\n",
                 magb,
+                ndt_wmm_getbearing_tru(wmm, magb, plce->position, date),
                 ndt_wmm_getbearing_mag(wmm, trub, plce->position, date),
                 trub);
+        ndt_log("Distance: expected %5.1lf             actual %5.1lf\n",
+                ndt_distance_get(dist, NDT_ALTUNIT_ME) / 1852.,
+                ndt_distance_get(d1st, NDT_ALTUNIT_ME) / 1852.);
+        ndt_log("\n");
     }
+#endif
 
 end:
     return wpt;
