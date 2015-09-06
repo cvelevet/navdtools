@@ -495,8 +495,12 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
     ndt_route_segment *lst = ndt_list_item(flp->rte, -1);
     if (fst && fst->dst->type == NDT_WPTYPE_RWY)
     {
-        ndt_list_rem  (flp->rte, fst);
-        ndt_route_segment_close(&fst);
+        // when there's only one element, fst == lst, don't close it twice
+        if (fst != lst)
+        {
+            ndt_list_rem  (flp->rte, fst);
+            ndt_route_segment_close(&fst);
+        }
     }
     if (lst && lst->dst->type == NDT_WPTYPE_RWY)
     {
