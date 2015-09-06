@@ -146,36 +146,38 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
              * Place-bearing-distance; supported formats:
              *
              *     PlaceBearingDistance   (bearing and distance must be 3-digit)
+             *     PlaceBearing/Distance
              *     Place/Bearing/Distance
-             *     Place-Bearing-Distance
-             *
-             * TODO: Boeing-style PPP[PP]BBB[.B]/DDD[.D] support (?)
              *
              * Place-Bearing/Place-Bearing: not yet implemented.
              *
              * Note: trailing character specifier avoids false matches.
              */
-            char place[6];
-            int  pbbuf[6], bearing, distance, plbrdist = 0;
+            ndt_distance ndstce;
+            char         place[6];
+            double       bearing, distance;
+            int          bgbuf[3], dibuf[3];
             if (sscanf(prefix, "%5[^0-9]%1d%1d%1d%1d%1d%1d%c", place,
-                       &pbbuf[0],
-                       &pbbuf[1],
-                       &pbbuf[2],
-                       &pbbuf[3],
-                       &pbbuf[4],
-                       &pbbuf[5], place) == 7)
+                       &bgbuf[0],
+                       &bgbuf[1],
+                       &bgbuf[2],
+                       &dibuf[0],
+                       &dibuf[1],
+                       &dibuf[2], place) == 7)
             {
-                bearing  = pbbuf[0] * 100 + pbbuf[1] * 10 + pbbuf[2];
-                distance = pbbuf[3] * 100 + pbbuf[4] * 10 + pbbuf[5];
-                plbrdist = bearing <= 360 && ndt_navdata_get_waypoint(ndb, place, NULL);
+                bearing  = bgbuf[0] * 100. + bgbuf[1] * 10. + bgbuf[2] * 1.;
+                distance = dibuf[0] * 100. + dibuf[1] * 10. + dibuf[2] * 1.;
             }
-            else if (sscanf(elem, "%5[^/]/%3d/%3d%c", place, &bearing, &distance, place) == 3 ||
-                     sscanf(elem, "%5[^-]-%3d-%3d%c", place, &bearing, &distance, place) == 3)
+            else if (sscanf(elem, "%5[^/]/%lf/%lf%c",  place, &bearing, &distance, place) != 3 &&
+                     sscanf(elem, "%5[^0-9]%lf/%lf%c", place, &bearing, &distance, place) != 3)
             {
-                plbrdist = bearing <= 360 && ndt_navdata_get_waypoint(ndb, place, NULL);
+                // no match
+                bearing = distance = -1.;
             }
 
-            if (plbrdist)
+            if (distance > 0. &&
+                bearing >= 0. && bearing <= 360. &&
+                ndt_navdata_get_waypoint(ndb, place, NULL))
             {
                 /*
                  * Handled first because we have a specific, reliable match.
@@ -201,11 +203,11 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                     err = ENOMEM; // should never happen
                     goto end;
                 }
-                cuswpt = ndt_waypoint_pbd(lastpl,
-                                          bearing,
-                                          ndt_distance_init(distance * 1852, NDT_ALTUNIT_ME),
-                                          ndt_date_now(),
-                                          ndb->wmm);
+
+                // convert nautical miles to meters for distance
+                ndstce = ndt_distance_init((int64_t)(distance * 1852.), NDT_ALTUNIT_ME);
+                cuswpt = ndt_waypoint_pbd(lastpl, bearing, ndstce,
+                                          ndt_date_now(), ndb->wmm);
             }
             else if (0)
             {
