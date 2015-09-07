@@ -24,11 +24,16 @@
 #include "common/common.h"
 #include "common/list.h"
 
+#include "waypoint.h"
+
 typedef struct ndt_airport
 {
     ndt_info      info;        // identification information
     ndt_position  coordinates; // coordinates of airport
     ndt_distance  tr_altitude; // transition altitude
+    ndt_distance  trans_level; // transition level
+    ndt_distance  rwy_longest; // longest runway
+    ndt_waypoint *waypoint;    // associated waypoint
     ndt_list     *runways;     // available runways (ndt_runway)
 } ndt_airport;
 
@@ -37,27 +42,39 @@ void         ndt_airport_close(ndt_airport **_airport);
 
 typedef struct ndt_runway
 {
-    ndt_info     info;       // identification information
-    ndt_distance width;      // runway width
-    ndt_distance length;     // runway length
-    int          heading;    // runway heading
-    ndt_position threshold;  // coordinates of runway threshold
+    ndt_info      info;       // identification information
+    ndt_distance  width;      // width
+    ndt_distance  length;     // length
+    int           heading;    // heading
+    ndt_distance  overfly;    // threshold overflying height
+    ndt_position  threshold;  // threshold coordinates
+    ndt_waypoint *waypoint;   // associated waypoint
 
     struct
     {
         int           avail;  // availability
         int           course; // runway heading
+        double        slope;  // glideslope angle
         ndt_info      info;   // ILS identifier
         ndt_frequency freq;   // ILS frequency
     } ils;
 
     enum
     {
-        NDT_RWYSURF_OTHER, // other/unknown
-        NDT_RWYSURF_ASPHT, // asphalt
-        NDT_RWYSURF_CONCR, // concrete
-        NDT_RWYSURF_GRASS, // grass
-        NDT_RWYSURF_WATER, // water
+        NDT_RWYUSE_CLOSED,    // closed (unused)
+        NDT_RWYUSE_LDGTOF,    // landing and takeoff
+        NDT_RWYUSE_LANDNG,    // landing only
+        NDT_RWYUSE_TAKEOF,    // takeoff only
+    } status;
+
+    enum
+    {
+        NDT_RWYSURF_OTHER,    // other/unknown
+        NDT_RWYSURF_ASPHT,    // asphalt, bitumen
+        NDT_RWYSURF_CONCR,    // concrete
+        NDT_RWYSURF_GRASS,    // grass
+        NDT_RWYSURF_GRAVL,    // gravel, coral, ice
+        NDT_RWYSURF_WATER,    // water
     } surface;
 
     void *exits; // reserved for future use

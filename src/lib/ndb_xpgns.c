@@ -219,7 +219,6 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
 {
     char         *pos  = src;
     ndt_airport  *apt  = NULL;
-    ndt_waypoint *wpt = NULL;
     char         *line = NULL;
     int           linecap, ret = 0;
 
@@ -232,19 +231,19 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
 
         if (!strncmp(line, "A,", 2))
         {
-            int    elevation, transition;
-            double latitude,  longitude;
-
-            wpt = ndt_waypoint_init();
-            if (!wpt)
-            {
-                ret = ENOMEM;
-                goto end;
-            }
+            double latitude, longitude;
+            int    elevation, transalt, translvl, longestr;
 
             apt = ndt_airport_init();
             if (!apt)
             {
+                ret = ENOMEM;
+                goto end;
+            }
+            apt->waypoint = ndt_waypoint_init();
+            if (!apt->waypoint)
+            {
+                ndt_airport_close(&apt);
                 ret = ENOMEM;
                 goto end;
             }
@@ -258,51 +257,76 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
              * - longitude
              * - elevation           (unit: ft)
              * - transition altitude (unit: ft)
-             * - UNKNOWN
+             * - transition level    (unit: ft)
              * - longest runway      (unit: ft)
              */
-            if (sscanf(line, "%*c,%4s,%127[^,],%lf,%lf,%d,%d,%*d,%*d",
+            if (sscanf(line, "%*c,%4s,%127[^,],%lf,%lf,%d,%d,%d,%d",
                        apt->info.idnt,
                        apt->info.misc,
                        &latitude,
                        &longitude,
                        &elevation,
-                       &transition) != 6)
+                       &transalt,
+                       &translvl,
+                       &longestr) != 8)
             {
-                ndt_log("[ndb_xpgns] parse_airports: failed to parse \"");
-                for (int i = 0; line[i] != '\r' && line[i] != '\n'; i++)
-                {
-                    ndt_log("%c", line[i]);
-                }
-                ndt_log("\"\n");
-                ndt_airport_close(&apt);
+                ndt_waypoint_close(&apt->waypoint);
+                ndt_airport_close (&apt);
                 ret = EINVAL;
                 goto end;
             }
 
-            snprintf(apt->info.desc, sizeof(apt->info.desc),
-                     "Airport %s (%s), elevation %d ft, t/altitude %d ft",
-                     apt->info.idnt, apt->info.misc, elevation, transition);
+            if (translvl > 0 && transalt > 0)
+            {
+                snprintf(apt->info.desc, sizeof(apt->info.desc),
+                         "Airport %s (%s), elevation %d, TRL/TA %d/%d",
+                         apt->info.idnt,
+                         apt->info.misc, elevation, translvl, transalt);
+            }
+            else if (translvl > 0)
+            {
+                snprintf(apt->info.desc, sizeof(apt->info.desc),
+                         "Airport %s (%s), elevation %d, TRL/TA %d/ATC",
+                         apt->info.idnt,
+                         apt->info.misc, elevation, translvl);
+            }
+            else if (transalt > 0)
+            {
+                snprintf(apt->info.desc, sizeof(apt->info.desc),
+                         "Airport %s (%s), elevation %d, TRL/TA ATC/%d",
+                         apt->info.idnt,
+                         apt->info.misc, elevation, transalt);
+            }
+            else
+            {
+                snprintf(apt->info.desc, sizeof(apt->info.desc),
+                         "Airport %s (%s), elevation %d, TRL/TA ATC",
+                         apt->info.idnt,
+                         apt->info.misc, elevation);
+            }
 
-            strncpy(wpt->region,    "",             sizeof(wpt->region));
-            strncpy(wpt->info.idnt, apt->info.idnt, sizeof(wpt->info.idnt));
-            strncpy(wpt->info.desc, apt->info.desc, sizeof(wpt->info.desc));
+            strncpy(apt->waypoint->region,    "",             sizeof(apt->waypoint->region));
+            strncpy(apt->waypoint->info.idnt, apt->info.idnt, sizeof(apt->waypoint->info.idnt));
+            strncpy(apt->waypoint->info.desc, apt->info.desc, sizeof(apt->waypoint->info.desc));
 
-            wpt->type        = NDT_WPTYPE_APT;
-            wpt->position    =
-            apt->coordinates = ndt_position_init(latitude, longitude, ndt_distance_init(elevation, NDT_ALTUNIT_FT));
-            apt->tr_altitude = ndt_distance_init(transition, NDT_ALTUNIT_FT);
+            ndt_distance airprt_alt = ndt_distance_init(elevation, NDT_ALTUNIT_FT);
+            apt->tr_altitude        = ndt_distance_init(transalt,  NDT_ALTUNIT_FT);
+            apt->trans_level        = ndt_distance_init(translvl,  NDT_ALTUNIT_FT);
+            apt->rwy_longest        = ndt_distance_init(longestr,  NDT_ALTUNIT_FT);
+            apt->coordinates        =
+            apt->waypoint->position = ndt_position_init(latitude, longitude, airprt_alt);
+            apt->waypoint->type     = NDT_WPTYPE_APT;
 
             ndt_list_add(ndb->airports,  apt);
-            ndt_list_add(ndb->waypoints, wpt);
-            wpt = NULL;
+            ndt_list_add(ndb->waypoints, apt->waypoint);
             continue;
         }
 
         if (!strncmp(line, "R,", 2))
         {
-            double      frequency, latitude, longitude;
-            int         length, width, altitude;
+            const char *surfname, *usgename;
+            double frequency, latitude, longitude;
+            int    length, width, elevation, overfly, surface, usage;
 
             if (!apt)
             {
@@ -310,16 +334,16 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
                 goto end;
             }
 
-            wpt = ndt_waypoint_init();
-            if (!wpt)
+            ndt_runway *rwy = ndt_runway_init();
+            if (!rwy)
             {
                 ret = ENOMEM;
                 goto end;
             }
-
-            ndt_runway *rwy = ndt_runway_init();
-            if (!rwy)
+            rwy->waypoint = ndt_waypoint_init();
+            if (!rwy->waypoint)
             {
+                ndt_runway_close(&rwy);
                 ret = ENOMEM;
                 goto end;
             }
@@ -338,12 +362,12 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
              * - threshold: longitude
              * - threshold: elevation (unit:  ft)
              * - glideslope: angle    (unit: deg)
-             * - UNKNOWN
-             * - UNKNOWN
-             * - UNKNOWN
+             * - thres. ovfly. height (unit:  ft)
+             * - surface type
+             * - usage
              */
             if (sscanf(line,
-                       "%*c,%4[^,],%d,%d,%d,%d,%lf,%d,%lf,%lf,%d", rwy->info.idnt,
+                       "%*c,%4[^,],%d,%d,%d,%d,%lf,%d,%lf,%lf,%d,%lf,%d,%d,%d", rwy->info.idnt,
                        &rwy->heading,
                        &length,
                        &width,
@@ -352,44 +376,108 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
                        &rwy->ils.course,
                        &latitude,
                        &longitude,
-                       &altitude) != 10)
+                       &elevation,
+                       &rwy->ils.slope,
+                       &overfly,
+                       &surface,
+                       &usage) != 14)
             {
-                ndt_runway_close(&rwy);
+                ndt_waypoint_close(&rwy->waypoint);
+                ndt_runway_close  (&rwy);
                 ret = EINVAL;
                 goto end;
             }
 
+            if (usage == 3)
+            {
+                //runway closed
+                ndt_waypoint_close(&rwy->waypoint);
+                ndt_runway_close  (&rwy);
+                continue;
+            }
+
+            switch (usage)
+            {
+                case 1:
+                    rwy->status = NDT_RWYUSE_TAKEOF;
+                    usgename    = "takeoff only";
+                    break;
+                case 2:
+                    rwy->status = NDT_RWYUSE_LANDNG;
+                    usgename    = "landing only";
+                    break;
+                case 0:
+                default:
+                    rwy->status = NDT_RWYUSE_LDGTOF;
+                    usgename    = NULL;
+                    break;
+            }
+
+            switch (surface)
+            {
+                case 0:
+                    rwy->surface = NDT_RWYSURF_CONCR;
+                    surfname     = "concrete";
+                    break;
+                case 1:
+                    rwy->surface = NDT_RWYSURF_ASPHT;
+                    surfname     = "asphalt/bitumen";
+                    break;
+                case 2:
+                    rwy->surface = NDT_RWYSURF_GRAVL;
+                    surfname     = "gravel/coral/ice";
+                    break;
+                case 3:
+                default:
+                    rwy->surface = NDT_RWYSURF_OTHER;
+                    surfname     = NULL;
+                    break;
+            }
+
             snprintf(rwy->info.desc, sizeof(rwy->info.desc),
-                     "%4s runway %4s, heading %03d°, length %5d ft, width %3d ft",
+                     "%s runway %s, heading %03d°, length %d ft, width %d ft",
                      apt->info.idnt, rwy->info.idnt, rwy->heading, length, width);
 
             if (rwy->ils.avail)
             {
-                size_t len     = strlen(rwy->info.desc);
-                wpt->frequency = rwy->ils.freq = ndt_frequency_init(frequency);
-                snprintf(rwy->info.desc + len, sizeof(rwy->info.desc) - len,
-                         ", ILS %.3lf course %03d°",
-                         ndt_frequency_get(rwy->ils.freq), rwy->ils.course);
+                rwy->waypoint->frequency = rwy->ils.freq = ndt_frequency_init(frequency);
+                snprintf(rwy->info.desc         + strlen(rwy->info.desc),
+                         sizeof(rwy->info.desc) - strlen(rwy->info.desc),
+                         ", ILS %.3lf course %03d° slope %.1lf",
+                         ndt_frequency_get(rwy->ils.freq), rwy->ils.course, rwy->ils.slope);
             }
 
-            strncpy (wpt->region, "", sizeof(wpt->region));
-            snprintf(wpt->info.idnt,  sizeof(wpt->info.idnt), "%s%s",                   apt->info.idnt, rwy->info.idnt);
-            snprintf(wpt->info.desc,  sizeof(wpt->info.desc), "Runway %s, airport: %s", rwy->info.idnt, apt->info.idnt);
+            if (surfname || usgename)
+            {
+                snprintf(rwy->info.desc         + strlen(rwy->info.desc),
+                         sizeof(rwy->info.desc) - strlen(rwy->info.desc),
+                         " (%s%s%s)",
+                         surfname != NULL ? surfname : "",
+                         surfname && usgename ? ", " : "",
+                         usgename != NULL ? usgename : "");
+            }
 
-            wpt->type      = NDT_WPTYPE_RWY;
-            wpt->position  =
-            rwy->threshold = ndt_position_init(latitude, longitude, ndt_distance_init(altitude, NDT_ALTUNIT_FT));
-            rwy->length    = ndt_distance_init(length, NDT_ALTUNIT_FT);
-            rwy->width     = ndt_distance_init(width,  NDT_ALTUNIT_FT);
+            strncpy (rwy->waypoint->region, "", sizeof(rwy->waypoint->region));
+            snprintf(rwy->waypoint->info.idnt,  sizeof(rwy->waypoint->info.idnt),
+                     "%s%s",                    apt->info.idnt, rwy->info.idnt);
+            snprintf(rwy->waypoint->info.desc,  sizeof(rwy->waypoint->info.desc),
+                     "Runway %s, airport: %s",  rwy->info.idnt, apt->info.idnt);
+
+            ndt_distance thresh_alt = ndt_distance_init(elevation, NDT_ALTUNIT_FT);
+            rwy->length             = ndt_distance_init(length,    NDT_ALTUNIT_FT);
+            rwy->width              = ndt_distance_init(width,     NDT_ALTUNIT_FT);
+            rwy->overfly            =  ndt_distance_init(overfly,  NDT_ALTUNIT_FT);
+            rwy->threshold          =
+            rwy->waypoint->position = ndt_position_init(latitude, longitude, thresh_alt);
+            rwy->waypoint->type     = NDT_WPTYPE_RWY;
             ndt_list_add(apt->runways,   rwy);
-            ndt_list_add(ndb->waypoints, wpt);
-            wpt = NULL;
+            ndt_list_add(ndb->waypoints, rwy->waypoint);
             continue;
         }
 
         if (!strncmp(line, "X,", 2))
         {
-            continue;
+            continue; // AIRAC cycle and dates
         }
 
         // unsupported input
@@ -412,12 +500,6 @@ end:
             ndt_log("%c", line[i]);
         }
         ndt_log("\"\n");
-    }
-    if (wpt)
-    {
-        // note: we don't need to clean apt as it's guaranteed to be in the
-        // list or already closed; thus global cleanup will take care of it
-        ndt_waypoint_close(&wpt);
     }
     free(line);
     return ret;
