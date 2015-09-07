@@ -440,6 +440,7 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
 
             if (rwy->ils.avail)
             {
+                rwy->waypoint->range     = ndt_distance_init(18, NDT_ALTUNIT_NM);
                 rwy->waypoint->frequency = rwy->ils.freq = ndt_frequency_init(frequency);
                 snprintf(rwy->info.desc         + strlen(rwy->info.desc),
                          sizeof(rwy->info.desc) - strlen(rwy->info.desc),
