@@ -574,20 +574,21 @@ static int parse_airways(char *src, ndt_navdatabase *ndb)
             /*
              * Format: CSV
              * - 'S'
-             * - identifier
-             * - latitude
-             * - longitude
-             * - identifier (next waypoint)
-             * - latitude   (next waypoint)
-             * - longitude  (next waypoint)
-             * - UNKNOWN    (related to course between waypoints)
-             * - UNKNOWN    (related to course between waypoints)
-             * - distance between waypoint and next (unit: NM)
+             * - identifier (entry point)
+             * - latitude   (entry point)
+             * - longitude  (entry point)
+             * - identifier (exit  point)
+             * - latitude   (exit  point)
+             * - longitude  (exit  point)
+             * - course     (inbound)
+             * - course     (outbound)
+             * - distance   (unit: nmi)
              */
             if (sscanf(line,
-                       "%*c,%5[^,],%lf,%lf,%5[^,],%lf,%lf,%*d,%*d,%lf",
+                       "%*c,%5[^,],%lf,%lf,%5[^,],%lf,%lf,%d,%d,%lf",
                        next->in. info.idnt, &latitude[0], &longitude[0],
-                       next->out.info.idnt, &latitude[1], &longitude[1], &distance) != 7)
+                       next->out.info.idnt, &latitude[1], &longitude[1],
+                      &next->course.inbound, &next->course.outbound, &distance) != 9)
             {
                 free(next);
                 ret = EINVAL;
@@ -596,6 +597,7 @@ static int parse_airways(char *src, ndt_navdatabase *ndb)
 
             next->in. position = ndt_position_init(latitude[0], longitude[0], ndt_distance_init(0, NDT_ALTUNIT_NA));
             next->out.position = ndt_position_init(latitude[1], longitude[1], ndt_distance_init(0, NDT_ALTUNIT_NA));
+            next->length       = ndt_distance_init((int)(distance * 1852.), NDT_ALTUNIT_ME);
 
             if (!leg)
             {
@@ -658,7 +660,7 @@ static int parse_navaids(char *src, ndt_navdatabase *ndb)
             continue; // skip blank lines
         }
 
-        int    elevation, vor;
+        int    elevation, range, vor;
         double frequency, latitude, longitude;
 
         ndt_waypoint *wpt = ndt_waypoint_init();
@@ -672,19 +674,19 @@ static int parse_navaids(char *src, ndt_navdatabase *ndb)
          * Format: CSV
          * - identifier
          * - name
-         * - frequency (unit: kHz)
+         * - frequency              (unit: variable)
          * - navaid has a VOR component
          * - navaid has a DME component
-         * - UNKNOWN (either 195 or 110)
-         * - latitude
-         * - longitude
-         * - elevation (unit:  ft)
+         * - range                  (unit: nmi)
+         * - latitude               (unit: deg)
+         * - longitude              (unit: deg)
+         * - elevation              (unit:  ft)
          * - region/country code
-         * - UNKNOWN (always zero)
+         * - exclude from auto-tune (1: exclude, 0: include) (unused)
          */
-        if (sscanf(line, "%4[^,],%127[^,],%lf,%d,%d,%*d,%lf,%lf,%d,%2[^,],%*d", wpt->info.idnt,
-                   wpt->info.misc, &frequency, &vor, &wpt->dme, &latitude, &longitude, &elevation,
-                   wpt->region) != 9)
+        if (sscanf(line, "%4[^,],%127[^,],%lf,%d,%d,%d,%lf,%lf,%d,%2[^,],%*d", wpt->info.idnt,
+                   wpt->info.misc, &frequency, &vor, &wpt->dme, &range, &latitude, &longitude, &elevation,
+                   wpt->region) != 10)
         {
             ndt_waypoint_close(&wpt);
             ret = EINVAL;
@@ -735,6 +737,7 @@ static int parse_navaids(char *src, ndt_navdatabase *ndb)
                  wpt->info.idnt, frequency, wpt->region);
 
         wpt->frequency = ndt_frequency_init(frequency);
+        wpt->range     = ndt_distance_init (range, NDT_ALTUNIT_NM);
         wpt->position  = ndt_position_init (latitude, longitude, ndt_distance_init(elevation, NDT_ALTUNIT_FT));
         ndt_list_add(ndb->waypoints, wpt);
         continue;

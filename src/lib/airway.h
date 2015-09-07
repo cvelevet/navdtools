@@ -50,6 +50,14 @@ typedef struct ndt_airway_leg
         ndt_position position;
     } out;
 
+    struct
+    {
+        int inbound;
+        int outbound;
+    } course;
+
+    ndt_distance length;
+
     void *next;
 } ndt_airway_leg;
 

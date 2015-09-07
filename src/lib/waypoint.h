@@ -58,7 +58,8 @@ typedef struct ndt_waypoint
     ndt_info      info;      // identification information
     char          region[3]; // two-letter region/country code
     ndt_position  position;  // longitude, latitude and altitude
-    ndt_frequency frequency; // associated navaid frequency, if applicable
+    ndt_frequency frequency; // associated navaid's frequency   (if applicable)
+    ndt_distance  range;     // associated navaid's range       (if applicable)
     int           dme;       // associated navaid has a DME component
 
     enum
