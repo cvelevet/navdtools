@@ -606,22 +606,13 @@ int ndt_fmt_dcded_flightplan_write(ndt_flightplan *flp, FILE *fd)
         goto end;
     }
 
-    // departure airport
-    ret = ndt_fprintf(fd, "%s ", flp->dep.apt->info.idnt);
-    if (ret)
-    {
-        goto end;
-    }
-
-    // decoded route
+    // decoded route only
     ret = icao_printlg(fd, flp->legs, NDT_LLCFMT_SVECT);
     if (ret)
     {
         goto end;
     }
-
-    // arrival airport
-    ret = ndt_fprintf(fd, " %s\n", flp->arr.apt->info.idnt);
+    ret = ndt_fprintf(fd, "%s", "\n");
     if (ret)
     {
         goto end;
