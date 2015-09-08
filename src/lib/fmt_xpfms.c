@@ -568,7 +568,7 @@ static int print_line(FILE *fd, const char *idt, int alt, int spd, ndt_position 
         }
         else
         {
-            ret = fprintf(fd, "%-2d  %-7s  %05d  %+010.6lf  %+011.6lf %010.6lf\n",
+            ret = fprintf(fd, "%-2d  %-7s  %05d  %+010.6lf  %+011.6lf  %010.6lf\n",
                           row, idt, alt,
                           ndt_position_getlatitude (pos, NDT_ANGUNIT_DEG),
                           ndt_position_getlongitude(pos, NDT_ANGUNIT_DEG), (double)spd);
@@ -584,6 +584,10 @@ static int print_waypoint(FILE *fd, ndt_waypoint *wpt, int alt, int spd)
 {
     if (fd && wpt)
     {
+        // X-Plane 10.36 doesn't check the ID for lat/lon waypoints, keep it short
+        char llc[8];
+        ndt_position_sprintllc(wpt->position, NDT_LLCFMT_DEFLT, llc, sizeof(llc));
+
         switch (wpt->type)
         {
             case NDT_WPTYPE_APT:
@@ -599,18 +603,7 @@ static int print_waypoint(FILE *fd, ndt_waypoint *wpt, int alt, int spd)
                 return print_line(fd, wpt->info.idnt, alt, spd, wpt->position, 11);
 
             default: // latitude/longitude or other unsupported type
-            {
-                // X-Plane 10.30 doesn't care much about the name, keep it short
-                char   lat_lon_string[17];
-                double lat = ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG);
-                double lon = ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG);
-
-                snprintf(lat_lon_string, sizeof(lat_lon_string), "%c%02d%c%03d",
-                         lat >= 0. ? 'N' : 'S', (int)round(fabs(lat)),
-                         lon >= 0. ? 'E' : 'W', (int)round(fabs(lon)));
-
-                return print_line(fd, lat_lon_string, alt, spd, wpt->position, 28);
-            }
+                return print_line(fd, llc,            alt, spd, wpt->position, 28);
         }
     }
 

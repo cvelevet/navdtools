@@ -636,11 +636,11 @@ int ndt_position_sprintllc(ndt_position pos, ndt_llcfmt fmt, char *buf, size_t l
                             ilond, ilonm, ilons, card[1]);
         }
 
+        case NDT_LLCFMT_DEFLT:
         default:
             break;
     }
 
-    // default format, e.g. N46E050
     return snprintf(buf, len, "%c%02d%c%03d",
                     card[0], (int)(dlatd + .5),
                     card[1], (int)(dlond + .5));

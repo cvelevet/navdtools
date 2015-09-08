@@ -120,6 +120,7 @@ typedef struct ndt_position
 
 typedef enum
 {
+    NDT_LLCFMT_DEFLT,   // default: 7-letter, e.g. N46E050
     NDT_LLCFMT_AIRBS,   // Airbus CDU format    (TODO)
     NDT_LLCFMT_BOING,   // Boeing CDU format    (TODO)
     NDT_LLCFMT_ICAOR,   // FAA ORDER JO 7110.10X, Appendix A. ICAO FLIGHT PLANS
