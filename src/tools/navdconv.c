@@ -52,13 +52,15 @@
 #define OPT_OFMT 264
 #define OPT_DAPT 265
 #define OPT_DRWY 266
-#define OPT_DPRO 267
-#define OPT_DTRA 268
+#define OPT_DSID 267
+#define OPT_DSTR 268
 #define OPT_AAPT 269
 #define OPT_ARWY 270
-#define OPT_APRO 271
-#define OPT_ATRA 272
-#define OPT_IRTE 273
+#define OPT_ASTA 271
+#define OPT_ASTR 272
+#define OPT_ATRS 273
+#define OPT_AFIN 274
+#define OPT_IRTE 275
 
 static struct option navdconv_opts[] =
 {
@@ -81,13 +83,17 @@ static struct option navdconv_opts[] =
 
     // departure, arrival, route
     { "dep",           required_argument, NULL, OPT_DAPT, },
+    { "drwy",          required_argument, NULL, OPT_DRWY, },
     { "dep-rwy",       required_argument, NULL, OPT_DRWY, },
-    { "sid",           required_argument, NULL, OPT_DPRO, },
-    { "sid-trans",     required_argument, NULL, OPT_DTRA, },
+    { "sid",           required_argument, NULL, OPT_DSID, },
+    { "sidtr",         required_argument, NULL, OPT_DSTR, },
     { "arr",           required_argument, NULL, OPT_AAPT, },
+    { "arwy",          required_argument, NULL, OPT_ARWY, },
     { "arr-rwy",       required_argument, NULL, OPT_ARWY, },
-    { "star",          required_argument, NULL, OPT_APRO, },
-    { "star-trans",    required_argument, NULL, OPT_ATRA, },
+    { "star",          required_argument, NULL, OPT_ASTA, },
+    { "startr",        required_argument, NULL, OPT_ASTR, },
+    { "apptr",         required_argument, NULL, OPT_ATRS, },
+    { "final",         required_argument, NULL, OPT_AFIN, },
     { "rte",           required_argument, NULL, OPT_IRTE, },
 
     // that's all folks!
@@ -113,6 +119,8 @@ static char *arr_apt     = NULL;
 static char *arr_rwy     = NULL;
 static char *star_name   = NULL;
 static char *star_trans  = NULL;
+static char *appr_trans  = NULL;
+static char *final_appr  = NULL;
 static char *icao_route  = NULL;
 
 static int execute_task    (void);
@@ -329,11 +337,11 @@ static int parse_options(int argc, char **argv)
                 dep_rwy = strdup(optarg);
                 break;
 
-            case OPT_DPRO:
+            case OPT_DSID:
                 sid_name = strdup(optarg);
                 break;
 
-            case OPT_DTRA:
+            case OPT_DSTR:
                 sid_trans = strdup(optarg);
                 break;
 
@@ -345,12 +353,20 @@ static int parse_options(int argc, char **argv)
                 arr_rwy = strdup(optarg);
                 break;
 
-            case OPT_APRO:
+            case OPT_ASTA:
                 star_name = strdup(optarg);
                 break;
 
-            case OPT_ATRA:
+            case OPT_ASTR:
                 star_trans = strdup(optarg);
+                break;
+
+            case OPT_ATRS:
+                appr_trans = strdup(optarg);
+                break;
+
+            case OPT_AFIN:
+                final_appr = strdup(optarg);
                 break;
 
             case OPT_IRTE:
@@ -577,22 +593,24 @@ static int print_help(void)
             "  --dep        <string> Set departure airport (4-letter ICAO code).\n"
             "                        May be omitted if the departure is present \n"
             "                        in the route as well.                      \n"
+            "  --drwy       <string> Set departure runway. Can be omitted unless\n"
             "                                                                   \n"
 #if 0
-            "  --dep-rwy    <string> Set departure runway. Can be omitted unless\n"
             "                        a SID procedure is also specified.         \n"
             "  --sid        <string> Select a SID procedure (not implemented).  \n"
-            "  --sid-trans  <string> Set the SID transition (not implemented).  \n"
+            "  --sidtr      <string> Set the SID transition (not implemented).  \n"
             "                                                                   \n"
 #endif
             "  --arr        <string> Set arrival airport (4-letter ICAO code).  \n"
             "                        May be omitted if the arrival is present   \n"
             "                        in the route as well.                      \n"
+            "  --arwy       <string> Set arrival runway. Can be omitted.        \n"
             "                                                                   \n"
 #if 0
             "  --star       <string> Select a STAR procedure (not implemented). \n"
-            "  --star-trans <string> Set the STAR transition (not implemented). \n"
-            "  --arr-rwy    <string> Set arrival runway. Can be omitted.        \n"
+            "  --startr     <string> Set the STAR transition (not implemented). \n"
+            "  --apptr      <string> Set the approach trans. (not implemented). \n"
+            "  --final      <string> Set the final approach  (not implemented). \n"
             "                                                                   \n"
 #endif
             "  --rte        <string> Route in ICAO flight plan format. Should   \n"
