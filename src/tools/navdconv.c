@@ -62,6 +62,8 @@
 #define OPT_AFIN 274
 #define OPT_IRTE 275
 
+static int fprintairac = 0;
+
 static struct option navdconv_opts[] =
 {
     { "h",             no_argument,       NULL, OPT_HELP, },
@@ -74,6 +76,7 @@ static struct option navdconv_opts[] =
     // navigation data
     { "db",            required_argument, NULL, OPT_DTBS, },
     { "xplane",        required_argument, NULL, OPT_XPLN, },
+    { "airac",         no_argument,      &fprintairac, 1, },
 
     // file input/output
     { "i",             required_argument, NULL, OPT_INPT, },
@@ -126,6 +129,7 @@ static char *icao_route  = NULL;
 static int execute_task    (void);
 static int parse_options   (int argc, char **argv);
 static int validate_options(void);
+static int print_airac     (ndt_navdatabase  *ndb);
 static int print_help      (void);
 static int print_examples  (void);
 static int print_version   (void);
@@ -172,6 +176,11 @@ static int execute_task(void)
     {
         ret = EINVAL;
         goto end;
+    }
+
+    if (fprintairac)
+    {
+        print_airac(navdata);
     }
 
     if (!(fltplan = ndt_flightplan_init()))
@@ -540,6 +549,12 @@ end:
     return ret;
 }
 
+static int print_airac(ndt_navdatabase *ndb)
+{
+    fprintf(stderr, "Navdata -> %s\n\n", ndb->info.desc);
+    return 0;
+}
+
 static int print_help(void)
 {
     print_version();
@@ -557,6 +572,7 @@ static int print_help(void)
             "  --db         <string> Set the path to the root of a valid navdata\n"
             "                        folder (in X-Plane 10.30 GNS430 format).   \n"
             "                        Required if the path to X-Plane is not set.\n"
+            "  --airac               Print navadata description to stderr.      \n"
             "                                                                   \n"
             "### Input and output    -------------------------------------------\n"
             "  -i           <string> Path to the file containing the route for  \n"
