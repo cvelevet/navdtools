@@ -315,7 +315,7 @@ ndt_waypoint* ndt_waypoint_pbd(ndt_waypoint *plce, double magb, ndt_distance dis
              plce->info.idnt, magb,
              ndt_distance_get(dist, NDT_ALTUNIT_ME) / 1852.);
 
-#if 1 //debug
+#if 0
     {
         double       trub = ndt_position_calcbearing (plce->position, wpt->position);
         ndt_distance d1st = ndt_position_calcdistance(plce->position, wpt->position);

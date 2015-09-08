@@ -391,23 +391,10 @@ ndt_position ndt_position_init(double lat, double lon, ndt_distance alt)
 {
     ndt_position position;
 
-    position.latitude. equator  = (lat >= 0. ? 1 : -1);
-    position.longitude.meridian = (lon >= 0. ? 1 : -1);
-
-    lat = fmin(fabs(lat),  90.);
-    lon = fmin(fabs(lon), 180.);
-
-    position.latitude. degrees  = (lat);
-    position.latitude. minutes  = (lat * 60 - position.latitude. degrees * 60);
-    position.latitude. seconds  = (lat                        * 3600 -
-                                   position.latitude. degrees * 3600 -
-                                   position.latitude. minutes *   60);
-
-    position.longitude.degrees  = (lon);
-    position.longitude.minutes  = (lon * 60 - position.longitude.degrees * 60);
-    position.longitude.seconds  = (lon                        * 3600 -
-                                   position.longitude.degrees * 3600 -
-                                   position.longitude.minutes *   60);
+    position.latitude. equator  = ((lat * 21600.) >= 0. ? 1 : -1);
+    position.latitude. thirds   = ((lat * 21600.) * position.latitude. equator);
+    position.longitude.meridian = ((lon * 21600.) >= 0. ? 1 : -1);
+    position.longitude.thirds   = ((lon * 21600.) * position.longitude.meridian);
 
     position.altitude     = alt;
     position.precision[0] = ndt_distance_init(1, alt.unit);
@@ -420,17 +407,11 @@ double ndt_position_getlatitude(ndt_position pos, ndt_angle_unit aut)
 {
     if (aut == NDT_ANGUNIT_RAD)
     {
-        return ((double)pos.latitude.equator    * M_PI *
-                (pos.latitude.degrees /    180. +
-                 pos.latitude.minutes /  10800. +
-                 pos.latitude.seconds / 648000.));
+        return ((double)(pos.latitude.equator * pos.latitude.thirds) * M_PI / 3888000.);
     }
     else
     {
-        return ((double)pos.latitude.equator  *
-                (pos.latitude.degrees         +
-                 pos.latitude.minutes /   60. +
-                 pos.latitude.seconds / 3600.));
+        return ((double)(pos.latitude.equator * pos.latitude.thirds) / 21600.);
     }
 }
 
@@ -438,17 +419,11 @@ double ndt_position_getlongitude(ndt_position pos, ndt_angle_unit aut)
 {
     if (aut == NDT_ANGUNIT_RAD)
     {
-        return ((double)pos.longitude.meridian   * M_PI *
-                (pos.longitude.degrees /    180. +
-                 pos.longitude.minutes /  10800. +
-                 pos.longitude.seconds / 648000.));
+        return ((double)(pos.longitude.meridian * pos.longitude.thirds) * M_PI / 3888000.);
     }
     else
     {
-        return ((double)pos.longitude.meridian *
-                (pos.longitude.degrees         +
-                 pos.longitude.minutes /   60. +
-                 pos.longitude.seconds / 3600.));
+        return ((double)(pos.longitude.meridian * pos.longitude.thirds) / 21600.);
     }
 }
 
@@ -552,25 +527,140 @@ ndt_position ndt_position_calcpos4pbd(ndt_position from, double trub, ndt_distan
                         cos(dis0) - sin(lat1) * sin(lat2));
     double lon2 = ndt_mod(lon1 - dlon + M_PI, 2. * M_PI) - M_PI;
 
-#if 0 //debug
-    {
-        ndt_position pos = ndt_position_init(lat2 * 180. / M_PI,
-                                             lon2 * 180. / M_PI,
-                                             ndt_distance_init(0,
-                                                               NDT_ALTUNIT_NA));
-        ndt_distance dis = ndt_position_calcdistance(from, pos);
-        double       tru = ndt_position_calcbearing (from, pos);
-        ndt_log("Distance: expected %.2lf, actual %.2lf\n",
-                ndt_distance_get(dist, NDT_ALTUNIT_ME) /1852.,
-                ndt_distance_get(dis,  NDT_ALTUNIT_ME) /1852.);
-        ndt_log("Bearing (°T): expected %03.1lf, actual %03.1lf\n", trub, tru);
-    }
-#endif
-
     /* Don't forget to convert radians to decimal degrees */
     return ndt_position_init(lat2 * 180. / M_PI,
                              lon2 * 180. / M_PI,
                              ndt_distance_init(0, NDT_ALTUNIT_NA));
+}
+
+int ndt_position_sprintllc(ndt_position pos, ndt_llcfmt fmt, char *buf, size_t len)
+{
+    if (!buf)
+    {
+        return len + 1;
+    }
+
+    char   card[3];
+    int    ilatd = ((pos.latitude. thirds)                               / 21600);
+    int    ilond = ((pos.longitude.thirds)                               / 21600);
+    int    ilatm = ((pos.latitude. thirds - ilatd * 21600)               /   360);
+    int    ilonm = ((pos.longitude.thirds - ilond * 21600)               /   360);
+    int    ilats = ((pos.latitude. thirds - ilatd * 21600 - ilatm * 360) /    60);
+    int    ilons = ((pos.longitude.thirds - ilond * 21600 - ilonm * 360) /    60);
+    double dlatd = ((pos.latitude. thirds)                               / 21600.);
+    double dlond = ((pos.longitude.thirds)                               / 21600.);
+    double dlatm = ((pos.latitude. thirds - ilatd * 21600)               /   360.);
+    double dlonm = ((pos.longitude.thirds - ilond * 21600)               /   360.);
+    double dlats = ((pos.latitude. thirds - ilatd * 21600 - ilatm * 360) /    60.);
+    double dlons = ((pos.longitude.thirds - ilond * 21600 - ilonm * 360) /    60.);
+
+    switch (pos.latitude.equator)
+    {
+        case 1:
+            card[0] =                                     'N';
+            card[1] = pos.longitude.meridian == 1 ? 'E' : 'W';
+            card[2] = pos.longitude.meridian == 1 ? 'E' : 'N';
+            break;
+        case -1:
+        default:
+            card[0] =                                     'S';
+            card[1] = pos.longitude.meridian == 1 ? 'E' : 'W';
+            card[2] = pos.longitude.meridian == 1 ? 'S' : 'W';
+            break;
+    }
+
+    switch (fmt)
+    {
+        case NDT_LLCFMT_ICAOR:
+        {
+            if (ilatm == 0 && ilonm == 0 && ilats < 30 && ilons < 30)
+            {
+                // 7-letter form, e.g. 46N050E
+                return snprintf(buf, len, "%02d%c%03d%c",
+                                ilatd, card[0], ilond, card[1]);
+            }
+            // full form, e.g. 4600N05000E
+            return snprintf(buf, len, "%02d%02d%c%03d%02d%c",
+                            ilatd, (int)(dlatm + .5), card[0],
+                            ilond, (int)(dlonm + .5), card[1]);
+        }
+
+        case NDT_LLCFMT_SBRIF:
+        {
+            if (ilatm == 0 && ilonm == 0 && ilats < 30 && ilons < 30)
+            {
+                // 5-letter form, e.g. 4650N
+                if (ilond >= 100)
+                {
+                    return snprintf(buf, len, "%02d%c%02d",
+                                    ilatd, card[2], ilond % 100);
+                }
+                else
+                {
+                    return snprintf(buf, len, "%02d%02d%c",
+                                    ilatd, ilond, card[2]);
+                }
+            }
+            // FlightAware-style, e.g. 4600N 05000E
+            return snprintf(buf, len, "%02d%02d%c %03d%02d%c",
+                            ilatd, (int)(dlatm + .5), card[0],
+                            ilond, (int)(dlonm + .5), card[1]);
+        }
+
+        case NDT_LLCFMT_SVECT:
+        {
+            if (ilatm == 0 && ilonm == 0 && ilats == 0 && ilons == 0)
+            {
+                // 5-letter form, e.g. 4650N
+                if (ilond >= 100)
+                {
+                    return snprintf(buf, len, "%02d%c%02d",
+                                    ilatd, card[2], ilond % 100);
+                }
+                else
+                {
+                    return snprintf(buf, len, "%02d%02d%c",
+                                    ilatd, ilond, card[2]);
+                }
+            }
+            if (ilats == 0 && ilons == 0)
+            {
+                // 9-letter form, e.g. 4600N05000E
+                return snprintf(buf, len, "%02d%02d%c%03d%02d%c",
+                                ilatd, ilatm, card[0],
+                                ilond, ilonm, card[1]);
+            }
+            // full form, e.g. 460000N0500000E
+            return snprintf(buf, len, "%02d%02d%02d%c%03d%02d%02d%c",
+                            ilatd, ilatm, ilats, card[0],
+                            ilond, ilonm, ilons, card[1]);
+        }
+
+        default:
+            break;
+    }
+
+    // default format, e.g. N46E050
+    return snprintf(buf, len, "%c%02d%c%03d",
+                    card[0], (int)(dlatd + .5),
+                    card[1], (int)(dlond + .5));
+}
+
+int ndt_position_fprintllc(ndt_position pos, ndt_llcfmt fmt, FILE *fd)
+{
+    char buf[21];
+    int  ret = ndt_position_sprintllc(pos, fmt, buf, sizeof(buf));
+
+    if (ret < 0)
+    {
+        return EIO;
+    }
+    if (ret >= sizeof(buf))
+    {
+        return ENOMEM;
+    }
+
+    return ndt_fprintf(fd, "%s", buf);
 }
 
 ndt_frequency ndt_frequency_init(double f)

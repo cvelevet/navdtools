@@ -100,9 +100,7 @@ typedef struct ndt_position
             NDT_LATITUDE_SOUTH = -1,
         } equator;
 
-        int degrees;
-        int minutes;
-        int seconds;
+        int thirds; // 1/60th of a second
     } latitude;
 
     struct
@@ -113,14 +111,21 @@ typedef struct ndt_position
             NDT_LONGITUDE_EAST = -1,
         } meridian;
 
-        int degrees;
-        int minutes;
-        int seconds;
+        int thirds; // 1/60th of a second
     } longitude;
 
     ndt_distance altitude;     // altitude (relative to Mean Sea Level)
     ndt_distance precision[2]; // precision (0: lateral -- 1: vertical)
 } ndt_position;
+
+typedef enum
+{
+    NDT_LLCFMT_AIRBS,   // Airbus CDU format    (TODO)
+    NDT_LLCFMT_BOING,   // Boeing CDU format    (TODO)
+    NDT_LLCFMT_ICAOR,   // FAA ORDER JO 7110.10X, Appendix A. ICAO FLIGHT PLANS
+    NDT_LLCFMT_SBRIF,   // optimized for SimBrief
+    NDT_LLCFMT_SVECT,   // optimized for SkyVector
+} ndt_llcfmt;
 
 ndt_position ndt_position_init         (double        latitude, double         longitude,   ndt_distance altitude);
 ndt_distance ndt_position_getaltitude  (ndt_position  position                                                   );
@@ -133,6 +138,8 @@ ndt_distance ndt_position_calcdistance (ndt_position  from,     ndt_position   t
 int          ndt_position_calcduration (ndt_position  from,     ndt_position   to,          ndt_airspeed at      );
 int          ndt_position_calcintercept(ndt_position  from,     ndt_position   to,          ndt_position orig    );
 ndt_position ndt_position_calcpos4pbd  (ndt_position  from,     double trubearing,          ndt_distance dist    );
+int          ndt_position_sprintllc    (ndt_position position,  ndt_llcfmt format, char *buffer,  size_t size    );
+int          ndt_position_fprintllc    (ndt_position position,  ndt_llcfmt format, FILE *fd                      );
 
 typedef struct ndt_frequency
 {

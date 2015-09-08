@@ -37,11 +37,8 @@
 #include "fmt_icaor.h"
 #include "waypoint.h"
 
-static int icao_printrt(FILE *fd, ndt_list    *rte, int (*print_llc)(FILE *fd, ndt_position pos));
-static int icao_printlg(FILE *fd, ndt_list    *lgs, int (*print_llc)(FILE *fd, ndt_position pos));
-static int latlon_icao (FILE *fd, ndt_position pos);
-static int latlon_sbrif(FILE *fd, ndt_position pos);
-static int latlon_svect(FILE *fd, ndt_position pos);
+static int icao_printrt(FILE *fd, ndt_list *rte, ndt_llcfmt fmt);
+static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_llcfmt fmt);
 
 int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb, const char *rte)
 {
@@ -542,7 +539,7 @@ int ndt_fmt_icaor_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
 
     // encoded route
-    ret = icao_printrt(fd, flp->rte, latlon_icao);
+    ret = icao_printrt(fd, flp->rte, NDT_LLCFMT_ICAOR);
     if (ret)
     {
         goto end;
@@ -577,7 +574,7 @@ int ndt_fmt_sbrif_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
 
     // encoded route only
-    ret = icao_printrt(fd, flp->rte, latlon_sbrif);
+    ret = icao_printrt(fd, flp->rte, NDT_LLCFMT_SBRIF);
     if (ret)
     {
         goto end;
@@ -617,7 +614,7 @@ int ndt_fmt_dcded_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
 
     // decoded route
-    ret = icao_printlg(fd, flp->legs, latlon_svect);
+    ret = icao_printlg(fd, flp->legs, NDT_LLCFMT_SVECT);
     if (ret)
     {
         goto end;
@@ -634,11 +631,11 @@ end:
     return ret;
 }
 
-static int icao_printrt(FILE *fd, ndt_list *rte, int (*print_llc)(FILE *fd, ndt_position pos))
+static int icao_printrt(FILE *fd, ndt_list *rte, ndt_llcfmt fmt)
 {
     int ret = 0;
 
-    if (!fd || !rte || !print_llc)
+    if (!fd || !rte)
     {
         ret = ENOMEM;
         goto end;
@@ -673,7 +670,7 @@ static int icao_printrt(FILE *fd, ndt_list *rte, int (*print_llc)(FILE *fd, ndt_
                             break;
 
                         default: // use latitude/longitude coordinates
-                            ret = print_llc(fd, rsg->dst->position);
+                            ret = ndt_position_fprintllc(rsg->dst->position, fmt, fd);
                             break;
                     }
                 }
@@ -702,11 +699,11 @@ end:
     return ret;
 }
 
-static int icao_printlg(FILE *fd, ndt_list *lgs, int (*print_llc)(FILE *fd, ndt_position pos))
+static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_llcfmt fmt)
 {
     int ret = 0;
 
-    if (!fd || !lgs || !print_llc)
+    if (!fd || !lgs)
     {
         ret = ENOMEM;
         goto end;
@@ -737,7 +734,7 @@ static int icao_printlg(FILE *fd, ndt_list *lgs, int (*print_llc)(FILE *fd, ndt_
                             break;
 
                         default: // use latitude/longitude coordinates
-                            ret = print_llc(fd, leg->dst->position);
+                            ret = ndt_position_fprintllc(leg->dst->position, fmt, fd);
                             break;
                     }
                 }
@@ -764,78 +761,4 @@ static int icao_printlg(FILE *fd, ndt_list *lgs, int (*print_llc)(FILE *fd, ndt_
 
 end:
     return ret;
-}
-
-static int latlon_icao(FILE *fd, ndt_position pos)
-{
-    // FAA ORDER JO 7110.10X, Appendix A. ICAO FLIGHT PLANS
-    if (pos.latitude.minutes == 0 && pos.longitude.minutes == 0 &&
-        pos.latitude.seconds < 30 && pos.longitude.seconds < 30)
-    {
-        return ndt_fprintf(fd, "%02d%c%03d%c",
-                           pos.latitude. degrees,
-                           pos.latitude. equator  == 1 ? 'N' : 'S',
-                           pos.longitude.degrees,
-                           pos.longitude.meridian == 1 ? 'E' : 'W');
-    }
-    else
-    {
-        return ndt_fprintf(fd, "%02d%02d%c%03d%02d%c",
-                           pos.latitude. degrees,
-                           pos.latitude. minutes + (pos.latitude. seconds >= 30),
-                           pos.latitude. equator  == 1 ? 'N' : 'S',
-                           pos.longitude.degrees,
-                           pos.longitude.minutes + (pos.longitude.seconds >= 30),
-                           pos.longitude.meridian == 1 ? 'E' : 'W');
-    }
-}
-
-static int latlon_sbrif(FILE *fd, ndt_position pos)
-{
-    if (pos.latitude.minutes == 0 && pos.longitude.minutes == 0 &&
-        pos.latitude.seconds < 30 && pos.longitude.seconds < 30)
-    {
-        // 5-letter form
-        int lat = pos.latitude. degrees * pos.latitude. equator;
-        int lon = pos.longitude.degrees * pos.longitude.meridian;
-        if (lon / 100)
-        {
-            return ndt_fprintf(fd, "%02d%c%02d",
-                               (lat < 0) ? -lat : lat,
-                               (lat < 0  && lon < 0) ? 'W' : (lat < 0) ? 'S' : (lon < 0) ? 'N' : 'E',
-                               (lon < 0) ? -lon % 100 : lon % 100);
-        }
-        else
-        {
-            return ndt_fprintf(fd, "%02d%02d%c",
-                               (lat < 0) ? -lat : lat,
-                               (lon < 0) ? -lon : lon,
-                               (lat < 0  && lon < 0) ? 'W' : (lat < 0) ? 'S' : (lon < 0) ? 'N' : 'E');
-        }
-    }
-    else
-    {
-        // FlightAware-style
-        return ndt_fprintf(fd, "%02d%02d%c %03d%02d%c",
-                           pos.latitude. degrees,
-                           pos.latitude. minutes + (pos.latitude. seconds >= 30),
-                           pos.latitude. equator  == 1 ? 'N' : 'S',
-                           pos.longitude.degrees,
-                           pos.longitude.minutes + (pos.longitude.seconds >= 30),
-                           pos.longitude.meridian == 1 ? 'E' : 'W');
-    }
-}
-
-static int latlon_svect(FILE *fd, ndt_position pos)
-{
-    // compatible with e.g. SkyVector
-    return ndt_fprintf(fd, "%02d%02d%02d%c%03d%02d%02d%c",
-                       pos.latitude. degrees,
-                       pos.latitude. minutes,
-                       pos.latitude. seconds,
-                       pos.latitude. equator  == 1 ? 'N' : 'S',
-                       pos.longitude.degrees,
-                       pos.longitude.minutes,
-                       pos.longitude.seconds,
-                       pos.longitude.meridian == 1 ? 'E' : 'W');
 }
