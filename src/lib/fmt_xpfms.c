@@ -35,10 +35,10 @@
 #include "fmt_xpfms.h"
 #include "waypoint.h"
 
-static int print_line    (FILE *fd, const char   *idt, int alt, ndt_position pos, int row);
-static int print_waypoint(FILE *fd, ndt_waypoint *wpt, int alt                           );
-static int print_airport (FILE *fd, ndt_airport  *apt                                    );
-static int print_runway  (FILE *fd, ndt_airport  *apt, ndt_runway           *rwy         );
+static int print_line    (FILE *fd, const char   *idt, int alt, int spd, ndt_position pos, int row);
+static int print_waypoint(FILE *fd, ndt_waypoint *wpt, int alt, int spd                           );
+static int print_airport (FILE *fd, ndt_airport  *apt                                             );
+static int print_runway  (FILE *fd, ndt_airport  *apt,                   ndt_runway           *rwy);
 
 int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb, const char *rte)
 {
@@ -46,9 +46,10 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
     char         *start, *pos;
     char         *line = NULL, *last_apt = NULL, buf[64];
     int           linecap, header = 0, err = 0;
-    int           alt, typ, nwaypoints, discontinuity = 0;
-    double        lat, lon;
+    int           typ, nwaypoints, discontinuity = 0;
+    double        alt, lat, lon, spd;
     ndt_position  llc;
+    ndt_airspeed  kts;
 
     if (!flp || !ndb || !rte)
     {
@@ -114,13 +115,19 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
             continue;
         }
 
-        if (sscanf(line, "%d %63s %d %lf %lf", &typ, buf, &alt, &lat, &lon) != 5)
+        if (sscanf(line, "%d %63s %lf %lf %lf %lf", &typ, buf, &alt, &lat, &lon, &spd) != 6)
         {
-            err = EINVAL;
-            goto end;
+            if (sscanf(line, "%d %63s %lf %lf %lf", &typ, buf, &alt, &lat, &lon)       != 5)
+            {
+                err = EINVAL;
+                goto end;
+            }
+            // no speed constraint on this line, reset
+            spd = 0.;
         }
 
         llc = ndt_position_init(lat, lon, ndt_distance_init(0, NDT_ALTUNIT_NA));
+        kts = ndt_airspeed_init(spd, NDT_SPDUNIT_KTS);
 
         if (typ == 0)
         {
@@ -257,9 +264,9 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
          *  - 8: altitude constraint is at or below + overfly | if followed by waypoints with 9 all the way to airport: FAF for RNP approach
          *  - 9: altitude constraint is at or below           | if directly before airport: RNP Approach
          */
-        if (alt)
+        if ((int)alt)
         {
-            switch (alt % 10)
+            switch ((int)alt % 10)
             {
                 case 0:
                     rsg->constraints.altitude.typ = NDT_RESTRICT_AT;
@@ -292,7 +299,22 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                     rsg->constraints.altitude.typ = NDT_RESTRICT_NO;
                     break;
             }
-            rsg->constraints.altitude.alt = ndt_distance_init(alt - alt % 10, NDT_ALTUNIT_FT);
+            rsg->constraints.altitude.alt = ndt_distance_init((int)alt -
+                                                              (int)alt % 10,
+                                                              NDT_ALTUNIT_FT);
+        }
+
+        /*
+         * Speed restriction; if non-zero, fly at or below speed.
+         */
+        if (ndt_airspeed_get(kts, NDT_SPDUNIT_KTS, ndt_airspeed_mach(-50.)) > 0LL)
+        {
+            rsg->constraints.speed.typ = NDT_RESTRICT_BL;
+            rsg->constraints.speed.spd = kts;
+        }
+        else
+        {
+            rsg->constraints.speed.typ = NDT_RESTRICT_NO;
         }
 
         /* We have a leg, our last endpoint becomes our new startpoint */
@@ -368,7 +390,7 @@ end:
 
 int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
 {
-    int ret = 0, count = 1, altitude;
+    int ret = 0, count = 1, altitude, speed;
 
     if (!flp || !fd)
     {
@@ -445,7 +467,7 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
         switch (leg->type)
         {
             case NDT_LEGTYPE_DISC:
-                ret = print_line(fd, "-------", 0, ndt_position_init(0., 0., ndt_distance_init(0, NDT_ALTUNIT_NA)), 0);
+                ret = print_line(fd, "-------", 0, 0, ndt_position_init(0., 0., ndt_distance_init(0, NDT_ALTUNIT_NA)), 0);
                 if (ret)
                 {
                     goto end;
@@ -487,7 +509,17 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
                             break;
                     }
                 }
-                ret = print_waypoint(fd, leg->dst, altitude);
+                switch (leg->constraints.speed.typ)
+                {
+                    case NDT_RESTRICT_AT:
+                    case NDT_RESTRICT_BL:
+                        speed = ndt_airspeed_get(leg->constraints.speed.spd, NDT_SPDUNIT_KTS, ndt_airspeed_mach(-50.));
+                        break;
+                    default:
+                        speed = 0;
+                        break;
+                }
+                ret = print_waypoint(fd, leg->dst, altitude, speed);
                 break;
 
             default:
@@ -514,20 +546,33 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
 
     // end of file
-    ret = print_line(fd, "-------", 0, ndt_position_init(0., 0., ndt_distance_init(0, NDT_ALTUNIT_NA)), 0);
+    ret = print_line(fd, "-------", 0, 0, ndt_position_init(0., 0., ndt_distance_init(0, NDT_ALTUNIT_NA)), 0);
 
 end:
     return ret;
 }
 
-static int print_line(FILE *fd, const char *idt, int alt, ndt_position pos, int row)
+static int print_line(FILE *fd, const char *idt, int alt, int spd, ndt_position pos, int row)
 {
     if (fd && idt)
     {
-        int ret = fprintf(fd, "%-2d  %-7s  %05d  %+010.6lf  %+011.6lf\n",
+        int ret;
+
+        if (row == 0 || row == 1)
+        {
+            // don't append speed for discontinuities and airports
+            ret = fprintf(fd, "%-2d  %-7s  %05d  %+010.6lf  %+011.6lf\n",
                           row, idt, alt,
                           ndt_position_getlatitude (pos, NDT_ANGUNIT_DEG),
                           ndt_position_getlongitude(pos, NDT_ANGUNIT_DEG));
+        }
+        else
+        {
+            ret = fprintf(fd, "%-2d  %-7s  %05d  %+010.6lf  %+011.6lf %010.6lf\n",
+                          row, idt, alt,
+                          ndt_position_getlatitude (pos, NDT_ANGUNIT_DEG),
+                          ndt_position_getlongitude(pos, NDT_ANGUNIT_DEG), (double)spd);
+        }
 
         return ret > 0 ? 0 : ret ? ret : -1;
     }
@@ -535,23 +580,23 @@ static int print_line(FILE *fd, const char *idt, int alt, ndt_position pos, int 
     return -1;
 }
 
-static int print_waypoint(FILE *fd, ndt_waypoint *wpt, int alt)
+static int print_waypoint(FILE *fd, ndt_waypoint *wpt, int alt, int spd)
 {
     if (fd && wpt)
     {
         switch (wpt->type)
         {
             case NDT_WPTYPE_APT:
-                return print_line(fd, wpt->info.idnt, alt, wpt->position,  1);
+                return print_line(fd, wpt->info.idnt, alt, spd, wpt->position,  1);
 
             case NDT_WPTYPE_NDB:
-                return print_line(fd, wpt->info.idnt, alt, wpt->position,  2);
+                return print_line(fd, wpt->info.idnt, alt, spd, wpt->position,  2);
 
             case NDT_WPTYPE_VOR:
-                return print_line(fd, wpt->info.idnt, alt, wpt->position,  3);
+                return print_line(fd, wpt->info.idnt, alt, spd, wpt->position,  3);
 
             case NDT_WPTYPE_FIX:
-                return print_line(fd, wpt->info.idnt, alt, wpt->position, 11);
+                return print_line(fd, wpt->info.idnt, alt, spd, wpt->position, 11);
 
             default: // latitude/longitude or other unsupported type
             {
@@ -564,7 +609,7 @@ static int print_waypoint(FILE *fd, ndt_waypoint *wpt, int alt)
                          lat >= 0. ? 'N' : 'S', (int)round(fabs(lat)),
                          lon >= 0. ? 'E' : 'W', (int)round(fabs(lon)));
 
-                return print_line(fd, lat_lon_string, alt, wpt->position, 28);
+                return print_line(fd, lat_lon_string, alt, spd, wpt->position, 28);
             }
         }
     }
@@ -578,7 +623,7 @@ static int print_airport(FILE *fd, ndt_airport *apt)
     {
         ndt_distance distance = ndt_position_getaltitude(apt->coordinates);
         int          altitude = ndt_distance_get(distance, NDT_ALTUNIT_FT);
-        return print_line(fd, apt->info.idnt, altitude, apt->coordinates, 1);
+        return print_line(fd, apt->info.idnt, altitude, 0, apt->coordinates, 1);
     }
 
     return -1;
@@ -592,7 +637,7 @@ static int print_runway(FILE *fd, ndt_airport *apt, ndt_runway *rwy)
         ndt_distance distance = ndt_position_getaltitude(rwy->threshold);
         int          altitude = ndt_distance_get(distance, NDT_ALTUNIT_FT);
         snprintf(idnt, sizeof(idnt), "%s%s", apt->info.idnt, rwy->info.idnt);
-        return print_line(fd, idnt, altitude, rwy->threshold, 28);
+        return print_line(fd, idnt, altitude, 0, rwy->threshold, 28);
     }
 
     return -1;
