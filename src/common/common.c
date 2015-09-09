@@ -571,6 +571,26 @@ int ndt_position_sprintllc(ndt_position pos, ndt_llcfmt fmt, char *buf, size_t l
 
     switch (fmt)
     {
+        case NDT_LLCFMT_AIBUS:
+        {
+            // full form, e.g. 4600.0N/05000.0E
+            return snprintf(buf, len, "%02d%04.1lf%c/%03d%04.1lf%c",
+                            ilatd, dlatm, card[0], ilond, dlonm, card[1]);
+        }
+
+        case NDT_LLCFMT_BOING:
+        {
+            if (ilatm == 0 && ilonm == 0 && ilats < 6 && ilons < 6)
+            {
+                // 7-letter form, e.g. N46E050
+                return snprintf(buf, len, "%c%02d%c%03d",
+                                card[0], ilatd, card[1], ilond);
+            }
+            // full form, e.g. N4600.0E05000.0
+            return snprintf(buf, len, "%c%02d%04.1lf%c%03d%04.1lf",
+                            card[0], ilatd, dlatm, card[1], ilond, dlonm);
+        }
+
         case NDT_LLCFMT_ICAOR:
         {
             if (ilatm == 0 && ilonm == 0 && ilats < 30 && ilons < 30)
@@ -641,6 +661,7 @@ int ndt_position_sprintllc(ndt_position pos, ndt_llcfmt fmt, char *buf, size_t l
             break;
     }
 
+    // default format: 7-letter form, e.g. N46E050
     return snprintf(buf, len, "%c%02d%c%03d",
                     card[0], (int)(dlatd + .5),
                     card[1], (int)(dlond + .5));
