@@ -319,6 +319,11 @@ static int parse_options(int argc, char **argv)
                     format_out = NDT_FLTPFMT_ICAOR;
                     break;
                 }
+                if (!strcasecmp(optarg, "civa"))
+                {
+                    format_out = NDT_FLTPFMT_LLCRD;
+                    break;
+                }
                 if (!strcasecmp(optarg, "simbrief"))
                 {
                     format_out = NDT_FLTPFMT_SBRIF;
@@ -595,10 +600,12 @@ static int print_help(void)
             "                        standard output stream (stdout) instead.   \n"
             "  --ofmt       <string> Output format:                             \n"
             "                            airbusx     Airbus X Extended CoRte    \n"
+            "                            civa        Decoded route (lat/lon),   \n"
+            "                                        all legs on a single line  \n"
+            "                            decoded     Decoded route (wpt IDs),   \n"
+            "                                        all legs on a single line  \n"
             "                            icao        ICAO flight plan route,    \n"
             "                                        without specific SID/STAR  \n"
-            "                            decoded     Decoded route, all legs on \n"
-            "                                        a single line              \n"
             "                            xplane      X-Plane .fms flight plan   \n"
             "                                        with QPAC enhancements for \n"
             "                                        altitude constraints and   \n"
@@ -680,6 +687,10 @@ static int print_examples(void)
             " \"decoded\" (output only):                                        \n"
             "     MOLUS SOSAL TELNO KORED KONOL BERSU                           \n"
             "     SUROX 5620N 5630N 5540N 5350N YAY YJT YQY SCUPP               \n"
+            "                                                                   \n"
+            " \"civa\" (output only):                                           \n"
+            "     4626.6N/00640.8E 4633.5N/00653.1E 4646.3N/00716.2E 4651.0N/00724.9E 4659.7N/00740.8E 4708.1N/00756.5E\n"
+            "     5359.8N/00659.6W 5600.0N/02000.0W 5600.0N/03000.0W 5500.0N/04000.0W 5300.0N/05000.0W 5123.6N/05605.0W 4835.0N/05840.1W 4609.2N/06003.3W 4236.2N/07013.8W\n"
             "                                                                   \n"
             " \"airbusx\" (input and output):                                   \n"
             "     [CoRte]                                                       \n"
