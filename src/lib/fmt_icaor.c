@@ -37,8 +37,8 @@
 #include "fmt_icaor.h"
 #include "waypoint.h"
 
-static int icao_printrt(FILE *fd, ndt_list *rte, ndt_llcfmt fmt);
-static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_llcfmt fmt);
+static int icao_printrt(FILE *fd, ndt_list *rte, ndt_fltplanformat fmt);
+static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_fltplanformat fmt);
 
 int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb, const char *rte)
 {
@@ -513,6 +513,39 @@ end:
     return err;
 }
 
+int ndt_fmt_dcded_flightplan_write(ndt_flightplan *flp, FILE *fd)
+{
+    int ret = 0;
+
+    if (!flp || !fd)
+    {
+        ret = ENOMEM;
+        goto end;
+    }
+
+    if (!flp->dep.apt || !flp->arr.apt)
+    {
+        ndt_log("[fmt_dcded]: departure or arrival airport not set\n");
+        ret = EINVAL;
+        goto end;
+    }
+
+    // decoded route only
+    ret = icao_printlg(fd, flp->legs, NDT_FLTPFMT_DCDED);
+    if (ret)
+    {
+        goto end;
+    }
+    ret = ndt_fprintf(fd, "%s", "\n");
+    if (ret)
+    {
+        goto end;
+    }
+
+end:
+    return ret;
+}
+
 int ndt_fmt_icaor_flightplan_write(ndt_flightplan *flp, FILE *fd)
 {
     int ret = 0;
@@ -539,7 +572,7 @@ int ndt_fmt_icaor_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
 
     // encoded route
-    ret = icao_printrt(fd, flp->rte, NDT_LLCFMT_ICAOR);
+    ret = icao_printrt(fd, flp->rte, NDT_FLTPFMT_ICAOR);
     if (ret)
     {
         goto end;
@@ -547,6 +580,39 @@ int ndt_fmt_icaor_flightplan_write(ndt_flightplan *flp, FILE *fd)
 
     // arrival airport
     ret = ndt_fprintf(fd, " STAR %s\n", flp->arr.apt->info.idnt);
+    if (ret)
+    {
+        goto end;
+    }
+
+end:
+    return ret;
+}
+
+int ndt_fmt_llcrd_flightplan_write(ndt_flightplan *flp, FILE *fd)
+{
+    int ret = 0;
+
+    if (!flp || !fd)
+    {
+        ret = ENOMEM;
+        goto end;
+    }
+
+    if (!flp->dep.apt || !flp->arr.apt)
+    {
+        ndt_log("[fmt_llcrd]: departure or arrival airport not set\n");
+        ret = EINVAL;
+        goto end;
+    }
+
+    // decoded route only for now
+    ret = icao_printlg(fd, flp->legs, NDT_FLTPFMT_LLCRD);
+    if (ret)
+    {
+        goto end;
+    }
+    ret = ndt_fprintf(fd, "%s", "\n");
     if (ret)
     {
         goto end;
@@ -574,7 +640,7 @@ int ndt_fmt_sbrif_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
 
     // encoded route only
-    ret = icao_printrt(fd, flp->rte, NDT_LLCFMT_SBRIF);
+    ret = icao_printrt(fd, flp->rte, NDT_FLTPFMT_SBRIF);
     if (ret)
     {
         goto end;
@@ -589,47 +655,31 @@ end:
     return ret;
 }
 
-int ndt_fmt_dcded_flightplan_write(ndt_flightplan *flp, FILE *fd)
+static int icao_printrt(FILE *fd, ndt_list *rte, ndt_fltplanformat fmt)
 {
-    int ret = 0;
-
-    if (!flp || !fd)
-    {
-        ret = ENOMEM;
-        goto end;
-    }
-
-    if (!flp->dep.apt || !flp->arr.apt)
-    {
-        ndt_log("[fmt_dcded]: departure or arrival airport not set\n");
-        ret = EINVAL;
-        goto end;
-    }
-
-    // decoded route only
-    ret = icao_printlg(fd, flp->legs, NDT_LLCFMT_SVECT);
-    if (ret)
-    {
-        goto end;
-    }
-    ret = ndt_fprintf(fd, "%s", "\n");
-    if (ret)
-    {
-        goto end;
-    }
-
-end:
-    return ret;
-}
-
-static int icao_printrt(FILE *fd, ndt_list *rte, ndt_llcfmt fmt)
-{
+    ndt_llcfmt llcfmt;
     int ret = 0;
 
     if (!fd || !rte)
     {
         ret = ENOMEM;
         goto end;
+    }
+
+    switch (fmt)
+    {
+        case NDT_FLTPFMT_ICAOR:
+            llcfmt = NDT_LLCFMT_ICAOR;
+            break;
+
+        case NDT_FLTPFMT_SBRIF:
+            llcfmt = NDT_LLCFMT_SBRIF;
+            break;
+
+        default:
+            ndt_log("[icao_printrt]: unsupported flight plan format '%d'\n", fmt);
+            ret = EINVAL;
+            goto end;
     }
 
     for (size_t i = 0; i < ndt_list_count(rte); i++)
@@ -661,7 +711,7 @@ static int icao_printrt(FILE *fd, ndt_list *rte, ndt_llcfmt fmt)
                             break;
 
                         default: // use latitude/longitude coordinates
-                            ret = ndt_position_fprintllc(rsg->dst->position, fmt, fd);
+                            ret = ndt_position_fprintllc(rsg->dst->position, llcfmt, fd);
                             break;
                     }
                 }
@@ -690,14 +740,31 @@ end:
     return ret;
 }
 
-static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_llcfmt fmt)
+static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_fltplanformat fmt)
 {
+    ndt_llcfmt llcfmt;
     int ret = 0;
 
     if (!fd || !lgs)
     {
         ret = ENOMEM;
         goto end;
+    }
+
+    switch (fmt)
+    {
+        case NDT_FLTPFMT_DCDED:
+            llcfmt = NDT_LLCFMT_SVECT;
+            break;
+
+        case NDT_FLTPFMT_LLCRD:
+            llcfmt = NDT_LLCFMT_AIBUS;
+            break;
+
+        default:
+            ndt_log("[icao_printlg]: unsupported flight plan format '%d'\n", fmt);
+            ret = EINVAL;
+            goto end;
     }
 
     for (size_t i = 0; i < ndt_list_count(lgs); i++)
@@ -720,12 +787,16 @@ static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_llcfmt fmt)
                         case NDT_WPTYPE_DME:
                         case NDT_WPTYPE_FIX:
                         case NDT_WPTYPE_NDB:
-                        case NDT_WPTYPE_VOR: // use the identifier
-                            ret = ndt_fprintf(fd, "%s", leg->dst->info.idnt);
-                            break;
+                        case NDT_WPTYPE_VOR:
+                            if (fmt != NDT_FLTPFMT_LLCRD)
+                            {
+                                 // use the identifier
+                                ret = ndt_fprintf(fd, "%s", leg->dst->info.idnt);
+                                break;
+                            }
 
                         default: // use latitude/longitude coordinates
-                            ret = ndt_position_fprintllc(leg->dst->position, fmt, fd);
+                            ret = ndt_position_fprintllc(leg->dst->position, llcfmt, fd);
                             break;
                     }
                 }

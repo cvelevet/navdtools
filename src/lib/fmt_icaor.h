@@ -27,8 +27,9 @@
 #include "navdata.h"
 
 int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flightplan, ndt_navdatabase *navdatabase, const char *route);
-int ndt_fmt_icaor_flightplan_write    (ndt_flightplan *flightplan,                               FILE       *file );
-int ndt_fmt_sbrif_flightplan_write    (ndt_flightplan *flightplan,                               FILE       *file );
 int ndt_fmt_dcded_flightplan_write    (ndt_flightplan *flightplan,                               FILE       *file );
+int ndt_fmt_icaor_flightplan_write    (ndt_flightplan *flightplan,                               FILE       *file );
+int ndt_fmt_llcrd_flightplan_write    (ndt_flightplan *flightplan,                               FILE       *file );
+int ndt_fmt_sbrif_flightplan_write    (ndt_flightplan *flightplan,                               FILE       *file );
 
 #endif /* NDT_FMT_ICAOR_H */
