@@ -36,6 +36,13 @@
  * So we have to store airway legs using a specific format and delay lookup
  * until we know which airways we need to do this for.
  */
+
+typedef struct ndt_airway
+{
+    ndt_info              info; // identification information
+    struct ndt_airway_leg *leg; // first leg in airway
+} ndt_airway;
+
 typedef struct ndt_airway_leg
 {
     struct
@@ -58,14 +65,9 @@ typedef struct ndt_airway_leg
 
     ndt_distance length;
 
-    void *next;
+    struct ndt_airway     *awy;
+    struct ndt_airway_leg *next;
 } ndt_airway_leg;
-
-typedef struct ndt_airway
-{
-    ndt_info        info; // identification information
-    ndt_airway_leg *leg;  // first leg in airway
-} ndt_airway;
 
 ndt_airway*     ndt_airway_init      (                                                                   );
 void            ndt_airway_close     (ndt_airway   **_airway                                             );

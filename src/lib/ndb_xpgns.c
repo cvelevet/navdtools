@@ -599,6 +599,7 @@ static int parse_airways(char *src, ndt_navdatabase *ndb)
             next->in. position = ndt_position_init(latitude[0], longitude[0], ndt_distance_init(0, NDT_ALTUNIT_NA));
             next->out.position = ndt_position_init(latitude[1], longitude[1], ndt_distance_init(0, NDT_ALTUNIT_NA));
             next->length       = ndt_distance_init((int)(distance * 1852.), NDT_ALTUNIT_ME);
+            next->awy          = awy;
 
             if (!leg)
             {
