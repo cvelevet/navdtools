@@ -315,7 +315,7 @@ ndt_route_leg* ndt_route_leg_init()
     leg->constraints.speed.   typ = NDT_RESTRICT_NO;
     leg->constraints.speed.   spd = ndt_airspeed_init(0, NDT_SPDUNIT_NAT);
     leg->constraints.    waypoint = NDT_WPTCONST_NO;
-    leg->type                     = NDT_LEGTYPE_DISC;
+    leg->type                     = NDT_LEGTYPE_ZZ;
 
 end:
     return leg;
@@ -462,11 +462,11 @@ static int route_leg_update(ndt_flightplan *flp, ndt_navdatabase *ndb)
                 break;
 
             case NDT_RSTYPE_DCT:
-                err = route_leg_oftype(flp, rsg, NDT_LEGTYPE_DCTO);
+                err = route_leg_oftype(flp, rsg, NDT_LEGTYPE_TF);
                 break;
 
             case NDT_RSTYPE_DSC:
-                err = route_leg_oftype(flp, rsg, NDT_LEGTYPE_DISC);
+                err = route_leg_oftype(flp, rsg, NDT_LEGTYPE_ZZ);
                 break;
 
             default:
@@ -527,7 +527,7 @@ static int route_leg_airway(ndt_flightplan *flp, ndt_navdatabase *ndb, ndt_route
         }
 
         leg->brg         = ndt_position_calcbearing(src->position, dst->position);
-        leg->type        = NDT_LEGTYPE_DCTO;
+        leg->type        = NDT_LEGTYPE_ZA;
         leg->awy         = awy;
         leg->src         = src;
         leg->dst         = dst;

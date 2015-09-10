@@ -778,8 +778,9 @@ static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_fltplanformat fmt)
 
         switch (leg->type)
         {
-            case NDT_LEGTYPE_DISC:
-            case NDT_LEGTYPE_DCTO:
+            case NDT_LEGTYPE_TF:
+            case NDT_LEGTYPE_ZA:
+            case NDT_LEGTYPE_ZZ:
                 {
                     switch (leg->dst->type)
                     {

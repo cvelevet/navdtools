@@ -417,7 +417,7 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
 
         switch (leg->type)
         {
-            case NDT_LEGTYPE_DISC:
+            case NDT_LEGTYPE_ZZ:
                 count += 2;
                 continue;
 
@@ -466,13 +466,14 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
          */
         switch (leg->type)
         {
-            case NDT_LEGTYPE_DISC:
+            case NDT_LEGTYPE_ZZ:
                 ret = print_line(fd, "-------", 0, 0, ndt_position_init(0., 0., ndt_distance_init(0, NDT_ALTUNIT_NA)), 0);
                 if (ret)
                 {
                     goto end;
                 } // don't lose leg->dst, just pass through
-            case NDT_LEGTYPE_DCTO:
+            case NDT_LEGTYPE_TF:
+            case NDT_LEGTYPE_ZA:
                 if (leg->constraints.waypoint == NDT_WPTCONST_FOV)
                 {
                     switch (leg->constraints.altitude.typ)

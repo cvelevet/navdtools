@@ -80,8 +80,34 @@ typedef struct ndt_route_leg
 
     enum
     {
-        NDT_LEGTYPE_DISC,      // discontinuity
-        NDT_LEGTYPE_DCTO,      // direct to waypoint
+        // ARINC 424
+        NDT_LEGTYPE_AF =  1,   // constant DME arc to a fix
+        NDT_LEGTYPE_CA =  2,   // course to an altitude
+        NDT_LEGTYPE_CD =  3,   // course to a DME distance
+        NDT_LEGTYPE_CI =  4,   // course to next leg
+        NDT_LEGTYPE_CF =  5,   // course to a fix
+        NDT_LEGTYPE_CR =  6,   // course to a radial termination
+        NDT_LEGTYPE_DF =  7,   // computed track direct to a fix
+        NDT_LEGTYPE_FA =  8,   // course from a fix to an altitude
+        NDT_LEGTYPE_FC =  9,   // course from a fix to a distance
+        NDT_LEGTYPE_FD = 10,   // course from a fix to a DME distance
+        NDT_LEGTYPE_FM = 11,   // course from a fix to a manual termination
+        NDT_LEGTYPE_IF = 12,   // initial fix
+        NDT_LEGTYPE_PI = 13,   // procedure turn followed by course to a fix
+        NDT_LEGTYPE_RF = 14,   // constant radius to a fix
+        NDT_LEGTYPE_TF = 15,   // track between two fixes (great circle)
+        NDT_LEGTYPE_VA = 16,   // heading to an altitude
+        NDT_LEGTYPE_VD = 17,   // heading to a DME distance
+        NDT_LEGTYPE_VI = 18,   // heading to next leg
+        NDT_LEGTYPE_VM = 19,   // heading to manual termination
+        NDT_LEGTYPE_VR = 20,   // heading to radial
+        NDT_LEGTYPE_HF = 21,   // hold at a fix after one full circuit
+        NDT_LEGTYPE_HA = 22,   // hold at a fix after reaching an altitude
+        NDT_LEGTYPE_HM = 23,   // hold manually
+
+        // custom
+        NDT_LEGTYPE_ZA = 74,   // track between two fixes (airway leg)
+        NDT_LEGTYPE_ZZ = 99,   // discontinuity
     } type;
 
     ndt_restriction constraints;
