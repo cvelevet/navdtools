@@ -123,6 +123,7 @@ typedef enum
     NDT_LLCFMT_DEFLT,   // default: 7-letter, e.g. N46E050
     NDT_LLCFMT_AIBUS,   // Airbus CDU format, e.g. 4600.0N/05000.0E
     NDT_LLCFMT_BOING,   // Boeing CDU format, e.g. N4600.0E05000.0, N46E050
+    NDT_LLCFMT_CEEVA,   // Boeing format, optimized for readability
     NDT_LLCFMT_ICAOR,   // FAA ORDER JO 7110.10X, Appendix A. ICAO FLIGHT PLANS
     NDT_LLCFMT_SBRIF,   // optimized for SimBrief
     NDT_LLCFMT_SVECT,   // optimized for SkyVector

@@ -591,7 +591,7 @@ end:
 
 int ndt_fmt_llcrd_flightplan_write(ndt_flightplan *flp, FILE *fd)
 {
-    int ret = 0;
+    int ret = 0, rr = 0;
 
     if (!flp || !fd)
     {
@@ -606,8 +606,120 @@ int ndt_fmt_llcrd_flightplan_write(ndt_flightplan *flp, FILE *fd)
         goto end;
     }
 
-    // decoded route only for now
-    ret = icao_printlg(fd, flp->legs, NDT_FLTPFMT_LLCRD);
+    // departure airport and runway
+    rr += rr == 9 ? -8 : 1; // cycle 0-9
+    ret = ndt_fprintf(fd, "%d  %-16s  %d  ", rr, flp->dep.apt->info.idnt, rr);
+    if (ret)
+    {
+        goto end;
+    }
+    ret = ndt_position_fprintllc(flp->dep.apt->coordinates, NDT_LLCFMT_CEEVA, fd);
+    if (ret)
+    {
+        goto end;
+    }
+    ret = ndt_fprintf(fd, "%s", "\n");
+    if (ret)
+    {
+        goto end;
+    }
+    if (flp->dep.rwy)
+    {
+        rr += rr == 9 ? -8 : 1; // cycle 0-9
+        ret = ndt_fprintf(fd, "%d  %s%-*s  %d  ",  rr,
+                          flp->dep.apt->info.idnt, 16 - strlen(flp->dep.apt->info.idnt),
+                          flp->dep.rwy->info.idnt, rr);
+        if (ret)
+        {
+            goto end;
+        }
+        ret = ndt_position_fprintllc(flp->dep.rwy->threshold, NDT_LLCFMT_CEEVA, fd);
+        if (ret)
+        {
+            goto end;
+        }
+        ret = ndt_fprintf(fd, "%s", "\n");
+        if (ret)
+        {
+            goto end;
+        }
+    }
+
+    // decoded route
+    for (size_t i = 0; i < ndt_list_count(flp->legs); i++)
+    {
+        ndt_route_leg *leg = ndt_list_item(flp->legs, i);
+        if (!leg)
+        {
+            ret = ENOMEM;
+            goto end;
+        }
+
+        switch (leg->type)
+        {
+            case NDT_LEGTYPE_TF:
+            case NDT_LEGTYPE_ZZ:
+            {
+                switch (leg->dst->type)
+                {
+                    default: // use the identifier
+                        rr += rr == 9 ? -8 : 1; // cycle 0-9
+                        ret = ndt_fprintf(fd, "%d  %-16s  %d  ", rr, leg->dst->info.idnt, rr);
+                        break;
+                }
+            }
+                break;
+
+            default:
+                ndt_log("[fmt_llcrd]: unknown leg type '%d'\n", leg->type);
+                ret = EINVAL;
+                break;
+        }
+        if (ret)
+        {
+            goto end;
+        }
+        ret = ndt_position_fprintllc(leg->dst->position, NDT_LLCFMT_CEEVA, fd);
+        if (ret)
+        {
+            goto end;
+        }
+        ret = ndt_fprintf(fd, "%s", "\n");
+        if (ret)
+        {
+            goto end;
+        }
+    }
+
+    // arrival runway and airport
+    if (flp->arr.rwy)
+    {
+        rr += rr == 9 ? -8 : 1; // cycle 0-9
+        ret = ndt_fprintf(fd, "%d  %s%-*s  %d  ",  rr,
+                          flp->arr.apt->info.idnt, 16 - strlen(flp->arr.apt->info.idnt),
+                          flp->arr.rwy->info.idnt, rr);
+        if (ret)
+        {
+            goto end;
+        }
+        ret = ndt_position_fprintllc(flp->arr.rwy->threshold, NDT_LLCFMT_CEEVA, fd);
+        if (ret)
+        {
+            goto end;
+        }
+        ret = ndt_fprintf(fd, "%s", "\n");
+        if (ret)
+        {
+            goto end;
+        }
+    }
+    rr += rr == 9 ? -8 : 1; // cycle 0-9
+    ret = ndt_fprintf(fd, "%d  %-16s  %d  ", rr, flp->arr.apt->info.idnt, rr);
+    if (ret)
+    {
+        goto end;
+    }
+    ret = ndt_position_fprintllc(flp->arr.apt->coordinates, NDT_LLCFMT_CEEVA, fd);
     if (ret)
     {
         goto end;
@@ -757,10 +869,6 @@ static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_fltplanformat fmt)
             llcfmt = NDT_LLCFMT_SVECT;
             break;
 
-        case NDT_FLTPFMT_LLCRD:
-            llcfmt = NDT_LLCFMT_AIBUS;
-            break;
-
         default:
             ndt_log("[icao_printlg]: unsupported flight plan format '%d'\n", fmt);
             ret = EINVAL;
@@ -788,13 +896,9 @@ static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_fltplanformat fmt)
                         case NDT_WPTYPE_DME:
                         case NDT_WPTYPE_FIX:
                         case NDT_WPTYPE_NDB:
-                        case NDT_WPTYPE_VOR:
-                            if (fmt != NDT_FLTPFMT_LLCRD)
-                            {
-                                 // use the identifier
-                                ret = ndt_fprintf(fd, "%s", leg->dst->info.idnt);
-                                break;
-                            }
+                        case NDT_WPTYPE_VOR: // use the identifier
+                            ret = ndt_fprintf(fd, "%s", leg->dst->info.idnt);
+                            break;
 
                         default: // use latitude/longitude coordinates
                             ret = ndt_position_fprintllc(leg->dst->position, llcfmt, fd);
