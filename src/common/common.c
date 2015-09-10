@@ -387,14 +387,20 @@ int64_t ndt_distance_get(ndt_distance d, int u)
     }
 }
 
+#define INTSEC (     1650)                     // ((INT_MAX / (361 * 3601)) - 1)
+#define INTMIN (  60*1650)
+#define INTDEG (3600*1650)
+#define DECSEC ((double)INTSEC)
+#define DECMIN ((double)INTMIN)
+#define DECDEG ((double)INTDEG)
 ndt_position ndt_position_init(double lat, double lon, ndt_distance alt)
 {
     ndt_position position;
 
-    position.latitude. equator  = ((lat * 21600.) >= 0. ? 1 : -1);
-    position.latitude. thirds   = ((lat * 21600.) * position.latitude. equator);
-    position.longitude.meridian = ((lon * 21600.) >= 0. ? 1 : -1);
-    position.longitude.thirds   = ((lon * 21600.) * position.longitude.meridian);
+    position.latitude. equator  = ((lat * DECDEG) >= 0. ? 1 : -1);
+    position.latitude. value    = ((lat * DECDEG) * position.latitude. equator);
+    position.longitude.meridian = ((lon * DECDEG) >= 0. ? 1 : -1);
+    position.longitude.value    = ((lon * DECDEG) * position.longitude.meridian);
 
     position.altitude     = alt;
     position.precision[0] = ndt_distance_init(1, alt.unit);
@@ -407,11 +413,11 @@ double ndt_position_getlatitude(ndt_position pos, ndt_angle_unit aut)
 {
     if (aut == NDT_ANGUNIT_RAD)
     {
-        return ((double)(pos.latitude.equator * pos.latitude.thirds) * M_PI / 3888000.);
+        return ndt_position_getlatitude(pos, NDT_ANGUNIT_DEG) * M_PI / 180.;
     }
     else
     {
-        return ((double)(pos.latitude.equator * pos.latitude.thirds) / 21600.);
+        return ((double)(pos.latitude.equator * pos.latitude.value) / DECDEG);
     }
 }
 
@@ -419,11 +425,11 @@ double ndt_position_getlongitude(ndt_position pos, ndt_angle_unit aut)
 {
     if (aut == NDT_ANGUNIT_RAD)
     {
-        return ((double)(pos.longitude.meridian * pos.longitude.thirds) * M_PI / 3888000.);
+        return ndt_position_getlongitude(pos, NDT_ANGUNIT_DEG) * M_PI / 180.;
     }
     else
     {
-        return ((double)(pos.longitude.meridian * pos.longitude.thirds) / 21600.);
+        return ((double)(pos.longitude.meridian * pos.longitude.value) / DECDEG);
     }
 }
 
@@ -541,18 +547,18 @@ int ndt_position_sprintllc(ndt_position pos, ndt_llcfmt fmt, char *buf, size_t l
     }
 
     char   card[3];
-    int    ilatd = ((pos.latitude. thirds)                               / 21600);
-    int    ilond = ((pos.longitude.thirds)                               / 21600);
-    int    ilatm = ((pos.latitude. thirds - ilatd * 21600)               /   360);
-    int    ilonm = ((pos.longitude.thirds - ilond * 21600)               /   360);
-    int    ilats = ((pos.latitude. thirds - ilatd * 21600 - ilatm * 360) /    60);
-    int    ilons = ((pos.longitude.thirds - ilond * 21600 - ilonm * 360) /    60);
-    double dlatd = ((pos.latitude. thirds)                               / 21600.);
-    double dlond = ((pos.longitude.thirds)                               / 21600.);
-    double dlatm = ((pos.latitude. thirds - ilatd * 21600)               /   360.);
-    double dlonm = ((pos.longitude.thirds - ilond * 21600)               /   360.);
-    double dlats = ((pos.latitude. thirds - ilatd * 21600 - ilatm * 360) /    60.);
-    double dlons = ((pos.longitude.thirds - ilond * 21600 - ilonm * 360) /    60.);
+    int    ilatd = ((pos.latitude. value)                                   / INTDEG);
+    int    ilond = ((pos.longitude.value)                                   / INTDEG);
+    int    ilatm = ((pos.latitude. value - ilatd * INTDEG)                  / INTMIN);
+    int    ilonm = ((pos.longitude.value - ilond * INTDEG)                  / INTMIN);
+    int    ilats = ((pos.latitude. value - ilatd * INTDEG - ilatm * INTMIN) / INTSEC);
+    int    ilons = ((pos.longitude.value - ilond * INTDEG - ilonm * INTMIN) / INTSEC);
+    double dlatd = ((pos.latitude. value)                                   / DECDEG);
+    double dlond = ((pos.longitude.value)                                   / DECDEG);
+    double dlatm = ((pos.latitude. value - ilatd * INTDEG)                  / DECMIN);
+    double dlonm = ((pos.longitude.value - ilond * INTDEG)                  / DECMIN);
+    double dlats = ((pos.latitude. value - ilatd * INTDEG - ilatm * INTMIN) / DECSEC);
+    double dlons = ((pos.longitude.value - ilond * INTDEG - ilonm * INTMIN) / DECSEC);
 
     switch (pos.latitude.equator)
     {

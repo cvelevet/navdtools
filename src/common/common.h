@@ -100,7 +100,7 @@ typedef struct ndt_position
             NDT_LATITUDE_SOUTH = -1,
         } equator;
 
-        int thirds; // 1/60th of a second
+        int value;
     } latitude;
 
     struct
@@ -111,7 +111,7 @@ typedef struct ndt_position
             NDT_LONGITUDE_EAST = -1,
         } meridian;
 
-        int thirds; // 1/60th of a second
+        int value;
     } longitude;
 
     ndt_distance altitude;     // altitude (relative to Mean Sea Level)
