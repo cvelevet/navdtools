@@ -321,7 +321,7 @@ static int parse_options(int argc, char **argv)
                 }
                 if (!strcasecmp(optarg, "civa"))
                 {
-                    format_out = NDT_FLTPFMT_LLCRD;
+                    format_out = NDT_FLTPFMT_CEEVA;
                     break;
                 }
                 if (!strcasecmp(optarg, "simbrief"))

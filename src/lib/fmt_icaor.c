@@ -589,7 +589,7 @@ end:
     return ret;
 }
 
-int ndt_fmt_llcrd_flightplan_write(ndt_flightplan *flp, FILE *fd)
+int ndt_fmt_ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd)
 {
     int ret = 0, rr = 0;
 
@@ -601,7 +601,7 @@ int ndt_fmt_llcrd_flightplan_write(ndt_flightplan *flp, FILE *fd)
 
     if (!flp->dep.apt || !flp->arr.apt)
     {
-        ndt_log("[fmt_llcrd]: departure or arrival airport not set\n");
+        ndt_log("[fmt_ceeva]: departure or arrival airport not set\n");
         ret = EINVAL;
         goto end;
     }
@@ -670,7 +670,7 @@ int ndt_fmt_llcrd_flightplan_write(ndt_flightplan *flp, FILE *fd)
                 break;
 
             default:
-                ndt_log("[fmt_llcrd]: unknown leg type '%d'\n", leg->type);
+                ndt_log("[fmt_ceeva]: unknown leg type '%d'\n", leg->type);
                 ret = EINVAL;
                 break;
         }
