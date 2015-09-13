@@ -607,8 +607,7 @@ int ndt_fmt_llcrd_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
 
     // departure airport and runway
-    rr += rr == 9 ? -8 : 1; // cycle 0-9
-    ret = ndt_fprintf(fd, "%d  %-16s  %d  ", rr, flp->dep.apt->info.idnt, rr);
+    ret = ndt_fprintf(fd, "%d  %-16s  %d  ", 0, flp->dep.apt->info.idnt, 0);
     if (ret)
     {
         goto end;
