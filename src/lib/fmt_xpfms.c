@@ -402,6 +402,29 @@ static int update__row(FILE *fd, int row)
     return row + 1;
 }
 
+static int ceeva_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row)
+{
+    int ret = ndt_fprintf(fd, "%d  %-16s  %d  ", row, wpt->info.idnt, row);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = ndt_position_fprintllc(wpt->position, NDT_LLCFMT_CEEVA, fd);
+    if (ret)
+    {
+        return ret;
+    }
+
+    ret = ndt_fprintf(fd, "%s", "\n");
+    if (ret)
+    {
+        return ret;
+    }
+
+    return 0;
+}
+
 int ndt_fmt_ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd)
 {
     int ret = 0, row = 0;
@@ -420,37 +443,14 @@ int ndt_fmt_ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
 
     // departure airport and runway
-    ret = ndt_fprintf(fd, "%d  %-16s  %d  ", 0, flp->dep.apt->info.idnt, 0);
-    if (ret)
-    {
-        goto end;
-    }
-    ret = ndt_position_fprintllc(flp->dep.apt->coordinates, NDT_LLCFMT_CEEVA, fd);
-    if (ret)
-    {
-        goto end;
-    }
-    ret = ndt_fprintf(fd, "%s", "\n");
+    ret = ceeva_waypoint_write(fd, flp->dep.apt->waypoint, 0);
     if (ret)
     {
         goto end;
     }
     if (flp->dep.rwy)
     {
-        row = update__row(fd, row);
-        ret = ndt_fprintf(fd, "%d  %s%-*s  %d  ",  row,
-                          flp->dep.apt->info.idnt, 16 - strlen(flp->dep.apt->info.idnt),
-                          flp->dep.rwy->info.idnt, row);
-        if (ret)
-        {
-            goto end;
-        }
-        ret = ndt_position_fprintllc(flp->dep.rwy->threshold, NDT_LLCFMT_CEEVA, fd);
-        if (ret)
-        {
-            goto end;
-        }
-        ret = ndt_fprintf(fd, "%s", "\n");
+        ret = ceeva_waypoint_write(fd, flp->dep.rwy->waypoint, 0);
         if (ret)
         {
             goto end;
@@ -472,7 +472,7 @@ int ndt_fmt_ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd)
             case NDT_LEGTYPE_TF:
             case NDT_LEGTYPE_ZZ:
                 row = update__row(fd, row);
-                ret = ndt_fprintf(fd, "%d  %-16s  %d  ", row, leg->dst->info.idnt, row);
+                ret = ceeva_waypoint_write(fd, leg->dst, row);
                 break;
 
             default:
@@ -484,52 +484,20 @@ int ndt_fmt_ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd)
         {
             goto end;
         }
-        ret = ndt_position_fprintllc(leg->dst->position, NDT_LLCFMT_CEEVA, fd);
-        if (ret)
-        {
-            goto end;
-        }
-        ret = ndt_fprintf(fd, "%s", "\n");
-        if (ret)
-        {
-            goto end;
-        }
     }
 
     // arrival runway and airport
     if (flp->arr.rwy)
     {
         row = update__row(fd, row);
-        ret = ndt_fprintf(fd, "%d  %s%-*s  %d  ",  row,
-                          flp->arr.apt->info.idnt, 16 - strlen(flp->arr.apt->info.idnt),
-                          flp->arr.rwy->info.idnt, row);
-        if (ret)
-        {
-            goto end;
-        }
-        ret = ndt_position_fprintllc(flp->arr.rwy->threshold, NDT_LLCFMT_CEEVA, fd);
-        if (ret)
-        {
-            goto end;
-        }
-        ret = ndt_fprintf(fd, "%s", "\n");
+        ret = ceeva_waypoint_write(fd, flp->arr.rwy->waypoint, row);
         if (ret)
         {
             goto end;
         }
     }
     row = update__row(fd, row);
-    ret = ndt_fprintf(fd, "%d  %-16s  %d  ", row, flp->arr.apt->info.idnt, row);
-    if (ret)
-    {
-        goto end;
-    }
-    ret = ndt_position_fprintllc(flp->arr.apt->coordinates, NDT_LLCFMT_CEEVA, fd);
-    if (ret)
-    {
-        goto end;
-    }
-    ret = ndt_fprintf(fd, "%s", "\n");
+    ret = ceeva_waypoint_write(fd, flp->arr.apt->waypoint, row);
     if (ret)
     {
         goto end;
