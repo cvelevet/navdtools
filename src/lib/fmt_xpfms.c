@@ -539,6 +539,50 @@ end:
     return ret;
 }
 
+static int xhelp_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row)
+{
+    char buf[17];
+    int  ret = ndt_fprintf(fd, "%2d  %s  %-16s  %2d  %+07.3lf  %+08.3lf",
+                           row,
+                           wpt->type == NDT_WPTYPE_APT ? "APT" :
+                           wpt->type == NDT_WPTYPE_FIX ? "fix" :
+                           wpt->type == NDT_WPTYPE_NDB ? "NDB" :
+                           wpt->type == NDT_WPTYPE_VOR ? "VOR" : "---",
+                           wpt->info.idnt, row,
+                           ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG),
+                           ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG));
+    if (ret)
+    {
+        return ret;
+    }
+
+    switch (wpt->type)
+    {
+        case NDT_WPTYPE_APT:
+        case NDT_WPTYPE_FIX:
+        case NDT_WPTYPE_NDB:
+        case NDT_WPTYPE_RWY:
+        case NDT_WPTYPE_VOR:
+            ret = ndt_fprintf(fd, "%s", "\n");
+            break;
+
+        default: // for QPAC's MCDU
+            if (ndt_position_sprintllc(wpt->position, NDT_LLCFMT_AIBUS,
+                                       buf, sizeof(buf)) >= sizeof(buf))
+            {
+                return EIO;
+            }
+            ret = ndt_fprintf(fd, "  %s\n", buf);
+            break;
+    }
+    if (ret)
+    {
+        return ret;
+    }
+
+    return 0;
+}
+
 int ndt_fmt_xhelp_flightplan_write(ndt_flightplan *flp, FILE *fd)
 {
     int ret = 0, row = 1;
@@ -557,29 +601,28 @@ int ndt_fmt_xhelp_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
 
     // departure airport and runway
-    ret = ndt_fprintf(fd, "%2d  APT  %-16s  %2d  %+07.3lf  %+08.3lf\n", row,
-                      flp->dep.apt->info.idnt, row,
-                      ndt_position_getlatitude (flp->dep.apt->coordinates, NDT_ANGUNIT_DEG),
-                      ndt_position_getlongitude(flp->dep.apt->coordinates, NDT_ANGUNIT_DEG));
+    ret = xhelp_waypoint_write(fd, flp->dep.apt->waypoint, 0);
     if (ret)
     {
         goto end;
     }
     if (flp->dep.rwy)
     {
-        row++;
-        ret = ndt_fprintf(fd, "%2d  ---  %s%-*s  %2d  %+07.3lf  %+08.3lf\n", row,
-                          flp->dep.apt->info.idnt, 16 - strlen(flp->dep.apt->info.idnt),
-                          flp->dep.rwy->info.idnt, row,
-                          ndt_position_getlatitude (flp->dep.rwy->threshold, NDT_ANGUNIT_DEG),
-                          ndt_position_getlongitude(flp->dep.rwy->threshold, NDT_ANGUNIT_DEG));
+        ret = xhelp_waypoint_write(fd, flp->dep.rwy->waypoint, row++);
         if (ret)
         {
             goto end;
         }
     }
 
+    // SID and transition (future)
+
     // decoded route
+    ret = ndt_fprintf(fd, "%s", "\n");
+    if (ret)
+    {
+        goto end;
+    }
     for (size_t i = 0; i < ndt_list_count(flp->legs); i++)
     {
         ndt_route_leg *leg = ndt_list_item(flp->legs, i);
@@ -593,16 +636,7 @@ int ndt_fmt_xhelp_flightplan_write(ndt_flightplan *flp, FILE *fd)
         {
             case NDT_LEGTYPE_TF:
             case NDT_LEGTYPE_ZZ:
-                row++;
-                ret = ndt_fprintf(fd, "%2d  %s  %-16s  %2d  %+07.3lf  %+08.3lf\n",
-                                  row,
-                                  leg->dst->type == NDT_WPTYPE_APT ? "APT" :
-                                  leg->dst->type == NDT_WPTYPE_FIX ? "fix" :
-                                  leg->dst->type == NDT_WPTYPE_NDB ? "NDB" :
-                                  leg->dst->type == NDT_WPTYPE_VOR ? "VOR" : "---",
-                                  leg->dst->info.idnt, row,
-                                  ndt_position_getlatitude (leg->dst->position, NDT_ANGUNIT_DEG),
-                                  ndt_position_getlongitude(leg->dst->position, NDT_ANGUNIT_DEG));
+                ret = xhelp_waypoint_write(fd, leg->dst, row++);
                 break;
 
             default:
@@ -616,26 +650,25 @@ int ndt_fmt_xhelp_flightplan_write(ndt_flightplan *flp, FILE *fd)
         }
     }
 
+    // STAR and transition (future)
+
+    // final approach (future)
+    ret = ndt_fprintf(fd, "%s", "\n");
+    if (ret)
+    {
+        goto end;
+    }
+
     // arrival runway and airport
     if (flp->arr.rwy)
     {
-        row++;
-        ret = ndt_fprintf(fd, "%2d  ---  %s%-*s  %2d  %+07.3lf  %+08.3lf\n", row,
-                          flp->arr.apt->info.idnt, 16 - strlen(flp->arr.apt->info.idnt),
-                          flp->arr.rwy->info.idnt, row,
-                          ndt_position_getlatitude (flp->arr.rwy->threshold, NDT_ANGUNIT_DEG),
-                          ndt_position_getlongitude(flp->arr.rwy->threshold, NDT_ANGUNIT_DEG));
-
+        ret = xhelp_waypoint_write(fd, flp->arr.rwy->waypoint, row++);
         if (ret)
         {
             goto end;
         }
     }
-    row++;
-    ret = ndt_fprintf(fd, "%2d  APT  %-16s  %2d  %+07.3lf  %+08.3lf\n", row,
-                      flp->arr.apt->info.idnt, row,
-                      ndt_position_getlatitude (flp->arr.apt->coordinates, NDT_ANGUNIT_DEG),
-                      ndt_position_getlongitude(flp->arr.apt->coordinates, NDT_ANGUNIT_DEG));
+    ret = xhelp_waypoint_write(fd, flp->arr.apt->waypoint, row++);
     if (ret)
     {
         goto end;
