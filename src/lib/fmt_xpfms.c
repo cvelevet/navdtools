@@ -608,24 +608,55 @@ int ndt_fmt_xhelp_flightplan_write(ndt_flightplan *flp, FILE *fd)
     {
         goto end;
     }
-    for (size_t i = 0; i < ndt_list_count(flp->legs); i++)
+    for (size_t i = 0; i < ndt_list_count(flp->rte); i++)
     {
-        ndt_route_leg *leg = ndt_list_item(flp->legs, i);
-        if (!leg)
+        ndt_route_segment *rsg = ndt_list_item(flp->rte, i);
+        if (!rsg)
         {
             ret = ENOMEM;
             goto end;
         }
 
-        switch (leg->type)
+        switch (rsg->type)
         {
-            case NDT_LEGTYPE_TF:
-            case NDT_LEGTYPE_ZZ:
-                ret = xhelp_waypoint_write(fd, leg->dst, row++);
+            case NDT_RSTYPE_AWY:
+            case NDT_RSTYPE_DCT:
+            {
+                for (size_t j = 0; j < ndt_list_count(rsg->legs); j++)
+                {
+                    ndt_route_leg *leg = ndt_list_item(rsg->legs, j);
+                    if (!leg)
+                    {
+                        ret = ENOMEM;
+                        break;
+                    }
+
+                    switch (leg->type)
+                    {
+                        case NDT_LEGTYPE_TF:
+                        case NDT_LEGTYPE_ZZ:
+                            ret = xhelp_waypoint_write(fd, leg->dst, row++);
+                            break;
+
+                        default:
+                            ndt_log("[fmt_xhelp]: unknown leg type '%d'\n", leg->type);
+                            ret = EINVAL;
+                            break;
+                    }
+                    if (ret)
+                    {
+                        break;
+                    }
+                }
+                break;
+            }
+
+            case NDT_RSTYPE_DSC:
+                ret = ndt_fprintf(fd, "%s", "\n");
                 break;
 
             default:
-                ndt_log("[fmt_xhelp]: unknown leg type '%d'\n", leg->type);
+                ndt_log("[fmt_xhelp]: unknown segment type '%d'\n", rsg->type);
                 ret = EINVAL;
                 break;
         }
