@@ -576,7 +576,7 @@ int ndt_fmt_xhelp_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
     if (flp->dep.rwy)
     {
-        ret = xhelp_waypoint_write(fd, flp->dep.rwy->waypoint, row++);
+        ret = xhelp_waypoint_write(fd, flp->dep.rwy->waypoint, 0);
         if (ret)
         {
             goto end;
