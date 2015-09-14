@@ -316,7 +316,7 @@ static int parse_options(int argc, char **argv)
                 }
                 if (!strcasecmp(optarg, "civa"))
                 {
-                    format_out = NDT_FLTPFMT_CEEVA;
+                    format_out = NDT_FLTPFMT_XPCVA;
                     break;
                 }
                 if (!strcasecmp(optarg, "decoded") ||
@@ -325,14 +325,14 @@ static int parse_options(int argc, char **argv)
                     format_out = NDT_FLTPFMT_DCDED;
                     break;
                 }
+                if (!strcasecmp(optarg, "helper"))
+                {
+                    format_out = NDT_FLTPFMT_XPHLP;
+                    break;
+                }
                 if (!strcasecmp(optarg, "icao"))
                 {
                     format_out = NDT_FLTPFMT_ICAOR;
-                    break;
-                }
-                if (!strcasecmp(optarg, "manual"))
-                {
-                    format_out = NDT_FLTPFMT_XHELP;
                     break;
                 }
                 if (!strcasecmp(optarg, "simbrief"))
@@ -609,10 +609,10 @@ static int print_help(void)
             "                                        line, to use w/CIVA INS    \n"
             "                            decoded     Decoded route (wpt IDs),   \n"
             "                                        all legs on a single line  \n"
+            "                            helper      Decoded route, one leg per \n"
+            "                                        line, to use w/X-Plane FMS \n"
             "                            icao        ICAO flight plan route,    \n"
             "                                        without specific SID/STAR  \n"
-            "                            manual      Decoded route, one leg per \n"
-            "                                        line, to use w/X-Plane FMS \n"
             "                            xplane      X-Plane .fms flight plan   \n"
             "                                        with QPAC enhancements for \n"
             "                                        altitude constraints and   \n"
@@ -720,7 +720,7 @@ static int print_examples(void)
             "                                                                   \n"
             "     1  KBOS              1  N 42 21.8' W 071 00.4'                \n"
             "                                                                   \n"
-            " \"manual\" (output only):                                         \n"
+            " \"helper\" (output only):                                         \n"
             "      0  APT  LSGG               0  +46.238  +006.109              \n"
             "                                                                   \n"
             "      1  fix  MOLUS              1  +46.444  +006.679              \n"

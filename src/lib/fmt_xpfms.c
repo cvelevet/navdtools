@@ -424,7 +424,7 @@ static int helpr_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row, ndt_fltpla
     char buf[23];
     int  ret;
 
-    if (fmt == NDT_FLTPFMT_XHELP)
+    if (fmt == NDT_FLTPFMT_XPHLP)
     {
         ret = ndt_fprintf(fd, "%2d  %s  %-19s  %2d  %+07.3lf  %+08.3lf", row,
                           wpt->type == NDT_WPTYPE_APT ? "APT" :
@@ -435,7 +435,7 @@ static int helpr_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row, ndt_fltpla
                           ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG),
                           ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG));
     }
-    else if (fmt == NDT_FLTPFMT_CEEVA)
+    else if (fmt == NDT_FLTPFMT_XPCVA)
     {
         if (ndt_position_sprintllc(wpt->position, NDT_LLCFMT_CEEVA,
                                    buf, sizeof(buf)) >= sizeof(buf))
@@ -859,10 +859,10 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanfor
 
     switch (fmt)
     {
-        case NDT_FLTPFMT_CEEVA:
+        case NDT_FLTPFMT_XPCVA:
             return ceeva_flightplan_write(flp, fd, fmt);
 
-        case NDT_FLTPFMT_XHELP:
+        case NDT_FLTPFMT_XPHLP:
             return helpr_flightplan_write(flp, fd, fmt);
 
         case NDT_FLTPFMT_XPFMS:

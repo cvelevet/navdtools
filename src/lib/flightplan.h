@@ -33,12 +33,12 @@ typedef enum ndt_fltplanformat
 {
     NDT_FLTPFMT_OTHER, // unknown or unsupported format
     NDT_FLTPFMT_AIBXT, // Airbus X Extended format
-    NDT_FLTPFMT_CEEVA, // optimized for use with CIVA
     NDT_FLTPFMT_DCDED, // decoded route legs, same line
     NDT_FLTPFMT_ICAOR, // ICAO route with departure/arrival airports, no SID/STAR
     NDT_FLTPFMT_SBRIF, // ICAO route only, with FlightAware latitude/longitude
-    NDT_FLTPFMT_XHELP, // optimized for use with X-Plane FMS
     NDT_FLTPFMT_XPFMS, // X-Plane default FMS format
+    NDT_FLTPFMT_XPCVA, // optimized for use with CIVA
+    NDT_FLTPFMT_XPHLP, // optimized for use with X-Plane FMS
 } ndt_fltplanformat;
 
 typedef struct ndt_flightplan
