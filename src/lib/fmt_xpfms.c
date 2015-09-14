@@ -388,9 +388,23 @@ end:
     return err;
 }
 
+static int update__row(FILE *fd, int row)
+{
+    if (row <= 0 || row >= 9)
+    {
+        // new page
+        if (ndt_fprintf(fd, "%s", "\n"))
+        {
+            return -1;
+        }
+        return 1;
+    }
+    return row + 1;
+}
+
 int ndt_fmt_ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd)
 {
-    int ret = 0, rr = 0;
+    int ret = 0, row = 0;
 
     if (!flp || !fd)
     {
@@ -423,10 +437,10 @@ int ndt_fmt_ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
     if (flp->dep.rwy)
     {
-        rr += rr == 9 ? -8 : 1; // cycle 0-9
-        ret = ndt_fprintf(fd, "%d  %s%-*s  %d  ",  rr,
+        row = update__row(fd, row);
+        ret = ndt_fprintf(fd, "%d  %s%-*s  %d  ",  row,
                           flp->dep.apt->info.idnt, 16 - strlen(flp->dep.apt->info.idnt),
-                          flp->dep.rwy->info.idnt, rr);
+                          flp->dep.rwy->info.idnt, row);
         if (ret)
         {
             goto end;
@@ -457,8 +471,8 @@ int ndt_fmt_ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd)
         {
             case NDT_LEGTYPE_TF:
             case NDT_LEGTYPE_ZZ:
-                rr += rr == 9 ? -8 : 1; // cycle 0-9
-                ret = ndt_fprintf(fd, "%d  %-16s  %d  ", rr, leg->dst->info.idnt, rr);
+                row = update__row(fd, row);
+                ret = ndt_fprintf(fd, "%d  %-16s  %d  ", row, leg->dst->info.idnt, row);
                 break;
 
             default:
@@ -485,10 +499,10 @@ int ndt_fmt_ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd)
     // arrival runway and airport
     if (flp->arr.rwy)
     {
-        rr += rr == 9 ? -8 : 1; // cycle 0-9
-        ret = ndt_fprintf(fd, "%d  %s%-*s  %d  ",  rr,
+        row = update__row(fd, row);
+        ret = ndt_fprintf(fd, "%d  %s%-*s  %d  ",  row,
                           flp->arr.apt->info.idnt, 16 - strlen(flp->arr.apt->info.idnt),
-                          flp->arr.rwy->info.idnt, rr);
+                          flp->arr.rwy->info.idnt, row);
         if (ret)
         {
             goto end;
@@ -504,8 +518,8 @@ int ndt_fmt_ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd)
             goto end;
         }
     }
-    rr += rr == 9 ? -8 : 1; // cycle 0-9
-    ret = ndt_fprintf(fd, "%d  %-16s  %d  ", rr, flp->arr.apt->info.idnt, rr);
+    row = update__row(fd, row);
+    ret = ndt_fprintf(fd, "%d  %-16s  %d  ", row, flp->arr.apt->info.idnt, row);
     if (ret)
     {
         goto end;
@@ -527,7 +541,7 @@ end:
 
 int ndt_fmt_xhelp_flightplan_write(ndt_flightplan *flp, FILE *fd)
 {
-    int ret = 0, rr = 1;
+    int ret = 0, row = 1;
 
     if (!flp || !fd)
     {
@@ -543,8 +557,8 @@ int ndt_fmt_xhelp_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
 
     // departure airport and runway
-    ret = ndt_fprintf(fd, "%2d  APT  %-16s  %2d  %+07.3lf  %+08.3lf\n", rr,
-                      flp->dep.apt->info.idnt, rr,
+    ret = ndt_fprintf(fd, "%2d  APT  %-16s  %2d  %+07.3lf  %+08.3lf\n", row,
+                      flp->dep.apt->info.idnt, row,
                       ndt_position_getlatitude (flp->dep.apt->coordinates, NDT_ANGUNIT_DEG),
                       ndt_position_getlongitude(flp->dep.apt->coordinates, NDT_ANGUNIT_DEG));
     if (ret)
@@ -553,10 +567,10 @@ int ndt_fmt_xhelp_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
     if (flp->dep.rwy)
     {
-        rr += 1;
-        ret = ndt_fprintf(fd, "%2d  ---  %s%-*s  %2d  %+07.3lf  %+08.3lf\n", rr,
+        row++;
+        ret = ndt_fprintf(fd, "%2d  ---  %s%-*s  %2d  %+07.3lf  %+08.3lf\n", row,
                           flp->dep.apt->info.idnt, 16 - strlen(flp->dep.apt->info.idnt),
-                          flp->dep.rwy->info.idnt, rr,
+                          flp->dep.rwy->info.idnt, row,
                           ndt_position_getlatitude (flp->dep.rwy->threshold, NDT_ANGUNIT_DEG),
                           ndt_position_getlongitude(flp->dep.rwy->threshold, NDT_ANGUNIT_DEG));
         if (ret)
@@ -579,14 +593,14 @@ int ndt_fmt_xhelp_flightplan_write(ndt_flightplan *flp, FILE *fd)
         {
             case NDT_LEGTYPE_TF:
             case NDT_LEGTYPE_ZZ:
-                rr += 1;
+                row++;
                 ret = ndt_fprintf(fd, "%2d  %s  %-16s  %2d  %+07.3lf  %+08.3lf\n",
-                                  rr,
+                                  row,
                                   leg->dst->type == NDT_WPTYPE_APT ? "APT" :
                                   leg->dst->type == NDT_WPTYPE_FIX ? "fix" :
                                   leg->dst->type == NDT_WPTYPE_NDB ? "NDB" :
                                   leg->dst->type == NDT_WPTYPE_VOR ? "VOR" : "---",
-                                  leg->dst->info.idnt, rr,
+                                  leg->dst->info.idnt, row,
                                   ndt_position_getlatitude (leg->dst->position, NDT_ANGUNIT_DEG),
                                   ndt_position_getlongitude(leg->dst->position, NDT_ANGUNIT_DEG));
                 break;
@@ -605,10 +619,10 @@ int ndt_fmt_xhelp_flightplan_write(ndt_flightplan *flp, FILE *fd)
     // arrival runway and airport
     if (flp->arr.rwy)
     {
-        rr += 1;
-        ret = ndt_fprintf(fd, "%2d  ---  %s%-*s  %2d  %+07.3lf  %+08.3lf\n", rr,
+        row++;
+        ret = ndt_fprintf(fd, "%2d  ---  %s%-*s  %2d  %+07.3lf  %+08.3lf\n", row,
                           flp->arr.apt->info.idnt, 16 - strlen(flp->arr.apt->info.idnt),
-                          flp->arr.rwy->info.idnt, rr,
+                          flp->arr.rwy->info.idnt, row,
                           ndt_position_getlatitude (flp->arr.rwy->threshold, NDT_ANGUNIT_DEG),
                           ndt_position_getlongitude(flp->arr.rwy->threshold, NDT_ANGUNIT_DEG));
 
@@ -617,9 +631,9 @@ int ndt_fmt_xhelp_flightplan_write(ndt_flightplan *flp, FILE *fd)
             goto end;
         }
     }
-    rr += 1;
-    ret = ndt_fprintf(fd, "%2d  APT  %-16s  %2d  %+07.3lf  %+08.3lf\n", rr,
-                      flp->arr.apt->info.idnt, rr,
+    row++;
+    ret = ndt_fprintf(fd, "%2d  APT  %-16s  %2d  %+07.3lf  %+08.3lf\n", row,
+                      flp->arr.apt->info.idnt, row,
                       ndt_position_getlatitude (flp->arr.apt->coordinates, NDT_ANGUNIT_DEG),
                       ndt_position_getlongitude(flp->arr.apt->coordinates, NDT_ANGUNIT_DEG));
     if (ret)
