@@ -388,6 +388,112 @@ end:
     return err;
 }
 
+int ndt_fmt_xhelp_flightplan_write(ndt_flightplan *flp, FILE *fd)
+{
+    int ret = 0, rr = 1;
+
+    if (!flp || !fd)
+    {
+        ret = ENOMEM;
+        goto end;
+    }
+
+    if (!flp->dep.apt || !flp->arr.apt)
+    {
+        ndt_log("[fmt_xhelp]: departure or arrival airport not set\n");
+        ret = EINVAL;
+        goto end;
+    }
+
+    // departure airport and runway
+    ret = ndt_fprintf(fd, "%2d  APT  %-16s  %2d  %+07.3lf  %+08.3lf\n", rr,
+                      flp->dep.apt->info.idnt, rr,
+                      ndt_position_getlatitude (flp->dep.apt->coordinates, NDT_ANGUNIT_DEG),
+                      ndt_position_getlongitude(flp->dep.apt->coordinates, NDT_ANGUNIT_DEG));
+    if (ret)
+    {
+        goto end;
+    }
+    if (flp->dep.rwy)
+    {
+        rr += 1;
+        ret = ndt_fprintf(fd, "%2d  ---  %s%-*s  %2d  %+07.3lf  %+08.3lf\n", rr,
+                          flp->dep.apt->info.idnt, 16 - strlen(flp->dep.apt->info.idnt),
+                          flp->dep.rwy->info.idnt, rr,
+                          ndt_position_getlatitude (flp->dep.rwy->threshold, NDT_ANGUNIT_DEG),
+                          ndt_position_getlongitude(flp->dep.rwy->threshold, NDT_ANGUNIT_DEG));
+        if (ret)
+        {
+            goto end;
+        }
+    }
+
+    // decoded route
+    for (size_t i = 0; i < ndt_list_count(flp->legs); i++)
+    {
+        ndt_route_leg *leg = ndt_list_item(flp->legs, i);
+        if (!leg)
+        {
+            ret = ENOMEM;
+            goto end;
+        }
+
+        switch (leg->type)
+        {
+            case NDT_LEGTYPE_TF:
+            case NDT_LEGTYPE_ZZ:
+                rr += 1;
+                ret = ndt_fprintf(fd, "%2d  %s  %-16s  %2d  %+07.3lf  %+08.3lf\n",
+                                  rr,
+                                  leg->dst->type == NDT_WPTYPE_APT ? "APT" :
+                                  leg->dst->type == NDT_WPTYPE_FIX ? "fix" :
+                                  leg->dst->type == NDT_WPTYPE_NDB ? "NDB" :
+                                  leg->dst->type == NDT_WPTYPE_VOR ? "VOR" : "---",
+                                  leg->dst->info.idnt, rr,
+                                  ndt_position_getlatitude (leg->dst->position, NDT_ANGUNIT_DEG),
+                                  ndt_position_getlongitude(leg->dst->position, NDT_ANGUNIT_DEG));
+                break;
+
+            default:
+                ndt_log("[fmt_xhelp]: unknown leg type '%d'\n", leg->type);
+                ret = EINVAL;
+                break;
+        }
+        if (ret)
+        {
+            goto end;
+        }
+    }
+
+    // arrival runway and airport
+    if (flp->arr.rwy)
+    {
+        rr += 1;
+        ret = ndt_fprintf(fd, "%2d  ---  %s%-*s  %2d  %+07.3lf  %+08.3lf\n", rr,
+                          flp->arr.apt->info.idnt, 16 - strlen(flp->arr.apt->info.idnt),
+                          flp->arr.rwy->info.idnt, rr,
+                          ndt_position_getlatitude (flp->arr.rwy->threshold, NDT_ANGUNIT_DEG),
+                          ndt_position_getlongitude(flp->arr.rwy->threshold, NDT_ANGUNIT_DEG));
+
+        if (ret)
+        {
+            goto end;
+        }
+    }
+    rr += 1;
+    ret = ndt_fprintf(fd, "%2d  APT  %-16s  %2d  %+07.3lf  %+08.3lf\n", rr,
+                      flp->arr.apt->info.idnt, rr,
+                      ndt_position_getlatitude (flp->arr.apt->coordinates, NDT_ANGUNIT_DEG),
+                      ndt_position_getlongitude(flp->arr.apt->coordinates, NDT_ANGUNIT_DEG));
+    if (ret)
+    {
+        goto end;
+    }
+
+end:
+    return ret;
+}
+
 int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
 {
     int ret = 0, count = 1, altitude, speed;

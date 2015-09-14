@@ -37,6 +37,7 @@ typedef enum ndt_fltplanformat
     NDT_FLTPFMT_DCDED, // decoded route legs, same line
     NDT_FLTPFMT_ICAOR, // ICAO route with departure/arrival airports, no SID/STAR
     NDT_FLTPFMT_SBRIF, // ICAO route only, with FlightAware latitude/longitude
+    NDT_FLTPFMT_XHELP, // optimized for use with X-Plane FMS
     NDT_FLTPFMT_XPFMS, // X-Plane default FMS format
 } ndt_fltplanformat;
 

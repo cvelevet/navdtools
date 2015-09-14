@@ -314,25 +314,30 @@ static int parse_options(int argc, char **argv)
                     format_out = NDT_FLTPFMT_AIBXT;
                     break;
                 }
-                if (!strcasecmp(optarg, "icao"))
-                {
-                    format_out = NDT_FLTPFMT_ICAOR;
-                    break;
-                }
                 if (!strcasecmp(optarg, "civa"))
                 {
                     format_out = NDT_FLTPFMT_CEEVA;
                     break;
                 }
+                if (!strcasecmp(optarg, "decoded") ||
+                    !strcasecmp(optarg, "skyvector")) // legacy name for flat, decoded route
+                {
+                    format_out = NDT_FLTPFMT_DCDED;
+                    break;
+                }
+                if (!strcasecmp(optarg, "icao"))
+                {
+                    format_out = NDT_FLTPFMT_ICAOR;
+                    break;
+                }
+                if (!strcasecmp(optarg, "manual"))
+                {
+                    format_out = NDT_FLTPFMT_XHELP;
+                    break;
+                }
                 if (!strcasecmp(optarg, "simbrief"))
                 {
                     format_out = NDT_FLTPFMT_SBRIF;
-                    break;
-                }
-                if (!strcasecmp(optarg, "skyvector") || // legacy name for flat, decoded route
-                    !strcasecmp(optarg, "decoded"))
-                {
-                    format_out = NDT_FLTPFMT_DCDED;
                     break;
                 }
                 if (!strcasecmp(optarg, "xplane"))
@@ -606,6 +611,8 @@ static int print_help(void)
             "                                        all legs on a single line  \n"
             "                            icao        ICAO flight plan route,    \n"
             "                                        without specific SID/STAR  \n"
+            "                            manual      Decoded route, one leg per \n"
+            "                                        line, to use w/X-Plane FMS \n"
             "                            xplane      X-Plane .fms flight plan   \n"
             "                                        with QPAC enhancements for \n"
             "                                        altitude constraints and   \n"

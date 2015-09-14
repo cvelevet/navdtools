@@ -284,6 +284,10 @@ int ndt_flightplan_write(ndt_flightplan *flp, FILE *file, ndt_fltplanformat fmt)
             err = ndt_fmt_sbrif_flightplan_write(flp, file);
             break;
 
+        case NDT_FLTPFMT_XHELP:
+            err = ndt_fmt_xhelp_flightplan_write(flp, file);
+            break;
+
         case NDT_FLTPFMT_XPFMS:
             err = ndt_fmt_xpfms_flightplan_write(flp, file);
             break;
