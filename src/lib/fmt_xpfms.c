@@ -419,55 +419,52 @@ static int update__row(FILE *fd, int row)
     return row + 1;
 }
 
-static int ceeva_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row)
+static int helpr_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row, ndt_fltplanformat fmt)
 {
-    int ret = ndt_fprintf(fd, "%d  %-19s  %d  ", row, wpt->info.idnt, row);
+    char buf[23];
+    int  ret;
+
+    if (fmt == NDT_FLTPFMT_XHELP)
+    {
+        ret = ndt_fprintf(fd, "%2d  %s  %-19s  %2d  %+07.3lf  %+08.3lf", row,
+                          wpt->type == NDT_WPTYPE_APT ? "APT" :
+                          wpt->type == NDT_WPTYPE_FIX ? "fix" :
+                          wpt->type == NDT_WPTYPE_NDB ? "NDB" :
+                          wpt->type == NDT_WPTYPE_VOR ? "VOR" : "---",
+                          wpt->info.idnt, row,
+                          ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG),
+                          ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG));
+    }
+    else if (fmt == NDT_FLTPFMT_CEEVA)
+    {
+        if (ndt_position_sprintllc(wpt->position, NDT_LLCFMT_CEEVA,
+                                   buf, sizeof(buf)) >= sizeof(buf))
+        {
+            return EIO;
+        }
+        ret = ndt_fprintf(fd, "%d  %-19s  %d  %s", row, wpt->info.idnt, row, buf);
+    }
     if (ret)
     {
         return ret;
     }
 
-    ret = ndt_position_fprintllc(wpt->position, NDT_LLCFMT_CEEVA, fd);
-    if (ret)
-    {
-        return ret;
-    }
-
-    ret = ndt_fprintf(fd, "%s", "\n");
-    if (ret)
-    {
-        return ret;
-    }
-
-    return 0;
+    return ndt_fprintf(fd, "%s", "\n");
 }
 
-int ndt_fmt_ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd)
+static int ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanformat fmt)
 {
     int ret = 0, row = 0;
 
-    if (!flp || !fd)
-    {
-        ret = ENOMEM;
-        goto end;
-    }
-
-    if (!flp->dep.apt || !flp->arr.apt)
-    {
-        ndt_log("[fmt_ceeva]: departure or arrival airport not set\n");
-        ret = EINVAL;
-        goto end;
-    }
-
     // departure airport and runway
-    ret = ceeva_waypoint_write(fd, flp->dep.apt->waypoint, 0);
+    ret = helpr_waypoint_write(fd, flp->dep.apt->waypoint, 0, fmt);
     if (ret)
     {
         goto end;
     }
     if (flp->dep.rwy)
     {
-        ret = ceeva_waypoint_write(fd, flp->dep.rwy->waypoint, 0);
+        ret = helpr_waypoint_write(fd, flp->dep.rwy->waypoint, 0, fmt);
         if (ret)
         {
             goto end;
@@ -489,7 +486,7 @@ int ndt_fmt_ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd)
             case NDT_LEGTYPE_TF:
             case NDT_LEGTYPE_ZZ:
                 row = update__row(fd, row);
-                ret = ceeva_waypoint_write(fd, leg->dst, row);
+                ret = helpr_waypoint_write(fd, leg->dst, row, fmt);
                 break;
 
             default:
@@ -507,14 +504,14 @@ int ndt_fmt_ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd)
     if (flp->arr.rwy)
     {
         row = update__row(fd, row);
-        ret = ceeva_waypoint_write(fd, flp->arr.rwy->waypoint, row);
+        ret = helpr_waypoint_write(fd, flp->arr.rwy->waypoint, row, fmt);
         if (ret)
         {
             goto end;
         }
     }
     row = update__row(fd, row);
-    ret = ceeva_waypoint_write(fd, flp->arr.apt->waypoint, row);
+    ret = helpr_waypoint_write(fd, flp->arr.apt->waypoint, row, fmt);
     if (ret)
     {
         goto end;
@@ -524,76 +521,19 @@ end:
     return ret;
 }
 
-static int xhelp_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row)
-{
-    char buf[17];
-    int  ret = ndt_fprintf(fd, "%2d  %s  %-19s  %2d  %+07.3lf  %+08.3lf",
-                           row,
-                           wpt->type == NDT_WPTYPE_APT ? "APT" :
-                           wpt->type == NDT_WPTYPE_FIX ? "fix" :
-                           wpt->type == NDT_WPTYPE_NDB ? "NDB" :
-                           wpt->type == NDT_WPTYPE_VOR ? "VOR" : "---",
-                           wpt->info.idnt, row,
-                           ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG),
-                           ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG));
-    if (ret)
-    {
-        return ret;
-    }
-
-    switch (wpt->type)
-    {
-        case NDT_WPTYPE_APT:
-        case NDT_WPTYPE_FIX:
-        case NDT_WPTYPE_NDB:
-        case NDT_WPTYPE_RWY:
-        case NDT_WPTYPE_VOR:
-            ret = ndt_fprintf(fd, "%s", "\n");
-            break;
-
-        default: // for QPAC's MCDU
-            if (ndt_position_sprintllc(wpt->position, NDT_LLCFMT_AIBUS,
-                                       buf, sizeof(buf)) >= sizeof(buf))
-            {
-                return EIO;
-            }
-            ret = ndt_fprintf(fd, "  %s\n", buf);
-            break;
-    }
-    if (ret)
-    {
-        return ret;
-    }
-
-    return 0;
-}
-
-int ndt_fmt_xhelp_flightplan_write(ndt_flightplan *flp, FILE *fd)
+static int helpr_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanformat fmt)
 {
     int ret = 0, row = 1;
 
-    if (!flp || !fd)
-    {
-        ret = ENOMEM;
-        goto end;
-    }
-
-    if (!flp->dep.apt || !flp->arr.apt)
-    {
-        ndt_log("[fmt_xhelp]: departure or arrival airport not set\n");
-        ret = EINVAL;
-        goto end;
-    }
-
     // departure airport and runway
-    ret = xhelp_waypoint_write(fd, flp->dep.apt->waypoint, 0);
+    ret = helpr_waypoint_write(fd, flp->dep.apt->waypoint, 0, fmt);
     if (ret)
     {
         goto end;
     }
     if (flp->dep.rwy)
     {
-        ret = xhelp_waypoint_write(fd, flp->dep.rwy->waypoint, 0);
+        ret = helpr_waypoint_write(fd, flp->dep.rwy->waypoint, 0, fmt);
         if (ret)
         {
             goto end;
@@ -635,7 +575,7 @@ int ndt_fmt_xhelp_flightplan_write(ndt_flightplan *flp, FILE *fd)
                     {
                         case NDT_LEGTYPE_TF:
                         case NDT_LEGTYPE_ZZ:
-                            ret = xhelp_waypoint_write(fd, leg->dst, row++);
+                            ret = helpr_waypoint_write(fd, leg->dst, row++, fmt);
                             break;
 
                         default:
@@ -678,13 +618,13 @@ int ndt_fmt_xhelp_flightplan_write(ndt_flightplan *flp, FILE *fd)
     // arrival runway and airport
     if (flp->arr.rwy)
     {
-        ret = xhelp_waypoint_write(fd, flp->arr.rwy->waypoint, row++);
+        ret = helpr_waypoint_write(fd, flp->arr.rwy->waypoint, row++, fmt);
         if (ret)
         {
             goto end;
         }
     }
-    ret = xhelp_waypoint_write(fd, flp->arr.apt->waypoint, row++);
+    ret = helpr_waypoint_write(fd, flp->arr.apt->waypoint, row++, fmt);
     if (ret)
     {
         goto end;
@@ -764,22 +704,9 @@ static int print_airport(FILE *fd, ndt_airport *apt)
     return -1;
 }
 
-int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
+static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanformat fmt)
 {
     int ret = 0, count = 1, altitude, speed;
-
-    if (!flp || !fd)
-    {
-        ret = ENOMEM;
-        goto end;
-    }
-
-    if (!flp->dep.apt || !flp->arr.apt)
-    {
-        ndt_log("[fmt_xpfms]: departure or arrival airport not set\n");
-        ret = EINVAL;
-        goto end;
-    }
 
     // header
     for (size_t i = 0; i < ndt_list_count(flp->legs); i++)
@@ -915,4 +842,34 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
 
 end:
     return ret;
+}
+
+int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanformat fmt)
+{
+    if (!flp || !fd)
+    {
+        return ENOMEM;
+    }
+
+    if (!flp->dep.apt || !flp->arr.apt)
+    {
+        ndt_log("[fmt_xpfms]: departure or arrival airport not set\n");
+        return EINVAL;
+    }
+
+    switch (fmt)
+    {
+        case NDT_FLTPFMT_CEEVA:
+            return ceeva_flightplan_write(flp, fd, fmt);
+
+        case NDT_FLTPFMT_XHELP:
+            return helpr_flightplan_write(flp, fd, fmt);
+
+        case NDT_FLTPFMT_XPFMS:
+            return xpfms_flightplan_write(flp, fd, fmt);
+
+        default:
+            ndt_log("[fmt_xpfms]: unsupported flight plan format '%d'\n", fmt);
+            return EINVAL;
+    }
 }

@@ -271,7 +271,7 @@ int ndt_flightplan_write(ndt_flightplan *flp, FILE *file, ndt_fltplanformat fmt)
             break;
 
         case NDT_FLTPFMT_CEEVA:
-            err = ndt_fmt_ceeva_flightplan_write(flp, file);
+            err = ndt_fmt_xpfms_flightplan_write(flp, file, fmt);
             break;
 
         case NDT_FLTPFMT_SBRIF:
@@ -279,11 +279,11 @@ int ndt_flightplan_write(ndt_flightplan *flp, FILE *file, ndt_fltplanformat fmt)
             break;
 
         case NDT_FLTPFMT_XHELP:
-            err = ndt_fmt_xhelp_flightplan_write(flp, file);
+            err = ndt_fmt_xpfms_flightplan_write(flp, file, fmt);
             break;
 
         case NDT_FLTPFMT_XPFMS:
-            err = ndt_fmt_xpfms_flightplan_write(flp, file);
+            err = ndt_fmt_xpfms_flightplan_write(flp, file, fmt);
             break;
 
         default:

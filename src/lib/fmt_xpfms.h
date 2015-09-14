@@ -28,8 +28,6 @@
 #include "flightplan.h"
 
 int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flightplan, ndt_navdatabase *navdatabase, const char *route);
-int ndt_fmt_ceeva_flightplan_write    (ndt_flightplan *flightplan,                               FILE       *file );
-int ndt_fmt_xhelp_flightplan_write    (ndt_flightplan *flightplan,                               FILE       *file );
-int ndt_fmt_xpfms_flightplan_write    (ndt_flightplan *flightplan,                               FILE       *file );
+int ndt_fmt_xpfms_flightplan_write    (ndt_flightplan *flightplan, FILE            *file, ndt_fltplanformat    fmt);
 
 #endif /* NDT_FMT_XPFMS_H */
