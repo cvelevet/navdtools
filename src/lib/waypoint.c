@@ -311,7 +311,7 @@ ndt_waypoint* ndt_waypoint_pbd(ndt_waypoint *plce, double magb, ndt_distance dis
     wpt->position = ndt_position_calcpos4pbd(plce->position,
                                              ndt_wmm_getbearing_tru(wmm, magb, plce->position, date),
                                              dist);
-    snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s%05.1lf/%05.1lf",
+    snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s/%05.1lf/%05.1lf",
              plce->info.idnt, magb,
              ndt_distance_get(dist, NDT_ALTUNIT_ME) / 1852.);
 
