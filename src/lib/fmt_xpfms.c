@@ -421,7 +421,7 @@ static int update__row(FILE *fd, int row)
 
 static int ceeva_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row)
 {
-    int ret = ndt_fprintf(fd, "%d  %-16s  %d  ", row, wpt->info.idnt, row);
+    int ret = ndt_fprintf(fd, "%d  %-19s  %d  ", row, wpt->info.idnt, row);
     if (ret)
     {
         return ret;
@@ -527,7 +527,7 @@ end:
 static int xhelp_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row)
 {
     char buf[17];
-    int  ret = ndt_fprintf(fd, "%2d  %s  %-16s  %2d  %+07.3lf  %+08.3lf",
+    int  ret = ndt_fprintf(fd, "%2d  %s  %-19s  %2d  %+07.3lf  %+08.3lf",
                            row,
                            wpt->type == NDT_WPTYPE_APT ? "APT" :
                            wpt->type == NDT_WPTYPE_FIX ? "fix" :
