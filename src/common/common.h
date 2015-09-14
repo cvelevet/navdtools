@@ -62,6 +62,8 @@ typedef struct ndt_airspeed
     int64_t value;        // unit: millimeters per hour
 } ndt_airspeed;
 
+extern ndt_airspeed NDT_MACH_DEFAULT;
+
 /* TODO: true vs. indicated vs. calibrated airspeed */
 ndt_airspeed ndt_airspeed_init(int64_t      speed, int unit                   );
 ndt_airspeed ndt_airspeed_mach(double       oatmp                             );

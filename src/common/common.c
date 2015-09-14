@@ -260,6 +260,8 @@ ndt_airspeed ndt_airspeed_init(int64_t s, int u)
     return airspeed;
 }
 
+// assumes an OAT of -50°C
+ndt_airspeed NDT_MACH_DEFAULT = { .unit = NDT_SPDUNIT_NAT, .value = 1084680000, };
 ndt_airspeed ndt_airspeed_mach(double oat)
 {
     double speedofsound = (331.3 + (.6 * oat)) * 3600000.;

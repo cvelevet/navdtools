@@ -582,7 +582,7 @@ int ndt_route_leg_restrict(ndt_route_leg *leg, ndt_restriction constraints)
         constraints.speed.type == NDT_RESTRICT_AB ||
         constraints.speed.type == NDT_RESTRICT_BT)
     {
-        if (ndt_airspeed_get(constraints.speed.spdmin, NDT_SPDUNIT_NAT, ndt_airspeed_mach(-50.)) <= 0LL)
+        if (ndt_airspeed_get(constraints.speed.spdmin, NDT_SPDUNIT_NAT, NDT_MACH_DEFAULT) <= 0LL)
         {
             return EINVAL;
         }
@@ -593,7 +593,7 @@ int ndt_route_leg_restrict(ndt_route_leg *leg, ndt_restriction constraints)
         constraints.speed.type == NDT_RESTRICT_BL ||
         constraints.speed.type == NDT_RESTRICT_BT)
     {
-        if (ndt_airspeed_get(constraints.speed.spdmax, NDT_SPDUNIT_NAT, ndt_airspeed_mach(-50.)) <= 0LL)
+        if (ndt_airspeed_get(constraints.speed.spdmax, NDT_SPDUNIT_NAT, NDT_MACH_DEFAULT) <= 0LL)
         {
             return EINVAL;
         }
