@@ -151,7 +151,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
              * Note: trailing character specifier avoids false matches.
              */
             ndt_distance ndstce;
-            char         place[6];
+            char         place[8];
             double       bearing, distance;
             int          bgbuf[3], dibuf[3];
             if (sscanf(prefix, "%5[^0-9]%1d%1d%1d%1d%1d%1d%c", place,
@@ -165,8 +165,8 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                 bearing  = bgbuf[0] * 100. + bgbuf[1] * 10. + bgbuf[2] * 1.;
                 distance = dibuf[0] * 100. + dibuf[1] * 10. + dibuf[2] * 1.;
             }
-            else if (sscanf(elem, "%5[^/]/%lf/%lf%c",  place, &bearing, &distance, place) != 3 &&
-                     sscanf(elem, "%5[^0-9]%lf/%lf%c", place, &bearing, &distance, place) != 3)
+            else if (sscanf(elem, "%7[^/]/%lf/%lf%c",  place, &bearing, &distance, place) != 3 &&
+                     sscanf(elem, "%7[^0-9]%lf/%lf%c", place, &bearing, &distance, place) != 3)
             {
                 // no match
                 bearing = distance = -1.;
