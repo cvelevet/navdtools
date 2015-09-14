@@ -35,11 +35,6 @@
 #include "fmt_xpfms.h"
 #include "waypoint.h"
 
-static int print_line    (FILE *fd, const char   *idt, int alt, int spd, ndt_position pos, int row);
-static int print_waypoint(FILE *fd, ndt_waypoint *wpt, int alt, int spd                           );
-static int print_airport (FILE *fd, ndt_airport  *apt                                             );
-static int print_runway  (FILE *fd, ndt_airport  *apt,                   ndt_runway           *rwy);
-
 int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb, const char *rte)
 {
     ndt_waypoint *src = NULL;
@@ -646,6 +641,76 @@ end:
     return ret;
 }
 
+static int print_line(FILE *fd, const char *idt, int alt, int spd, ndt_position pos, int row)
+{
+    if (fd && idt)
+    {
+        int ret;
+
+        if (row == 0 || row == 1)
+        {
+            // don't append speed for discontinuities and airports
+            ret = fprintf(fd, "%-2d  %-7s  %05d  %+010.6lf  %+011.6lf\n",
+                          row, idt, alt,
+                          ndt_position_getlatitude (pos, NDT_ANGUNIT_DEG),
+                          ndt_position_getlongitude(pos, NDT_ANGUNIT_DEG));
+        }
+        else
+        {
+            ret = fprintf(fd, "%-2d  %-7s  %05d  %+010.6lf  %+011.6lf  %010.6lf\n",
+                          row, idt, alt,
+                          ndt_position_getlatitude (pos, NDT_ANGUNIT_DEG),
+                          ndt_position_getlongitude(pos, NDT_ANGUNIT_DEG), (double)spd);
+        }
+
+        return ret > 0 ? 0 : ret ? ret : -1;
+    }
+
+    return -1;
+}
+
+static int print_waypoint(FILE *fd, ndt_waypoint *wpt, int alt, int spd)
+{
+    if (fd && wpt)
+    {
+        // X-Plane 10.36 doesn't check the ID for lat/lon waypoints, keep it short
+        char llc[8];
+        ndt_position_sprintllc(wpt->position, NDT_LLCFMT_DEFLT, llc, sizeof(llc));
+
+        switch (wpt->type)
+        {
+            case NDT_WPTYPE_APT:
+                return print_line(fd, wpt->info.idnt, alt, spd, wpt->position,  1);
+
+            case NDT_WPTYPE_NDB:
+                return print_line(fd, wpt->info.idnt, alt, spd, wpt->position,  2);
+
+            case NDT_WPTYPE_VOR:
+                return print_line(fd, wpt->info.idnt, alt, spd, wpt->position,  3);
+
+            case NDT_WPTYPE_FIX:
+                return print_line(fd, wpt->info.idnt, alt, spd, wpt->position, 11);
+
+            default: // latitude/longitude or other unsupported type
+                return print_line(fd, llc,            alt, spd, wpt->position, 28);
+        }
+    }
+
+    return -1;
+}
+
+static int print_airport(FILE *fd, ndt_airport *apt)
+{
+    if (fd && apt)
+    {
+        ndt_distance distance = ndt_position_getaltitude(apt->coordinates);
+        int          altitude = ndt_distance_get(distance, NDT_ALTUNIT_FT);
+        return print_line(fd, apt->info.idnt, altitude, 0, apt->coordinates, 1);
+    }
+
+    return -1;
+}
+
 int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
 {
     int ret = 0, count = 1, altitude, speed;
@@ -690,17 +755,10 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
         goto end;
     }
 
-    // departure airport and runway
+    // departure airport
     if ((ret = print_airport(fd, flp->dep.apt)))
     {
         goto end;
-    }
-    if (flp->dep.rwy)
-    {
-        if ((ret = print_runway(fd, flp->dep.apt, flp->dep.rwy)))
-        {
-            goto end;
-        }
     }
 
     for (size_t i = 0; i < ndt_list_count(flp->legs); i++)
@@ -791,14 +849,7 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
         }
     }
 
-    // arrival runway and airport
-    if (flp->arr.rwy)
-    {
-        if ((ret = print_runway(fd, flp->arr.apt, flp->arr.rwy)))
-        {
-            goto end;
-        }
-    }
+    // arrival airport
     if ((ret = print_airport(fd, flp->arr.apt)))
     {
         goto end;
@@ -809,88 +860,4 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
 
 end:
     return ret;
-}
-
-static int print_line(FILE *fd, const char *idt, int alt, int spd, ndt_position pos, int row)
-{
-    if (fd && idt)
-    {
-        int ret;
-
-        if (row == 0 || row == 1)
-        {
-            // don't append speed for discontinuities and airports
-            ret = fprintf(fd, "%-2d  %-7s  %05d  %+010.6lf  %+011.6lf\n",
-                          row, idt, alt,
-                          ndt_position_getlatitude (pos, NDT_ANGUNIT_DEG),
-                          ndt_position_getlongitude(pos, NDT_ANGUNIT_DEG));
-        }
-        else
-        {
-            ret = fprintf(fd, "%-2d  %-7s  %05d  %+010.6lf  %+011.6lf  %010.6lf\n",
-                          row, idt, alt,
-                          ndt_position_getlatitude (pos, NDT_ANGUNIT_DEG),
-                          ndt_position_getlongitude(pos, NDT_ANGUNIT_DEG), (double)spd);
-        }
-
-        return ret > 0 ? 0 : ret ? ret : -1;
-    }
-
-    return -1;
-}
-
-static int print_waypoint(FILE *fd, ndt_waypoint *wpt, int alt, int spd)
-{
-    if (fd && wpt)
-    {
-        // X-Plane 10.36 doesn't check the ID for lat/lon waypoints, keep it short
-        char llc[8];
-        ndt_position_sprintllc(wpt->position, NDT_LLCFMT_DEFLT, llc, sizeof(llc));
-
-        switch (wpt->type)
-        {
-            case NDT_WPTYPE_APT:
-                return print_line(fd, wpt->info.idnt, alt, spd, wpt->position,  1);
-
-            case NDT_WPTYPE_NDB:
-                return print_line(fd, wpt->info.idnt, alt, spd, wpt->position,  2);
-
-            case NDT_WPTYPE_VOR:
-                return print_line(fd, wpt->info.idnt, alt, spd, wpt->position,  3);
-
-            case NDT_WPTYPE_FIX:
-                return print_line(fd, wpt->info.idnt, alt, spd, wpt->position, 11);
-
-            default: // latitude/longitude or other unsupported type
-                return print_line(fd, llc,            alt, spd, wpt->position, 28);
-        }
-    }
-
-    return -1;
-}
-
-static int print_airport(FILE *fd, ndt_airport *apt)
-{
-    if (fd && apt)
-    {
-        ndt_distance distance = ndt_position_getaltitude(apt->coordinates);
-        int          altitude = ndt_distance_get(distance, NDT_ALTUNIT_FT);
-        return print_line(fd, apt->info.idnt, altitude, 0, apt->coordinates, 1);
-    }
-
-    return -1;
-}
-
-static int print_runway(FILE *fd, ndt_airport *apt, ndt_runway *rwy)
-{
-    if (fd && apt && rwy)
-    {
-        char idnt[8];
-        ndt_distance distance = ndt_position_getaltitude(rwy->threshold);
-        int          altitude = ndt_distance_get(distance, NDT_ALTUNIT_FT);
-        snprintf(idnt, sizeof(idnt), "%s%s", apt->info.idnt, rwy->info.idnt);
-        return print_line(fd, idnt, altitude, 0, rwy->threshold, 28);
-    }
-
-    return -1;
 }
