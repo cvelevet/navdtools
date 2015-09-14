@@ -335,6 +335,11 @@ static int parse_options(int argc, char **argv)
                     format_out = NDT_FLTPFMT_ICAOR;
                     break;
                 }
+                if (!strcasecmp(optarg, "mcdu"))
+                {
+                    format_out = NDT_FLTPFMT_XPCDU;
+                    break;
+                }
                 if (!strcasecmp(optarg, "simbrief"))
                 {
                     format_out = NDT_FLTPFMT_SBRIF;
@@ -606,13 +611,15 @@ static int print_help(void)
             "  --ofmt       <string> Output format:                             \n"
             "                            airbusx     Airbus X Extended CoRte    \n"
             "                            civa        Decoded route, one leg per \n"
-            "                                        line, to use w/CIVA INS    \n"
+            "                                        line, for use w/CIVA INS   \n"
             "                            decoded     Decoded route (wpt IDs),   \n"
             "                                        all legs on a single line  \n"
             "                            helper      Decoded route, one leg per \n"
-            "                                        line, to use w/X-Plane FMS \n"
+            "                                        line, for use w/X-Plane FMS\n"
             "                            icao        ICAO flight plan route,    \n"
             "                                        without specific SID/STAR  \n"
+            "                            mcdu        Decoded route, one leg per \n"
+            "                                        line, for use w/QPAC MCDU  \n"
             "                            xplane      X-Plane .fms flight plan   \n"
             "                                        with QPAC enhancements for \n"
             "                                        altitude constraints and   \n"
@@ -731,7 +738,7 @@ static int print_examples(void)
             "      6  fix  BERSU              6  +47.136  +007.941              \n"
             "                                                                   \n"
             "      7  APT  LSZH               7  +47.458  +008.548              \n"
-            "     --------------------------------------------------------------\n"
+            "     ------------------------------------------------              \n"
             "      0  APT  EIDW               0  +53.421  -006.270              \n"
             "                                                                   \n"
             "      1  fix  SUROX              1  +53.997  -006.993              \n"
@@ -745,6 +752,32 @@ static int print_examples(void)
             "      9  fix  SCUPP              9  +42.603  -070.230              \n"
             "                                                                   \n"
             "     10  APT  KBOS              10  +42.363  -071.006              \n"
+            "                                                                   \n"
+            " \"mcdu\" (output only):                                           \n"
+            "      0  LSGG                  0  4614.3N/00606.6E                 \n"
+            "                                                                   \n"
+            "      1  MOLUS                 1  4626.6N/00640.8E                 \n"
+            "      2  SOSAL                 2  4633.5N/00653.1E                 \n"
+            "      3  TELNO                 3  4646.3N/00716.2E                 \n"
+            "      4  KORED                 4  4651.0N/00724.9E                 \n"
+            "      5  KONOL                 5  4659.7N/00740.8E                 \n"
+            "      6  BERSU                 6  4708.1N/00756.5E                 \n"
+            "                                                                   \n"
+            "      7  LSZH                  7  4727.5N/00832.9E                 \n"
+            "     ---------------------------------------------                 \n"
+            "      0  EIDW                  0  5325.3N/00616.2W                 \n"
+            "                                                                   \n"
+            "      1  SUROX                 1  5359.8N/00659.6W                 \n"
+            "      2  N56W020               2  5600.0N/02000.0W                 \n"
+            "      3  N56W030               3  5600.0N/03000.0W                 \n"
+            "      4  N55W040               4  5500.0N/04000.0W                 \n"
+            "      5  N53W050               5  5300.0N/05000.0W                 \n"
+            "      6  YAY                   6  5123.6N/05605.0W                 \n"
+            "      7  YJT                   7  4835.0N/05840.2W                 \n"
+            "      8  YQY                   8  4609.2N/06003.3W                 \n"
+            "      9  SCUPP                 9  4236.2N/07013.8W                 \n"
+            "                                                                   \n"
+            "     10  KBOS                 10  4221.8N/07100.4W                 \n"
             "                                                                   \n"
             " \"airbusx\" (input and output):                                   \n"
             "     [CoRte]                                                       \n"

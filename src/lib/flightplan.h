@@ -39,6 +39,7 @@ typedef enum ndt_fltplanformat
     NDT_FLTPFMT_XPFMS, // X-Plane default FMS format
     NDT_FLTPFMT_XPCVA, // optimized for use with CIVA
     NDT_FLTPFMT_XPHLP, // optimized for use with X-Plane FMS
+    NDT_FLTPFMT_XPCDU, // optimized for use with QPAC's MCDU
 } ndt_fltplanformat;
 
 typedef struct ndt_flightplan
