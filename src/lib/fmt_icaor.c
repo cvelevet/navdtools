@@ -658,15 +658,8 @@ int ndt_fmt_ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd)
         {
             case NDT_LEGTYPE_TF:
             case NDT_LEGTYPE_ZZ:
-            {
-                switch (leg->dst->type)
-                {
-                    default: // use the identifier
-                        rr += rr == 9 ? -8 : 1; // cycle 0-9
-                        ret = ndt_fprintf(fd, "%d  %-16s  %d  ", rr, leg->dst->info.idnt, rr);
-                        break;
-                }
-            }
+                rr += rr == 9 ? -8 : 1; // cycle 0-9
+                ret = ndt_fprintf(fd, "%d  %-16s  %d  ", rr, leg->dst->info.idnt, rr);
                 break;
 
             default:
