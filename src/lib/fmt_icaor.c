@@ -412,7 +412,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
 
                 if (awy && in && out)
                 {
-                    rsg = ndt_route_segment_airway(src, dst, awy, in, out);
+                    rsg = ndt_route_segment_airway(src, dst, awy, in, out, ndb);
                 }
                 else
                 {
@@ -661,7 +661,7 @@ static int icao_printrt(FILE *fd, ndt_list *rte, ndt_fltplanformat fmt)
         switch (rsg->type)
         {
             case NDT_RSTYPE_AWY:
-                ret = ndt_fprintf(fd, "%s %s", ((ndt_airway*)rsg->data[0])->info.idnt, rsg->dst->info.idnt);
+                ret = ndt_fprintf(fd, "%s %s", rsg->awy.awy->info.idnt, rsg->dst->info.idnt);
                 break;
 
             case NDT_RSTYPE_DCT:
@@ -742,7 +742,6 @@ static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_fltplanformat fmt)
         switch (leg->type)
         {
             case NDT_LEGTYPE_TF:
-            case NDT_LEGTYPE_ZA:
             case NDT_LEGTYPE_ZZ:
                 {
                     switch (leg->dst->type)

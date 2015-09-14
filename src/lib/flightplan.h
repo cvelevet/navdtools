@@ -72,12 +72,47 @@ int             ndt_flightplan_set_arrival  (ndt_flightplan   *flightplan, ndt_n
 int             ndt_flightplan_set_route    (ndt_flightplan   *flightplan, ndt_navdatabase *navdatabase, const char *route, ndt_fltplanformat format);
 int             ndt_flightplan_write        (ndt_flightplan   *flightplan, FILE *file,                                      ndt_fltplanformat format);
 
+typedef struct ndt_route_segment
+{
+    ndt_info      info;        // identification information
+    ndt_waypoint *src;         // segment's entry point (NULL for discontinuities)
+    ndt_waypoint *dst;         // segment's exit  point (always set)
+
+    enum
+    {
+        NDT_RSTYPE_AWY,        // airway
+        NDT_RSTYPE_DCT,        // direct to
+        NDT_RSTYPE_DSC,        // route discontinuity
+        NDT_RSTYPE_PRC,        // procedure
+    } type;
+
+    union
+    {
+        // associated airway info
+        struct
+        {
+            ndt_airway     *awy;
+            ndt_airway_leg *src;
+            ndt_airway_leg *dst;
+        }
+        awy;
+    };
+
+    ndt_list *legs;
+} ndt_route_segment;
+
+ndt_route_segment* ndt_route_segment_init  (                                                                                                                                                 );
+void               ndt_route_segment_close (ndt_route_segment **_segment                                                                                                                     );
+ndt_route_segment* ndt_route_segment_airway(ndt_waypoint        *src_wpt,  ndt_waypoint *dst_wpt, ndt_airway *airway, ndt_airway_leg *inleg, ndt_airway_leg *outleg, ndt_navdatabase *navdata);
+ndt_route_segment* ndt_route_segment_direct(ndt_waypoint        *src_wpt,  ndt_waypoint *dst_wpt                                                                                             );
+ndt_route_segment* ndt_route_segment_discon(                               ndt_waypoint *dst_wpt                                                                                             );
+
 typedef struct ndt_route_leg
 {
-    ndt_waypoint *src;         // leg's start point (NULL for discontinuities)
-    ndt_waypoint *dst;         // leg's stop  point (always set)
-    ndt_airway   *awy;         // legs's parent airway (may be NULL)
-    unsigned int  brg;         // bearing (unit: deg)
+    ndt_waypoint      *src;    // leg's start point (NULL for discontinuities)
+    ndt_waypoint      *dst;    // leg's stop  point (always set)
+    unsigned int       brg;    // bearing (unit: deg)
+    ndt_route_segment *rsg;    // leg's parent route segment
 
     enum
     {
@@ -107,40 +142,24 @@ typedef struct ndt_route_leg
         NDT_LEGTYPE_HM = 23,   // hold manually
 
         // custom
-        NDT_LEGTYPE_ZA = 74,   // track between two fixes (airway leg)
         NDT_LEGTYPE_ZZ = 99,   // discontinuity
     } type;
+
+    union
+    {
+        // associated airway info
+        struct
+        {
+            ndt_airway_leg *leg;
+        }
+        awy;
+    };
 
     ndt_restriction constraints;
 } ndt_route_leg;
 
-ndt_route_leg* ndt_route_leg_init (                    );
-void           ndt_route_leg_close(ndt_route_leg **_leg);
-
-typedef struct ndt_route_segment
-{
-    ndt_info      info;        // identification information
-    ndt_waypoint *src;         // segment's entry point (NULL for discontinuities)
-    ndt_waypoint *dst;         // segment's exit  point (always set)
-    void         *data[3];     // associated data (type depends on segment type)
-
-    enum
-    {
-        NDT_RSTYPE_APP,        // final approach procedure
-        NDT_RSTYPE_AWY,        // airway
-        NDT_RSTYPE_DCT,        // direct to
-        NDT_RSTYPE_DSC,        // route discontinuity
-        NDT_RSTYPE_SID,        // standard instrument departure
-        NDT_RSTYPE_STR,        // standard terminal arrival route
-    } type;
-
-    ndt_restriction constraints;
-} ndt_route_segment;
-
-ndt_route_segment* ndt_route_segment_init  (                                                                                                                       );
-void               ndt_route_segment_close (ndt_route_segment **_segment                                                                                           );
-ndt_route_segment* ndt_route_segment_airway(ndt_waypoint        *src_wpt,  ndt_waypoint *dst_wpt, ndt_airway *airway, ndt_airway_leg *inleg, ndt_airway_leg *outleg);
-ndt_route_segment* ndt_route_segment_direct(ndt_waypoint        *src_wpt,  ndt_waypoint *dst_wpt                                                                   );
-ndt_route_segment* ndt_route_segment_discon(                               ndt_waypoint *dst_wpt                                                                   );
+ndt_route_leg* ndt_route_leg_init    (                    );
+void           ndt_route_leg_close   (ndt_route_leg **_leg);
+int            ndt_route_leg_restrict(ndt_route_leg   *leg, ndt_restriction constraints);
 
 #endif /* NDT_FLIGHTPLAN_H */

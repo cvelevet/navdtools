@@ -106,12 +106,6 @@ void ndt_flightplan_close(ndt_flightplan **_flp)
 
         if (flp->legs)
         {
-            while ((i = ndt_list_count(flp->legs)))
-            {
-                ndt_route_leg *leg = ndt_list_item(flp->legs, i-1);
-                ndt_list_rem                      (flp->legs, leg);
-                ndt_route_leg_close               (          &leg);
-            }
             ndt_list_close(&flp->legs);
         }
 
@@ -306,6 +300,192 @@ end:
     return err;
 }
 
+ndt_route_segment* ndt_route_segment_init()
+{
+    ndt_route_segment *rsg = calloc(1, sizeof(ndt_route_segment));
+    if (!rsg)
+    {
+        goto end;
+    }
+
+    rsg->legs = ndt_list_init();
+    if (!rsg->legs)
+    {
+        goto end;
+    }
+
+    rsg->type = NDT_RSTYPE_DSC;
+
+end:
+    return rsg;
+}
+
+void ndt_route_segment_close(ndt_route_segment **_rsg)
+{
+    if (_rsg && *_rsg)
+    {
+        ndt_route_segment *rsg = *_rsg;
+        size_t i;
+
+        if (rsg->legs)
+        {
+            while ((i = ndt_list_count(rsg->legs)))
+            {
+                ndt_route_leg *leg = ndt_list_item(rsg->legs, i-1);
+                ndt_list_rem                      (rsg->legs, leg);
+                ndt_route_leg_close               (          &leg);
+            }
+            ndt_list_close(&rsg->legs);
+        }
+
+        free(rsg);
+
+        *_rsg = NULL;
+    }
+}
+
+ndt_route_segment* ndt_route_segment_airway(ndt_waypoint *src, ndt_waypoint *dst, ndt_airway *awy, ndt_airway_leg *in, ndt_airway_leg *out, ndt_navdatabase *ndb)
+{
+    ndt_route_segment *rsg = ndt_route_segment_init();
+    if (!rsg)
+    {
+        goto fail;
+    }
+
+    if (!src || !dst || !awy || !in || !out || !ndb)
+    {
+        goto fail;
+    }
+
+    snprintf(rsg->info.idnt, sizeof(rsg->info.idnt), "%s %s", awy->info.idnt, dst->info.idnt);
+    rsg->type    = NDT_RSTYPE_AWY;
+    rsg->src     = src;
+    rsg->dst     = dst;
+    rsg->awy.awy = awy;
+    rsg->awy.src =  in;
+    rsg->awy.dst = out;
+
+    while (in)
+    {
+        dst = ndt_navdata_get_wpt4pos(ndb, in->out.info.idnt, NULL, in->out.position);
+        if (!dst)
+        {
+            // navdata bug
+            ndt_log("ndt_route_segment_airway:"
+                    " waypoint '%s/%+010.6lf/%+011.6lf' not found for airway '%s'\n",
+                    in->out.info.idnt,
+                    ndt_position_getlatitude (in->out.position, NDT_ANGUNIT_DEG),
+                    ndt_position_getlongitude(in->out.position, NDT_ANGUNIT_DEG),
+                    awy->info.idnt);
+            goto fail;
+        }
+
+        ndt_route_leg *leg = ndt_route_leg_init();
+        if (!leg)
+        {
+            goto fail;
+        }
+
+        leg->brg     = ndt_position_calcbearing(src->position, dst->position);
+        leg->type    = NDT_LEGTYPE_TF;
+        leg->src     = src;
+        leg->dst     = dst;
+        leg->rsg     = rsg;
+        leg->awy.leg = in;
+        ndt_list_add(rsg->legs, leg);
+
+        if (in == out)
+        {
+            break;
+        }
+        else
+        {
+            src = dst;
+            in  = in->next;
+        }
+    }
+
+    return rsg;
+
+fail:
+    ndt_route_segment_close(&rsg);
+    return NULL;
+}
+
+ndt_route_segment* ndt_route_segment_direct(ndt_waypoint *src, ndt_waypoint *dst)
+{
+    if (!src || !dst)
+    {
+        goto fail;
+    }
+
+    ndt_route_segment *rsg = ndt_route_segment_init();
+    if (!rsg)
+    {
+        goto fail;
+    }
+
+    snprintf(rsg->info.idnt, sizeof(rsg->info.idnt), "DCT %s", dst->info.idnt);
+    rsg->type = NDT_RSTYPE_DCT;
+    rsg->src  = src;
+    rsg->dst  = dst;
+
+    ndt_route_leg *leg = ndt_route_leg_init();
+    if (!leg)
+    {
+        goto fail;
+    }
+
+    leg->brg  = ndt_position_calcbearing(src->position, dst->position);
+    leg->type = NDT_LEGTYPE_TF;
+    leg->src  = src;
+    leg->dst  = dst;
+    leg->rsg  = rsg;
+    ndt_list_add(rsg->legs, leg);
+
+    return rsg;
+
+fail:
+    ndt_route_segment_close(&rsg);
+    return NULL;
+}
+
+ndt_route_segment* ndt_route_segment_discon(ndt_waypoint *dst)
+{
+    if (!dst)
+    {
+        goto fail;
+    }
+
+    ndt_route_segment *rsg = ndt_route_segment_init();
+    if (!rsg)
+    {
+        goto fail;
+    }
+
+    snprintf(rsg->info.idnt, sizeof(rsg->info.idnt), "-| %s", dst->info.idnt);
+    rsg->type = NDT_RSTYPE_DSC;
+    rsg->src  = NULL;
+    rsg->dst  = dst;
+
+    ndt_route_leg *leg = ndt_route_leg_init();
+    if (!leg)
+    {
+        goto fail;
+    }
+
+    leg->type = NDT_LEGTYPE_ZZ;
+    leg->dst  = dst;
+    leg->rsg  = rsg;
+    ndt_list_add(rsg->legs, leg);
+
+    return rsg;
+
+fail:
+    ndt_route_segment_close(&rsg);
+    return NULL;
+}
+
 ndt_route_leg* ndt_route_leg_init()
 {
     ndt_route_leg *leg = calloc(1, sizeof(ndt_route_leg));
@@ -314,12 +494,14 @@ ndt_route_leg* ndt_route_leg_init()
         goto end;
     }
 
-    leg->constraints.altitude.typ = NDT_RESTRICT_NO;
-    leg->constraints.altitude.alt = ndt_distance_init(0, NDT_ALTUNIT_NA);
-    leg->constraints.speed.   typ = NDT_RESTRICT_NO;
-    leg->constraints.speed.   spd = ndt_airspeed_init(0, NDT_SPDUNIT_NAT);
-    leg->constraints.    waypoint = NDT_WPTCONST_NO;
-    leg->type                     = NDT_LEGTYPE_ZZ;
+    leg->constraints.altitude.altmin =
+    leg->constraints.altitude.altmax = ndt_distance_init(0, NDT_ALTUNIT_NA);
+    leg->constraints.altitude.  type = NDT_RESTRICT_NO;
+    leg->constraints.speed.   spdmin =
+    leg->constraints.speed.   spdmax = ndt_airspeed_init(0, NDT_SPDUNIT_NAT);
+    leg->constraints.speed.     type = NDT_RESTRICT_NO;
+    leg->constraints.       waypoint = NDT_WPTCONST_NO;
+    leg->type                        = NDT_LEGTYPE_ZZ;
 
 end:
     return leg;
@@ -337,107 +519,94 @@ void ndt_route_leg_close(ndt_route_leg **_leg)
     }
 }
 
-ndt_route_segment* ndt_route_segment_init()
+int ndt_route_leg_restrict(ndt_route_leg *leg, ndt_restriction constraints)
 {
-    ndt_route_segment *rsg = calloc(1, sizeof(ndt_route_segment));
-    if (!rsg)
+    if (!leg)
     {
-        goto end;
+        return ENOMEM;
     }
 
-    rsg->constraints.altitude.typ = NDT_RESTRICT_NO;
-    rsg->constraints.altitude.alt = ndt_distance_init(0, NDT_ALTUNIT_NA);
-    rsg->constraints.speed.   typ = NDT_RESTRICT_NO;
-    rsg->constraints.speed.   spd = ndt_airspeed_init(0, NDT_SPDUNIT_NAT);
-    rsg->constraints.    waypoint = NDT_WPTCONST_NO;
-    rsg->type                     = NDT_RSTYPE_DSC;
-
-end:
-    return rsg;
-}
-
-void ndt_route_segment_close(ndt_route_segment **_rsg)
-{
-    if (_rsg && *_rsg)
+    switch (constraints.altitude.type)
     {
-        ndt_route_segment *rsg = *_rsg;
-
-        free(rsg);
-
-        *_rsg = NULL;
-    }
-}
-
-ndt_route_segment* ndt_route_segment_airway(ndt_waypoint *src, ndt_waypoint *dst, ndt_airway *awy, ndt_airway_leg *in, ndt_airway_leg *out)
-{
-    ndt_route_segment *rsg = ndt_route_segment_init();
-    if (!rsg)
-    {
-        goto end;
+        case NDT_RESTRICT_AB:
+        case NDT_RESTRICT_AT:
+        case NDT_RESTRICT_BL:
+        case NDT_RESTRICT_BT:
+        case NDT_RESTRICT_NO:
+            leg->constraints.altitude.type = constraints.altitude.type;
+            break;
+        default:
+            return EINVAL;
     }
 
-    if (!src || !dst || !awy || !in || !out)
+    if (constraints.altitude.type == NDT_RESTRICT_AT ||
+        constraints.altitude.type == NDT_RESTRICT_AB ||
+        constraints.altitude.type == NDT_RESTRICT_BT)
     {
-        ndt_route_segment_close(&rsg);
-        goto end;
+        if (ndt_distance_get(constraints.altitude.altmin, NDT_ALTUNIT_NA) <= 0LL)
+        {
+            return EINVAL;
+        }
+        leg->constraints.altitude.altmin = constraints.altitude.altmin;
     }
 
-    snprintf(rsg->info.idnt, sizeof(rsg->info.idnt), "%s %s", awy->info.idnt, dst->info.idnt);
-    rsg->type    = NDT_RSTYPE_AWY;
-    rsg->src     = src;
-    rsg->dst     = dst;
-    rsg->data[0] = awy;
-    rsg->data[1] =  in;
-    rsg->data[2] = out;
-
-end:
-    return rsg;
-}
-
-ndt_route_segment* ndt_route_segment_direct(ndt_waypoint *src, ndt_waypoint *dst)
-{
-    ndt_route_segment *rsg = ndt_route_segment_init();
-    if (!rsg)
+    if (constraints.altitude.type == NDT_RESTRICT_AT ||
+        constraints.altitude.type == NDT_RESTRICT_BL ||
+        constraints.altitude.type == NDT_RESTRICT_BT)
     {
-        goto end;
+        if (ndt_distance_get(constraints.altitude.altmax, NDT_ALTUNIT_NA) <= 0LL)
+        {
+            return EINVAL;
+        }
+        leg->constraints.altitude.altmax = constraints.altitude.altmax;
     }
 
-    if (!src || !dst)
+    switch (constraints.speed.type)
     {
-        ndt_route_segment_close(&rsg);
-        goto end;
+        case NDT_RESTRICT_AB:
+        case NDT_RESTRICT_AT:
+        case NDT_RESTRICT_BL:
+        case NDT_RESTRICT_BT:
+        case NDT_RESTRICT_NO:
+            leg->constraints.speed.type = constraints.speed.type;
+            break;
+        default:
+            return EINVAL;
     }
 
-    snprintf(rsg->info.idnt, sizeof(rsg->info.idnt), "DCT %s", dst->info.idnt);
-    rsg->type = NDT_RSTYPE_DCT;
-    rsg->src  = src;
-    rsg->dst  = dst;
-
-end:
-    return rsg;
-}
-
-ndt_route_segment* ndt_route_segment_discon(ndt_waypoint *dst)
-{
-    ndt_route_segment *rsg = ndt_route_segment_init();
-    if (!rsg)
+    if (constraints.speed.type == NDT_RESTRICT_AT ||
+        constraints.speed.type == NDT_RESTRICT_AB ||
+        constraints.speed.type == NDT_RESTRICT_BT)
     {
-        goto end;
+        if (ndt_airspeed_get(constraints.speed.spdmin, NDT_SPDUNIT_NAT, ndt_airspeed_mach(-50.)) <= 0LL)
+        {
+            return EINVAL;
+        }
+        leg->constraints.speed.spdmin = constraints.speed.spdmin;
     }
 
-    if (!dst)
+    if (constraints.speed.type == NDT_RESTRICT_AT ||
+        constraints.speed.type == NDT_RESTRICT_BL ||
+        constraints.speed.type == NDT_RESTRICT_BT)
     {
-        ndt_route_segment_close(&rsg);
-        goto end;
+        if (ndt_airspeed_get(constraints.speed.spdmax, NDT_SPDUNIT_NAT, ndt_airspeed_mach(-50.)) <= 0LL)
+        {
+            return EINVAL;
+        }
+        leg->constraints.speed.spdmax = constraints.speed.spdmax;
     }
 
-    snprintf(rsg->info.idnt, sizeof(rsg->info.idnt), "-| %s", dst->info.idnt);
-    rsg->type = NDT_RSTYPE_DSC;
-    rsg->src  = NULL;
-    rsg->dst  = dst;
+    switch (constraints.waypoint)
+    {
+        case NDT_WPTCONST_NO:
+        case NDT_WPTCONST_FOV:
+            leg->constraints.waypoint = constraints.waypoint;
+            break;
+        default:
+            return EINVAL;
+    }
 
-end:
-    return rsg;
+    return 0;
 }
 
 static int route_leg_update(ndt_flightplan *flp, ndt_navdatabase *ndb)
@@ -459,125 +628,18 @@ static int route_leg_update(ndt_flightplan *flp, ndt_navdatabase *ndb)
             goto end;
         }
 
-        switch (rsg->type)
+        for (size_t j = 0; j < ndt_list_count(rsg->legs); j++)
         {
-            case NDT_RSTYPE_AWY:
-                err = route_leg_airway(flp, ndb, rsg);
-                break;
-
-            case NDT_RSTYPE_DCT:
-                err = route_leg_oftype(flp, rsg, NDT_LEGTYPE_TF);
-                break;
-
-            case NDT_RSTYPE_DSC:
-                err = route_leg_oftype(flp, rsg, NDT_LEGTYPE_ZZ);
-                break;
-
-            default:
-                err = EINVAL;
+            ndt_route_leg *leg = ndt_list_item(rsg->legs, j);
+            if (!leg)
+            {
+                err = ENOMEM;
                 goto end;
-        }
-        if (err)
-        {
-            goto end;
-        }
-    }
+            }
 
-end:
-    return err;
-}
-
-static int route_leg_airway(ndt_flightplan *flp, ndt_navdatabase *ndb, ndt_route_segment *rsg)
-{
-    int err = 0;
-
-    if (!flp || !ndb || !rsg)
-    {
-        err = ENOMEM;
-        goto end;
-    }
-
-    ndt_waypoint   *src = rsg->src;
-    ndt_airway     *awy = rsg->data[0];
-    ndt_airway_leg *in  = rsg->data[1];
-    ndt_airway_leg *out = rsg->data[2];
-
-    if (!src || !awy || !in || !out)
-    {
-        err = EINVAL;
-        goto end;
-    }
-
-    while (in)
-    {
-        ndt_waypoint *dst = ndt_navdata_get_wpt4pos(ndb, in->out.info.idnt, NULL, in->out.position);
-        if (!dst)
-        {
-            // navdata bug
-            ndt_log("Waypoint '%s' @ '%+010.6lf/%+011.6lf' not found for airway '%s'\n",
-                    in->out.info.idnt,
-                    ndt_position_getlatitude (in->out.position, NDT_ANGUNIT_DEG),
-                    ndt_position_getlongitude(in->out.position, NDT_ANGUNIT_DEG),
-                    awy->info.idnt);
-            err = -1;
-            goto end;
-        }
-
-        ndt_route_leg *leg = ndt_route_leg_init();
-        if (!leg)
-        {
-            err = ENOMEM;
-            goto end;
-        }
-
-        leg->brg         = ndt_position_calcbearing(src->position, dst->position);
-        leg->type        = NDT_LEGTYPE_ZA;
-        leg->awy         = awy;
-        leg->src         = src;
-        leg->dst         = dst;
-        ndt_list_add(flp->legs, leg);
-
-        if (in == out)
-        {
-            break;
-        }
-        else
-        {
-            src = dst;
-            in  = in->next;
+            ndt_list_add(flp->legs, leg);
         }
     }
-
-end:
-    return err;
-}
-
-static int route_leg_oftype(ndt_flightplan *flp, ndt_route_segment *rsg, int type)
-{
-    int err = 0;
-
-    if (!flp || !rsg)
-    {
-        err = ENOMEM;
-        goto end;
-    }
-
-    ndt_route_leg *leg = ndt_route_leg_init();
-    if (!leg)
-    {
-        err = ENOMEM;
-        goto end;
-    }
-
-    if (rsg->src && rsg->dst)
-    {
-        leg->brg = ndt_position_calcbearing(rsg->src->position, rsg->dst->position);
-    }
-    leg->constraints = rsg->constraints;
-    leg->src         = rsg->src;
-    leg->dst         = rsg->dst;
-    leg->type        = type;
-    ndt_list_add(flp->legs, leg);
 
 end:
     return err;

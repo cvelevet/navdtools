@@ -25,9 +25,10 @@
 
 typedef enum ndt_restrict
 {
-    NDT_RESTRICT_AB, // at or above
-    NDT_RESTRICT_AT, // at restriction
-    NDT_RESTRICT_BL, // at or below
+    NDT_RESTRICT_AB, // at or above min
+    NDT_RESTRICT_AT, // at w/min == max
+    NDT_RESTRICT_BL, // at or below max
+    NDT_RESTRICT_BT, // between min-max
     NDT_RESTRICT_NO, // no restriction
 } ndt_restrict;
 
@@ -35,14 +36,16 @@ typedef struct ndt_restriction
 {
     struct
     {
-        ndt_restrict typ;
-        ndt_distance alt;
+        ndt_restrict type;
+        ndt_distance altmin;
+        ndt_distance altmax;
     } altitude;
 
     struct
     {
-        ndt_restrict typ;
-        ndt_airspeed spd;
+        ndt_restrict type;
+        ndt_airspeed spdmin;
+        ndt_airspeed spdmax;
     } speed;
 
     enum

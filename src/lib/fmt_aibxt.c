@@ -349,7 +349,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                 err = EINVAL;
                 goto end;
             }
-            rsg = ndt_route_segment_airway(src1, dst1, awy1, in1, out1);
+            rsg = ndt_route_segment_airway(src1, dst1, awy1, in1, out1, ndb);
         }
 
         if (!rsg)
@@ -510,7 +510,7 @@ int ndt_fmt_aibxt_flightplan_write(ndt_flightplan *flp, FILE *fd)
                                   "Airway%zu=%s\n"
                                   "Airway%zuFROM=%s\n"
                                   "Airway%zuTO=%s\n",
-                                  j, ((ndt_airway*)rsg->data[0])->info.idnt,
+                                  j, rsg->awy.awy->info.idnt,
                                   j, rsg->src->info.idnt,
                                   j, rsg->dst->info.idnt);
                 break;

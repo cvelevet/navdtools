@@ -170,6 +170,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
 
         ndt_route_segment *rsg = NULL;
         ndt_waypoint      *dst = NULL;
+        ndt_restriction   constraints;
 
         if (typ != 13 && typ != 28)
         {
@@ -264,39 +265,55 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
             switch ((int)alt % 10)
             {
                 case 0:
-                    rsg->constraints.altitude.typ = NDT_RESTRICT_AT;
+                    constraints.altitude.type = NDT_RESTRICT_AT;
                     break;
 
                 case 3:
-                    rsg->constraints.altitude.typ = NDT_RESTRICT_AT;
-                    rsg->constraints.waypoint     = NDT_WPTCONST_FOV;
+                    constraints.altitude.type = NDT_RESTRICT_AT;
+                    constraints.waypoint      = NDT_WPTCONST_FOV;
                     break;
 
                 case 1:
-                    rsg->constraints.altitude.typ = NDT_RESTRICT_AB;
+                    constraints.altitude.type = NDT_RESTRICT_AB;
                     break;
 
                 case 2:
-                    rsg->constraints.altitude.typ = NDT_RESTRICT_AB;
-                    rsg->constraints.waypoint     = NDT_WPTCONST_FOV;
+                    constraints.altitude.type = NDT_RESTRICT_AB;
+                    constraints.waypoint      = NDT_WPTCONST_FOV;
                     break;
 
                 case 9:
-                    rsg->constraints.altitude.typ = NDT_RESTRICT_BL;
+                    constraints.altitude.type = NDT_RESTRICT_BL;
                     break;
 
                 case 8:
-                    rsg->constraints.altitude.typ = NDT_RESTRICT_BL;
-                    rsg->constraints.waypoint     = NDT_WPTCONST_FOV;
+                    constraints.altitude.type = NDT_RESTRICT_BL;
+                    constraints.waypoint      = NDT_WPTCONST_FOV;
                     break;
 
                 default:
-                    rsg->constraints.altitude.typ = NDT_RESTRICT_NO;
+                    constraints.altitude.type = NDT_RESTRICT_NO;
                     break;
             }
-            rsg->constraints.altitude.alt = ndt_distance_init((int)alt -
-                                                              (int)alt % 10,
-                                                              NDT_ALTUNIT_FT);
+            ndt_distance altlimit = ndt_distance_init((int)alt -
+                                                      (int)alt % 10,
+                                                      NDT_ALTUNIT_FT);
+
+            if (constraints.altitude.type == NDT_RESTRICT_AT ||
+                constraints.altitude.type == NDT_RESTRICT_AB)
+            {
+                constraints.altitude.altmin = altlimit;
+            }
+            if (constraints.altitude.type == NDT_RESTRICT_AT ||
+                constraints.altitude.type == NDT_RESTRICT_BL)
+            {
+                constraints.altitude.altmax = altlimit;
+            }
+        }
+        else
+        {
+            constraints.altitude.type = NDT_RESTRICT_NO;
+            constraints.waypoint      = NDT_WPTCONST_NO;
         }
 
         /*
@@ -304,13 +321,18 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
          */
         if (ndt_airspeed_get(kts, NDT_SPDUNIT_KTS, ndt_airspeed_mach(-50.)) > 0LL)
         {
-            rsg->constraints.speed.typ = NDT_RESTRICT_BL;
-            rsg->constraints.speed.spd = kts;
+            constraints.speed.type   = NDT_RESTRICT_BL;
+            constraints.speed.spdmax = kts;
         }
         else
         {
-            rsg->constraints.speed.typ = NDT_RESTRICT_NO;
+            constraints.speed.type = NDT_RESTRICT_NO;
         }
+
+        /*
+         * Apply restrictions to the route segment's only leg.
+         */
+        ndt_route_leg_restrict(ndt_list_item(rsg->legs, 0), constraints);
 
         /* We have a leg, our last endpoint becomes our new startpoint */
         src = rsg->dst;
@@ -789,19 +811,19 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
                     goto end;
                 } // don't lose leg->dst, just pass through
             case NDT_LEGTYPE_TF:
-            case NDT_LEGTYPE_ZA:
                 if (leg->constraints.waypoint == NDT_WPTCONST_FOV)
                 {
-                    switch (leg->constraints.altitude.typ)
+                    switch (leg->constraints.altitude.type)
                     {
                         case NDT_RESTRICT_AT:
-                            altitude = round(ndt_distance_get(leg->constraints.altitude.alt, NDT_ALTUNIT_FT) / 10.) * 10 + 3;
+                            altitude = round(ndt_distance_get(leg->constraints.altitude.altmin, NDT_ALTUNIT_FT) / 10.) * 10 + 3;
                             break;
                         case NDT_RESTRICT_AB:
-                            altitude = round(ndt_distance_get(leg->constraints.altitude.alt, NDT_ALTUNIT_FT) / 10.) * 10 + 2;
+                        case NDT_RESTRICT_BT: // better be above terain than below
+                            altitude = round(ndt_distance_get(leg->constraints.altitude.altmin, NDT_ALTUNIT_FT) / 10.) * 10 + 2;
                             break;
                         case NDT_RESTRICT_BL:
-                            altitude = round(ndt_distance_get(leg->constraints.altitude.alt, NDT_ALTUNIT_FT) / 10.) * 10 - 2;
+                            altitude = round(ndt_distance_get(leg->constraints.altitude.altmax, NDT_ALTUNIT_FT) / 10.) * 10 - 2;
                             break;
                         default:
                             altitude = 3;
@@ -810,27 +832,29 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
                 }
                 else
                 {
-                    switch (leg->constraints.altitude.typ)
+                    switch (leg->constraints.altitude.type)
                     {
                         case NDT_RESTRICT_AT:
-                            altitude = round(ndt_distance_get(leg->constraints.altitude.alt, NDT_ALTUNIT_FT) / 10.) * 10 + 0;
+                            altitude = round(ndt_distance_get(leg->constraints.altitude.altmin, NDT_ALTUNIT_FT) / 10.) * 10 + 0;
                             break;
                         case NDT_RESTRICT_AB:
-                            altitude = round(ndt_distance_get(leg->constraints.altitude.alt, NDT_ALTUNIT_FT) / 10.) * 10 + 1;
+                        case NDT_RESTRICT_BT: // better be above terain than below
+                            altitude = round(ndt_distance_get(leg->constraints.altitude.altmin, NDT_ALTUNIT_FT) / 10.) * 10 + 1;
                             break;
                         case NDT_RESTRICT_BL:
-                            altitude = round(ndt_distance_get(leg->constraints.altitude.alt, NDT_ALTUNIT_FT) / 10.) * 10 - 1;
+                            altitude = round(ndt_distance_get(leg->constraints.altitude.altmax, NDT_ALTUNIT_FT) / 10.) * 10 - 1;
                             break;
                         default:
                             altitude = 0;
                             break;
                     }
                 }
-                switch (leg->constraints.speed.typ)
+                switch (leg->constraints.speed.type)
                 {
                     case NDT_RESTRICT_AT:
                     case NDT_RESTRICT_BL:
-                        speed = ndt_airspeed_get(leg->constraints.speed.spd, NDT_SPDUNIT_KTS, ndt_airspeed_mach(-50.));
+                    case NDT_RESTRICT_BT:
+                        speed = ndt_airspeed_get(leg->constraints.speed.spdmax, NDT_SPDUNIT_KTS, ndt_airspeed_mach(-50.));
                         break;
                     default:
                         speed = 0;
