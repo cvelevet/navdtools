@@ -436,7 +436,7 @@ fail:
 
 ndt_route_segment* ndt_route_segment_direct(ndt_waypoint *src, ndt_waypoint *dst, ndt_navdatabase *ndb)
 {
-    if (!src || !dst)
+    if (!dst)
     {
         goto fail;
     }
@@ -479,23 +479,18 @@ fail:
     return NULL;
 }
 
-ndt_route_segment* ndt_route_segment_discon(ndt_waypoint *dst)
+ndt_route_segment* ndt_route_segment_discon(void)
 {
-    if (!dst)
-    {
-        goto fail;
-    }
-
     ndt_route_segment *rsg = ndt_route_segment_init();
     if (!rsg)
     {
         goto fail;
     }
 
-    snprintf(rsg->info.idnt, sizeof(rsg->info.idnt), "-| %s", dst->info.idnt);
+    snprintf(rsg->info.idnt, sizeof(rsg->info.idnt), "%s", "----F-PLN DISCONTINUITY---");
     rsg->type = NDT_RSTYPE_DSC;
     rsg->src  = NULL;
-    rsg->dst  = dst;
+    rsg->dst  = NULL;
 
     ndt_route_leg *leg = ndt_route_leg_init();
     if (!leg)
@@ -504,7 +499,8 @@ ndt_route_segment* ndt_route_segment_discon(ndt_waypoint *dst)
     }
 
     leg->type = NDT_LEGTYPE_ZZ;
-    leg->dst  = dst;
+    leg->src  = NULL;
+    leg->dst  = NULL;
     leg->rsg  = rsg;
     ndt_list_add(rsg->legs, leg);
 

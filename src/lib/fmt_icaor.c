@@ -780,7 +780,6 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
                     switch (leg->type)
                     {
                         case NDT_LEGTYPE_TF:
-                        case NDT_LEGTYPE_ZZ:
                         {
                             disnmile = ndt_distance_get(leg->dis, NDT_ALTUNIT_ME) / 1852.;
                             if ((ret = ndt_fprintf(fd,
@@ -803,6 +802,10 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
                             }
                             break;
                         }
+
+                        case NDT_LEGTYPE_ZZ:
+                            ret = ndt_fprintf(fd, "\n%s\n", "       ----F-PLN DISCONTINUITY----");
+                            break;
 
                         default:
                             ndt_log("[fmt_irecp]: unknown leg type '%d'\n", leg->type);
@@ -843,7 +846,6 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
                 switch (leg->type)
                 {
                     case NDT_LEGTYPE_TF:
-                    case NDT_LEGTYPE_ZZ:
                     {
                         if (leg->src)
                         {
@@ -887,6 +889,10 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
                         break;
                     }
 
+                    case NDT_LEGTYPE_ZZ:
+                        ret = ndt_fprintf(fd, "\n%s\n", "       ----F-PLN DISCONTINUITY----");
+                        break;
+
                     default:
                         ndt_log("[fmt_irecp]: unknown leg type '%d'\n", leg->type);
                         ret = EINVAL;
@@ -896,7 +902,7 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
             }
 
             case NDT_RSTYPE_DSC:
-                ret = ndt_fprintf(fd, "\n%s\n", "    ---- FLIGHT PLAN DISCONTINUITY ----");
+                ret = ndt_fprintf(fd, "\n%s\n", "       ----F-PLN DISCONTINUITY----");
                 break;
 
             default:
@@ -1100,7 +1106,6 @@ static int icao_printrt(FILE *fd, ndt_list *rte, ndt_fltplanformat fmt)
                 break;
 
             case NDT_RSTYPE_DCT:
-            case NDT_RSTYPE_DSC:
                 {
                     switch (rsg->dst->type)
                     {
@@ -1116,7 +1121,10 @@ static int icao_printrt(FILE *fd, ndt_list *rte, ndt_fltplanformat fmt)
                             ret = ndt_position_fprintllc(rsg->dst->position, llcfmt, fd);
                             break;
                     }
+                    break;
                 }
+
+            case NDT_RSTYPE_DSC: // skip discontinuities
                 break;
 
             default:
@@ -1177,7 +1185,6 @@ static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_fltplanformat fmt)
         switch (leg->type)
         {
             case NDT_LEGTYPE_TF:
-            case NDT_LEGTYPE_ZZ:
                 {
                     switch (leg->dst->type)
                     {
@@ -1193,7 +1200,10 @@ static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_fltplanformat fmt)
                             ret = ndt_position_fprintllc(leg->dst->position, llcfmt, fd);
                             break;
                     }
+                    break;
                 }
+
+            case NDT_LEGTYPE_ZZ: // skip discontinuities
                 break;
 
             default:

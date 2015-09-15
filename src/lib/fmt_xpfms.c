@@ -217,12 +217,19 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
 
         if (discontinuity)
         {
+            ndt_route_segment *dsc = ndt_route_segment_discon();
+            if (!dsc)
+            {
+                err = ENOMEM;
+                goto end;
+            }
             discontinuity = 0;
-            rsg = ndt_route_segment_discon(dst);
+            ndt_list_add(flp->rte, dsc);
+            rsg = ndt_route_segment_direct(NULL, dst, flp->ndb);
         }
         else
         {
-            rsg = ndt_route_segment_direct(src, dst, flp->ndb);
+            rsg = ndt_route_segment_direct( src, dst, flp->ndb);
         }
 
         if (!rsg)
@@ -422,6 +429,11 @@ static int helpr_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row, ndt_fltpla
 
     if (fmt == NDT_FLTPFMT_XPHLP)
     {
+        if (wpt == NULL)
+        {
+            return ndt_fprintf(fd, "%2d  ---  %-19s  %2d  %+07.3lf  %+08.3lf  %2d\n",
+                               row, "F-PLN DISCONTINUITY", row, 0., 0., row);
+        }
         ret = ndt_fprintf(fd, "%2d  %s  %-19s  %2d  %+07.3lf  %+08.3lf  %2d", row,
                           wpt->type == NDT_WPTYPE_APT ? "APT" :
                           wpt->type == NDT_WPTYPE_FIX ? "fix" :
@@ -433,6 +445,11 @@ static int helpr_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row, ndt_fltpla
     }
     else if (fmt == NDT_FLTPFMT_XPCDU)
     {
+        if (wpt == NULL)
+        {
+            return ndt_fprintf(fd, "%2d  %-19s  %2d  -------/--------  %2d\n",
+                               row, "F-PLN DISCONTINUITY", row, row);
+        }
         if (ndt_position_sprintllc(wpt->position, NDT_LLCFMT_AIBUS,
                                    buf, sizeof(buf)) < 0)
         {
@@ -568,9 +585,11 @@ static int ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
         switch (leg->type)
         {
             case NDT_LEGTYPE_TF:
-            case NDT_LEGTYPE_ZZ:
                 row = update__row(fd, row);
                 ret = helpr_waypoint_write(fd, leg->dst, row, fmt, &leg->constraints);
+                break;
+
+            case NDT_LEGTYPE_ZZ: // skip discontinuities
                 break;
 
             default:
@@ -658,8 +677,11 @@ static int helpr_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
                     switch (leg->type)
                     {
                         case NDT_LEGTYPE_TF:
-                        case NDT_LEGTYPE_ZZ:
                             ret = helpr_waypoint_write(fd, leg->dst, row++, fmt, &leg->constraints);
+                            break;
+
+                        case NDT_LEGTYPE_ZZ:
+                            ret = helpr_waypoint_write(fd, NULL, row++, fmt, NULL);
                             break;
 
                         default:
@@ -676,7 +698,7 @@ static int helpr_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
             }
 
             case NDT_RSTYPE_DSC:
-                ret = ndt_fprintf(fd, "%s", "\n");
+                ret = helpr_waypoint_write(fd, NULL, row++, fmt, NULL);
                 break;
 
             default:
@@ -804,10 +826,7 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
 
         switch (leg->type)
         {
-            case NDT_LEGTYPE_ZZ:
-                count += 2;
-                continue;
-
+            // TODO: legs with multiple dummy waypoints
             default:
                 count++;
                 break;
@@ -846,12 +865,6 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
          */
         switch (leg->type)
         {
-            case NDT_LEGTYPE_ZZ:
-                ret = print_line(fd, "-------", 0, 0, ndt_position_init(0., 0., ndt_distance_init(0, NDT_ALTUNIT_NA)), 0);
-                if (ret)
-                {
-                    goto end;
-                } // don't lose leg->dst, just pass through
             case NDT_LEGTYPE_TF:
                 if (leg->constraints.waypoint == NDT_WPTCONST_FOV)
                 {
@@ -903,6 +916,10 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
                         break;
                 }
                 ret = print_waypoint(fd, leg->dst, altitude, speed);
+                break;
+
+            case NDT_LEGTYPE_ZZ:
+                ret = print_line(fd, "-------", 0, 0, ndt_position_init(0., 0., ndt_distance_init(0, NDT_ALTUNIT_NA)), 0);
                 break;
 
             default:

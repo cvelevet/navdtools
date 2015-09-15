@@ -108,7 +108,7 @@ ndt_route_segment* ndt_route_segment_init  (                                    
 void               ndt_route_segment_close (ndt_route_segment **_segment                                                                                                                     );
 ndt_route_segment* ndt_route_segment_airway(ndt_waypoint        *src_wpt,  ndt_waypoint *dst_wpt, ndt_airway *airway, ndt_airway_leg *inleg, ndt_airway_leg *outleg, ndt_navdatabase *navdata);
 ndt_route_segment* ndt_route_segment_direct(ndt_waypoint        *src_wpt,  ndt_waypoint *dst_wpt,                                                                    ndt_navdatabase *navdata);
-ndt_route_segment* ndt_route_segment_discon(                               ndt_waypoint *dst_wpt                                                                                             );
+ndt_route_segment* ndt_route_segment_discon(                                                                                                                                                 );
 
 typedef struct ndt_route_leg
 {

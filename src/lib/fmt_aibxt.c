@@ -351,13 +351,15 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, const char *rte)
         /* Check for discontinuities */
         if (rsg->src != src)
         {
-            ndt_route_segment *dsc = ndt_route_segment_discon(rsg->src);
-            if (!dsc)
+            ndt_route_segment *dsc = ndt_route_segment_discon();
+            ndt_route_segment *dct = ndt_route_segment_direct(NULL, rsg->src, flp->ndb);
+            if (!dsc || !dct)
             {
                 err = ENOMEM;
                 goto end;
             }
             ndt_list_add(flp->rte, dsc);
+            ndt_list_add(flp->rte, dct);
         }
 
         /* We have a leg, our last endpoint becomes our new startpoint */
