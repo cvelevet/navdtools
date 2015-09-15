@@ -66,14 +66,13 @@ void* ndt_list_item(const ndt_list *l, int i)
         return NULL;
     }
 
-    // negative index means start from the end and never fail
+    // negative index means start from the end
     if (i < 0)
     {
-        i += l->count;
-    }
-    if (i < 0)
-    {
-        i = 0;
+        if ((i += l->count) < 0)
+        {
+            return NULL;
+        }
     }
     if (i > l->count - 1)
     {
@@ -90,11 +89,6 @@ void ndt_list_insert(ndt_list *l, void *p, int i)
         return;
     }
 
-    // negative index means start from the end and never fail
-    if (i < 0)
-    {
-        i += l->count;
-    }
     if (i < 0)
     {
         i = 0;

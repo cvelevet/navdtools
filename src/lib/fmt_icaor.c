@@ -95,48 +95,37 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                  * If the first waypoint is an airport, save the matching
                  * airport (and runway, if applicable) for later use.
                  */
-                lastapt = ndt_navdata_get_airport(flp->ndb, prefix);
-                if (lastapt && suffix)
+                ndt_airport *firstapt = ndt_navdata_get_airport(flp->ndb, prefix);
+                ndt_runway  *firstrwy;
+
+                if (firstapt && suffix)
                 {
-                    lastrwy = ndt_runway_get(lastapt, suffix);
+                    firstrwy = ndt_runway_get(firstapt, suffix);
                 }
                 else
                 {
-                    lastrwy = NULL;
+                    firstrwy = NULL;
                 }
 
                 /* Set or update the departure airport and runway. */
-                if (!flp->dep.apt || (!flp->dep.rwy && lastapt == flp->dep.apt))
+                if (!flp->dep.apt || flp->dep.apt == firstapt)
                 {
-                    if ((err = ndt_flightplan_set_departure(flp,
-                                                            lastapt ? lastapt->info.idnt : NULL,
-                                                            lastrwy ? lastrwy->info.idnt : NULL)))
+                    err = ndt_flightplan_set_departure(flp,
+                                                       firstapt ? firstapt->info.idnt : NULL,
+                                                       firstrwy ? firstrwy->info.idnt : NULL);
+                    if (err)
                     {
                         ndt_log("[fmt_icaor]: invalid departure '%s%s'\n",
-                                lastapt ? lastapt->info.idnt : NULL,
-                                lastrwy ? lastrwy->info.idnt : "");
+                                firstapt ? firstapt->info.idnt : NULL,
+                                firstrwy ? firstrwy->info.idnt : "");
                         goto end;
                     }
                 }
 
                 /*
-                 * We must set src to the departure airport, regardless of
-                 * whether it will be the start of this segment or the next
-                 * (if we skip this one).
+                 * The first source is the departure airport or runway.
                  */
-                for (size_t depidx = 0; (src = ndt_navdata_get_waypoint(flp->ndb, flp->dep.apt->info.idnt, &depidx));  depidx++)
-                {
-                    if (src->type == NDT_WPTYPE_APT)
-                    {
-                        break;
-                    }
-                }
-
-                /* Don't store the departure airport in the route */
-                if (lastapt == flp->dep.apt)
-                {
-                    continue;
-                }
+                src = flp->dep.rwy ? flp->dep.rwy->waypoint : flp->dep.apt->waypoint;
             }
 
             /*
@@ -425,19 +414,24 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                     goto end;
                 }
 
-                /* Check for duplicate waypoints */
-                if (rsg->src == rsg->dst)
+                /* Remove pointless legs */
+                if (rsg->type == NDT_RSTYPE_DCT)
                 {
-                    goto remove_segment;
-                }
-                if (!lastapt)
-                {
-                    ndt_position a = rsg->src->position;
-                    ndt_position b = rsg->dst->position;
-                    if (ndt_distance_get(ndt_position_calcdistance(a, b),
-                                         NDT_ALTUNIT_NA) == 0)
+                    if (rsg->src == rsg->dst)
                     {
-                        goto remove_segment;
+                        ndt_route_segment_close(&rsg);
+                        continue;
+                    }
+                    else
+                    {
+                        ndt_position a = rsg->src->position;
+                        ndt_position b = rsg->dst->position;
+                        ndt_distance d = ndt_position_calcdistance(a, b);
+                        if (ndt_distance_get(d, NDT_ALTUNIT_NA) == 0)
+                        {
+                            ndt_route_segment_close(&rsg);
+                            continue;
+                        }
                     }
                 }
 
@@ -451,20 +445,17 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                 /* Let's not forget to add our new segment to the route */
                 ndt_list_add(flp->rte, rsg);
                 continue;
-
-            remove_segment:
-                ndt_route_segment_close(&rsg);
-                continue;
             }
         }
     }
 
     /* Set or update the arrival airport and runway. */
-    if (!flp->arr.apt || (!flp->arr.rwy && lastapt == flp->arr.apt))
+    if (!flp->arr.apt || flp->arr.apt == lastapt)
     {
-        if ((err = ndt_flightplan_set_arrival(flp,
-                                              lastapt ? lastapt->info.idnt : NULL,
-                                              lastrwy ? lastrwy->info.idnt : NULL)))
+        err = ndt_flightplan_set_arrival(flp,
+                                         lastapt ? lastapt->info.idnt : NULL,
+                                         lastrwy ? lastrwy->info.idnt : NULL);
+        if (err)
         {
             ndt_log("[fmt_icaor]: invalid arrival '%s%s'\n",
                     lastapt ? lastapt->info.idnt : NULL,
@@ -473,36 +464,104 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
         }
     }
 
-    /* Don't store the arrival airport in the route */
-    if (lastapt == flp->arr.apt)
-    {
-        ndt_route_segment *rsg = ndt_list_item(flp->rte, -1);
-        ndt_list_rem  (flp->rte, rsg);
-        ndt_route_segment_close(&rsg);
-    }
-
     /*
-     * Remove segments from/to the departure/arrival
-     * airport, with a runway threshold as endpoint.
-     *
-     * Users who want runway thresholds in the flight plan should set the
-     * departure and arrival runways via dedicated options, not the route.
+     * Remove unwanted segments.
      */
     ndt_route_segment *fst = ndt_list_item(flp->rte,  0);
-    ndt_route_segment *lst = ndt_list_item(flp->rte, -1);
-    if (fst && fst->dst->type == NDT_WPTYPE_RWY)
+    ndt_route_segment *scd = ndt_list_item(flp->rte,  1);
+    ndt_route_segment *pen = ndt_list_item(flp->rte, -2);
+    ndt_route_segment *ult = ndt_list_item(flp->rte, -1);
+    if (fst && fst->type == NDT_RSTYPE_DCT)
     {
-        // when there's only one element, fst == lst, don't close it twice
-        if (fst != lst)
+        if (flp->dep.apt->waypoint == fst->dst)
         {
+            // check for duplicates
+            if (fst == scd)
+            {
+                scd = NULL;
+            }
+            if (fst == pen)
+            {
+                pen = NULL;
+            }
+            if (fst == ult)
+            {
+                ult = NULL;
+            }
+
+            // don't include the departure airport as the first leg
+            ndt_list_rem  (flp->rte, fst);
+            ndt_route_segment_close(&fst);
+
+            // if we have an airport, the next leg may be a runway
+            if (scd != NULL  && scd->type == NDT_RSTYPE_DCT &&
+                flp->dep.rwy && flp->dep.rwy->waypoint == scd->dst)
+            {
+                // check for duplicates
+                if (scd == pen)
+                {
+                    pen = NULL;
+                }
+                if (scd == ult)
+                {
+                    ult = NULL;
+                }
+
+                // don't include the departure runway as the second leg
+                ndt_list_rem  (flp->rte, scd);
+                ndt_route_segment_close(&scd);
+            }
+        }
+        else if (flp->dep.rwy && flp->dep.rwy->waypoint == fst->dst)
+        {
+            // check for duplicates
+            if (fst == scd)
+            {
+                scd = NULL;
+            }
+            if (fst == pen)
+            {
+                pen = NULL;
+            }
+            if (fst == ult)
+            {
+                ult = NULL;
+            }
+
+            // don't include the departure runway as the first leg
             ndt_list_rem  (flp->rte, fst);
             ndt_route_segment_close(&fst);
         }
     }
-    if (lst && lst->dst->type == NDT_WPTYPE_RWY)
+    if (ult && ult->type == NDT_RSTYPE_DCT)
     {
-        ndt_list_rem  (flp->rte, lst);
-        ndt_route_segment_close(&lst);
+        if (flp->arr.apt->waypoint == ult->dst)
+        {
+            // check for duplicates
+            if (ult == pen)
+            {
+                pen = NULL;
+            }
+
+            // don't include the arrival airport as the last leg
+            ndt_list_rem  (flp->rte, ult);
+            ndt_route_segment_close(&ult);
+
+            // if we have an airport, the previous leg may be a runway
+            if (pen != NULL  && pen->type == NDT_RSTYPE_DCT &&
+                flp->arr.rwy && flp->arr.rwy->waypoint == pen->dst)
+            {
+                // don't include the arrival runway as the penultimate leg
+                ndt_list_rem  (flp->rte, pen);
+                ndt_route_segment_close(&pen);
+            }
+        }
+        else if (flp->arr.rwy && flp->arr.rwy->waypoint == ult->dst)
+        {
+            // don't include the arrival runway as the last leg
+            ndt_list_rem  (flp->rte, ult);
+            ndt_route_segment_close(&ult);
+        }
     }
 
 end:

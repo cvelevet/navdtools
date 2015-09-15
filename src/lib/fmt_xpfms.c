@@ -146,26 +146,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                     goto end;
                 }
             }
-            for (size_t i = 0; (src = ndt_navdata_get_waypoint(flp->ndb, flp->dep.apt->info.idnt, &i));  i++)
-            {
-                if (src->type == NDT_WPTYPE_APT)
-                {
-                    break;
-                }
-            }
-            if (!src)
-            {
-                ndt_log("[fmt_xpfms]: invalid departure airport '%s'\n",
-                        flp->dep.apt->info.idnt);
-                err = EINVAL;
-                goto end;
-            }
-
-            /* Don't store the departure airport in the route */
-            if (typ == 1 && !strcasecmp(buf, flp->dep.apt->info.idnt))
-            {
-                continue;
-            }
+            src = flp->dep.apt->waypoint;
         }
 
         ndt_route_segment *rsg = NULL;
@@ -356,18 +337,14 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
     }
 
     /* Arrival */
-    ndt_route_segment *rsg = ndt_list_item(flp->rte, ndt_list_count(flp->rte) - 1);
-    if (!rsg)
-    {
-        err = ENOMEM;
-        goto end;
-    }
-    else
-    {
-        err = 0;
-    }
     if (!flp->arr.apt)
     {
+        ndt_route_segment *rsg = ndt_list_item(flp->rte, -1);
+        if (!rsg)
+        {
+            err = ENOMEM;
+            goto end;
+        }
         if (rsg->dst->type != NDT_WPTYPE_APT)
         {
             ndt_log("[fmt_xpfms]: arrival airport not set\n");
@@ -377,17 +354,36 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
         if ((err = ndt_flightplan_set_arrival(flp, rsg->dst->info.idnt, NULL)))
         {
             ndt_log("[fmt_xpfms]: invalid arrival airport '%s'\n",
-                    flp->arr.apt->info.idnt);
+                    rsg->dst->info.idnt);
             err = EINVAL;
             goto end;
         }
-    }
-    if (rsg->dst->type == NDT_WPTYPE_APT &&
-        strcasecmp(rsg->dst->info.idnt, flp->arr.apt->info.idnt) == 0)
-    {
-        /* Don't store the arrival airport in the route */
         ndt_list_rem  (flp->rte, rsg);
         ndt_route_segment_close(&rsg);
+    }
+
+    /*
+     * Remove unwanted segments.
+     */
+    ndt_route_segment *fst = ndt_list_item(flp->rte,  0);
+    ndt_route_segment *ult = ndt_list_item(flp->rte, -1);
+    if (fst && fst->dst == flp->dep.apt->waypoint)
+    {
+        // check for duplicates
+        if (fst == ult)
+        {
+            ult = NULL;
+        }
+
+        // don't include the departure airport as the first leg
+        ndt_list_rem  (flp->rte, fst);
+        ndt_route_segment_close(&fst);
+    }
+    if (ult && ult->dst == flp->arr.apt->waypoint)
+    {
+        // don't include the arrival airport as the last leg
+        ndt_list_rem  (flp->rte, ult);
+        ndt_route_segment_close(&ult);
     }
 
 end:
