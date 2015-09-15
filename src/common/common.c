@@ -605,8 +605,8 @@ int ndt_position_sprintllc(ndt_position pos, ndt_llcfmt fmt, char *buf, size_t l
 
         case NDT_LLCFMT_CEEVA:
         {
-            // full form, e.g. N 46 00.0' E 050 00.0'
-            ret = snprintf(buf, len, "%c %02d %04.1lf' %c %03d %04.1lf'",
+            // full form, e.g. N 46°00.0' E 050°00.0'
+            ret = snprintf(buf, len, "%c %02d°%04.1lf' %c %03d°%04.1lf'",
                            card[0], ilatd, dlatm, card[1], ilond, dlonm);
             break;
         }
@@ -705,7 +705,7 @@ int ndt_position_sprintllc(ndt_position pos, ndt_llcfmt fmt, char *buf, size_t l
 
 int ndt_position_fprintllc(ndt_position pos, ndt_llcfmt fmt, FILE *fd)
 {
-    char buf[24];
+    char buf[25];
     int  ret = ndt_position_sprintllc(pos, fmt, buf, sizeof(buf));
 
     if (ret < 0)

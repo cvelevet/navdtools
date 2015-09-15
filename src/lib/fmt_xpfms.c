@@ -417,7 +417,7 @@ static int update__row(FILE *fd, int row)
 
 static int helpr_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row, ndt_fltplanformat fmt, ndt_restriction *constraints)
 {
-    char buf[23];
+    char buf[25];
     int  ret;
 
     if (fmt == NDT_FLTPFMT_XPHLP)
