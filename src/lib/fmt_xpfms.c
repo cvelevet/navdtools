@@ -241,7 +241,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
         }
         else
         {
-            rsg = ndt_route_segment_direct(src, dst);
+            rsg = ndt_route_segment_direct(src, dst, ndb);
         }
 
         if (!rsg)
@@ -438,7 +438,7 @@ static int helpr_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row, ndt_fltpla
     else if (fmt == NDT_FLTPFMT_XPCDU)
     {
         if (ndt_position_sprintllc(wpt->position, NDT_LLCFMT_AIBUS,
-                                   buf, sizeof(buf)) >= sizeof(buf))
+                                   buf, sizeof(buf)) < 0)
         {
             return EIO;
         }
@@ -447,7 +447,7 @@ static int helpr_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row, ndt_fltpla
     else if (fmt == NDT_FLTPFMT_XPCVA)
     {
         if (ndt_position_sprintllc(wpt->position, NDT_LLCFMT_CEEVA,
-                                   buf, sizeof(buf)) >= sizeof(buf))
+                                   buf, sizeof(buf)) < 0)
         {
             return EIO;
         }

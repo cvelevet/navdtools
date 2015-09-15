@@ -29,6 +29,8 @@
 
 #include "compat/compat.h"
 
+#include "wmm/wmm.h"
+
 #include "airway.h"
 #include "flightplan.h"
 #include "fmt_aibxt.h"
@@ -270,6 +272,10 @@ int ndt_flightplan_write(ndt_flightplan *flp, FILE *file, ndt_fltplanformat fmt)
             err = ndt_fmt_icaor_flightplan_write(flp, file);
             break;
 
+        case NDT_FLTPFMT_IRECP:
+            err = ndt_fmt_irecp_flightplan_write(flp, file);
+            break;
+
         case NDT_FLTPFMT_SBRIF:
             err = ndt_fmt_sbrif_flightplan_write(flp, file);
             break;
@@ -390,7 +396,12 @@ ndt_route_segment* ndt_route_segment_airway(ndt_waypoint *src, ndt_waypoint *dst
             goto fail;
         }
 
-        leg->brg     = ndt_position_calcbearing(src->position, dst->position);
+
+        ndt_date now = ndt_date_now();
+        leg->dis     = ndt_position_calcdistance(src->position,   dst->position);
+        leg->trb     = ndt_position_calcbearing (src->position,   dst->position);
+        leg->imb     = ndt_wmm_getbearing_mag(ndb->wmm, leg->trb, dst->position, now);
+        leg->omb     = ndt_wmm_getbearing_mag(ndb->wmm, leg->trb, src->position, now);
         leg->type    = NDT_LEGTYPE_TF;
         leg->src     = src;
         leg->dst     = dst;
@@ -416,7 +427,7 @@ fail:
     return NULL;
 }
 
-ndt_route_segment* ndt_route_segment_direct(ndt_waypoint *src, ndt_waypoint *dst)
+ndt_route_segment* ndt_route_segment_direct(ndt_waypoint *src, ndt_waypoint *dst, ndt_navdatabase *ndb)
 {
     if (!src || !dst)
     {
@@ -440,7 +451,14 @@ ndt_route_segment* ndt_route_segment_direct(ndt_waypoint *src, ndt_waypoint *dst
         goto fail;
     }
 
-    leg->brg  = ndt_position_calcbearing(src->position, dst->position);
+    if (src)
+    {
+        ndt_date now = ndt_date_now();
+        leg->dis = ndt_position_calcdistance(src->position,   dst->position);
+        leg->trb = ndt_position_calcbearing (src->position,   dst->position);
+        leg->imb = ndt_wmm_getbearing_mag(ndb->wmm, leg->trb, dst->position, now);
+        leg->omb = ndt_wmm_getbearing_mag(ndb->wmm, leg->trb, src->position, now);
+    }
     leg->type = NDT_LEGTYPE_TF;
     leg->src  = src;
     leg->dst  = dst;

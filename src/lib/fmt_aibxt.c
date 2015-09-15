@@ -277,7 +277,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                 }
                 ndt_list_add(flp->cws, dst);
             }
-            rsg = ndt_route_segment_direct(src, dst);
+            rsg = ndt_route_segment_direct(src, dst, ndb);
         }
         else if (!strcmp(awyidt, "DCT") || (!strncmp(awyidt, "NAT", 3) && strlen(awyidt) == 4)) // direct to coded as airway
         {
@@ -303,7 +303,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                 err = EINVAL;
                 goto end;
             }
-            rsg = ndt_route_segment_direct(wpt1, wpt2);
+            rsg = ndt_route_segment_direct(wpt1, wpt2, ndb);
         }
         else // airway
         {

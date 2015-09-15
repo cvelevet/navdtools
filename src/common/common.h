@@ -127,6 +127,7 @@ typedef enum
     NDT_LLCFMT_BOING,   // Boeing CDU format, e.g. N4600.0E05000.0, N46E050
     NDT_LLCFMT_CEEVA,   // Boeing format, optimized for readability
     NDT_LLCFMT_ICAOR,   // FAA ORDER JO 7110.10X, Appendix A. ICAO FLIGHT PLANS
+    NDT_LLCFMT_RECAP,   // optimized for flight plan recap
     NDT_LLCFMT_SBRIF,   // optimized for SimBrief
     NDT_LLCFMT_SVECT,   // optimized for SkyVector
 } ndt_llcfmt;

@@ -545,9 +545,10 @@ int ndt_position_sprintllc(ndt_position pos, ndt_llcfmt fmt, char *buf, size_t l
 {
     if (!buf)
     {
-        return len + 1;
+        return -1;
     }
 
+    int    ret;
     char   card[3];
     int    ilatd = ((pos.latitude. value)                                   / INTDEG);
     int    ilond = ((pos.longitude.value)                                   / INTDEG);
@@ -582,8 +583,9 @@ int ndt_position_sprintllc(ndt_position pos, ndt_llcfmt fmt, char *buf, size_t l
         case NDT_LLCFMT_AIBUS:
         {
             // full form, e.g. 4600.0N/05000.0E
-            return snprintf(buf, len, "%02d%04.1lf%c/%03d%04.1lf%c",
-                            ilatd, dlatm, card[0], ilond, dlonm, card[1]);
+            ret = snprintf(buf, len, "%02d%04.1lf%c/%03d%04.1lf%c",
+                           ilatd, dlatm, card[0], ilond, dlonm, card[1]);
+            break;
         }
 
         case NDT_LLCFMT_BOING:
@@ -591,19 +593,22 @@ int ndt_position_sprintllc(ndt_position pos, ndt_llcfmt fmt, char *buf, size_t l
             if (ilatm == 0 && ilonm == 0 && ilats < 6 && ilons < 6)
             {
                 // 7-letter form, e.g. N46E050
-                return snprintf(buf, len, "%c%02d%c%03d",
-                                card[0], ilatd, card[1], ilond);
+                ret = snprintf(buf, len, "%c%02d%c%03d",
+                               card[0], ilatd, card[1], ilond);
+                break;
             }
             // full form, e.g. N4600.0E05000.0
-            return snprintf(buf, len, "%c%02d%04.1lf%c%03d%04.1lf",
-                            card[0], ilatd, dlatm, card[1], ilond, dlonm);
+            ret = snprintf(buf, len, "%c%02d%04.1lf%c%03d%04.1lf",
+                           card[0], ilatd, dlatm, card[1], ilond, dlonm);
+            break;
         }
 
         case NDT_LLCFMT_CEEVA:
         {
             // full form, e.g. N 46 00.0' E 050 00.0'
-            return snprintf(buf, len, "%c %02d %04.1lf' %c %03d %04.1lf'",
-                            card[0], ilatd, dlatm, card[1], ilond, dlonm);
+            ret = snprintf(buf, len, "%c %02d %04.1lf' %c %03d %04.1lf'",
+                           card[0], ilatd, dlatm, card[1], ilond, dlonm);
+            break;
         }
 
         case NDT_LLCFMT_ICAOR:
@@ -611,13 +616,23 @@ int ndt_position_sprintllc(ndt_position pos, ndt_llcfmt fmt, char *buf, size_t l
             if (ilatm == 0 && ilonm == 0 && ilats < 30 && ilons < 30)
             {
                 // 7-letter form, e.g. 46N050E
-                return snprintf(buf, len, "%02d%c%03d%c",
-                                ilatd, card[0], ilond, card[1]);
+                ret = snprintf(buf, len, "%02d%c%03d%c",
+                               ilatd, card[0], ilond, card[1]);
+                break;
             }
             // full form, e.g. 4600N05000E
-            return snprintf(buf, len, "%02d%02d%c%03d%02d%c",
-                            ilatd, (int)(dlatm + .5), card[0],
-                            ilond, (int)(dlonm + .5), card[1]);
+            ret = snprintf(buf, len, "%02d%02d%c%03d%02d%c",
+                           ilatd, (int)(dlatm + .5), card[0],
+                           ilond, (int)(dlonm + .5), card[1]);
+            break;
+        }
+
+        case NDT_LLCFMT_RECAP:
+        {
+            // full form, e.g. N46°00.0'  E050°00.0'
+            ret = snprintf(buf, len, "%c%02d°%04.1lf'  %c%03d°%04.1lf'",
+                           card[0], ilatd, dlatm, card[1], ilond, dlonm);
+            break;
         }
 
         case NDT_LLCFMT_SBRIF:
@@ -627,19 +642,21 @@ int ndt_position_sprintllc(ndt_position pos, ndt_llcfmt fmt, char *buf, size_t l
                 // 5-letter form, e.g. 4650N
                 if (ilond >= 100)
                 {
-                    return snprintf(buf, len, "%02d%c%02d",
-                                    ilatd, card[2], ilond % 100);
+                    ret = snprintf(buf, len, "%02d%c%02d",
+                                   ilatd, card[2], ilond % 100);
                 }
                 else
                 {
-                    return snprintf(buf, len, "%02d%02d%c",
-                                    ilatd, ilond, card[2]);
+                    ret = snprintf(buf, len, "%02d%02d%c",
+                                   ilatd, ilond, card[2]);
                 }
+                break;
             }
             // FlightAware-style, e.g. 4600N 05000E
-            return snprintf(buf, len, "%02d%02d%c %03d%02d%c",
-                            ilatd, (int)(dlatm + .5), card[0],
-                            ilond, (int)(dlonm + .5), card[1]);
+            ret = snprintf(buf, len, "%02d%02d%c %03d%02d%c",
+                           ilatd, (int)(dlatm + .5), card[0],
+                           ilond, (int)(dlonm + .5), card[1]);
+            break;
         }
 
         case NDT_LLCFMT_SVECT:
@@ -649,51 +666,51 @@ int ndt_position_sprintllc(ndt_position pos, ndt_llcfmt fmt, char *buf, size_t l
                 // 5-letter form, e.g. 4650N
                 if (ilond >= 100)
                 {
-                    return snprintf(buf, len, "%02d%c%02d",
-                                    ilatd, card[2], ilond % 100);
+                    ret = snprintf(buf, len, "%02d%c%02d",
+                                   ilatd, card[2], ilond % 100);
                 }
                 else
                 {
-                    return snprintf(buf, len, "%02d%02d%c",
-                                    ilatd, ilond, card[2]);
+                    ret = snprintf(buf, len, "%02d%02d%c",
+                                   ilatd, ilond, card[2]);
                 }
+                break;
             }
             if (ilats == 0 && ilons == 0)
             {
                 // 9-letter form, e.g. 4600N05000E
-                return snprintf(buf, len, "%02d%02d%c%03d%02d%c",
-                                ilatd, ilatm, card[0],
-                                ilond, ilonm, card[1]);
+                ret = snprintf(buf, len, "%02d%02d%c%03d%02d%c",
+                               ilatd, ilatm, card[0],
+                               ilond, ilonm, card[1]);
+                break;
             }
             // full form, e.g. 460000N0500000E
-            return snprintf(buf, len, "%02d%02d%02d%c%03d%02d%02d%c",
-                            ilatd, ilatm, ilats, card[0],
-                            ilond, ilonm, ilons, card[1]);
+            ret = snprintf(buf, len, "%02d%02d%02d%c%03d%02d%02d%c",
+                           ilatd, ilatm, ilats, card[0],
+                           ilond, ilonm, ilons, card[1]);
+            break;
         }
 
         case NDT_LLCFMT_DEFLT:
         default:
+            // default format: 7-letter form, e.g. N46E050
+            ret = snprintf(buf, len, "%c%02d%c%03d",
+                           card[0], (int)(dlatd + .5),
+                           card[1], (int)(dlond + .5));
             break;
     }
 
-    // default format: 7-letter form, e.g. N46E050
-    return snprintf(buf, len, "%c%02d%c%03d",
-                    card[0], (int)(dlatd + .5),
-                    card[1], (int)(dlond + .5));
+    return ret >= len ? -1 : ret;
 }
 
 int ndt_position_fprintllc(ndt_position pos, ndt_llcfmt fmt, FILE *fd)
 {
-    char buf[23];
+    char buf[24];
     int  ret = ndt_position_sprintllc(pos, fmt, buf, sizeof(buf));
 
     if (ret < 0)
     {
         return EIO;
-    }
-    if (ret >= sizeof(buf))
-    {
-        return ENOMEM;
     }
 
     return ndt_fprintf(fd, "%s", buf);

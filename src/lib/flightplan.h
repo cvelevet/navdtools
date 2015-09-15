@@ -35,6 +35,7 @@ typedef enum ndt_fltplanformat
     NDT_FLTPFMT_AIBXT, // Airbus X Extended format
     NDT_FLTPFMT_DCDED, // decoded route legs, same line
     NDT_FLTPFMT_ICAOR, // ICAO route with departure/arrival airports, no SID/STAR
+    NDT_FLTPFMT_IRECP, // route recap, multiple lines per leg
     NDT_FLTPFMT_SBRIF, // ICAO route only, with FlightAware latitude/longitude
     NDT_FLTPFMT_XPFMS, // X-Plane default FMS format
     NDT_FLTPFMT_XPCVA, // optimized for use with CIVA
@@ -105,14 +106,17 @@ typedef struct ndt_route_segment
 ndt_route_segment* ndt_route_segment_init  (                                                                                                                                                 );
 void               ndt_route_segment_close (ndt_route_segment **_segment                                                                                                                     );
 ndt_route_segment* ndt_route_segment_airway(ndt_waypoint        *src_wpt,  ndt_waypoint *dst_wpt, ndt_airway *airway, ndt_airway_leg *inleg, ndt_airway_leg *outleg, ndt_navdatabase *navdata);
-ndt_route_segment* ndt_route_segment_direct(ndt_waypoint        *src_wpt,  ndt_waypoint *dst_wpt                                                                                             );
+ndt_route_segment* ndt_route_segment_direct(ndt_waypoint        *src_wpt,  ndt_waypoint *dst_wpt,                                                                    ndt_navdatabase *navdata);
 ndt_route_segment* ndt_route_segment_discon(                               ndt_waypoint *dst_wpt                                                                                             );
 
 typedef struct ndt_route_leg
 {
-    ndt_waypoint      *src;    // leg's start point (NULL for discontinuities)
-    ndt_waypoint      *dst;    // leg's stop  point (always set)
-    unsigned int       brg;    // bearing (unit: deg)
+    ndt_waypoint      *src;    // leg's start point                       (may be NULL)
+    ndt_waypoint      *dst;    // leg's stop  point                       (NULL: manual termination)
+    ndt_distance       dis;    // distance covered by leg                 (unset if src or dst NULL)
+    double             trb;    // bearing (unit: deg), true               (unset if src or dst NULL)
+    double             imb;    // bearing (unit: deg), magnetic,  inbound (unset if src or dst NULL)
+    double             omb;    // bearing (unit: deg), magnetic, outbound (unset if src or dst NULL)
     ndt_route_segment *rsg;    // leg's parent route segment
 
     enum

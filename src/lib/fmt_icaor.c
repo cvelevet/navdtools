@@ -416,7 +416,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                 }
                 else
                 {
-                    rsg = ndt_route_segment_direct(src, dst);
+                    rsg = ndt_route_segment_direct(src, dst, ndb);
                 }
 
                 if (!rsg)
@@ -583,6 +583,331 @@ int ndt_fmt_icaor_flightplan_write(ndt_flightplan *flp, FILE *fd)
     if (ret)
     {
         goto end;
+    }
+
+end:
+    return ret;
+}
+
+int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
+{
+    int ret = 0, d01, d02;
+    const char *surface;
+
+    if (!flp || !fd)
+    {
+        ret = ENOMEM;
+        goto end;
+    }
+
+    if (!flp->dep.apt || !flp->arr.apt)
+    {
+        ndt_log("[fmt_irecp]: departure or arrival airport not set\n");
+        ret = EINVAL;
+        goto end;
+    }
+
+    // departure airport and runway
+    d01 = ndt_distance_get(flp->dep.apt->coordinates.altitude, NDT_ALTUNIT_FT);
+    d02 = ndt_distance_get(flp->dep.apt->tr_altitude,          NDT_ALTUNIT_FT);
+    if (d02)
+    {
+        ret = ndt_fprintf(fd, "Departure: %s (%s), elevation %d ft, transition altitude %d ft\n",
+                          flp->dep.apt->info.idnt,
+                          flp->dep.apt->info.misc, d01, d02);
+    }
+    else
+    {
+        ret = ndt_fprintf(fd, "Departure: %s (%s), elevation %d ft, transition altitude ATC\n",
+                          flp->dep.apt->info.idnt,
+                          flp->dep.apt->info.misc, d01);
+    }
+    if (ret)
+    {
+        goto end;
+    }
+    if (flp->dep.rwy)
+    {
+        d01 = ndt_distance_get(flp->dep.rwy->length, NDT_ALTUNIT_FT);
+        d02 = ndt_distance_get(flp->dep.rwy->width,  NDT_ALTUNIT_FT);
+        switch (flp->dep.rwy->surface)
+        {
+            case NDT_RWYSURF_ASPHT:
+                surface = "asphalt";
+                break;
+            case NDT_RWYSURF_CONCR:
+                surface = "concrete";
+                break;
+            case NDT_RWYSURF_GRASS:
+                surface = "grass";
+                break;
+            case NDT_RWYSURF_GRAVL:
+                surface = "gravel";
+                break;
+            case NDT_RWYSURF_WATER:
+                surface = "water";
+                break;
+            default:
+                surface = "unknown";
+                break;
+        }
+        if (flp->dep.rwy->ils.avail)
+        {
+            ret = ndt_fprintf(fd, "Runway:    %s (%d°), %d (%d) ft, surface: %s, ILS: %.2lf (%d°, %.1lf°)\n",
+                              flp->dep.rwy->info.idnt,
+                              flp->dep.rwy->heading, d01, d02, surface,
+                              ndt_frequency_get(flp->dep.rwy->ils.freq),
+                              flp->dep.rwy->ils.course,
+                              flp->dep.rwy->ils.slope);
+        }
+        else
+        {
+            ret = ndt_fprintf(fd, "Runway:    %s, %3d°, %d (%d) ft, surface: %s\n",
+                              flp->dep.rwy->info.idnt,
+                              flp->dep.rwy->heading, d01, d02, surface);
+        }
+        if (ret)
+        {
+            goto end;
+        }
+    }
+    ret = ndt_fprintf(fd, "%s", "\n");
+    if (ret)
+    {
+        goto end;
+    }
+
+    // flight route
+    ret = ndt_fprintf(fd, "%s:\n", "Flight route");
+    if (ret)
+    {
+        goto end;
+    }
+    for (size_t i = 0; i < ndt_list_count(flp->rte); i++)
+    {
+        double disnmile;
+        char sbrif[13], recap[24];
+        ndt_route_segment *rsg = ndt_list_item(flp->rte, i);
+        if (!rsg)
+        {
+            ret = ENOMEM;
+            goto end;
+        }
+
+        switch (rsg->type)
+        {
+            case NDT_RSTYPE_AWY:
+            {
+                for (size_t j = 0; j < ndt_list_count(rsg->legs); j++)
+                {
+                    ndt_route_leg *leg = ndt_list_item(rsg->legs, j);
+                    if (!leg)
+                    {
+                        ret = ENOMEM;
+                        break;
+                    }
+
+                    switch (leg->type)
+                    {
+                        case NDT_LEGTYPE_TF:
+                        case NDT_LEGTYPE_ZZ:
+                        {
+                            disnmile = ndt_distance_get(leg->dis, NDT_ALTUNIT_ME) / 1852.;
+                            if ((ret = ndt_fprintf(fd,
+                                                   "\n%-5s  %05.1lf° (%05.1lf°T) %5.1lf nm\n",
+                                                   leg->awy. leg->awy->info.idnt,
+                                                   leg->imb, leg->trb, disnmile)))
+                            {
+                                break;
+                            }
+                            if (leg->dst->info.misc[0])
+                            {
+                                if ((ret = ndt_fprintf(fd, "%s\n", leg->dst->info.misc)))
+                                {
+                                    break;
+                                }
+                            }
+                            if ((ret = ndt_fprintf(fd, "%-19s  %s\n", leg->dst->info.idnt, recap)))
+                            {
+                                break;
+                            }
+                            break;
+                        }
+
+                        default:
+                            ndt_log("[fmt_irecp]: unknown leg type '%d'\n", leg->type);
+                            ret = EINVAL;
+                            break;
+                    }
+                    if (ret)
+                    {
+                        break;
+                    }
+                }
+                break;
+            }
+
+            case NDT_RSTYPE_DCT:
+            {
+                ndt_route_leg *leg = ndt_list_item(rsg->legs, 0);
+                if (!leg)
+                {
+                    ret = ENOMEM;
+                    break;
+                }
+
+                // pre-print latitude and longitude coordinates
+                if (ndt_position_sprintllc(leg->dst->position, NDT_LLCFMT_SBRIF,
+                                           sbrif, sizeof(sbrif)) < 0)
+                {
+                    ret = EIO;
+                    break;
+                }
+                if (ndt_position_sprintllc(leg->dst->position, NDT_LLCFMT_RECAP,
+                                           recap, sizeof(recap)) < 0)
+                {
+                    ret = EIO;
+                    break;
+                }
+
+                switch (leg->type)
+                {
+                    case NDT_LEGTYPE_TF:
+                    case NDT_LEGTYPE_ZZ:
+                    {
+                        if (leg->src)
+                        {
+                            disnmile = ndt_distance_get(leg->dis, NDT_ALTUNIT_ME) / 1852.;
+                            if ((ret = ndt_fprintf(fd,
+                                                   "\n%-5s  %05.1lf° (%05.1lf°T) %5.1lf nm\n",
+                                                   "DCT", leg->imb, leg->trb, disnmile)))
+                            {
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            if ((ret = ndt_fprintf(fd, "\n%s\n", "DCT")))
+                            {
+                                break;
+                            }
+                        }
+                        if (leg->dst->type != NDT_WPTYPE_LLC &&
+                            leg->dst->info.misc[0])
+                        {
+                            if ((ret = ndt_fprintf(fd, "%s\n", leg->dst->info.misc)))
+                            {
+                                break;
+                            }
+                        }
+                        if (leg->dst->type == NDT_WPTYPE_LLC)
+                        {
+                            if ((ret = ndt_fprintf(fd, "%-19s  %s\n", sbrif, recap)))
+                            {
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            if ((ret = ndt_fprintf(fd, "%-19s  %s\n", leg->dst->info.idnt, recap)))
+                            {
+                                break;
+                            }
+                        }
+                        break;
+                    }
+
+                    default:
+                        ndt_log("[fmt_irecp]: unknown leg type '%d'\n", leg->type);
+                        ret = EINVAL;
+                        break;
+                }
+                break;
+            }
+
+            case NDT_RSTYPE_DSC:
+                ret = ndt_fprintf(fd, "\n%s\n", "    ---- FLIGHT PLAN DISCONTINUITY ----");
+                break;
+
+            default:
+                ndt_log("[fmt_irecp]: unknown segment type '%d'\n", rsg->type);
+                ret = EINVAL;
+                break;
+        }
+        if (ret)
+        {
+            goto end;
+        }
+    }
+    ret = ndt_fprintf(fd, "%s", "\n");
+    if (ret)
+    {
+        goto end;
+    }
+
+    // arrival airport and runway
+    d01 = ndt_distance_get(flp->arr.apt->coordinates.altitude, NDT_ALTUNIT_FT);
+    d02 = ndt_distance_get(flp->arr.apt->trans_level,          NDT_ALTUNIT_FT);
+    if (d02)
+    {
+        ret = ndt_fprintf(fd, "Arrival: %s (%s), elevation %d ft, transition level FL%d\n",
+                          flp->arr.apt->info.idnt,
+                          flp->arr.apt->info.misc, d01, d02 / 100);
+    }
+    else
+    {
+        ret = ndt_fprintf(fd, "Arrival: %s (%s), elevation %d ft, transition level ATC\n",
+                          flp->arr.apt->info.idnt,
+                          flp->arr.apt->info.misc, d01);
+    }
+    if (ret)
+    {
+        goto end;
+    }
+    if (flp->arr.rwy)
+    {
+        d01 = ndt_distance_get(flp->arr.rwy->length, NDT_ALTUNIT_FT);
+        d02 = ndt_distance_get(flp->arr.rwy->width,  NDT_ALTUNIT_FT);
+        switch (flp->arr.rwy->surface)
+        {
+            case NDT_RWYSURF_ASPHT:
+                surface = "asphalt";
+                break;
+            case NDT_RWYSURF_CONCR:
+                surface = "concrete";
+                break;
+            case NDT_RWYSURF_GRASS:
+                surface = "grass";
+                break;
+            case NDT_RWYSURF_GRAVL:
+                surface = "gravel";
+                break;
+            case NDT_RWYSURF_WATER:
+                surface = "water";
+                break;
+            default:
+                surface = "unknown";
+                break;
+        }
+        if (flp->arr.rwy->ils.avail)
+        {
+            ret = ndt_fprintf(fd, "Runway:  %s (%d°), %d (%d) ft, surface: %s, ILS: %.2lf (%d°, %.1lf°)\n",
+                              flp->arr.rwy->info.idnt,
+                              flp->arr.rwy->heading, d01, d02, surface,
+                              ndt_frequency_get(flp->arr.rwy->ils.freq),
+                              flp->arr.rwy->ils.course,
+                              flp->arr.rwy->ils.slope);
+        }
+        else
+        {
+            ret = ndt_fprintf(fd, "Runway:  %s, %3d°, %d (%d) ft, surface: %s\n",
+                              flp->arr.rwy->info.idnt,
+                              flp->arr.rwy->heading, d01, d02, surface);
+        }
+        if (ret)
+        {
+            goto end;
+        }
     }
 
 end:
