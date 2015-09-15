@@ -35,7 +35,7 @@
 #include "fmt_xpfms.h"
 #include "waypoint.h"
 
-int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb, const char *rte)
+int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
 {
     ndt_waypoint *src = NULL;
     char         *start, *pos;
@@ -46,7 +46,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
     ndt_position  llc;
     ndt_airspeed  kts;
 
-    if (!flp || !ndb || !rte)
+    if (!flp || !rte)
     {
         err = ENOMEM;
         goto end;
@@ -141,12 +141,12 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                     err = EINVAL;
                     goto end;
                 }
-                if ((err = ndt_flightplan_set_departure(flp, ndb, buf, NULL)))
+                if ((err = ndt_flightplan_set_departure(flp, buf, NULL)))
                 {
                     goto end;
                 }
             }
-            for (size_t i = 0; (src = ndt_navdata_get_waypoint(ndb, flp->dep.apt->info.idnt, &i));  i++)
+            for (size_t i = 0; (src = ndt_navdata_get_waypoint(flp->ndb, flp->dep.apt->info.idnt, &i));  i++)
             {
                 if (src->type == NDT_WPTYPE_APT)
                 {
@@ -174,7 +174,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
 
         if (typ != 13 && typ != 28)
         {
-            for (size_t dstidx = 0; (dst = ndt_navdata_get_waypoint(ndb, buf, &dstidx)); dstidx++)
+            for (size_t dstidx = 0; (dst = ndt_navdata_get_waypoint(flp->ndb, buf, &dstidx)); dstidx++)
             {
                 switch (dst->type)
                 {
@@ -241,7 +241,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
         }
         else
         {
-            rsg = ndt_route_segment_direct(src, dst, ndb);
+            rsg = ndt_route_segment_direct(src, dst, flp->ndb);
         }
 
         if (!rsg)
@@ -374,7 +374,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
             err = EINVAL;
             goto end;
         }
-        if ((err = ndt_flightplan_set_arrival(flp, ndb, rsg->dst->info.idnt, NULL)))
+        if ((err = ndt_flightplan_set_arrival(flp, rsg->dst->info.idnt, NULL)))
         {
             ndt_log("[fmt_xpfms]: invalid arrival airport '%s'\n",
                     flp->arr.apt->info.idnt);

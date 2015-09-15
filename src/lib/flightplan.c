@@ -38,12 +38,17 @@
 #include "fmt_xpfms.h"
 #include "waypoint.h"
 
-static int route_leg_update(ndt_flightplan *flp, ndt_navdatabase *ndb                                  );
+static int route_leg_update(ndt_flightplan *flp                                                        );
 static int route_leg_airway(ndt_flightplan *flp, ndt_navdatabase *ndb, ndt_route_segment *rsg          );
 static int route_leg_oftype(ndt_flightplan *flp,                       ndt_route_segment *rsg, int type);
 
-ndt_flightplan* ndt_flightplan_init()
+ndt_flightplan* ndt_flightplan_init(ndt_navdatabase *ndb)
 {
+    if (!ndb)
+    {
+        return NULL;
+    }
+
     ndt_flightplan *flp = calloc(1, sizeof(ndt_flightplan));
     if (!flp)
     {
@@ -70,6 +75,8 @@ ndt_flightplan* ndt_flightplan_init()
         ndt_flightplan_close(&flp);
         goto end;
     }
+
+    flp->ndb = ndb;
 
     flp->crz_altitude = ndt_distance_init(0, NDT_ALTUNIT_NA);
 
@@ -117,19 +124,19 @@ void ndt_flightplan_close(ndt_flightplan **_flp)
     }
 }
 
-int ndt_flightplan_set_departure(ndt_flightplan *flp, ndt_navdatabase *ndb, const char *icao, const char *rwid)
+int ndt_flightplan_set_departure(ndt_flightplan *flp, const char *icao, const char *rwid)
 {
     char         errbuf[64];
     int          err = 0;
     ndt_airport *apt;
 
-    if (!flp || !ndb || !icao)
+    if (!flp || !icao)
     {
         err = ENOMEM;
         goto end;
     }
 
-    if (!(apt = ndt_navdata_get_airport(ndb, icao)))
+    if (!(apt = ndt_navdata_get_airport(flp->ndb, icao)))
     {
         err = EINVAL;
         goto end;
@@ -162,19 +169,19 @@ end:
     return err;
 }
 
-int ndt_flightplan_set_arrival(ndt_flightplan *flp, ndt_navdatabase *ndb, const char *icao, const char *rwid)
+int ndt_flightplan_set_arrival(ndt_flightplan *flp, const char *icao, const char *rwid)
 {
     char         errbuf[64];
     int          err = 0;
     ndt_airport *apt;
 
-    if (!flp || !ndb || !icao)
+    if (!flp || !icao)
     {
         err = ENOMEM;
         goto end;
     }
 
-    if (!(apt = ndt_navdata_get_airport(ndb, icao)))
+    if (!(apt = ndt_navdata_get_airport(flp->ndb, icao)))
     {
         err = EINVAL;
         goto end;
@@ -207,12 +214,12 @@ end:
     return err;
 }
 
-int ndt_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb, const char *rte, ndt_fltplanformat fmt)
+int ndt_flightplan_set_route(ndt_flightplan *flp, const char *rte, ndt_fltplanformat fmt)
 {
     int  err = 0;
     char errbuf[64];
 
-    if (!flp || !ndb || !rte || !(*rte))
+    if (!flp || !rte || !(*rte))
     {
         err = ENOMEM;
         goto end;
@@ -221,15 +228,15 @@ int ndt_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb, const ch
     switch (fmt)
     {
         case NDT_FLTPFMT_AIBXT:
-            err = ndt_fmt_aibxt_flightplan_set_route(flp, ndb, rte);
+            err = ndt_fmt_aibxt_flightplan_set_route(flp, rte);
             break;
 
         case NDT_FLTPFMT_ICAOR:
-            err = ndt_fmt_icaor_flightplan_set_route(flp, ndb, rte);
+            err = ndt_fmt_icaor_flightplan_set_route(flp, rte);
             break;
 
         case NDT_FLTPFMT_XPFMS:
-            err = ndt_fmt_xpfms_flightplan_set_route(flp, ndb, rte);
+            err = ndt_fmt_xpfms_flightplan_set_route(flp, rte);
             break;
 
         default:
@@ -244,7 +251,7 @@ end:
         ndt_log("flightplan: failed to parse route (%s)\n", errbuf);
         return err;
     }
-    return route_leg_update(flp, ndb);
+    return route_leg_update(flp);
 }
 
 int ndt_flightplan_write(ndt_flightplan *flp, FILE *file, ndt_fltplanformat fmt)
@@ -631,11 +638,11 @@ int ndt_route_leg_restrict(ndt_route_leg *leg, ndt_restriction constraints)
     return 0;
 }
 
-static int route_leg_update(ndt_flightplan *flp, ndt_navdatabase *ndb)
+static int route_leg_update(ndt_flightplan *flp)
 {
     int err = 0;
 
-    if (!flp || !ndb)
+    if (!flp)
     {
         err = ENOMEM;
         goto end;

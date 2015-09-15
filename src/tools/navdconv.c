@@ -183,17 +183,17 @@ static int execute_task(void)
         print_airac(navdata);
     }
 
-    if (!(fltplan = ndt_flightplan_init()))
+    if (!(fltplan = ndt_flightplan_init(navdata)))
     {
         ret = ENOMEM;
         goto end;
     }
 
-    if (dep_apt && (ret = ndt_flightplan_set_departure(fltplan, navdata, dep_apt, dep_rwy)))
+    if (dep_apt && (ret = ndt_flightplan_set_departure(fltplan, dep_apt, dep_rwy)))
     {
         goto end;
     }
-    if (arr_apt && (ret = ndt_flightplan_set_arrival  (fltplan, navdata, arr_apt, arr_rwy)))
+    if (arr_apt && (ret = ndt_flightplan_set_arrival  (fltplan, arr_apt, arr_rwy)))
     {
         goto end;
     }
@@ -212,8 +212,7 @@ static int execute_task(void)
         format_in = NDT_FLTPFMT_ICAOR;
     }
 
-    if (flp_rte && (ret = ndt_flightplan_set_route(fltplan, navdata,
-                                                   flp_rte, format_in)))
+    if (flp_rte && (ret = ndt_flightplan_set_route(fltplan, flp_rte, format_in)))
     {
         goto end;
     }

@@ -40,7 +40,7 @@
 static int icao_printrt(FILE *fd, ndt_list *rte, ndt_fltplanformat fmt);
 static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_fltplanformat fmt);
 
-int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb, const char *rte)
+int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
 {
     int           err      = 0;
     ndt_airport  *lastapt  = NULL;
@@ -49,7 +49,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
     char         *awy1id   = NULL, *awy2id = NULL;
     char         *rtestart = NULL, *prefix = NULL, *rtenext, *elem;
 
-    if (!flp || !ndb || !rte)
+    if (!flp || !rte)
     {
         err = ENOMEM;
         goto end;
@@ -95,7 +95,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                  * If the first waypoint is an airport, save the matching
                  * airport (and runway, if applicable) for later use.
                  */
-                lastapt = ndt_navdata_get_airport(ndb, prefix);
+                lastapt = ndt_navdata_get_airport(flp->ndb, prefix);
                 if (lastapt && suffix)
                 {
                     lastrwy = ndt_runway_get(lastapt, suffix);
@@ -108,7 +108,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                 /* Set or update the departure airport and runway. */
                 if (!flp->dep.apt || (!flp->dep.rwy && lastapt == flp->dep.apt))
                 {
-                    if ((err = ndt_flightplan_set_departure(flp, ndb,
+                    if ((err = ndt_flightplan_set_departure(flp,
                                                             lastapt ? lastapt->info.idnt : NULL,
                                                             lastrwy ? lastrwy->info.idnt : NULL)))
                     {
@@ -124,7 +124,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                  * whether it will be the start of this segment or the next
                  * (if we skip this one).
                  */
-                for (size_t depidx = 0; (src = ndt_navdata_get_waypoint(ndb, flp->dep.apt->info.idnt, &depidx));  depidx++)
+                for (size_t depidx = 0; (src = ndt_navdata_get_waypoint(flp->ndb, flp->dep.apt->info.idnt, &depidx));  depidx++)
                 {
                     if (src->type == NDT_WPTYPE_APT)
                     {
@@ -174,7 +174,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
 
             if (distance > 0. &&
                 bearing >= 0. && bearing <= 360. &&
-                ndt_navdata_get_waypoint(ndb, place, NULL))
+                ndt_navdata_get_waypoint(flp->ndb, place, NULL))
             {
                 /*
                  * Handled first because we have a specific, reliable match.
@@ -193,7 +193,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                  */
                 if (lastpl == NULL || strcasecmp(lastpl->info.idnt, place))
                 {
-                    lastpl  = ndt_navdata_get_wptnear2(ndb, place, NULL, src->position);
+                    lastpl  = ndt_navdata_get_wptnear2(flp->ndb, place, NULL, src->position);
                 }
                 if (lastpl == NULL)
                 {
@@ -204,7 +204,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                 // convert nautical miles to meters for distance
                 ndstce = ndt_distance_init((int64_t)(distance * 1852.), NDT_ALTUNIT_ME);
                 cuswpt = ndt_waypoint_pbd(lastpl, bearing, ndstce,
-                                          ndt_date_now(), ndb->wmm);
+                                          ndt_date_now(), flp->ndb->wmm);
             }
             else if (0)
             {
@@ -218,7 +218,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                  */
                 continue;
             }
-            else if (ndt_navdata_get_airway(ndb, elem, NULL))
+            else if (ndt_navdata_get_airway(flp->ndb, elem, NULL))
             {
                 ndt_airway_leg *in;
                 ndt_airway     *awy1, *awy2;
@@ -232,11 +232,11 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                      * waypoint and an airway in AIRAC 1405). If both fail, set
                      * awy2id so we can print an airway-specific error later.
                      */
-                    for (size_t awy1idx = 0; (awy1 = ndt_navdata_get_airway(ndb, awy1id, &awy1idx)); awy1idx++)
+                    for (size_t awy1idx = 0; (awy1 = ndt_navdata_get_airway(flp->ndb, awy1id, &awy1idx)); awy1idx++)
                     {
                         if ((in = ndt_airway_startpoint(awy1, src->info.idnt, src->position)))
                         {
-                            for (size_t awy2idx = 0; (awy2 = ndt_navdata_get_airway(ndb, elem, &awy2idx)); awy2idx++)
+                            for (size_t awy2idx = 0; (awy2 = ndt_navdata_get_airway(flp->ndb, elem, &awy2idx)); awy2idx++)
                             {
                                 if (ndt_airway_intersect(in, awy2))
                                 {
@@ -248,7 +248,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                             {
                                 break;
                             }
-                            for (size_t dstidx = 0; (dst = ndt_navdata_get_waypoint(ndb, prefix, &dstidx)); dstidx++)
+                            for (size_t dstidx = 0; (dst = ndt_navdata_get_waypoint(flp->ndb, prefix, &dstidx)); dstidx++)
                             {
                                 if (ndt_airway_endpoint(in, dst->info.idnt, dst->position))
                                 {
@@ -275,7 +275,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                      * waypoint and an airway in AIRAC 1405). If both fail, set
                      * awy1id so we can print an airway-specific error later.
                      */
-                    for (size_t awy1idx = 0; (awy1 = ndt_navdata_get_airway(ndb, elem, &awy1idx)); awy1idx++)
+                    for (size_t awy1idx = 0; (awy1 = ndt_navdata_get_airway(flp->ndb, elem, &awy1idx)); awy1idx++)
                     {
                         if (ndt_airway_startpoint(awy1, src->info.idnt, src->position))
                         {
@@ -301,9 +301,9 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                          */
                         if (rsg1 && rsg1->type == NDT_RSTYPE_DCT)
                         {
-                            for (size_t dstidx = 0; (dst = ndt_navdata_get_waypoint(ndb, rsg1->dst->info.idnt, &dstidx)); dstidx++)
+                            for (size_t dstidx = 0; (dst = ndt_navdata_get_waypoint(flp->ndb, rsg1->dst->info.idnt, &dstidx)); dstidx++)
                             {
-                                for (size_t awy1idx = 0; (awy1 = ndt_navdata_get_airway(ndb, elem, &awy1idx)); awy1idx++)
+                                for (size_t awy1idx = 0; (awy1 = ndt_navdata_get_airway(flp->ndb, elem, &awy1idx)); awy1idx++)
                                 {
                                     if (ndt_airway_startpoint(awy1, dst->info.idnt, dst->position))
                                     {
@@ -321,7 +321,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                     }
                     if (!awy1id)
                     {
-                        if (ndt_navdata_get_waypoint(ndb, prefix, NULL))
+                        if (ndt_navdata_get_waypoint(flp->ndb, prefix, NULL))
                         {
                             dstidt = prefix;
                         }
@@ -332,7 +332,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                     }
                 }
             }
-            else if (ndt_navdata_get_waypoint(ndb, prefix, NULL))
+            else if (ndt_navdata_get_waypoint(flp->ndb, prefix, NULL))
             {
                 dstidt = prefix;
             }
@@ -367,20 +367,20 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
 
                 if      (awy2id)
                 {
-                    dst = ndt_navdata_get_wpt4aws(ndb, src, awy2id, awy1id, &awy, &in, &out);
+                    dst = ndt_navdata_get_wpt4aws(flp->ndb, src, awy2id, awy1id, &awy, &in, &out);
                     free(awy1id);
                     awy1id = awy2id;
                     awy2id = NULL;
                 }
                 else if (awy1id)
                 {
-                    dst = ndt_navdata_get_wpt4awy(ndb, src, dstidt, awy1id, &awy, &in, &out);
+                    dst = ndt_navdata_get_wpt4awy(flp->ndb, src, dstidt, awy1id, &awy, &in, &out);
                     free(awy1id);
                     awy1id = NULL;
                 }
                 else if (dstidt)
                 {
-                    dst = ndt_navdata_get_wptnear2(ndb, dstidt, NULL, src->position);
+                    dst = ndt_navdata_get_wptnear2(flp->ndb, dstidt, NULL, src->position);
 
                     /*
                      * If the last waypoint is an airport, save the matching
@@ -388,7 +388,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
                      */
                     if (dst && dst->type == NDT_WPTYPE_APT)
                     {
-                        lastapt = ndt_navdata_get_airport(ndb, dst->info.idnt);
+                        lastapt = ndt_navdata_get_airport(flp->ndb, dst->info.idnt);
                         if (lastapt && suffix)
                         {
                             lastrwy = ndt_runway_get(lastapt, suffix);
@@ -412,11 +412,11 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
 
                 if (awy && in && out)
                 {
-                    rsg = ndt_route_segment_airway(src, dst, awy, in, out, ndb);
+                    rsg = ndt_route_segment_airway(src, dst, awy, in, out, flp->ndb);
                 }
                 else
                 {
-                    rsg = ndt_route_segment_direct(src, dst, ndb);
+                    rsg = ndt_route_segment_direct(src, dst, flp->ndb);
                 }
 
                 if (!rsg)
@@ -462,7 +462,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, ndt_navdatabase *ndb
     /* Set or update the arrival airport and runway. */
     if (!flp->arr.apt || (!flp->arr.rwy && lastapt == flp->arr.apt))
     {
-        if ((err = ndt_flightplan_set_arrival(flp, ndb,
+        if ((err = ndt_flightplan_set_arrival(flp,
                                               lastapt ? lastapt->info.idnt : NULL,
                                               lastrwy ? lastrwy->info.idnt : NULL)))
         {

@@ -27,7 +27,7 @@
 
 #include "flightplan.h"
 
-int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flightplan, ndt_navdatabase *navdatabase, const char *route);
-int ndt_fmt_xpfms_flightplan_write    (ndt_flightplan *flightplan, FILE            *file, ndt_fltplanformat    fmt);
+int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flightplan, const char *route                      );
+int ndt_fmt_xpfms_flightplan_write    (ndt_flightplan *flightplan, FILE       *file, ndt_fltplanformat fmt);
 
 #endif /* NDT_FMT_XPFMS_H */

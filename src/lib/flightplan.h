@@ -45,8 +45,9 @@ typedef enum ndt_fltplanformat
 
 typedef struct ndt_flightplan
 {
-    ndt_info     info;         // identification information
-    ndt_list    *cws;          // custom waypoints (struct ndt_waypoint)
+    ndt_info             info; // identification information
+    ndt_list             *cws; // custom waypoints (struct ndt_waypoint)
+    ndt_navdatabase      *ndb; // associated navigation database
     ndt_distance crz_altitude; // cruise altitude
 
     struct
@@ -67,12 +68,12 @@ typedef struct ndt_flightplan
     /* TODO: everything else */
 } ndt_flightplan;
 
-ndt_flightplan* ndt_flightplan_init         (                                                                                                       );
-void            ndt_flightplan_close        (ndt_flightplan **_flightplan                                                                           );
-int             ndt_flightplan_set_departure(ndt_flightplan   *flightplan, ndt_navdatabase *navdatabase, const char *icao,  const char       *runway);
-int             ndt_flightplan_set_arrival  (ndt_flightplan   *flightplan, ndt_navdatabase *navdatabase, const char *icao,  const char       *runway);
-int             ndt_flightplan_set_route    (ndt_flightplan   *flightplan, ndt_navdatabase *navdatabase, const char *route, ndt_fltplanformat format);
-int             ndt_flightplan_write        (ndt_flightplan   *flightplan, FILE *file,                                      ndt_fltplanformat format);
+ndt_flightplan* ndt_flightplan_init         (ndt_navdatabase *navdatabase                                             );
+void            ndt_flightplan_close        (ndt_flightplan **_flightplan                                             );
+int             ndt_flightplan_set_departure(ndt_flightplan   *flightplan, const char *icao,  const char       *runway);
+int             ndt_flightplan_set_arrival  (ndt_flightplan   *flightplan, const char *icao,  const char       *runway);
+int             ndt_flightplan_set_route    (ndt_flightplan   *flightplan, const char *route, ndt_fltplanformat format);
+int             ndt_flightplan_write        (ndt_flightplan   *flightplan, FILE *file,        ndt_fltplanformat format);
 
 typedef struct ndt_route_segment
 {
