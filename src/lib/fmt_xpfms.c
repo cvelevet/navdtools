@@ -593,7 +593,7 @@ static int ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
                 break;
 
             default:
-                ndt_log("[fmt_ceeva]: unknown leg type '%d'\n", leg->type);
+                ndt_log("[fmt_xpcva]: unknown leg type '%d'\n", leg->type);
                 ret = EINVAL;
                 break;
         }
@@ -685,7 +685,9 @@ static int helpr_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
                             break;
 
                         default:
-                            ndt_log("[fmt_xhelp]: unknown leg type '%d'\n", leg->type);
+                            ndt_log("[%s]: unknown leg type '%d'\n",
+                                    fmt == NDT_FLTPFMT_XPCDU ? "fmt_xpcdu" : "fmt_xphlp",
+                                    leg->type);
                             ret = EINVAL;
                             break;
                     }
@@ -702,7 +704,9 @@ static int helpr_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
                 break;
 
             default:
-                ndt_log("[fmt_xhelp]: unknown segment type '%d'\n", rsg->type);
+                ndt_log("[%s]: unknown segment type '%d'\n",
+                        fmt == NDT_FLTPFMT_XPCDU ? "fmt_xpcdu" : "fmt_xphlp",
+                        rsg->type);
                 ret = EINVAL;
                 break;
         }
