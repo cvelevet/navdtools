@@ -729,6 +729,13 @@ static int parse_navaids(char *src, ndt_navdatabase *ndb)
             goto end;
         }
 
+        snprintf(wpt->info.misc         + strlen(wpt->info.misc),
+                 sizeof(wpt->info.misc) - strlen(wpt->info.misc), " %s%s",
+                 wpt->type == NDT_WPTYPE_VOR ? "VOR" :
+                 wpt->type == NDT_WPTYPE_LOC ? "LOC" :
+                 wpt->type == NDT_WPTYPE_NDB ? "NDB" :
+                 wpt->type == NDT_WPTYPE_DME ? "DME" : "",
+                 wpt->type != NDT_WPTYPE_DME && wpt->dme ? "/DME" : "");
         snprintf(wpt->info.desc, sizeof(wpt->info.desc),
                  "%3s%4s %-4s -- frequency: %8.3lf, region: %.2s",
                  wpt->type == NDT_WPTYPE_VOR ? "VOR" :

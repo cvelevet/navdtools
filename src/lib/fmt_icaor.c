@@ -32,6 +32,8 @@
 
 #include "compat/compat.h"
 
+#include "wmm/wmm.h"
+
 #include "airway.h"
 #include "flightplan.h"
 #include "fmt_icaor.h"
@@ -650,8 +652,10 @@ end:
 
 int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
 {
+    char sbrif[13], recap[24];
     int ret = 0, d01, d02;
     const char *surface;
+    double disnmile;
 
     if (!flp || !fd)
     {
@@ -736,16 +740,23 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
         goto end;
     }
 
+    // TODO: SID and transition(s)
+
     // flight route
-    ret = ndt_fprintf(fd, "%s:\n", "Flight route");
+    if (ndt_list_count(flp->rte) == 0)
+    {
+        ret = ndt_fprintf(fd, "%s", "Flight route: DIRECT\n");
+    }
+    else
+    {
+        ret = ndt_fprintf(fd, "%s", "Flight route:\n");
+    }
     if (ret)
     {
         goto end;
     }
     for (size_t i = 0; i < ndt_list_count(flp->rte); i++)
     {
-        double disnmile;
-        char sbrif[13], recap[24];
         ndt_route_segment *rsg = ndt_list_item(flp->rte, i);
         if (!rsg)
         {
@@ -773,9 +784,9 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
                         {
                             disnmile = ndt_distance_get(leg->dis, NDT_ALTUNIT_ME) / 1852.;
                             if ((ret = ndt_fprintf(fd,
-                                                   "\n%-5s  %05.1lf° (%05.1lf°T) %5.1lf nm\n",
+                                                   "\n%-14s  %05.1lf° (%05.1lf°T) %5.1lf nm\n",
                                                    leg->awy. leg->awy->info.idnt,
-                                                   leg->imb, leg->trb, disnmile)))
+                                                   leg->omb, leg->trb, disnmile)))
                             {
                                 break;
                             }
@@ -838,8 +849,8 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
                         {
                             disnmile = ndt_distance_get(leg->dis, NDT_ALTUNIT_ME) / 1852.;
                             if ((ret = ndt_fprintf(fd,
-                                                   "\n%-5s  %05.1lf° (%05.1lf°T) %5.1lf nm\n",
-                                                   "DCT", leg->imb, leg->trb, disnmile)))
+                                                   "\n%-14s  %05.1lf° (%05.1lf°T) %5.1lf nm\n",
+                                                   "DCT", leg->omb, leg->trb, disnmile)))
                             {
                                 break;
                             }
@@ -896,6 +907,46 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
         if (ret)
         {
             goto end;
+        }
+    }
+
+    // TODO: STAR and transition(s)
+
+    // TODO: approach (maybe not?)
+
+    // last leg (TODO: check if final approach selected)
+    if (ndt_list_count(flp->rte))
+    {
+        // route not direct, and no final approach, add
+        // a dummy leg to the arrival airport or runway
+        ndt_waypoint  *dst = flp->arr.rwy ? flp->arr.rwy->waypoint : flp->arr.apt->waypoint;
+
+        // pre-print latitude and longitude coordinates
+        if (ndt_position_sprintllc(dst->position, NDT_LLCFMT_RECAP,
+                                   recap, sizeof(recap)) < 0)
+        {
+            ret = EIO;
+            goto  end;
+        }
+
+        // the source is the last leg's dst, if it exists
+        ndt_route_leg *leg = ndt_list_item(flp->legs, -1);
+        if (leg && leg->dst)
+        {
+            ndt_distance d = ndt_position_calcdistance(leg->dst->position,  dst->position);
+            double tru_brg = ndt_position_calcbearing (leg->dst->position,  dst->position);
+            double mag_brg = ndt_wmm_getbearing_mag(flp->ndb->wmm, tru_brg, leg->dst->position, ndt_date_now());
+            double dis_mil = ndt_distance_get(d, NDT_ALTUNIT_ME) / 1852.;
+            if ((ret = ndt_fprintf(fd,
+                                   "\n%-14s  %05.1lf° (%05.1lf°T) %5.1lf nm\n",
+                                   "DCT", mag_brg, tru_brg, dis_mil)))
+            {
+                goto end;
+            }
+            if ((ret = ndt_fprintf(fd, "%-19s  %s\n", dst->info.idnt, recap)))
+            {
+                goto end;
+            }
         }
     }
     ret = ndt_fprintf(fd, "%s", "\n");
