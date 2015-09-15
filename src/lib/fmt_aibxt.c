@@ -217,19 +217,9 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, const char *rte)
             {
                 goto end;
             }
-            for (size_t i = 0; (src = ndt_navdata_get_waypoint(flp->ndb, dep_apt, &i));  i++)
-            {
-                if (src->type == NDT_WPTYPE_APT)
-                {
-                    break;
-                }
-            }
-            if (!src)
-            {
-                ndt_log("[fmt_aibxt]: invalid airport '%s'\n", dep_apt);
-                err = EINVAL;
-                goto end;
-            }
+
+            /* The first source is the departure airport or runway. */
+            src = flp->dep.rwy ? flp->dep.rwy->waypoint : flp->dep.apt->waypoint;
 
             /* TODO: handle the SID and its transition here, when present. */
         }
