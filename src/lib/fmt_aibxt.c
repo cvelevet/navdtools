@@ -511,21 +511,8 @@ int ndt_fmt_aibxt_flightplan_write(ndt_flightplan *flp, FILE *fd)
                 err = print_directto(fd, j, rsg->dst);
                 break;
 
-            case NDT_RSTYPE_DSC:
-                {
-                    ndt_route_segment *nxt = ndt_list_item(flp->rte, i + 1);
-                    if (nxt && nxt->type != NDT_RSTYPE_AWY)
-                    {
-                        err = print_directto(fd, j, rsg->dst);
-                    }
-                    else
-                    {
-                        // airways include the src waypoint, therefore
-                        // we don't need to plug such discontinuities
-                        continue;
-                    }
-                }
-                break;
+            case NDT_RSTYPE_DSC: // skip discontinuities
+                continue;
 
             default:
                 ndt_log("[fmt_aibxt]: unknown segment type '%d'\n", rsg->type);
