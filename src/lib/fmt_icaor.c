@@ -109,8 +109,8 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                     firstrwy = NULL;
                 }
 
-                /* Set or update the departure airport and runway. */
-                if (!flp->dep.apt || flp->dep.apt == firstapt)
+                /* Set the departure airport and runway if required. */
+                if (!flp->dep.apt || (!flp->dep.rwy && flp->dep.apt == firstapt))
                 {
                     err = ndt_flightplan_set_departure(flp,
                                                        firstapt ? firstapt->info.idnt : NULL,
@@ -451,8 +451,8 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
         }
     }
 
-    /* Set or update the arrival airport and runway. */
-    if (!flp->arr.apt || flp->arr.apt == lastapt)
+    /* Set the arrival airport and runway if required. */
+    if (!flp->arr.apt || (!flp->arr.rwy && flp->arr.apt == lastapt))
     {
         err = ndt_flightplan_set_arrival(flp,
                                          lastapt ? lastapt->info.idnt : NULL,
