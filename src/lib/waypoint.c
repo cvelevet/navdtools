@@ -69,9 +69,9 @@ ndt_waypoint* ndt_waypoint_llc(const char *fmt)
         goto end;
     }
 
+    double lat, lon, latm, lonm, lats, lons;
     size_t fmtlen = strlen(fmt);
-    double lat, lon, latm, lonm;
-    char   de1[2], de2[2];
+    char de1[2], de2[2];
 
     if ((fmtlen ==  7 && sscanf(fmt,  "%1[NSns]%2lf%1[EWew]%3lf", de1, &lat, de2, &lon) == 4) ||
         (fmtlen ==  8 && sscanf(fmt, "%1[NSns]%2lf/%1[EWew]%3lf", de1, &lat, de2, &lon) == 4) ||
@@ -85,6 +85,48 @@ ndt_waypoint* ndt_waypoint_llc(const char *fmt)
          * 7-character format: 44N066W  (N 44° W 066°)
          * 8-character format: 44N/066W (N 44° W 066°)
          */
+        switch (*de1)
+        {
+            case 'N': // north latitude
+            case 'n':
+                break;
+            case 'S': // south latitude
+            case 's':
+                lat = -lat;
+                break;
+            default:  // invalid value
+                ndt_waypoint_close(&wpt);
+                goto end;
+        }
+        switch (*de2)
+        {
+            case 'E': // east longitude
+            case 'e':
+                break;
+            case 'W': // west longitude
+            case 'w':
+                lon = -lon;
+                break;
+            default:  // invalid value
+                ndt_waypoint_close(&wpt);
+                goto end;
+        }
+    }
+    else if (((strstr(fmt, ".") == NULL)) &&
+             ((fmtlen == 15 && sscanf(fmt,  "%1[NSns]%2lf%2lf%2lf%1[EWew]%3lf%2lf%2lf", de1, &lat, &latm, &lats, de2, &lon, &lonm, &lons) == 8) ||
+              (fmtlen == 16 && sscanf(fmt, "%1[NSns]%2lf%2lf%2lf/%1[EWew]%3lf%2lf%2lf", de1, &lat, &latm, &lats, de2, &lon, &lonm, &lons) == 8) ||
+              (fmtlen == 15 && sscanf(fmt,  "%2lf%2lf%2lf%1[NSns]%3lf%2lf%2lf%1[EWew]", &lat, &latm, &lats, de1, &lon, &lonm, &lons, de2) == 8) ||
+              (fmtlen == 16 && sscanf(fmt, "%2lf%2lf%2lf%1[NSns]/%3lf%2lf%2lf%1[EWew]", &lat, &latm, &lats, de1, &lon, &lonm, &lons, de2) == 8)))
+    {
+        /*
+         * 15-character format: N441154W0662206  (N 44° 11' 54" W 066° 22' 06")
+         * 16-character format: N441154/W0662206 (N 44° 11' 54" W 066° 22' 06")
+         *
+         * 15-character format: 441154N0662206W  (N 44° 11' 54" W 066° 22' 06")
+         * 16-character format: 441154N/0662206W (N 44° 11' 54" W 066° 22' 06")
+         */
+        lat = (lat + latm / 60. + lats / 3600.);
+        lon = (lon + lonm / 60. + lons / 3600.);
         switch (*de1)
         {
             case 'N': // north latitude
