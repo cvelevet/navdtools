@@ -347,8 +347,6 @@ ndt_waypoint* ndt_waypoint_pbd(ndt_waypoint *plce, double magb, ndt_distance dis
     {
         goto end;
     }
-
-    /* PBD is just a latitude/longitude waypoint with a special identifier */
     wpt->pbd.distance = dist;
     wpt->pbd.bearing  = magb;
     wpt->pbd.place    = plce;
