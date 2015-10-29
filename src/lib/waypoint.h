@@ -65,6 +65,32 @@ typedef struct ndt_waypoint
     ndt_distance  range;     // associated navaid's range       (if applicable)
     int           dme;       // associated navaid has a DME component
 
+    union
+    {
+        struct
+        {
+            struct ndt_waypoint *place;
+            double             bearing;
+            ndt_distance      distance;
+        } pbd;
+
+        struct
+        {
+            struct ndt_waypoint *wpt1;
+            double               brg1;
+            struct ndt_waypoint *wpt2;
+            double               brg2;
+        } pbpb;
+
+        struct
+        {
+            struct ndt_waypoint  *place;
+            double              bearing;
+            struct ndt_waypoint *navaid;
+            ndt_distance       distance;
+        } pbpd;
+    };
+
     enum
     {
         NDT_WPTYPE_APT, // airport (ICAO code or equivalent)
@@ -73,6 +99,9 @@ typedef struct ndt_waypoint
         NDT_WPTYPE_LLC, // latitude/longitude coordinates
         NDT_WPTYPE_LOC, // ILS localizer
         NDT_WPTYPE_NDB, // NDB radio beacon
+        NDT_WPTYPE_PBD, // place/bearing/distance
+        NDT_WPTYPE_PPB, // place/bearing, place/bearing
+        NDT_WPTYPE_PPD, // place/bearing, place/distance
         NDT_WPTYPE_RWY, // runway threshold
         NDT_WPTYPE_TOC, // top of climb   (pseudo-waypoint)
         NDT_WPTYPE_TOD, // top of descent (pseudo-waypoint)

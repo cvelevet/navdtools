@@ -349,10 +349,13 @@ ndt_waypoint* ndt_waypoint_pbd(ndt_waypoint *plce, double magb, ndt_distance dis
     }
 
     /* PBD is just a latitude/longitude waypoint with a special identifier */
-    wpt->type     = NDT_WPTYPE_LLC;
-    wpt->position = ndt_position_calcpos4pbd(plce->position,
-                                             ndt_wmm_getbearing_tru(wmm, magb, plce->position, date),
-                                             dist);
+    wpt->pbd.distance = dist;
+    wpt->pbd.bearing  = magb;
+    wpt->pbd.place    = plce;
+    wpt->type         = NDT_WPTYPE_PBD;
+    wpt->position     = ndt_position_calcpos4pbd(plce->position,
+                                                 ndt_wmm_getbearing_tru(wmm, magb, plce->position, date),
+                                                 dist);
     snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s/%05.1lf/%05.1lf",
              plce->info.idnt, magb,
              ndt_distance_get(dist, NDT_ALTUNIT_ME) / 1852.);
