@@ -1117,6 +1117,21 @@ static int icao_printrt(FILE *fd, ndt_list *rte, ndt_fltplanformat fmt)
                             ret = ndt_fprintf(fd, "%s", rsg->dst->info.idnt);
                             break;
 
+                        case NDT_WPTYPE_PBD:
+                            if ((fmt == NDT_FLTPFMT_ICAOR || fmt == NDT_FLTPFMT_SBRIF) &&
+                                (rsg->dst->pbd.place->type == NDT_WPTYPE_FIX ||
+                                 rsg->dst->pbd.place->type == NDT_WPTYPE_NDB ||
+                                 rsg->dst->pbd.place->type == NDT_WPTYPE_VOR))
+                            {
+                                double   nm = ndt_distance_get(rsg->dst->pbd.distance, NDT_ALTUNIT_ME) / 1852.;
+                                if (fabs(nm - round(nm)) < .05) // distance in nm is basically an integer, yay!
+                                {
+                                    ret = ndt_fprintf(fd, "%5s%03.0lf%03.0lf",
+                                                      rsg->dst->pbd.place->info.idnt,
+                                                      rsg->dst->pbd.bearing, round(nm));
+                                    break;
+                                }
+                            }
                         default: // use latitude/longitude coordinates
                             ret = ndt_position_fprintllc(rsg->dst->position, llcfmt, fd);
                             break;
@@ -1196,6 +1211,21 @@ static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_fltplanformat fmt)
                             ret = ndt_fprintf(fd, "%s", leg->dst->info.idnt);
                             break;
 
+                        case NDT_WPTYPE_PBD:
+                            if ((fmt == NDT_FLTPFMT_DCDED) &&
+                                (leg->dst->pbd.place->type == NDT_WPTYPE_FIX ||
+                                 leg->dst->pbd.place->type == NDT_WPTYPE_NDB ||
+                                 leg->dst->pbd.place->type == NDT_WPTYPE_VOR))
+                            {
+                                double   nm = ndt_distance_get(leg->dst->pbd.distance, NDT_ALTUNIT_ME) / 1852.;
+                                if (fabs(nm - round(nm)) < .05) // distance in nm is basically an integer, yay!
+                                {
+                                    ret = ndt_fprintf(fd, "%5s%03.0lf%03.0lf",
+                                                      leg->dst->pbd.place->info.idnt,
+                                                      leg->dst->pbd.bearing, round(nm));
+                                    break;
+                                }
+                            }
                         default: // use latitude/longitude coordinates
                             ret = ndt_position_fprintllc(leg->dst->position, llcfmt, fd);
                             break;
