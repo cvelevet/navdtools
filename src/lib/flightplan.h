@@ -163,20 +163,20 @@ typedef struct ndt_procedure
         NDT_PROCTYPE_SID_1 = 10,        // transition: runway   ->  SID
         NDT_PROCTYPE_SID_2 = 11,        // SID
         NDT_PROCTYPE_SID_3 = 12,        // transition: SID      ->  enroute
-        NDT_PROCTYPE_SID_4 = 13,        // transition: runway   ->  SID      (RNAV)
-        NDT_PROCTYPE_SID_5 = 14,        // SID                               (RNAV)
-        NDT_PROCTYPE_SID_6 = 15,        // transition: SID      ->  enroute  (RNAV)
-        NDT_PROCTYPE_STAR1 = 20,        // transition: enroute  ->  STAR
-        NDT_PROCTYPE_STAR2 = 21,        // STAR
-        NDT_PROCTYPE_STAR3 = 22,        // transition: STAR     ->  runway
-        NDT_PROCTYPE_STAR4 = 23,        // transition: enroute  ->  STAR     (RNAV)
-        NDT_PROCTYPE_STAR5 = 24,        // STAR                              (RNAV)
-        NDT_PROCTYPE_STAR6 = 25,        // transition: STAR     ->  runway   (RNAV)
-        NDT_PROCTYPE_STAR7 = 26,        // transition: enroute  ->  profile descent
-        NDT_PROCTYPE_STAR8 = 27,        // profile descent
-        NDT_PROCTYPE_STAR9 = 28,        // transition: descent  ->  runway
-        NDT_PROCTYPE_APPTR = 30,        // transition: STAR     ->  final    (from STAR/transition endpoint)
-        NDT_PROCTYPE_FINAL = 31,        // final approach
+        NDT_PROCTYPE_SID_4 = 20,        // transition: runway   ->  SID      (RNAV)
+        NDT_PROCTYPE_SID_5 = 21,        // SID                               (RNAV)
+        NDT_PROCTYPE_SID_6 = 22,        // transition: SID      ->  enroute  (RNAV)
+        NDT_PROCTYPE_STAR1 = 30,        // transition: enroute  ->  STAR
+        NDT_PROCTYPE_STAR2 = 31,        // STAR
+        NDT_PROCTYPE_STAR3 = 32,        // transition: STAR     ->  runway
+        NDT_PROCTYPE_STAR4 = 40,        // transition: enroute  ->  STAR     (RNAV)
+        NDT_PROCTYPE_STAR5 = 41,        // STAR                              (RNAV)
+        NDT_PROCTYPE_STAR6 = 42,        // transition: STAR     ->  runway   (RNAV)
+        NDT_PROCTYPE_STAR7 = 50,        // transition: enroute  ->  profile descent
+        NDT_PROCTYPE_STAR8 = 51,        // profile descent
+        NDT_PROCTYPE_STAR9 = 52,        // transition: descent  ->  runway
+        NDT_PROCTYPE_APPTR = 60,        // transition: STAR     ->  final    (from STAR/transition endpoint)
+        NDT_PROCTYPE_FINAL = 61,        // final approach
     } type;
 } ndt_procedure;
 
