@@ -91,21 +91,23 @@ typedef struct ndt_waypoint
         } pbpd;
     };
 
+    // sorted as per X-Plane earth_nav.dat format
     enum
     {
-        NDT_WPTYPE_APT, // airport (ICAO code or equivalent)
-        NDT_WPTYPE_DME, // standalone DME
-        NDT_WPTYPE_FIX, // RNAV fix
-        NDT_WPTYPE_LLC, // latitude/longitude coordinates
-        NDT_WPTYPE_LOC, // ILS localizer
-        NDT_WPTYPE_NDB, // NDB radio beacon
-        NDT_WPTYPE_PBD, // place/bearing/distance
-        NDT_WPTYPE_PPB, // place/bearing, place/bearing
-        NDT_WPTYPE_PPD, // place/bearing, place/distance
-        NDT_WPTYPE_RWY, // runway threshold
-        NDT_WPTYPE_TOC, // top of climb   (pseudo-waypoint)
-        NDT_WPTYPE_TOD, // top of descent (pseudo-waypoint)
-        NDT_WPTYPE_VOR, // VOR radio beacon
+        NDT_WPTYPE_APT =  1, // airport (ICAO code or equivalent)
+        NDT_WPTYPE_NDB =  2, // NDB radio beacon
+        NDT_WPTYPE_VOR =  3, // VOR radio beacon
+//      NDT_WPTYPE_ILS =  4, // localizer (ILS) (use the next one for all LOCs)
+        NDT_WPTYPE_LOC =  5, // localizer (standalone)
+        NDT_WPTYPE_FIX = 11, // RNAV fix
+        NDT_WPTYPE_DME = 13, // standalone DME
+        NDT_WPTYPE_LLC = 28, // latitude/longitude coordinates
+        NDT_WPTYPE_RWY = 31, // runway threshold                    (not XP type)
+        NDT_WPTYPE_PBD = 41, // place/bearing/distance              (not XP type)
+        NDT_WPTYPE_PPB = 42, // place/bearing, place/bearing        (not XP type)
+        NDT_WPTYPE_PPD = 43, // place/bearing, place/distance       (not XP type)
+        NDT_WPTYPE_TOC = 51, // top of climb   (pseudo-waypoint)    (not XP type)
+        NDT_WPTYPE_TOD = 52, // top of descent (pseudo-waypoint)    (not XP type)
     } type;
 } ndt_waypoint;
 

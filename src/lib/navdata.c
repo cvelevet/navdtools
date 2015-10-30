@@ -20,6 +20,7 @@
 
 #include <errno.h>
 #include <inttypes.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -377,9 +378,14 @@ static int compare_apt(const void *p1, const void *p2)
     ndt_airport *apt1 = *(ndt_airport**)p1;
     ndt_airport *apt2 = *(ndt_airport**)p2;
 
-    // there shouldn't be any duplicates, but use pointers for determinism
+    // there shouldn't be any duplicates, but use latitude for determinism
     int cmp = strncasecmp(apt1->info.idnt, apt2->info.idnt, sizeof(apt2->info.idnt));
-    return cmp ? cmp : (apt1 < apt2 ? -1 : 1);
+    if (cmp)
+    {
+        return cmp;
+    }
+    return (fabs(ndt_position_getlatitude(apt1->coordinates, NDT_ANGUNIT_DEG)) <
+            fabs(ndt_position_getlatitude(apt2->coordinates, NDT_ANGUNIT_DEG)));
 }
 
 static int compare_awy(const void *p1, const void *p2)
@@ -387,9 +393,8 @@ static int compare_awy(const void *p1, const void *p2)
     ndt_airway *awy1 = *(ndt_airway**)p1;
     ndt_airway *awy2 = *(ndt_airway**)p2;
 
-    // duplicates handled by the getter, but use pointers for determinism
-    int cmp = strncasecmp(awy1->info.idnt, awy2->info.idnt, sizeof(awy2->info.idnt));
-    return cmp ? cmp : (awy1 < awy2 ? -1 : 1);
+    // duplicates handled by the getter, no need for determinism
+    return strncasecmp(awy1->info.idnt, awy2->info.idnt, sizeof(awy2->info.idnt));
 }
 
 static int compare_wpt(const void *p1, const void *p2)
@@ -397,7 +402,16 @@ static int compare_wpt(const void *p1, const void *p2)
     ndt_waypoint *wpt1 = *(ndt_waypoint**)p1;
     ndt_waypoint *wpt2 = *(ndt_waypoint**)p2;
 
-    // duplicates handled by the getter, but use pointers for determinism
+    // use type then latitude for determinism
     int cmp = strncasecmp(wpt1->info.idnt, wpt2->info.idnt, sizeof(wpt2->info.idnt));
-    return cmp ? cmp : (wpt1 < wpt2 ? -1 : 1);
+    if (cmp)
+    {
+        return cmp;
+    }
+    if (wpt1->type == NDT_WPTYPE_VOR || wpt1->type < wpt2->type)
+    {
+        return -1; // VOR first, then everything else (e.g. NDB before st. DME)
+    }
+    return (fabs(ndt_position_getlatitude(wpt1->position, NDT_ANGUNIT_DEG)) <
+            fabs(ndt_position_getlatitude(wpt2->position, NDT_ANGUNIT_DEG)));
 }
