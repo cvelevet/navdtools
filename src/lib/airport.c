@@ -28,6 +28,7 @@
 #include "compat/compat.h"
 
 #include "airport.h"
+#include "flightplan.h"
 
 ndt_airport* ndt_airport_init()
 {
@@ -39,6 +40,18 @@ ndt_airport* ndt_airport_init()
 
     apt->runways = ndt_list_init();
     if (!apt->runways)
+    {
+        ndt_airport_close(&apt);
+        goto end;
+    }
+    apt->sids = ndt_list_init();
+    if (!apt->sids)
+    {
+        ndt_airport_close(&apt);
+        goto end;
+    }
+    apt->stars = ndt_list_init();
+    if (!apt->stars)
     {
         ndt_airport_close(&apt);
         goto end;
@@ -59,11 +72,29 @@ void ndt_airport_close(ndt_airport **_apt)
         {
             while ((i = ndt_list_count(apt->runways)))
             {
-                ndt_runway *rwy = ndt_list_item(apt->runways, i-1);
+                ndt_runway *rwy = ndt_list_item(apt->runways,  -1);
                 ndt_list_rem                   (apt->runways, rwy);
                 ndt_runway_close               (             &rwy);
             }
             ndt_list_close(&apt->runways);
+        }
+        if (apt->allprocs)
+        {
+            while ((i = ndt_list_count(apt->allprocs)))
+            {
+                ndt_procedure *proc = ndt_list_item(apt->allprocs,   -1);
+                ndt_list_rem                       (apt->allprocs, proc);
+                ndt_procedure_close                (              &proc);
+            }
+            ndt_list_close(&apt->allprocs);
+        }
+        if (apt->sids)
+        {
+            ndt_list_close(&apt->sids);
+        }
+        if (apt->stars)
+        {
+            ndt_list_close(&apt->stars);
         }
 
         free(apt);
@@ -80,6 +111,25 @@ ndt_runway* ndt_runway_init()
         goto end;
     }
 
+    rwy->sids = ndt_list_init();
+    if (!rwy->sids)
+    {
+        ndt_runway_close(&rwy);
+        goto end;
+    }
+    rwy->stars = ndt_list_init();
+    if (!rwy->stars)
+    {
+        ndt_runway_close(&rwy);
+        goto end;
+    }
+    rwy->approaches = ndt_list_init();
+    if (!rwy->approaches)
+    {
+        ndt_runway_close(&rwy);
+        goto end;
+    }
+
     rwy->surface = NDT_RWYSURF_OTHER;
 
 end:
@@ -92,26 +142,39 @@ void ndt_runway_close(ndt_runway **_rwy)
     {
         ndt_runway *rwy = *_rwy;
 
+        if (rwy->sids)
+        {
+            ndt_list_close(&rwy->sids);
+        }
+        if (rwy->stars)
+        {
+            ndt_list_close(&rwy->stars);
+        }
+        if (rwy->approaches)
+        {
+            ndt_list_close(&rwy->approaches);
+        }
+
         free(rwy);
 
         *_rwy = NULL;
     }
 }
 
-ndt_runway* ndt_runway_get(ndt_airport *apt, const char *name)
+ndt_runway* ndt_runway_get(ndt_list *runways, const char *name)
 {
     ndt_runway *rwy = NULL;
 
-    if (!apt || !name)
+    if (!runways || !name)
     {
         goto end;
     }
 
-    for (size_t i = 0; i < ndt_list_count(apt->runways); i++)
+    for (size_t i = 0; i < ndt_list_count(runways); i++)
     {
-        rwy = ndt_list_item(apt->runways, i);
+        rwy = ndt_list_item(runways, i);
 
-        if (rwy && !strncasecmp(name, rwy->info.idnt, sizeof(rwy->info.idnt)))
+        if (rwy && !strcmp(name, rwy->info.idnt))
         {
             goto end;
         }

@@ -151,6 +151,18 @@ void ndt_list_rem(ndt_list *l, void *p)
     }
 }
 
+void ndt_list_empty(ndt_list *l)
+{
+    size_t count = ndt_list_count(l);
+    if (l)
+    {
+        while (ndt_list_count(l) && count-- > 0)
+        {
+            ndt_list_rem(l, ndt_list_item(l, -1));
+        }
+    }
+}
+
 void ndt_list_close(ndt_list **_l)
 {
     if (_l && *_l)

@@ -34,7 +34,11 @@ typedef struct ndt_airport
     ndt_distance  trans_level; // transition level
     ndt_distance  rwy_longest; // longest runway
     ndt_waypoint *waypoint;    // associated waypoint
-    ndt_list     *runways;     // available runways (ndt_runway)
+    ndt_list     *runways;     // available runways
+
+    ndt_list *allprocs;        // procedure master list   (used for  storage only)
+    ndt_list     *sids;        // list of SID  procedures (no enroute transitions)
+    ndt_list    *stars;        // list of STAR procedures (no enroute transitions)
 } ndt_airport;
 
 ndt_airport* ndt_airport_init (                      );
@@ -77,11 +81,15 @@ typedef struct ndt_runway
         NDT_RWYSURF_WATER,    // water
     } surface;
 
+    ndt_list       *sids;     // list of SID   procedures for this runway
+    ndt_list      *stars;     // list of STAR  procedures for this runway
+    ndt_list *approaches;     // list of final approaches for this runway
+
     void *exits; // reserved for future use
 } ndt_runway;
 
-ndt_runway* ndt_runway_init (                                         );
-void        ndt_runway_close(ndt_runway  **_runway                    );
-ndt_runway* ndt_runway_get  (ndt_airport  *airport, const char *runway);
+ndt_runway* ndt_runway_init (                                        );
+void        ndt_runway_close(ndt_runway **_runway                    );
+ndt_runway* ndt_runway_get  (ndt_list    *runways, const char *runway);
 
 #endif /* NDT_AIRPORT_H */

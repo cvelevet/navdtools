@@ -71,7 +71,7 @@ ndt_airway_leg* ndt_airway_startpoint(ndt_airway *awy, const char *wpt, ndt_posi
 
     while (leg)
     {
-        if (!strncasecmp(wpt, leg->in.info.idnt, sizeof(leg->in.info.idnt)) &&
+        if (!strcmp(wpt, leg->in.info.idnt) &&
             !ndt_distance_get(ndt_position_calcdistance(pos, leg->in.position), NDT_ALTUNIT_NA))
         {
             return leg;
@@ -95,7 +95,7 @@ ndt_airway_leg* ndt_airway_endpoint(ndt_airway_leg *in, const char *wpt, ndt_pos
 
     while (leg)
     {
-        if (!strncasecmp(wpt, leg->out.info.idnt, sizeof(leg->out.info.idnt)) &&
+        if (!strcmp(wpt, leg->out.info.idnt) &&
             !ndt_distance_get(ndt_position_calcdistance(pos, leg->out.position), NDT_ALTUNIT_NA))
         {
             return leg;

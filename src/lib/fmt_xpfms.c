@@ -40,7 +40,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
     ndt_waypoint *src = NULL;
     char         *start, *pos;
     char         *line = NULL, *last_apt = NULL, buf[64];
-    int           linecap, header = 0, err = 0;
+    int           linecap, header = 0, err = 0, init = 0;
     int           typ, nwaypoints, discontinuity = 0;
     double        alt, lat, lon, spd;
     ndt_position  llc;
@@ -131,7 +131,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
         }
 
         /* Departure */
-        if (!src)
+        if (!init)
         {
             if (!flp->dep.apt)
             {
@@ -146,7 +146,13 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                     goto end;
                 }
             }
-            src = flp->dep.apt->waypoint;
+
+            /* Set the initial source waypoint (SID, runway or airport). */
+            src = (flp->dep.sid.enroute.rsgt ? flp->dep.sid.enroute.rsgt->dst :
+                   flp->dep.sid.        rsgt ? flp->dep.sid.        rsgt->dst :
+                   flp->dep.rwy              ? flp->dep.rwy->waypoint         : flp->dep.apt->waypoint);
+
+            init = 1;//done
         }
 
         ndt_route_segment *rsg = NULL;
@@ -225,11 +231,11 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
             }
             discontinuity = 0;
             ndt_list_add(flp->rte, dsc);
-            rsg = ndt_route_segment_direct(NULL, dst, flp->ndb);
+            rsg = ndt_route_segment_direct(NULL, dst);
         }
         else
         {
-            rsg = ndt_route_segment_direct( src, dst, flp->ndb);
+            rsg = ndt_route_segment_direct( src, dst);
         }
 
         if (!rsg)
@@ -253,55 +259,59 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
             switch ((int)alt % 10)
             {
                 case 0:
-                    constraints.altitude.type = NDT_RESTRICT_AT;
+                    constraints.altitude.typ = NDT_RESTRICT_AT;
                     break;
 
                 case 3:
-                    constraints.altitude.type = NDT_RESTRICT_AT;
-                    constraints.waypoint      = NDT_WPTCONST_FOV;
+                    constraints.altitude.typ = NDT_RESTRICT_AT;
+                    constraints.waypoint     = NDT_WPTCONST_FOV;
                     break;
 
                 case 1:
-                    constraints.altitude.type = NDT_RESTRICT_AB;
+                    constraints.altitude.typ = NDT_RESTRICT_AB;
                     break;
 
                 case 2:
-                    constraints.altitude.type = NDT_RESTRICT_AB;
-                    constraints.waypoint      = NDT_WPTCONST_FOV;
+                    constraints.altitude.typ = NDT_RESTRICT_AB;
+                    constraints.waypoint     = NDT_WPTCONST_FOV;
                     break;
 
                 case 9:
-                    constraints.altitude.type = NDT_RESTRICT_BL;
+                    constraints.altitude.typ = NDT_RESTRICT_BL;
                     break;
 
                 case 8:
-                    constraints.altitude.type = NDT_RESTRICT_BL;
-                    constraints.waypoint      = NDT_WPTCONST_FOV;
+                    constraints.altitude.typ = NDT_RESTRICT_BL;
+                    constraints.waypoint     = NDT_WPTCONST_FOV;
                     break;
 
                 default:
-                    constraints.altitude.type = NDT_RESTRICT_NO;
+                    constraints.altitude.typ = NDT_RESTRICT_NO;
                     break;
             }
             ndt_distance altlimit = ndt_distance_init((int)alt -
                                                       (int)alt % 10,
                                                       NDT_ALTUNIT_FT);
-
-            if (constraints.altitude.type == NDT_RESTRICT_AT ||
-                constraints.altitude.type == NDT_RESTRICT_AB)
+            if (((int)alt % 10) == 3 && ((int)alt - (int)alt % 10) == 0)
             {
-                constraints.altitude.altmin = altlimit;
+                // overfly but no altitude constraint
+                constraints.altitude.typ = NDT_RESTRICT_NO;
             }
-            if (constraints.altitude.type == NDT_RESTRICT_AT ||
-                constraints.altitude.type == NDT_RESTRICT_BL)
+            if (constraints.altitude.typ == NDT_RESTRICT_AT ||
+                constraints.altitude.typ == NDT_RESTRICT_AB)
             {
-                constraints.altitude.altmax = altlimit;
+                constraints.altitude.min = altlimit;
+            }
+            if (constraints.altitude.typ == NDT_RESTRICT_AT ||
+                constraints.altitude.typ == NDT_RESTRICT_BL)
+            {
+                constraints.altitude.max = altlimit;
             }
         }
         else
         {
-            constraints.altitude.type = NDT_RESTRICT_NO;
-            constraints.waypoint      = NDT_WPTCONST_NO;
+            constraints.altitude.typ = NDT_RESTRICT_NO;
+            constraints.waypoint     = NDT_WPTCONST_NO;
         }
 
         /*
@@ -309,12 +319,13 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
          */
         if (ndt_airspeed_get(kts, NDT_SPDUNIT_KTS, NDT_MACH_DEFAULT) > 0LL)
         {
-            constraints.speed.type   = NDT_RESTRICT_BL;
-            constraints.speed.spdmax = kts;
+            constraints.airspeed.typ = NDT_RESTRICT_BL;
+            constraints.airspeed.acf = NDT_ACFTYPE_ALL;
+            constraints.airspeed.max = kts;
         }
         else
         {
-            constraints.speed.type = NDT_RESTRICT_NO;
+            constraints.airspeed.typ = NDT_RESTRICT_NO;
         }
 
         /*
@@ -431,14 +442,13 @@ static int helpr_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row, ndt_fltpla
     {
         if (wpt == NULL)
         {
-            return ndt_fprintf(fd, "%2d  ---  %-19s  %2d  %+07.3lf  %+08.3lf  %2d\n",
-                               row, "F-PLN DISCONTINUITY", row, 0., 0., row);
+            return ndt_fprintf(fd, "-------  %-19s  -------------------------\n", "F-PLN DISCONTINUITY");
         }
         ret = ndt_fprintf(fd, "%2d  %s  %-19s  %2d  %+07.3lf  %+08.3lf  %2d", row,
                           wpt->type == NDT_WPTYPE_APT ? "APT" :
                           wpt->type == NDT_WPTYPE_FIX ? "fix" :
                           wpt->type == NDT_WPTYPE_NDB ? "NDB" :
-                          wpt->type == NDT_WPTYPE_VOR ? "VOR" : "---",
+                          wpt->type == NDT_WPTYPE_VOR ? "VOR" : "l/l",
                           wpt->info.idnt, row,
                           ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG),
                           ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG), row);
@@ -447,8 +457,7 @@ static int helpr_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row, ndt_fltpla
     {
         if (wpt == NULL)
         {
-            return ndt_fprintf(fd, "%2d  %-19s  %2d  -------/--------  %2d\n",
-                               row, "F-PLN DISCONTINUITY", row, row);
+            return ndt_fprintf(fd, "--  %-19s  ------------------------\n", "F-PLN DISCONTINUITY");
         }
         if (ndt_position_sprintllc(wpt->position, NDT_LLCFMT_AIBUS,
                                    buf, sizeof(buf)) < 0)
@@ -473,19 +482,27 @@ static int helpr_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row, ndt_fltpla
 
     if (constraints)
     {
-        int altmin = ndt_distance_get(constraints->altitude.altmin, NDT_ALTUNIT_FT);
-        int altmax = ndt_distance_get(constraints->altitude.altmax, NDT_ALTUNIT_FT);
-        int spdmin = ndt_airspeed_get(constraints->speed.spdmin, NDT_SPDUNIT_KTS, NDT_MACH_DEFAULT);
-        int spdmax = ndt_airspeed_get(constraints->speed.spdmax, NDT_SPDUNIT_KTS, NDT_MACH_DEFAULT);
+        int altmin = ndt_distance_get(constraints->altitude.min, NDT_ALTUNIT_FT);
+        int altmax = ndt_distance_get(constraints->altitude.max, NDT_ALTUNIT_FT);
+        int spdmin = ndt_airspeed_get(constraints->airspeed.min, NDT_SPDUNIT_KTS, NDT_MACH_DEFAULT);
+        int spdmax = ndt_airspeed_get(constraints->airspeed.max, NDT_SPDUNIT_KTS, NDT_MACH_DEFAULT);
 
         if (fmt == NDT_FLTPFMT_XPCDU)
         {
             switch (constraints->waypoint)
             {
+                case NDT_WPTCONST_FAF:
+                    ret = ndt_fprintf(fd, "  %s", "f");
+                    break;
                 case NDT_WPTCONST_FOV:
                     ret = ndt_fprintf(fd, "  %s", "o");
                     break;
-
+                case NDT_WPTCONST_IAF:
+                    ret = ndt_fprintf(fd, "  %s", "i");
+                    break;
+                case NDT_WPTCONST_MAP:
+                    ret = ndt_fprintf(fd, "  %s", "m");
+                    break;
                 default:
                     ret = ndt_fprintf(fd, "  %s", " ");
                     break;
@@ -496,24 +513,20 @@ static int helpr_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row, ndt_fltpla
             }
         }
 
-        switch (constraints->altitude.type)
+        switch (constraints->altitude.typ)
         {
             case NDT_RESTRICT_AB:
                 ret = ndt_fprintf(fd, "  ALT above %5d", altmin);
                 break;
-
             case NDT_RESTRICT_AT:
                 ret = ndt_fprintf(fd, "  ALT    at %5d", altmax);
                 break;
-
             case NDT_RESTRICT_BL:
                 ret = ndt_fprintf(fd, "  ALT below %5d", altmax);
                 break;
-
             case NDT_RESTRICT_BT:
                 ret = ndt_fprintf(fd, "  ALT %5d %5d",   altmin, altmax);
                 break;
-
             default:
                 ret = ndt_fprintf(fd, "%17s", " ");
                 break;
@@ -523,30 +536,30 @@ static int helpr_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row, ndt_fltpla
             return ret;
         }
 
-        switch (constraints->speed.type)
+        if (constraints->airspeed.acf == NDT_ACFTYPE_ALL ||
+            constraints->airspeed.acf == NDT_ACFTYPE_JET)
         {
-            case NDT_RESTRICT_AB:
-                ret = ndt_fprintf(fd, "  SPD min %3d", spdmin);
-                break;
-
-            case NDT_RESTRICT_AT:
-                ret = ndt_fprintf(fd, "  SPD  at %3d", spdmax);
-                break;
-
-            case NDT_RESTRICT_BL:
-                ret = ndt_fprintf(fd, "  SPD max %3d", spdmax);
-                break;
-
-            case NDT_RESTRICT_BT:
-                ret = ndt_fprintf(fd, "  SPD %3d %3d", spdmin, spdmax);
-                break;
-
-            default:
-                break;
-        }
-        if (ret)
-        {
-            return ret;
+            switch (constraints->airspeed.typ)
+            {
+                case NDT_RESTRICT_AB:
+                    ret = ndt_fprintf(fd, "  SPD min %3d", spdmin);
+                    break;
+                case NDT_RESTRICT_AT:
+                    ret = ndt_fprintf(fd, "  SPD  at %3d", spdmax);
+                    break;
+                case NDT_RESTRICT_BL:
+                    ret = ndt_fprintf(fd, "  SPD max %3d", spdmax);
+                    break;
+                case NDT_RESTRICT_BT:
+                    ret = ndt_fprintf(fd, "  SPD %3d %3d", spdmin, spdmax);
+                    break;
+                default:
+                    break;
+            }
+            if (ret)
+            {
+                return ret;
+            }
         }
     }
 
@@ -561,45 +574,79 @@ static int ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
     ret = helpr_waypoint_write(fd, flp->dep.apt->waypoint, 0, fmt, NULL);
     if (ret)
     {
-        goto end;
+        goto fail;
     }
     if (flp->dep.rwy)
     {
         ret = helpr_waypoint_write(fd, flp->dep.rwy->waypoint, 0, fmt, NULL);
         if (ret)
         {
-            goto end;
+            goto fail;
         }
     }
 
-    // decoded route
+    // all flightplan legs
     for (size_t i = 0; i < ndt_list_count(flp->legs); i++)
     {
         ndt_route_leg *leg = ndt_list_item(flp->legs, i);
         if (!leg)
         {
             ret = ENOMEM;
-            goto end;
+            goto fail;
         }
-
         switch (leg->type)
         {
-            case NDT_LEGTYPE_TF:
-                row = update__row(fd, row);
-                ret = helpr_waypoint_write(fd, leg->dst, row, fmt, &leg->constraints);
+            case NDT_LEGTYPE_HF: // skipped
+            case NDT_LEGTYPE_HA: // skipped
+            case NDT_LEGTYPE_HM: // skipped
+            case NDT_LEGTYPE_ZZ: // skipped
                 break;
 
-            case NDT_LEGTYPE_ZZ: // skip discontinuities
+            case NDT_LEGTYPE_DF:
+            {
+                if (leg->src != leg->dst || ndt_list_count(leg->xpfms))
+                {
+                    for (size_t j = 0; j < ndt_list_count(leg->xpfms); j++)
+                    {
+                        row = update__row(fd, row);
+                        ret = helpr_waypoint_write(fd, ndt_list_item(leg->xpfms, j), row, fmt, NULL);
+                        if (ret)
+                        {
+                            goto fail;
+                        }
+                    }
+                    row = update__row(fd, row);
+                    ret = helpr_waypoint_write(fd, leg->dst, row, fmt, &leg->constraints);
+                    if (ret)
+                    {
+                        goto fail;
+                    }
+                }
                 break;
+            }
 
             default:
-                ndt_log("[fmt_xpcva]: unknown leg type '%d'\n", leg->type);
-                ret = EINVAL;
+            {
+                for (size_t j = 0; j < ndt_list_count(leg->xpfms); j++)
+                {
+                    row = update__row(fd, row);
+                    ret = helpr_waypoint_write(fd, ndt_list_item(leg->xpfms, j), row, fmt, leg->dst ? NULL : &leg->constraints);
+                    if (ret)
+                    {
+                        goto fail;
+                    }
+                }
+                if (leg->dst)
+                {
+                    row = update__row(fd, row);
+                    ret = helpr_waypoint_write(fd, leg->dst, row, fmt, &leg->constraints);
+                    if (ret)
+                    {
+                        goto fail;
+                    }
+                }
                 break;
-        }
-        if (ret)
-        {
-            goto end;
+            }
         }
     }
 
@@ -610,14 +657,102 @@ static int ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
         ret = helpr_waypoint_write(fd, flp->arr.rwy->waypoint, row, fmt, NULL);
         if (ret)
         {
-            goto end;
+            goto fail;
         }
     }
     row = update__row(fd, row);
     ret = helpr_waypoint_write(fd, flp->arr.apt->waypoint, row, fmt, NULL);
     if (ret)
     {
+        goto fail;
+    }
+
+    if ((ret = ndt_fprintf(fd, "%s", "\n")))
+    {
+        goto fail;
+    }
+    return ndt_flightplan_write(flp, fd, NDT_FLTPFMT_IRECP);
+
+fail:
+    return ret;
+}
+
+static int helpr_rtesegment_write(FILE *fd, ndt_route_segment *rsg, int *row, ndt_fltplanformat fmt)
+{
+    int ret = 0;
+    if (!fd || !rsg || !row)
+    {
+        ret = ENOMEM;
         goto end;
+    }
+    for (size_t i = 0; i < ndt_list_count(rsg->legs); i++)
+    {
+        ndt_route_leg *leg = ndt_list_item(rsg->legs, i);
+        if (!leg)
+        {
+            ret = ENOMEM;
+            goto end;
+        }
+        switch (leg->type)
+        {
+            case NDT_LEGTYPE_HF: // skipped
+            case NDT_LEGTYPE_HA: // skipped
+            case NDT_LEGTYPE_HM: // skipped
+                break;
+
+            case NDT_LEGTYPE_ZZ:
+                if ((ret = helpr_waypoint_write(fd, NULL, 0, fmt, NULL)))
+                {
+                    goto end;
+                }
+                break;
+
+            case NDT_LEGTYPE_DF:
+            {
+                if (leg->src == leg->dst && !ndt_list_count(leg->xpfms))
+                {
+                    if ((ret = helpr_waypoint_write(fd, NULL, 0, fmt, NULL)))
+                    {
+                        goto end;
+                    }
+                }
+                for (size_t j = 0; j < ndt_list_count(leg->xpfms); j++)
+                {
+                    if ((ret = helpr_waypoint_write(fd, ndt_list_item(leg->xpfms, j), *row, fmt, NULL)))
+                    {
+                        goto end;
+                    }
+                    *row += 1;
+                }
+                if ((ret = helpr_waypoint_write(fd, leg->dst, *row, fmt, &leg->constraints)))
+                {
+                    goto end;
+                }
+                *row += 1;
+                break;
+            }
+
+            default:
+            {
+                for (size_t j = 0; j < ndt_list_count(leg->xpfms); j++)
+                {
+                    if ((ret = helpr_waypoint_write(fd, ndt_list_item(leg->xpfms, j), *row, fmt, leg->dst ? NULL : &leg->constraints)))
+                    {
+                        goto end;
+                    }
+                    *row += 1;
+                }
+                if (leg->dst)
+                {
+                    if ((ret = helpr_waypoint_write(fd, leg->dst, *row, fmt, &leg->constraints)))
+                    {
+                        goto end;
+                    }
+                    *row += 1;
+                }
+                break;
+            }
+        }
     }
 
 end:
@@ -629,118 +764,140 @@ static int helpr_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
     int ret = 0, row = 1;
 
     // departure airport and runway
-    ret = helpr_waypoint_write(fd, flp->dep.apt->waypoint, 0, fmt, NULL);
-    if (ret)
+    if ((ret = ndt_fprintf(fd, "%s:\n", "Departure")))
     {
-        goto end;
+        goto fail;
+    }
+    if ((ret = helpr_waypoint_write(fd, flp->dep.apt->waypoint, 0, fmt, NULL)))
+    {
+        goto fail;
     }
     if (flp->dep.rwy)
     {
-        ret = helpr_waypoint_write(fd, flp->dep.rwy->waypoint, 0, fmt, NULL);
-        if (ret)
+        if ((ret = helpr_waypoint_write(fd, flp->dep.rwy->waypoint, 0, fmt, NULL)))
         {
-            goto end;
+            goto fail;
         }
     }
 
-    // SID and transition (future)
+    // SID, enroute transition
+    if (flp->dep.sid.rsgt)
+    {
+        if ((ret = ndt_fprintf(fd, "\n%s:\n", flp->dep.sid.rsgt->info.idnt)))
+        {
+            goto fail;
+        }
+        if ((ret = helpr_rtesegment_write(fd, flp->dep.sid.rsgt, &row, fmt)))
+        {
+            goto fail;
+        }
+    }
+    if (flp->dep.sid.enroute.rsgt)
+    {
+        if ((ret = ndt_fprintf(fd, "\n%s:\n", flp->dep.sid.enroute.rsgt->info.idnt)))
+        {
+            goto fail;
+        }
+        if ((ret = helpr_rtesegment_write(fd, flp->dep.sid.enroute.rsgt, &row, fmt)))
+        {
+            goto fail;
+        }
+    }
 
     // decoded route
-    ret = ndt_fprintf(fd, "%s", "\n");
-    if (ret)
+    if (ndt_list_count(flp->rte))
     {
-        goto end;
-    }
-    for (size_t i = 0; i < ndt_list_count(flp->rte); i++)
-    {
-        ndt_route_segment *rsg = ndt_list_item(flp->rte, i);
-        if (!rsg)
+        if ((ret = ndt_fprintf(fd, "\n%s:\n", "Enroute")))
         {
-            ret = ENOMEM;
-            goto end;
+            goto fail;
         }
-
-        switch (rsg->type)
+        for (size_t i = 0; i < ndt_list_count(flp->rte); i++)
         {
-            case NDT_RSTYPE_AWY:
-            case NDT_RSTYPE_DCT:
+            ndt_route_segment *rsg = ndt_list_item(flp->rte, i);
+            if (!rsg)
             {
-                for (size_t j = 0; j < ndt_list_count(rsg->legs); j++)
-                {
-                    ndt_route_leg *leg = ndt_list_item(rsg->legs, j);
-                    if (!leg)
-                    {
-                        ret = ENOMEM;
-                        break;
-                    }
-
-                    switch (leg->type)
-                    {
-                        case NDT_LEGTYPE_TF:
-                            ret = helpr_waypoint_write(fd, leg->dst, row++, fmt, &leg->constraints);
-                            break;
-
-                        case NDT_LEGTYPE_ZZ:
-                            ret = helpr_waypoint_write(fd, NULL, row++, fmt, NULL);
-                            break;
-
-                        default:
-                            ndt_log("[%s]: unknown leg type '%d'\n",
-                                    fmt == NDT_FLTPFMT_XPCDU ? "fmt_xpcdu" : "fmt_xphlp",
-                                    leg->type);
-                            ret = EINVAL;
-                            break;
-                    }
-                    if (ret)
-                    {
-                        break;
-                    }
-                }
-                break;
+                ret = ENOMEM;
+                goto fail;
             }
-
-            case NDT_RSTYPE_DSC:
-                ret = helpr_waypoint_write(fd, NULL, row++, fmt, NULL);
-                break;
-
-            default:
-                ndt_log("[%s]: unknown segment type '%d'\n",
-                        fmt == NDT_FLTPFMT_XPCDU ? "fmt_xpcdu" : "fmt_xphlp",
-                        rsg->type);
-                ret = EINVAL;
-                break;
-        }
-        if (ret)
-        {
-            goto end;
+            if ((ret = helpr_rtesegment_write(fd, rsg, &row, fmt)))
+            {
+                goto fail;
+            }
         }
     }
 
-    // STAR and transition (future)
-
-    // final approach (future)
-    ret = ndt_fprintf(fd, "%s", "\n");
-    if (ret)
+    // enroute transition, STAR
+    if (flp->arr.star.enroute.rsgt)
     {
-        goto end;
+        if ((ret = ndt_fprintf(fd, "\n%s:\n", flp->arr.star.enroute.rsgt->info.idnt)))
+        {
+            goto fail;
+        }
+        if ((ret = helpr_rtesegment_write(fd, flp->arr.star.enroute.rsgt, &row, fmt)))
+        {
+            goto fail;
+        }
+    }
+    if (flp->arr.star.rsgt)
+    {
+        if ((ret = ndt_fprintf(fd, "\n%s:\n", flp->arr.star.rsgt->info.idnt)))
+        {
+            goto fail;
+        }
+        if ((ret = helpr_rtesegment_write(fd, flp->arr.star.rsgt, &row, fmt)))
+        {
+            goto fail;
+        }
+    }
+
+    // approach transition, final
+    if (flp->arr.apch.transition.rsgt)
+    {
+        if ((ret = ndt_fprintf(fd, "\n%s:\n", flp->arr.apch.transition.rsgt->info.idnt)))
+        {
+            goto fail;
+        }
+        if ((ret = helpr_rtesegment_write(fd, flp->arr.apch.transition.rsgt, &row, fmt)))
+        {
+            goto fail;
+        }
+    }
+    if (flp->arr.apch.rsgt)
+    {
+        if ((ret = ndt_fprintf(fd, "\n%s:\n", flp->arr.apch.rsgt->info.idnt)))
+        {
+            goto fail;
+        }
+        if ((ret = helpr_rtesegment_write(fd, flp->arr.apch.rsgt, &row, fmt)))
+        {
+            goto fail;
+        }
     }
 
     // arrival runway and airport
+    if ((ret = ndt_fprintf(fd, "\n%s:\n", "Arrival")))
+    {
+        goto fail;
+    }
     if (flp->arr.rwy)
     {
-        ret = helpr_waypoint_write(fd, flp->arr.rwy->waypoint, row++, fmt, NULL);
-        if (ret)
+        if ((ret = helpr_waypoint_write(fd, flp->arr.rwy->waypoint, row++, fmt, NULL)))
         {
-            goto end;
+            goto fail;
         }
     }
-    ret = helpr_waypoint_write(fd, flp->arr.apt->waypoint, row++, fmt, NULL);
-    if (ret)
+    if ((ret = helpr_waypoint_write(fd, flp->arr.apt->waypoint, row++, fmt, NULL)))
     {
-        goto end;
+        goto fail;
     }
 
-end:
+    if ((ret = ndt_fprintf(fd, "%s", "\n")))
+    {
+        goto fail;
+    }
+    return ndt_flightplan_write(flp, fd, NDT_FLTPFMT_IRECP);
+
+fail:
     return ret;
 }
 
@@ -748,27 +905,19 @@ static int print_line(FILE *fd, const char *idt, int alt, int spd, ndt_position 
 {
     if (fd && idt)
     {
-        int ret;
-
         if (row == 0 || row == 1)
         {
             // don't append speed for discontinuities and airports
-            ret = fprintf(fd, "%-2d  %-7s  %05d  %+010.6lf  %+011.6lf\n",
-                          row, idt, alt,
-                          ndt_position_getlatitude (pos, NDT_ANGUNIT_DEG),
-                          ndt_position_getlongitude(pos, NDT_ANGUNIT_DEG));
+            return ndt_fprintf(fd, "%-2d  %-7s  %05d  %+010.6lf  %+011.6lf\n",
+                               row, idt, alt,
+                               ndt_position_getlatitude (pos, NDT_ANGUNIT_DEG),
+                               ndt_position_getlongitude(pos, NDT_ANGUNIT_DEG));
         }
-        else
-        {
-            ret = fprintf(fd, "%-2d  %-7s  %05d  %+010.6lf  %+011.6lf  %010.6lf\n",
-                          row, idt, alt,
-                          ndt_position_getlatitude (pos, NDT_ANGUNIT_DEG),
-                          ndt_position_getlongitude(pos, NDT_ANGUNIT_DEG), (double)spd);
-        }
-
-        return ret > 0 ? 0 : ret ? ret : -1;
+        return ndt_fprintf(fd, "%-2d  %-7s  %05d  %+010.6lf  %+011.6lf  %010.6lf\n",
+                           row, idt, alt,
+                           ndt_position_getlatitude (pos, NDT_ANGUNIT_DEG),
+                           ndt_position_getlongitude(pos, NDT_ANGUNIT_DEG), (double)spd);
     }
-
     return -1;
 }
 
@@ -814,44 +963,59 @@ static int print_airport(FILE *fd, ndt_airport *apt)
     return -1;
 }
 
-static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanformat fmt)
+static int xpfms_write_header(FILE *fd, int count)
 {
-    int ret = 0, count = 1, altitude, speed;
+    return ndt_fprintf(fd, "I\n3 version\n1\n%d\n", count - 1);
+}
 
-    // header
-    for (size_t i = 0; i < ndt_list_count(flp->legs); i++)
+static int xpfms_write_footer(FILE *fd)
+{
+    return print_line(fd, "-------", 0, 0, NDT_POSITION_NULL, 0);
+}
+
+static int xpfms_count_legs(ndt_list *legs)
+{
+    int count = 0;
+    ndt_route_leg *leg;
+    for (size_t i = 0; i < ndt_list_count(legs); i++)
     {
-        ndt_route_leg *leg = ndt_list_item(flp->legs, i);
-        if (!leg)
+        if ((leg = ndt_list_item(legs, i)))
         {
-            ret = ENOMEM;
-            goto end;
+            switch (leg->type)
+            {
+                case NDT_LEGTYPE_HF: // skipped
+                case NDT_LEGTYPE_HA: // skipped
+                case NDT_LEGTYPE_HM: // skipped
+                case NDT_LEGTYPE_ZZ: // skipped
+                    break;
+                case NDT_LEGTYPE_FM: // discont
+                case NDT_LEGTYPE_VM: // discont
+                    count += 1;
+                    break;
+                case NDT_LEGTYPE_DF:
+                    if (leg->src == leg->dst && !ndt_list_count(leg->xpfms))
+                    {
+                        count += 1;  // discont
+                    }
+                default:
+                    count += !!leg->dst + ndt_list_count(leg->xpfms);
+                    break;
+            }
         }
-
-        switch (leg->type)
-        {
-            // TODO: legs with multiple dummy waypoints
-            default:
-                count++;
-                break;
-        }
     }
-    ret = fprintf(fd, "I\n3 version\n1\n%d\n", count);
-    if (ret < 0)
-    {
-        goto end;
-    }
+    return count;
+}
 
-    // departure airport
-    if ((ret = print_airport(fd, flp->dep.apt)))
-    {
-        goto end;
-    }
+static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
+{
+    ndt_waypoint  *fapchfix = NULL;
+    ndt_distance   fapchalt;
+    int            ret = 0;
+    ndt_route_leg *leg;
 
-    for (size_t i = 0; i < ndt_list_count(flp->legs); i++)
+    for (size_t i = 0; i < ndt_list_count(legs); i++)
     {
-        ndt_route_leg *leg = ndt_list_item(flp->legs, i);
-        if (!leg)
+        if (!(leg = ndt_list_item(legs, i)))
         {
             ret = ENOMEM;
             goto end;
@@ -865,88 +1029,283 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
          *  - 2: altitude constraint is at or above + overfly
          *  - 3: overfly + if altitude != 0, @constraint
          *  - 8: altitude constraint is at or below + overfly | if followed by waypoints with 9 all the way to airport: FAF for RNP approach
-         *  - 9: altitude constraint is at or below           | if directly before airport: RNP Approach
+         *  - 9: altitude constraint is at or below           | if after "FAF" waypoint: NPA waypoint for RNP Approach
+         *
+         * RNAV approach examples:
+         * - navdconv-function nzch n nzqn 05 rnav05-f ibabu dct xplane
+         * - navdconv-function loww n lowi 26 rnav26   wi001 dct xplane
          */
+        int speed, altitude = 0;
+        int overfly = leg->constraints.waypoint == NDT_WPTCONST_FOV;
+        switch (leg->constraints.altitude.typ)
+        {
+            case NDT_RESTRICT_BL:
+                altitude = round(ndt_distance_get(leg->constraints.altitude.max, NDT_ALTUNIT_FT) / 10.) * 10;
+                altitude = altitude + 10 * (altitude == 0);
+                altitude = altitude - 01 - (!overfly == 0);
+                break;
+            case NDT_RESTRICT_AB:
+                altitude = round(ndt_distance_get(leg->constraints.altitude.min, NDT_ALTUNIT_FT) / 10.) * 10;
+                altitude = altitude + 10 * (altitude == 0);
+                altitude = altitude + 01 + (!overfly == 0);
+                break;
+            case NDT_RESTRICT_BT: // pick highest of the two limits for safety (ground clearance)
+            case NDT_RESTRICT_AT:
+                altitude = round(ndt_distance_get(leg->constraints.altitude.max, NDT_ALTUNIT_FT) / 10.) * 10;
+                altitude = altitude + 10 * (altitude == 0);
+            default:
+                altitude = altitude + 00 + (!overfly == 0) * 3;
+                break;
+        }
+        if (fapchfix)
+        {
+            if (!leg->dst)
+            {
+                ndt_log("[fmt_xpfms]: post-FAF leg '%s' type %d without fix!\n",
+                        leg->info.idnt, leg->type);
+                ret = EINVAL;
+                goto end;
+            }
+            if (leg->constraints.altitude.typ != NDT_RESTRICT_AT)
+            {
+                // bogus altitude restriction, we need to make a valid one so
+                // this approach can be flown as RNP by the QPAC's FBW plugin
+                // also use this waypoint as a reference for next waypoint(s)
+                double d1tratio; int64_t alt_diff; ndt_distance d1, d2, dt, da;
+                d1 = ndt_position_calcdistance      (fapchfix->position, leg->dst->position);
+                d2 = ndt_position_calcdistance      (leg->dst->position, arr_rwy->waypoint->position);
+                da = ndt_distance_rem               (fapchalt,           arr_rwy->threshold.altitude);
+                dt = ndt_distance_add               (d1, d2);
+                d1tratio = ((double)ndt_distance_get(d1, NDT_ALTUNIT_FT) /
+                            (double)ndt_distance_get(dt, NDT_ALTUNIT_FT));
+                alt_diff = ((double)ndt_distance_get(da, NDT_ALTUNIT_FT) * d1tratio);
+                altitude = ndt_distance_get   (fapchalt, NDT_ALTUNIT_FT) - alt_diff - 1;
+                fapchalt = ndt_distance_init(round(altitude / 10.) * 10, NDT_ALTUNIT_FT);
+                fapchfix = leg->dst;
+            }
+            altitude = round(altitude / 10.) * 10;
+            altitude = altitude + 10 * (altitude == 0) - 1;
+        }
+        else if (arr_rwy && (leg->constraints.waypoint == NDT_WPTCONST_FAF) &&
+                 leg->rsg      && (leg->rsg->     type == NDT_RSTYPE_PRC)   &&
+                 leg->rsg->prc && (leg->rsg->prc->type == NDT_PROCTYPE_FINAL ||
+                                   leg->rsg->prc->type == NDT_PROCTYPE_APPTR))
+        {
+            // only set FAF for RNAV approaches, else the
+            // QPAC plugin will disable ILS functionality
+            if (leg->rsg->prc->approach.type == NDT_APPRTYPE_GLS ||
+                leg->rsg->prc->approach.type == NDT_APPRTYPE_RNAV)
+            {
+                if (!arr_rwy->waypoint)
+                {
+                    ndt_log("[fmt_xpfms]: FAF leg, runway '%s' has no waypoint!\n",
+                            arr_rwy->info.idnt);
+                    ret = EINVAL;
+                    goto end;
+                }
+                if (!leg->dst)
+                {
+                    ndt_log("[fmt_xpfms]: FAF leg '%s' type %d without fix!\n",
+                            leg->info.idnt, leg->type);
+                    ret = EINVAL;
+                    goto end;
+                }
+                if (leg->constraints.altitude.typ == NDT_RESTRICT_NO)
+                {
+                    ndt_log("[fmt_xpfms]: FAF '%s' without altitude constraint!\n",
+                            leg->dst->info.idnt);
+                    ret = EINVAL;
+                    goto end;
+                }
+                altitude = round(altitude / 10.) * 10;
+                altitude = altitude + 10 * (altitude == 0) - 2;
+                fapchalt = ndt_distance_init(round(altitude / 10.) * 10, NDT_ALTUNIT_FT);
+                fapchfix = leg->dst;
+            }
+        }
+        switch (leg->constraints.airspeed.typ)
+        {
+            case NDT_RESTRICT_AT:
+            case NDT_RESTRICT_BL:
+            case NDT_RESTRICT_BT:
+                speed = ndt_airspeed_get(leg->constraints.airspeed.max, NDT_SPDUNIT_KTS, NDT_MACH_DEFAULT);
+                break;
+            case NDT_RESTRICT_AB:
+            default:
+                speed = 0;
+                break;
+        }
+        switch (leg->constraints.airspeed.acf)
+        {
+            case NDT_ACFTYPE_ALL:
+            case NDT_ACFTYPE_JET:
+                break;
+            default: // not applicable
+                speed = 0;
+                break;
+        }
         switch (leg->type)
         {
-            case NDT_LEGTYPE_TF:
-                if (leg->constraints.waypoint == NDT_WPTCONST_FOV)
+            case NDT_LEGTYPE_HF:
+            case NDT_LEGTYPE_HA:
+            case NDT_LEGTYPE_HM:
+            case NDT_LEGTYPE_ZZ:
+                break;
+
+            case NDT_LEGTYPE_FM:
+            case NDT_LEGTYPE_VM:
+                ret = print_line(fd, "-------", 0, 0, NDT_POSITION_NULL, 0);
+                break;
+
+            case NDT_LEGTYPE_DF:
+            {
+                if (leg->dst == leg->src && !ndt_list_count(leg->xpfms))
                 {
-                    switch (leg->constraints.altitude.type)
+                    if ((ret = print_line(fd, "-------", 0, 0, NDT_POSITION_NULL, 0)))
                     {
-                        case NDT_RESTRICT_AT:
-                            altitude = round(ndt_distance_get(leg->constraints.altitude.altmin, NDT_ALTUNIT_FT) / 10.) * 10 + 3;
-                            break;
-                        case NDT_RESTRICT_AB:
-                        case NDT_RESTRICT_BT: // better be above terain than below
-                            altitude = round(ndt_distance_get(leg->constraints.altitude.altmin, NDT_ALTUNIT_FT) / 10.) * 10 + 2;
-                            break;
-                        case NDT_RESTRICT_BL:
-                            altitude = round(ndt_distance_get(leg->constraints.altitude.altmax, NDT_ALTUNIT_FT) / 10.) * 10 - 2;
-                            break;
-                        default:
-                            altitude = 3;
-                            break;
+                        goto end;
                     }
                 }
-                else
+                for (size_t j = 0; j < ndt_list_count(leg->xpfms) && !fapchfix; j++)
                 {
-                    switch (leg->constraints.altitude.type)
+                    if ((ret = print_waypoint(fd, ndt_list_item(leg->xpfms, j), 0, speed)))
                     {
-                        case NDT_RESTRICT_AT:
-                            altitude = round(ndt_distance_get(leg->constraints.altitude.altmin, NDT_ALTUNIT_FT) / 10.) * 10 + 0;
-                            break;
-                        case NDT_RESTRICT_AB:
-                        case NDT_RESTRICT_BT: // better be above terain than below
-                            altitude = round(ndt_distance_get(leg->constraints.altitude.altmin, NDT_ALTUNIT_FT) / 10.) * 10 + 1;
-                            break;
-                        case NDT_RESTRICT_BL:
-                            altitude = round(ndt_distance_get(leg->constraints.altitude.altmax, NDT_ALTUNIT_FT) / 10.) * 10 - 1;
-                            break;
-                        default:
-                            altitude = 0;
-                            break;
+                        goto end;
                     }
-                }
-                switch (leg->constraints.speed.type)
-                {
-                    case NDT_RESTRICT_AT:
-                    case NDT_RESTRICT_BL:
-                    case NDT_RESTRICT_BT:
-                        speed = ndt_airspeed_get(leg->constraints.speed.spdmax, NDT_SPDUNIT_KTS, NDT_MACH_DEFAULT);
-                        break;
-                    default:
-                        speed = 0;
-                        break;
                 }
                 ret = print_waypoint(fd, leg->dst, altitude, speed);
                 break;
-
-            case NDT_LEGTYPE_ZZ:
-                ret = print_line(fd, "-------", 0, 0, ndt_position_init(0., 0., ndt_distance_init(0, NDT_ALTUNIT_NA)), 0);
-                break;
+            }
 
             default:
-                break; // skip unknown leg types for now
+            {
+                for (size_t j = 0; j < ndt_list_count(leg->xpfms) && !fapchfix; j++)
+                {
+                    if ((ret = print_waypoint(fd, ndt_list_item(leg->xpfms, j), leg->dst ? 0 : altitude, speed)))
+                    {
+                        goto end;
+                    }
+                }
+                if (leg->dst)
+                {
+                    ret = print_waypoint(fd, leg->dst, altitude, speed);
+                }
+                break;
+            }
         }
-
         if (ret)
         {
             goto end;
         }
     }
 
-    // arrival airport
-    if ((ret = print_airport(fd, flp->arr.apt)))
+end:
+    return ret;
+}
+
+static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
+{
+    /*
+     * QPAC-specific hacks, part 1.
+     *
+     * Include depart. runway if we also have a SID  (for improved QPAC support).
+     * Include arrival runway if we have an approach (for improved QPAC support).
+     */
+    int dep_rwy = (flp->dep.rwy && flp->dep.sid. proc);
+    int arr_rwy = (flp->arr.rwy && flp->arr.apch.proc);
+    /*
+     * QPAC-specific hacks, part 2.
+     *
+     * Skip depart. airport if and only if:
+     * - departure airport == arrival airport
+     * - enroute portion of the plan is empty
+     * - we have a STAR/approach selected too
+     *
+     * Skip arrival airport if and only if:
+     * - departure airport == arrival airport
+     * - enroute portion of the plan is empty
+     * - we have a SID procedure selected too
+     *
+     * If we don't include the arrival airport (it's a SID) and we're writing
+     * the departure runway as well, then also skip the departure airport.
+     */
+    int dep_apt = !(flp->dep.apt == flp->arr.apt && !ndt_list_count(flp->rte) && (flp->arr.star.proc || flp->arr.apch.proc));
+    int arr_apt = !(flp->dep.apt == flp->arr.apt && !ndt_list_count(flp->rte) && (flp->dep.sid.proc));
+    if (arr_apt == 0 && !dep_rwy == 0)
+    {
+        dep_apt =  0;
+    }
+    /*
+     * Count the legs based on the above and write our header.
+     */
+    int  ret, altitude;
+    int  cnt = xpfms_count_legs(flp->legs) + dep_apt + dep_rwy + arr_rwy + arr_apt;
+    if ((ret = xpfms_write_header(fd, cnt)))
+    {
+        goto end;
+    }
+    /*
+     * And now the rest.
+     */
+    if (dep_apt)
+    {
+        if ((ret = print_airport(fd, flp->dep.apt)))
+        {
+            goto end;
+        }
+    }
+    if (dep_rwy)
+    {
+        altitude = ndt_distance_get(flp->dep.rwy->threshold.altitude, NDT_ALTUNIT_FT);
+        altitude = round(altitude / 10.) * 10;
+        altitude = altitude + 10 * (altitude == 0); // regular waypoint
+        if ((ret = print_waypoint(fd, flp->dep.rwy->waypoint, altitude, 0)))
+        {
+            goto end;
+        }
+    }
+    if ((ret = xpfms_write_legs(fd, flp->legs, flp->arr.rwy)))
+    {
+        goto end;
+    }
+    if (arr_rwy)
+    {
+        switch (flp->arr.apch.proc->approach.type)
+        {
+            case NDT_APPRTYPE_GLS:
+            case NDT_APPRTYPE_RNAV:
+                altitude = ndt_distance_get(flp->arr.rwy->threshold.altitude, NDT_ALTUNIT_FT);
+                altitude = round(altitude / 10.) * 10;
+                altitude = altitude + 10 * (altitude == 0) - 1; // NPA waypoint
+                break;
+            default:
+                altitude = ndt_distance_get(flp->arr.rwy->threshold.altitude, NDT_ALTUNIT_FT);
+                altitude = round(altitude / 10.) * 10;
+                altitude = altitude + 10 * (altitude == 0) + 3; // ovf waypoint
+                break;
+        }
+        if ((ret = print_waypoint(fd, flp->arr.rwy->waypoint, altitude, 0)))
+        {
+            goto end;
+        }
+    }
+    if (arr_apt)
+    {
+        if ((ret = print_airport(fd, flp->arr.apt)))
+        {
+            goto end;
+        }
+    }
+    /*
+     * QPAC planes seem to write a double footer, let's do it here too.
+     */
+    if ((ret = xpfms_write_footer(fd)))
     {
         goto end;
     }
 
-    // end of file
-    ret = print_line(fd, "-------", 0, 0, ndt_position_init(0., 0., ndt_distance_init(0, NDT_ALTUNIT_NA)), 0);
-
 end:
-    return ret;
+    return ret ? ret : xpfms_write_footer(fd);
 }
 
 int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanformat fmt)
@@ -955,13 +1314,11 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanfor
     {
         return ENOMEM;
     }
-
     if (!flp->dep.apt || !flp->arr.apt)
     {
         ndt_log("[fmt_xpfms]: departure or arrival airport not set\n");
         return EINVAL;
     }
-
     switch (fmt)
     {
         case NDT_FLTPFMT_XPCDU:
@@ -974,7 +1331,7 @@ int ndt_fmt_xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanfor
             return helpr_flightplan_write(flp, fd, fmt);
 
         case NDT_FLTPFMT_XPFMS:
-            return xpfms_flightplan_write(flp, fd, fmt);
+            return xpfms_flightplan_write(flp, fd);
 
         default:
             ndt_log("[fmt_xpfms]: unsupported flight plan format '%d'\n", fmt);

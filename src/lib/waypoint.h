@@ -23,6 +23,15 @@
 
 #include "common/common.h"
 
+typedef enum ndt_acftype
+{
+    NDT_ACFTYPE_ALL, // unknown/all
+    NDT_ACFTYPE_JET, // jet engine
+    NDT_ACFTYPE_NON, // none
+    NDT_ACFTYPE_OTH, // other
+    NDT_ACFTYPE_TBP, // turboprop
+} ndt_acftype;
+
 typedef enum ndt_restrict
 {
     NDT_RESTRICT_AB, // at or above min
@@ -36,23 +45,34 @@ typedef struct ndt_restriction
 {
     struct
     {
-        ndt_restrict type;
-        ndt_distance altmin;
-        ndt_distance altmax;
+        ndt_restrict typ;
+        ndt_distance min;
+        ndt_distance max;
     } altitude;
 
     struct
     {
-        ndt_restrict type;
-        ndt_airspeed spdmin;
-        ndt_airspeed spdmax;
-    } speed;
+        ndt_restrict typ;
+        ndt_acftype  acf;
+        ndt_airspeed min;
+        ndt_airspeed max;
+    } airspeed;
 
     enum
     {
-        NDT_WPTCONST_NO,
+        NDT_WPTCONST_FAF,
         NDT_WPTCONST_FOV,
+        NDT_WPTCONST_IAF,
+        NDT_WPTCONST_MAP,
+        NDT_WPTCONST_NO,
     } waypoint;
+
+    enum
+    {
+        NDT_TURN_LEFT,
+        NDT_TURN_RIGHT,
+        NDT_TURN_SHORT,
+    } turn;
 
 } ndt_restriction;
 
@@ -114,6 +134,8 @@ typedef struct ndt_waypoint
 ndt_waypoint* ndt_waypoint_init (                        );
 void          ndt_waypoint_close(ndt_waypoint **_waypoint);
 ndt_waypoint* ndt_waypoint_llc  (const char    *format   );
-ndt_waypoint* ndt_waypoint_pbd  (ndt_waypoint  *place, double magbearing, ndt_distance distance, ndt_date date, void *wmm);
+ndt_waypoint* ndt_waypoint_pbd  (ndt_waypoint  *place, double magbearing, ndt_distance distance,                    ndt_date date, void *wmm);
+ndt_waypoint* ndt_waypoint_pbpb (ndt_waypoint  *plce1, double magneticb1, ndt_waypoint   *plce2, double magneticb2, ndt_date date, void *wmm);
+ndt_waypoint* ndt_waypoint_pbpd (ndt_waypoint  *plce1, double magbearing, ndt_waypoint   *plce2, ndt_distance dist, ndt_date date, void *wmm);
 
 #endif /* NDT_WAYPOINT_H */

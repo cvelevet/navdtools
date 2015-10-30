@@ -31,6 +31,7 @@ void*     ndt_list_item  (const ndt_list *list,             int idx);
 void      ndt_list_insert(      ndt_list *list, void *item, int idx);
 void      ndt_list_add   (      ndt_list *list, void *item         );
 void      ndt_list_rem   (      ndt_list *list, void *item         );
+void      ndt_list_empty (      ndt_list *list                     );
 void      ndt_list_close (      ndt_list **ptr                     );
 void      ndt_list_sort  (      ndt_list *list,
                           size_t w, int (*c)(const void*, const void*));

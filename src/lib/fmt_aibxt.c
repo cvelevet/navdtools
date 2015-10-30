@@ -45,9 +45,11 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, const char *rte)
     char         *start, *pos;
     double        latitude, longitude;
     char         *line = NULL, buf[23];
-    int           linecap, header = 0, err = 0;
+    int           linecap, header = 0, err = 0, init = 0;
     char         *dep_apt = NULL, *dep_rwy = NULL;
     char         *arr_apt = NULL, *arr_rwy = NULL;
+    char         *sid_idt = NULL, *sid_trn = NULL;
+    char         *star_id = NULL, *star_tr = NULL;
     char         *awyidt  = NULL, *dstidt  = NULL, *srcidt = NULL;
 
     if (!flp || !rte)
@@ -129,13 +131,66 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, const char *rte)
             }
             continue;
         }
-        else if (!strncmp(line, "SID=",          4) ||
-                 !strncmp(line, "SID_Trans=",   10) ||
-                 !strncmp(line, "STAR=",         5) ||
-                 !strncmp(line, "APPR_Trans=",  11) ||
+        else if (!strncmp(line, "SID=", 4))
+        {
+            // valid if empty
+            if (strnlen(line, 5) == 5)
+            {
+                if (sscanf(line, "SID=%8s", buf) != 1)
+                {
+                    err = EINVAL;
+                    goto end;
+                }
+                sid_idt = strdup(buf);
+            }
+            continue;
+        }
+        else if (!strncmp(line, "SID_Trans=", 10))
+        {
+            // valid if empty
+            if (strnlen(line, 11) == 11)
+            {
+                if (sscanf(line, "SID_Trans=%8s", buf) != 1)
+                {
+                    err = EINVAL;
+                    goto end;
+                }
+                sid_trn = strdup(buf);
+            }
+            continue;
+        }
+        else if (!strncmp(line, "STAR=", 5))
+        {
+            // valid if empty
+            if (strnlen(line, 6) == 6)
+            {
+                if (sscanf(line, "STAR=%8s", buf) != 1)
+                {
+                    err = EINVAL;
+                    goto end;
+                }
+                star_id = strdup(buf);
+            }
+            continue;
+        }
+        else if (!strncmp(line, "STAR_Trans=", 11))
+        {
+            // valid if empty
+            if (strnlen(line, 12) == 12)
+            {
+                if (sscanf(line, "STAR_Trans=%8s", buf) != 1)
+                {
+                    err = EINVAL;
+                    goto end;
+                }
+                star_tr = strdup(buf);
+            }
+            continue;
+        }
+        else if (!strncmp(line, "APPR_Trans=",  11) ||
                  !strncmp(line, "RwyArrFINAL=", 12))
         {
-            continue; // skip for now
+            continue; // skip (approach names may not match our DB)
         }
         else if (!strncmp(line, "Airway", 6))
         {
@@ -189,11 +244,11 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, const char *rte)
         }
 
         /* Departure */
-        if (!src)
+        if (!init)
         {
             if (flp->dep.apt)
             {
-                if (dep_apt && strcasecmp(dep_apt, flp->dep.apt->info.idnt))
+                if (dep_apt && strcmp(dep_apt, flp->dep.apt->info.idnt))
                 {
                     ndt_log("[fmt_aibxt]: departure airport mismatch ('%s', '%s')\n",
                             dep_apt, flp->dep.apt->info.idnt);
@@ -203,7 +258,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, const char *rte)
             }
             if (flp->dep.rwy)
             {
-                if (dep_rwy && strcasecmp(dep_rwy, flp->dep.rwy->info.idnt))
+                if (dep_rwy && strcmp(dep_rwy, flp->dep.rwy->info.idnt))
                 {
                     ndt_log("[fmt_aibxt]: departure runway mismatch ('%s', '%s')\n",
                             dep_rwy, flp->dep.rwy->info.idnt);
@@ -218,10 +273,32 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                 goto end;
             }
 
-            /* The first source is the departure airport or runway. */
-            src = flp->dep.rwy ? flp->dep.rwy->waypoint : flp->dep.apt->waypoint;
+            /* SID must be set before the flight route for proper sequencing */
+            if (sid_idt)
+            {
+                if (flp->dep.sid.proc)
+                {
+                    if (sid_trn)
+                    {
+                        ndt_log("[fmt_aibxt]: warning: ignoring SID '%s.%s'\n", sid_idt, sid_trn);
+                    }
+                    else
+                    {
+                        ndt_log("[fmt_aibxt]: warning: ignoring SID '%s'\n", sid_idt);
+                    }
+                }
+                else if ((err = ndt_flightplan_set_departsid(flp, sid_idt, sid_trn)))
+                {
+                    goto end;
+                }
+            }
 
-            /* TODO: handle the SID and its transition here, when present. */
+            /* Set the initial source waypoint (SID, runway or airport). */
+            src = (flp->dep.sid.enroute.rsgt ? flp->dep.sid.enroute.rsgt->dst :
+                   flp->dep.sid.        rsgt ? flp->dep.sid.        rsgt->dst :
+                   flp->dep.rwy              ? flp->dep.rwy->waypoint         : flp->dep.apt->waypoint);
+
+            init = 1;//done
         }
 
         if (!dstidt)
@@ -267,7 +344,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                 }
                 ndt_list_add(flp->cws, dst);
             }
-            rsg = ndt_route_segment_direct(src, dst, flp->ndb);
+            rsg = ndt_route_segment_direct(src, dst);
         }
         else if (!strcmp(awyidt, "DCT") || (!strncmp(awyidt, "NAT", 3) && strlen(awyidt) == 4)) // direct to coded as airway
         {
@@ -278,7 +355,8 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, const char *rte)
              * Out source waypoint must match srcidt; it may or may not be src
              * (in which case we simply insert a route discontinuity below).
              */
-            ndt_waypoint  *wpt1 = ndt_navdata_get_wptnear2(flp->ndb, srcidt, NULL, src->position);
+            ndt_position   posn = src ? src->position : flp->dep.apt->coordinates;
+            ndt_waypoint  *wpt1 = ndt_navdata_get_wptnear2(flp->ndb, srcidt, NULL, posn);
             if (!wpt1 && !(wpt1 = ndt_waypoint_llc(srcidt)))
             {
                 ndt_log("[fmt_aibxt]: invalid waypoint '%s'\n", srcidt);
@@ -293,7 +371,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                 err = EINVAL;
                 goto end;
             }
-            rsg = ndt_route_segment_direct(wpt1, wpt2, flp->ndb);
+            rsg = ndt_route_segment_direct(wpt1, wpt2);
         }
         else // airway
         {
@@ -349,10 +427,10 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, const char *rte)
         }
 
         /* Check for discontinuities */
-        if (rsg->src != src)
+        if (src && src != rsg->src)
         {
             ndt_route_segment *dsc = ndt_route_segment_discon();
-            ndt_route_segment *dct = ndt_route_segment_direct(NULL, rsg->src, flp->ndb);
+            ndt_route_segment *dct = ndt_route_segment_direct(NULL, rsg->src);
             if (!dsc || !dct)
             {
                 err = ENOMEM;
@@ -381,12 +459,10 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, const char *rte)
         goto end;
     }
 
-    /* TODO: handle the STAR and approach here, when present. */
-
-    /* Arrival */
+    /* Arrival, must be set last for proper sequencing */
     if (flp->arr.apt)
     {
-        if (arr_apt && strcasecmp(arr_apt, flp->arr.apt->info.idnt))
+        if (arr_apt && strcmp(arr_apt, flp->arr.apt->info.idnt))
         {
             ndt_log("[fmt_aibxt]: arrival airport mismatch ('%s', '%s')\n",
                     arr_apt, flp->arr.apt->info.idnt);
@@ -396,7 +472,7 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, const char *rte)
     }
     if (flp->arr.rwy)
     {
-        if (arr_rwy && strcasecmp(dep_rwy, flp->dep.rwy->info.idnt))
+        if (arr_rwy && strcmp(dep_rwy, flp->dep.rwy->info.idnt))
         {
             ndt_log("[fmt_aibxt]: arrival runway mismatch ('%s', '%s')\n",
                     arr_rwy, flp->arr.rwy->info.idnt);
@@ -410,6 +486,24 @@ int ndt_fmt_aibxt_flightplan_set_route(ndt_flightplan *flp, const char *rte)
     {
         goto end;
     }
+    if (star_id)
+    {
+        if (flp->arr.star.proc)
+        {
+            if (star_tr)
+            {
+                ndt_log("[fmt_aibxt]: warning: ignoring STAR '%s.%s'\n", star_tr, star_id);
+            }
+            else
+            {
+                ndt_log("[fmt_aibxt]: warning: ignoring STAR '%s'\n", star_id);
+            }
+        }
+        else if ((err = ndt_flightplan_set_arrivstar(flp, star_id, star_tr)))
+        {
+            goto end;
+        }
+    }
 
 end:
     if (err == EINVAL)
@@ -422,6 +516,12 @@ end:
         ndt_log("\"\n");
     }
     free(dep_apt);
+    free(dep_rwy);
+    free(sid_idt);
+    free(sid_trn);
+    free(star_tr);
+    free(star_id);
+    free(arr_rwy);
     free(arr_apt);
     free(awyidt);
     free(dstidt);
@@ -482,6 +582,40 @@ int ndt_fmt_aibxt_flightplan_write(ndt_flightplan *flp, FILE *fd)
         if (err)
         {
             goto end;
+        }
+    }
+
+    // SID/STAR and transitions (optional)
+    if (flp->dep.sid.proc)
+    {
+        err = ndt_fprintf(fd, "SID=%s\n", flp->dep.sid.proc->info.idnt);
+        if (err)
+        {
+            goto end;
+        }
+        if (flp->dep.sid.enroute.proc)
+        {
+            err = ndt_fprintf(fd, "SID_Trans=%s\n", flp->dep.sid.enroute.proc->info.misc);
+            if (err)
+            {
+                goto end;
+            }
+        }
+    }
+    if (flp->arr.star.proc)
+    {
+        err = ndt_fprintf(fd, "STAR=%s\n", flp->arr.star.proc->info.idnt);
+        if (err)
+        {
+            goto end;
+        }
+        if (flp->arr.star.enroute.proc)
+        {
+            err = ndt_fprintf(fd, "STAR_Trans=%s\n", flp->arr.star.enroute.proc->info.misc);
+            if (err)
+            {
+                goto end;
+            }
         }
     }
 

@@ -39,12 +39,13 @@
 #include "fmt_icaor.h"
 #include "waypoint.h"
 
-static int icao_printrt(FILE *fd, ndt_list *rte, ndt_fltplanformat fmt);
-static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_fltplanformat fmt);
+static int icao_printrt(FILE *fd, ndt_list     *rte,                    ndt_fltplanformat fmt);
+static int icao_printwp(FILE *fd, ndt_waypoint *dst, ndt_llcfmt llcfmt, ndt_fltplanformat fmt);
+static int icao_printlg(FILE *fd, ndt_list     *lgs,                    ndt_fltplanformat fmt);
 
 int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
 {
-    int           err      = 0;
+    int err = 0, init = 0, fv = 0;
     ndt_airport  *lastapt  = NULL;
     ndt_runway   *lastrwy  = NULL;
     ndt_waypoint *src      = NULL, *lastpl = NULL;
@@ -66,13 +67,14 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
 
     while ((elem = strsep(&rtenext, " \r\n\t")))
     {
-        if (strnlen   (elem,      1) &&
-            strcasecmp(elem,  "DCT") &&
-            strcasecmp(elem,  "SID") &&
-            strcasecmp(elem, "STAR"))
+        if (strnlen(elem,      1) &&
+            strcmp (elem,  "DCT") &&
+            strcmp (elem,  "SID") &&
+            strcmp (elem, "STAR"))
         {
             char         *dstidt = NULL;
             ndt_waypoint *cuswpt = NULL;
+            ndt_position lastpos;
 
             /*
              * Split each element in two substrings.
@@ -85,13 +87,18 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
             {
                 free(prefix);
             }
-            prefix = strsep(&suffix, "/");
+            /*
+             * AIRPORT/RUNWAY           KLAX/06L
+             * WAYPOINT/STEPCLIMB       BASIK/N0412F330
+             * SID.TRANS, STAR.TRANS    CASTA4.AVE
+             */
+            prefix = strsep(&suffix, "/.");
 
             /* New element, reset last airport & runway. */
             lastapt = NULL;
             lastrwy = NULL;
 
-            if (!src)
+            if (!init)
             {
                 /*
                  * If the first waypoint is an airport, save the matching
@@ -102,7 +109,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
 
                 if (firstapt && suffix)
                 {
-                    firstrwy = ndt_runway_get(firstapt, suffix);
+                    firstrwy = ndt_runway_get(firstapt->runways, suffix);
                 }
                 else
                 {
@@ -124,10 +131,12 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                     }
                 }
 
-                /*
-                 * The first source is the departure airport or runway.
-                 */
-                src = flp->dep.rwy ? flp->dep.rwy->waypoint : flp->dep.apt->waypoint;
+                /* Set the initial source waypoint (SID, runway or airport). */
+                src = (flp->dep.sid.enroute.rsgt ? flp->dep.sid.enroute.rsgt->dst :
+                       flp->dep.sid.        rsgt ? flp->dep.sid.        rsgt->dst :
+                       flp->dep.rwy              ? flp->dep.rwy->waypoint         : flp->dep.apt->waypoint);
+
+                init = 1;//done
             }
 
             /*
@@ -182,9 +191,10 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                  * intention is for "place/bearing/distance" to refer to the
                  * same waypoint as the first "place" waypoint.
                  */
-                if (lastpl == NULL || strcasecmp(lastpl->info.idnt, place))
+                if (lastpl == NULL || strcmp(lastpl->info.idnt, place))
                 {
-                    lastpl  = ndt_navdata_get_wptnear2(flp->ndb, place, NULL, src->position);
+                    lastpos = src ? src->position : lastpl ? lastpl->position : flp->dep.apt->coordinates;
+                    lastpl  = ndt_navdata_get_wptnear2(flp->ndb, place, NULL, lastpos);
                 }
                 if (lastpl == NULL)
                 {
@@ -197,11 +207,55 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                 cuswpt = ndt_waypoint_pbd(lastpl, bearing, ndstce,
                                           ndt_date_now(), flp->ndb->wmm);
             }
-            else if (0)
+            else if (flp->dep.apt && ndt_procedure_get(flp->dep.apt->sids, prefix, NULL))
             {
-                /* TODO: handle or skip SID and STAR procedures */
+                if (flp->dep.sid.proc)
+                {
+                    ndt_log("[fmt_icaor]: warning: ignoring SID '%s'\n", elem);
+                }
+                else
+                {
+                    if ((err = ndt_flightplan_set_departsid(flp, prefix, suffix)))
+                    {
+                        goto end;
+                    }
+                    src = flp->dep.sid.enroute.rsgt ? flp->dep.sid.enroute.rsgt->dst : flp->dep.sid.rsgt->dst;
+                }
+                continue;
             }
-            else if (strlen(prefix) == 4 && !strncasecmp(prefix, "NAT", 3))
+            else if (flp->dep.apt && ndt_procedure_get(flp->dep.apt->sids, suffix, NULL))
+            {
+                if (flp->dep.sid.proc)
+                {
+                    ndt_log("[fmt_icaor]: warning: ignoring SID '%s'\n", elem);
+                }
+                else
+                {
+                    if ((err = ndt_flightplan_set_departsid(flp, suffix, prefix)))
+                    {
+                        goto end;
+                    }
+                    src = flp->dep.sid.enroute.rsgt ? flp->dep.sid.enroute.rsgt->dst : flp->dep.sid.rsgt->dst;
+                }
+                continue;
+            }
+            else if (flp->arr.apt && ndt_procedure_get(flp->arr.apt->stars, prefix, NULL))
+            {
+                if ((err = ndt_flightplan_set_arrivstar(flp, prefix, suffix)))
+                {
+                    goto end;
+                }
+                continue;
+            }
+            else if (flp->arr.apt && ndt_procedure_get(flp->arr.apt->stars, suffix, NULL))
+            {
+                if ((err = ndt_flightplan_set_arrivstar(flp, suffix, prefix)))
+                {
+                    goto end;
+                }
+                continue;
+            }
+            else if (strlen(prefix) == 4 && !strncmp(prefix, "NAT", 3))
             {
                 /*
                  * North Atlantic Track; we can't decode it,
@@ -215,7 +269,21 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                 ndt_airway     *awy1, *awy2;
                 ndt_waypoint   *dst;
 
-                if (awy1id)
+                if (!src)
+                {
+                    /*
+                     * No startpoint, this can't be an airway; check
+                     * whether it's a waypoint before erroring out.
+                     */
+                    if (!ndt_navdata_get_waypoint(flp->ndb, prefix, NULL))
+                    {
+                        ndt_log("[fmt_icaor]: no startpoint for airway '%s'\n", elem);
+                        err = EINVAL;
+                        goto end;
+                    }
+                    dstidt = prefix;
+                }
+                else if (awy1id)
                 {
                     /*
                      * Two consecutive airways. Ensure they do intersect; else
@@ -371,7 +439,8 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                 }
                 else if (dstidt)
                 {
-                    dst = ndt_navdata_get_wptnear2(flp->ndb, dstidt, NULL, src->position);
+                    lastpos = src ? src->position : lastpl ? lastpl->position : flp->dep.apt->coordinates;
+                    dst     = ndt_navdata_get_wptnear2(flp->ndb, dstidt, NULL, lastpos);
 
                     /*
                      * If the last waypoint is an airport, save the matching
@@ -382,7 +451,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                         lastapt = ndt_navdata_get_airport(flp->ndb, dst->info.idnt);
                         if (lastapt && suffix)
                         {
-                            lastrwy = ndt_runway_get(lastapt, suffix);
+                            lastrwy = ndt_runway_get(lastapt->runways, suffix);
                         }
                         else
                         {
@@ -401,13 +470,20 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                     goto end;
                 }
 
+                if (flp->arr.star.proc && dst != flp->arr.apt->waypoint)
+                {
+                    ndt_log("[fmt_icaor]: unexpected waypoint '%s' after STAR\n", dst->info.idnt);
+                    err = EINVAL;
+                    goto end;
+                }
+
                 if (awy && in && out)
                 {
                     rsg = ndt_route_segment_airway(src, dst, awy, in, out, flp->ndb);
                 }
                 else
                 {
-                    rsg = ndt_route_segment_direct(src, dst, flp->ndb);
+                    rsg = ndt_route_segment_direct(src, dst);
                 }
 
                 if (!rsg)
@@ -419,12 +495,18 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                 /* Remove pointless legs */
                 if (rsg->type == NDT_RSTYPE_DCT)
                 {
-                    if (rsg->src == rsg->dst)
+                    if (!fv && ((flp->dep.apt && flp->dep.apt->waypoint == rsg->dst) ||
+                                (flp->dep.rwy && flp->dep.rwy->waypoint == rsg->dst)))
                     {
                         ndt_route_segment_close(&rsg);
                         continue;
                     }
-                    else
+                    else if (rsg->src == rsg->dst)
+                    {
+                        ndt_route_segment_close(&rsg);
+                        continue;
+                    }
+                    else if (rsg->src)
                     {
                         ndt_position a = rsg->src->position;
                         ndt_position b = rsg->dst->position;
@@ -436,6 +518,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                         }
                     }
                 }
+                fv = 1; // valid waypoint, don't skip additional airports/runways
 
                 /* We have a leg, our last endpoint becomes our new startpoint */
                 if (rsg->dst->type != NDT_WPTYPE_LLC)
@@ -469,72 +552,8 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
     /*
      * Remove unwanted segments.
      */
-    ndt_route_segment *fst = ndt_list_item(flp->rte,  0);
-    ndt_route_segment *scd = ndt_list_item(flp->rte,  1);
     ndt_route_segment *pen = ndt_list_item(flp->rte, -2);
     ndt_route_segment *ult = ndt_list_item(flp->rte, -1);
-    if (fst && fst->type == NDT_RSTYPE_DCT)
-    {
-        if (flp->dep.apt->waypoint == fst->dst)
-        {
-            // check for duplicates
-            if (fst == scd)
-            {
-                scd = NULL;
-            }
-            if (fst == pen)
-            {
-                pen = NULL;
-            }
-            if (fst == ult)
-            {
-                ult = NULL;
-            }
-
-            // don't include the departure airport as the first leg
-            ndt_list_rem  (flp->rte, fst);
-            ndt_route_segment_close(&fst);
-
-            // if we have an airport, the next leg may be a runway
-            if (scd != NULL  && scd->type == NDT_RSTYPE_DCT &&
-                flp->dep.rwy && flp->dep.rwy->waypoint == scd->dst)
-            {
-                // check for duplicates
-                if (scd == pen)
-                {
-                    pen = NULL;
-                }
-                if (scd == ult)
-                {
-                    ult = NULL;
-                }
-
-                // don't include the departure runway as the second leg
-                ndt_list_rem  (flp->rte, scd);
-                ndt_route_segment_close(&scd);
-            }
-        }
-        else if (flp->dep.rwy && flp->dep.rwy->waypoint == fst->dst)
-        {
-            // check for duplicates
-            if (fst == scd)
-            {
-                scd = NULL;
-            }
-            if (fst == pen)
-            {
-                pen = NULL;
-            }
-            if (fst == ult)
-            {
-                ult = NULL;
-            }
-
-            // don't include the departure runway as the first leg
-            ndt_list_rem  (flp->rte, fst);
-            ndt_route_segment_close(&fst);
-        }
-    }
     if (ult && ult->type == NDT_RSTYPE_DCT)
     {
         if (flp->arr.apt->waypoint == ult->dst)
@@ -591,20 +610,67 @@ int ndt_fmt_dcded_flightplan_write(ndt_flightplan *flp, FILE *fd)
         goto end;
     }
 
-    // decoded route only
-    ret = icao_printlg(fd, flp->legs, NDT_FLTPFMT_DCDED);
-    if (ret)
-    {
-        goto end;
-    }
-    ret = ndt_fprintf(fd, "%s", "\n");
-    if (ret)
+    // all flightplan legs
+    if ((ret = icao_printlg(fd, flp->legs, NDT_FLTPFMT_DCDED)))
     {
         goto end;
     }
 
 end:
-    return ret;
+    if (ret)
+    {
+        return ret;
+    }
+    return ndt_fprintf(fd, "%s", "\n");
+}
+
+int ndt_fmt_dtstg_flightplan_write(ndt_flightplan *flp, FILE *fd)
+{
+    int ret = 0;
+
+    if (!flp || !fd)
+    {
+        ret = ENOMEM;
+        goto end;
+    }
+
+    if (!flp->dep.apt || !flp->arr.apt)
+    {
+        ndt_log("[fmt_dtstg]: departure or arrival airport not set\n");
+        ret = EINVAL;
+        goto end;
+    }
+
+    if (flp->dep.rwy)
+    {
+        if ((ret = icao_printwp(fd, flp->dep.rwy->waypoint, NDT_LLCFMT_SVECT, NDT_FLTPFMT_DTSTG)) ||
+            (ret = ndt_fprintf (fd, "%s", " ")))
+        {
+            goto end;
+        }
+    }
+
+    // all flightplan legs
+    if ((ret = icao_printlg(fd, flp->legs, NDT_FLTPFMT_DTSTG)))
+    {
+        goto end;
+    }
+
+    if (flp->arr.rwy)
+    {
+        if ((ret = ndt_fprintf (fd, "%s", " ")) ||
+            (ret = icao_printwp(fd, flp->arr.rwy->waypoint, NDT_LLCFMT_SVECT, NDT_FLTPFMT_DTSTG)))
+        {
+            goto end;
+        }
+    }
+
+end:
+    if (ret)
+    {
+        return ret;
+    }
+    return ndt_fprintf(fd, "%s", "\n");
 }
 
 int ndt_fmt_icaor_flightplan_write(ndt_flightplan *flp, FILE *fd)
@@ -625,18 +691,51 @@ int ndt_fmt_icaor_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
 
     // departure airport
-    ret = ndt_fprintf(fd, "%s SID%s", flp->dep.apt->info.idnt,
-                      ndt_list_count(flp->rte) ? " " : "");
-    if (ret)
+    if ((ret = ndt_fprintf(fd, "%s SID", flp->dep.apt->info.idnt)))
     {
         goto end;
     }
 
+    // SID endpoint, if it's a fix
+    if (flp->dep.sid.enroute.rsgt)
+    {
+        if (flp->dep.sid.enroute.rsgt->dst)
+        {
+            if ((ret = ndt_fprintf(fd, " %s", flp->dep.sid.enroute.rsgt->dst->info.idnt)))
+            {
+                goto end;
+            }
+        }
+    }
+    else if (flp->dep.sid.rsgt)
+    {
+        if (flp->dep.sid.rsgt->dst)
+        {
+            if ((ret = ndt_fprintf(fd, " %s", flp->dep.sid.rsgt->dst->info.idnt)))
+            {
+                goto end;
+            }
+        }
+    }
+
     // encoded route
-    ret = icao_printrt(fd, flp->rte, NDT_FLTPFMT_ICAOR);
-    if (ret)
+    if ((ret = ndt_fprintf(fd, "%s", " ")))
     {
         goto end;
+    }
+    if (ndt_list_count(flp->rte))
+    {
+        if ((ret = icao_printrt(fd, flp->rte, NDT_FLTPFMT_ICAOR)))
+        {
+            goto end;
+        }
+    }
+    else
+    {
+        if ((ret = ndt_fprintf(fd, "%s", "DCT")))
+        {
+            goto end;
+        }
     }
 
     // arrival airport
@@ -650,11 +749,142 @@ end:
     return ret;
 }
 
+static int fmt_irecp_print_leg(FILE *fd, ndt_route_leg *leg)
+{
+    if (!fd || !leg)
+    {
+        return ENOMEM;
+    }
+    switch (leg->type)
+    {
+        case NDT_LEGTYPE_ZZ:
+            return ndt_fprintf(fd, "\n%s\n", "        ----F-PLN DISCONTINUITY----");
+
+        default:
+        {
+            int rvalue;
+            char *idt1, *idt2, sbrif[13];
+            switch (leg->rsg->type)
+            {
+                case NDT_RSTYPE_DCT:
+                {
+                    if (leg->dst->type == NDT_WPTYPE_LLC)
+                    {
+                        if (ndt_position_sprintllc(leg->dst->position, NDT_LLCFMT_SBRIF,
+                                                   sbrif, sizeof(sbrif)) < 0)
+                        {
+                            return EIO;
+                        }
+                        idt2 = sbrif;
+                    }
+                    else
+                    {
+                        idt2 = leg->dst->info.idnt;
+                    }
+                    idt1 = "DCT";
+                    break;
+                }
+                case NDT_RSTYPE_AWY:
+                    idt1 = leg->awyleg->awy->info.idnt;
+                    idt2 = leg->dst->        info.idnt;
+                    break;
+                default:
+                    idt1 = leg->rsg->info.idnt;
+                    idt2 = leg->     info.idnt;
+                    break;
+            }
+            if (leg->src && leg->dst && leg->src != leg->dst && !ndt_list_count(leg->xpfms))
+            {
+                double dist = ndt_distance_get(leg->dis, NDT_ALTUNIT_ME) / 1852.;
+                if ((rvalue = ndt_fprintf(fd, "\n%-16s  %05.1lf° (%05.1lf°T) %5.1lf nm\n",
+                                          idt1, leg->omb, leg->trb, dist)))
+                {
+                    return rvalue;
+                }
+            }
+            else if ((rvalue = ndt_fprintf(fd, "\n%s\n", idt1)))
+            {
+                // future: print magnetic course if we have it
+                return rvalue;
+            }
+            if ((*leg->info.misc) &&
+                (rvalue = ndt_fprintf(fd, "%s\n", leg->info.misc)))
+            {
+                return rvalue;
+            }
+            if (leg->dst)
+            {
+                char recap[24];
+                if (ndt_position_sprintllc(leg->dst->position, NDT_LLCFMT_RECAP,
+                                           recap, sizeof(recap)) < 0)
+                {
+                    return EIO;
+                }
+                if ((*leg->dst->info.misc) &&
+                    (rvalue = ndt_fprintf(fd, "%s\n", leg->dst->info.misc)))
+                {
+                    return rvalue;
+                }
+                if ((rvalue = ndt_fprintf(fd, "%-21s  %s\n", idt2, recap)))
+                {
+                    return rvalue;
+                }
+            }
+            else if ((rvalue = ndt_fprintf(fd, "%s\n", idt2)))
+            {
+                return rvalue;
+            }
+            return 0;
+        }
+    }
+}
+
+static const char* surfacetype_name(ndt_runway *rwy)
+{
+    if (rwy)
+    {
+        switch (rwy->surface)
+        {
+            case NDT_RWYSURF_ASPHT:
+                return   "asphalt";
+            case NDT_RWYSURF_CONCR:
+                return  "concrete";
+            case NDT_RWYSURF_GRASS:
+                return     "grass";
+            case NDT_RWYSURF_GRAVL:
+                return    "gravel";
+            case NDT_RWYSURF_WATER:
+                return     "water";
+            case NDT_RWYSURF_OTHER:
+            default:
+                return   "unknown";
+        }
+    }
+    return NULL;
+}
+
+static const char* navaid_type_name(ndt_runway *rwy)
+{
+    if (rwy)
+    {
+        // KLAX, KJFK: ILS but slight mismatch (up to 3°)
+        if ((rwy->ils.course >= rwy->heading && rwy->ils.course - rwy->heading <= 3) ||
+            (rwy->heading >= rwy->ils.course && rwy->heading - rwy->ils.course <= 3))
+        {
+            return rwy->ils.slope > 0. ? "ILS" : "LOC";
+        }
+        else
+        {
+            return rwy->ils.slope > 0. ? "IGS" : "LDA";
+        }
+    }
+    return NULL;
+}
+
 int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
 {
     char sbrif[13], recap[24];
     int ret = 0, d01, d02;
-    const char *surface;
     double disnmile;
 
     if (!flp || !fd)
@@ -670,7 +900,7 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
         goto end;
     }
 
-    // departure airport and runway
+    // departure airport/runway, SID, enroute, STAR, approach, arrival airport/runway
     d01 = ndt_distance_get(flp->dep.apt->coordinates.altitude, NDT_ALTUNIT_FT);
     d02 = ndt_distance_get(flp->dep.apt->tr_altitude,          NDT_ALTUNIT_FT);
     if (d02)
@@ -693,286 +923,114 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
     {
         d01 = ndt_distance_get(flp->dep.rwy->length, NDT_ALTUNIT_FT);
         d02 = ndt_distance_get(flp->dep.rwy->width,  NDT_ALTUNIT_FT);
-        switch (flp->dep.rwy->surface)
-        {
-            case NDT_RWYSURF_ASPHT:
-                surface = "asphalt";
-                break;
-            case NDT_RWYSURF_CONCR:
-                surface = "concrete";
-                break;
-            case NDT_RWYSURF_GRASS:
-                surface = "grass";
-                break;
-            case NDT_RWYSURF_GRAVL:
-                surface = "gravel";
-                break;
-            case NDT_RWYSURF_WATER:
-                surface = "water";
-                break;
-            default:
-                surface = "unknown";
-                break;
-        }
         if (flp->dep.rwy->ils.avail)
         {
-            ret = ndt_fprintf(fd, "Runway:    %s (%d°), %d (%d) ft, surface: %s, ILS: %.2lf (%d°, %.1lf°)\n",
+            ret = ndt_fprintf(fd, "Runway:    %s (%d°), %d (%d) ft, surface: %s, %s: %.2lf (%d°, %.1lf°)\n",
                               flp->dep.rwy->info.idnt,
-                              flp->dep.rwy->heading, d01, d02, surface,
+                              flp->dep.rwy->heading, d01, d02,
+                              surfacetype_name (flp->dep.rwy),
+                              navaid_type_name (flp->dep.rwy),
                               ndt_frequency_get(flp->dep.rwy->ils.freq),
                               flp->dep.rwy->ils.course,
                               flp->dep.rwy->ils.slope);
         }
         else
         {
-            ret = ndt_fprintf(fd, "Runway:    %s, %3d°, %d (%d) ft, surface: %s\n",
+            ret = ndt_fprintf(fd, "Runway:    %s (%d°), %d (%d) ft, surface: %s\n",
                               flp->dep.rwy->info.idnt,
-                              flp->dep.rwy->heading, d01, d02, surface);
+                              flp->dep.rwy->heading, d01, d02,
+                              surfacetype_name(flp->dep.rwy));
         }
         if (ret)
         {
             goto end;
         }
     }
-    ret = ndt_fprintf(fd, "%s", "\n");
-    if (ret)
+    if (flp->dep.sid.proc)
     {
-        goto end;
+        if (flp->dep.sid.enroute.proc)
+        {
+            ret = ndt_fprintf(fd, "SID:       %s with transition: %s\n",
+                              flp->dep.sid.        proc->info.idnt,
+                              flp->dep.sid.enroute.proc->info.misc);
+        }
+        else
+        {
+            ret = ndt_fprintf(fd, "SID:       %s\n",
+                              flp->dep.sid.proc->info.idnt);
+        }
+        if (ret)
+        {
+            goto end;
+        }
     }
-
-    // TODO: SID and transition(s)
-
-    // flight route
-    if (ndt_list_count(flp->rte) == 0)
+    if (ndt_list_count(flp->rte))
     {
-        ret = ndt_fprintf(fd, "%s", "Flight route: DIRECT\n");
+        if ((ret = ndt_fprintf(fd,   "%s", "Enroute:   ")))
+        {
+            goto end;
+        }
+        if (flp->dep.sid.enroute.rsgt)
+        {
+            if ((flp->dep.sid.enroute.rsgt->dst) &&
+                (ret = ndt_fprintf(fd, "%s ", flp->dep.sid.enroute.rsgt->dst->info.idnt)))
+            {
+                goto end;
+            }
+        }
+        else if (flp->dep.sid.rsgt)
+        {
+            if ((flp->dep.sid.rsgt->dst) &&
+                (ret = ndt_fprintf(fd, "%s ", flp->dep.sid.rsgt->dst->info.idnt)))
+            {
+                goto end;
+            }
+        }
+        if ((ret = icao_printrt(fd, flp->rte, NDT_FLTPFMT_ICAOR)))
+        {
+            goto end;
+        }
     }
     else
     {
-        ret = ndt_fprintf(fd, "%s", "Flight route:\n");
+        if ((ret = ndt_fprintf(fd, "%s", "Enroute:   DCT")))
+        {
+            goto end;
+        }
     }
-    if (ret)
+    if ((ret = ndt_fprintf(fd, "%s", "\n")))
     {
         goto end;
     }
-    for (size_t i = 0; i < ndt_list_count(flp->rte); i++)
+    if (flp->arr.star.proc)
     {
-        ndt_route_segment *rsg = ndt_list_item(flp->rte, i);
-        if (!rsg)
+        if (flp->arr.star.enroute.proc)
         {
-            ret = ENOMEM;
-            goto end;
+            ret = ndt_fprintf(fd, "STAR:      %s with transition: %s\n",
+                              flp->arr.star.        proc->info.idnt,
+                              flp->arr.star.enroute.proc->info.misc);
         }
-
-        switch (rsg->type)
+        else
         {
-            case NDT_RSTYPE_AWY:
-            {
-                for (size_t j = 0; j < ndt_list_count(rsg->legs); j++)
-                {
-                    ndt_route_leg *leg = ndt_list_item(rsg->legs, j);
-                    if (!leg)
-                    {
-                        ret = ENOMEM;
-                        break;
-                    }
-
-                    switch (leg->type)
-                    {
-                        case NDT_LEGTYPE_TF:
-                        {
-                            disnmile = ndt_distance_get(leg->dis, NDT_ALTUNIT_ME) / 1852.;
-                            if ((ret = ndt_fprintf(fd,
-                                                   "\n%-14s  %05.1lf° (%05.1lf°T) %5.1lf nm\n",
-                                                   leg->awy. leg->awy->info.idnt,
-                                                   leg->omb, leg->trb, disnmile)))
-                            {
-                                break;
-                            }
-                            if (leg->dst->info.misc[0])
-                            {
-                                if ((ret = ndt_fprintf(fd, "%s\n", leg->dst->info.misc)))
-                                {
-                                    break;
-                                }
-                            }
-                            if ((ret = ndt_fprintf(fd, "%-19s  %s\n", leg->dst->info.idnt, recap)))
-                            {
-                                break;
-                            }
-                            break;
-                        }
-
-                        case NDT_LEGTYPE_ZZ:
-                            ret = ndt_fprintf(fd, "\n%s\n", "       ----F-PLN DISCONTINUITY----");
-                            break;
-
-                        default:
-                            ndt_log("[fmt_irecp]: unknown leg type '%d'\n", leg->type);
-                            ret = EINVAL;
-                            break;
-                    }
-                    if (ret)
-                    {
-                        break;
-                    }
-                }
-                break;
-            }
-
-            case NDT_RSTYPE_DCT:
-            {
-                ndt_route_leg *leg = ndt_list_item(rsg->legs, 0);
-                if (!leg)
-                {
-                    ret = ENOMEM;
-                    break;
-                }
-
-                // pre-print latitude and longitude coordinates
-                if (ndt_position_sprintllc(leg->dst->position, NDT_LLCFMT_SBRIF,
-                                           sbrif, sizeof(sbrif)) < 0)
-                {
-                    ret = EIO;
-                    break;
-                }
-                if (ndt_position_sprintllc(leg->dst->position, NDT_LLCFMT_RECAP,
-                                           recap, sizeof(recap)) < 0)
-                {
-                    ret = EIO;
-                    break;
-                }
-
-                switch (leg->type)
-                {
-                    case NDT_LEGTYPE_TF:
-                    {
-                        if (leg->src)
-                        {
-                            disnmile = ndt_distance_get(leg->dis, NDT_ALTUNIT_ME) / 1852.;
-                            if ((ret = ndt_fprintf(fd,
-                                                   "\n%-14s  %05.1lf° (%05.1lf°T) %5.1lf nm\n",
-                                                   "DCT", leg->omb, leg->trb, disnmile)))
-                            {
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            if ((ret = ndt_fprintf(fd, "\n%s\n", "DCT")))
-                            {
-                                break;
-                            }
-                        }
-                        if (leg->dst->type != NDT_WPTYPE_LLC &&
-                            leg->dst->info.misc[0])
-                        {
-                            if ((ret = ndt_fprintf(fd, "%s\n", leg->dst->info.misc)))
-                            {
-                                break;
-                            }
-                        }
-                        if (leg->dst->type == NDT_WPTYPE_LLC)
-                        {
-                            if ((ret = ndt_fprintf(fd, "%-19s  %s\n", sbrif, recap)))
-                            {
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            if ((ret = ndt_fprintf(fd, "%-19s  %s\n", leg->dst->info.idnt, recap)))
-                            {
-                                break;
-                            }
-                        }
-                        break;
-                    }
-
-                    case NDT_LEGTYPE_ZZ:
-                        ret = ndt_fprintf(fd, "\n%s\n", "       ----F-PLN DISCONTINUITY----");
-                        break;
-
-                    default:
-                        ndt_log("[fmt_irecp]: unknown leg type '%d'\n", leg->type);
-                        ret = EINVAL;
-                        break;
-                }
-                break;
-            }
-
-            case NDT_RSTYPE_DSC:
-                ret = ndt_fprintf(fd, "\n%s\n", "       ----F-PLN DISCONTINUITY----");
-                break;
-
-            default:
-                ndt_log("[fmt_irecp]: unknown segment type '%d'\n", rsg->type);
-                ret = EINVAL;
-                break;
+            ret = ndt_fprintf(fd, "STAR:      %s\n",
+                              flp->arr.star.proc->info.idnt);
         }
         if (ret)
         {
             goto end;
         }
     }
-
-    // TODO: STAR and transition(s)
-
-    // TODO: approach (maybe not?)
-
-    // last leg (TODO: check if final approach selected)
-    if (ndt_list_count(flp->rte))
-    {
-        // route not direct, and no final approach, add
-        // a dummy leg to the arrival airport or runway
-        ndt_waypoint  *dst = flp->arr.rwy ? flp->arr.rwy->waypoint : flp->arr.apt->waypoint;
-
-        // pre-print latitude and longitude coordinates
-        if (ndt_position_sprintllc(dst->position, NDT_LLCFMT_RECAP,
-                                   recap, sizeof(recap)) < 0)
-        {
-            ret = EIO;
-            goto  end;
-        }
-
-        // the source is the last leg's dst, if it exists
-        ndt_route_leg *leg = ndt_list_item(flp->legs, -1);
-        if (leg && leg->dst)
-        {
-            ndt_distance d = ndt_position_calcdistance(leg->dst->position,  dst->position);
-            double tru_brg = ndt_position_calcbearing (leg->dst->position,  dst->position);
-            double mag_brg = ndt_wmm_getbearing_mag(flp->ndb->wmm, tru_brg, leg->dst->position, ndt_date_now());
-            double dis_mil = ndt_distance_get(d, NDT_ALTUNIT_ME) / 1852.;
-            if ((ret = ndt_fprintf(fd,
-                                   "\n%-14s  %05.1lf° (%05.1lf°T) %5.1lf nm\n",
-                                   "DCT", mag_brg, tru_brg, dis_mil)))
-            {
-                goto end;
-            }
-            if ((ret = ndt_fprintf(fd, "%-19s  %s\n", dst->info.idnt, recap)))
-            {
-                goto end;
-            }
-        }
-    }
-    ret = ndt_fprintf(fd, "%s", "\n");
-    if (ret)
-    {
-        goto end;
-    }
-
-    // arrival airport and runway
     d01 = ndt_distance_get(flp->arr.apt->coordinates.altitude, NDT_ALTUNIT_FT);
     d02 = ndt_distance_get(flp->arr.apt->trans_level,          NDT_ALTUNIT_FT);
     if (d02)
     {
-        ret = ndt_fprintf(fd, "Arrival: %s (%s), elevation %d ft, transition level FL%d\n",
+        ret = ndt_fprintf(fd, "Arrival:   %s (%s), elevation %d ft, transition level FL%d\n",
                           flp->arr.apt->info.idnt,
                           flp->arr.apt->info.misc, d01, d02 / 100);
     }
     else
     {
-        ret = ndt_fprintf(fd, "Arrival: %s (%s), elevation %d ft, transition level ATC\n",
+        ret = ndt_fprintf(fd, "Arrival:   %s (%s), elevation %d ft, transition level ATC\n",
                           flp->arr.apt->info.idnt,
                           flp->arr.apt->info.misc, d01);
     }
@@ -984,46 +1042,79 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
     {
         d01 = ndt_distance_get(flp->arr.rwy->length, NDT_ALTUNIT_FT);
         d02 = ndt_distance_get(flp->arr.rwy->width,  NDT_ALTUNIT_FT);
-        switch (flp->arr.rwy->surface)
-        {
-            case NDT_RWYSURF_ASPHT:
-                surface = "asphalt";
-                break;
-            case NDT_RWYSURF_CONCR:
-                surface = "concrete";
-                break;
-            case NDT_RWYSURF_GRASS:
-                surface = "grass";
-                break;
-            case NDT_RWYSURF_GRAVL:
-                surface = "gravel";
-                break;
-            case NDT_RWYSURF_WATER:
-                surface = "water";
-                break;
-            default:
-                surface = "unknown";
-                break;
-        }
         if (flp->arr.rwy->ils.avail)
         {
-            ret = ndt_fprintf(fd, "Runway:  %s (%d°), %d (%d) ft, surface: %s, ILS: %.2lf (%d°, %.1lf°)\n",
+            ret = ndt_fprintf(fd, "Runway:    %s (%d°), %d (%d) ft, surface: %s, %s: %.2lf (%d°, %.1lf°)\n",
                               flp->arr.rwy->info.idnt,
-                              flp->arr.rwy->heading, d01, d02, surface,
+                              flp->arr.rwy->heading, d01, d02,
+                              surfacetype_name (flp->arr.rwy),
+                              navaid_type_name (flp->arr.rwy),
                               ndt_frequency_get(flp->arr.rwy->ils.freq),
                               flp->arr.rwy->ils.course,
                               flp->arr.rwy->ils.slope);
         }
         else
         {
-            ret = ndt_fprintf(fd, "Runway:  %s, %3d°, %d (%d) ft, surface: %s\n",
+            ret = ndt_fprintf(fd, "Runway:    %s (%d°), %d (%d) ft, surface: %s\n",
                               flp->arr.rwy->info.idnt,
-                              flp->arr.rwy->heading, d01, d02, surface);
+                              flp->arr.rwy->heading, d01, d02,
+                              surfacetype_name(flp->arr.rwy));
         }
         if (ret)
         {
             goto end;
         }
+    }
+    if (flp->arr.apch.proc)
+    {
+        if (flp->arr.apch.transition.proc)
+        {
+            ret = ndt_fprintf(fd, "Approach:  %s with transition: %s\n",
+                              flp->arr.apch.           proc->info.idnt,
+                              flp->arr.apch.transition.proc->info.misc);
+        }
+        else
+        {
+            ret = ndt_fprintf(fd, "Approach:  %s\n",
+                              flp->arr.apch.proc->info.idnt);
+        }
+        if (ret)
+        {
+            goto end;
+        }
+    }
+
+    // all flightplan legs
+    if (ndt_list_count(flp->legs) == 0)
+    {
+        ret = ndt_fprintf(fd, "\n%s", "Flight route: DIRECT\n");
+    }
+    else
+    {
+        ret = ndt_fprintf(fd, "\n%s", "Flight route:\n");
+    }
+    if (ret)
+    {
+        goto end;
+    }
+    for (size_t i = 0; i < ndt_list_count(flp->legs); i++)
+    {
+        ndt_route_leg *leg = ndt_list_item(flp->legs, i);
+        if (!leg)
+        {
+            ret = ENOMEM;
+            goto end;
+        }
+        if ((ret = fmt_irecp_print_leg(fd, leg)))
+        {
+            goto end;
+        }
+    }
+
+    // dummy final leg to runway threshold
+    if ((ret = fmt_irecp_print_leg(fd, flp->arr.last.rleg)))
+    {
+        goto end;
     }
 
 end:
@@ -1047,14 +1138,85 @@ int ndt_fmt_sbrif_flightplan_write(ndt_flightplan *flp, FILE *fd)
         goto end;
     }
 
-    // encoded route only
-    ret = icao_printrt(fd, flp->rte, NDT_FLTPFMT_SBRIF);
-    if (ret)
+    // SID and transition, if present
+    if (flp->dep.sid.proc)
     {
-        goto end;
+        if ((ret = ndt_fprintf(fd, "%s", flp->dep.sid.proc->info.idnt)))
+        {
+            goto end;
+        }
+        if (flp->dep.sid.enroute.proc)
+        {
+            if ((ret = ndt_fprintf(fd, ".%s", flp->dep.sid.enroute.proc->info.misc)))
+            {
+                goto end;
+            }
+        }
     }
-    ret = ndt_fprintf(fd, "%s", "\n");
-    if (ret)
+
+    // SID endpoint, if it's a fix
+    if (flp->dep.sid.enroute.rsgt)
+    {
+        if ((flp->dep.sid.enroute.rsgt->dst) &&
+            (ret = ndt_fprintf(fd, " %s", flp->dep.sid.enroute.rsgt->dst->info.idnt)))
+        {
+            goto end;
+        }
+    }
+    else if (flp->dep.sid.rsgt)
+    {
+        if ((flp->dep.sid.rsgt->dst) &&
+            (ret = ndt_fprintf(fd, " %s", flp->dep.sid.rsgt->dst->info.idnt)))
+        {
+            goto end;
+        }
+    }
+
+    // encoded route
+    if (flp->dep.sid.enroute.proc || flp->dep.sid.proc)
+    {
+        if ((ret = ndt_fprintf(fd, "%s", " ")))
+        {
+            goto end;
+        }
+    }
+    if (ndt_list_count(flp->rte))
+    {
+        if ((ret = icao_printrt(fd, flp->rte, NDT_FLTPFMT_SBRIF)))
+        {
+            goto end;
+        }
+    }
+    else
+    {
+        if ((ret = ndt_fprintf(fd, "%s", "DCT")))
+        {
+            goto end;
+        }
+    }
+
+    // STAR and transition, if present
+    if (flp->arr.star.proc)
+    {
+        if ((ret = ndt_fprintf(fd, "%s", " ")))
+        {
+            goto end;
+        }
+        if (flp->arr.star.enroute.proc)
+        {
+            if ((ret = ndt_fprintf(fd, "%s.", flp->arr.star.enroute.proc->info.misc)))
+            {
+                goto end;
+            }
+        }
+        if ((ret = ndt_fprintf(fd, "%s", flp->arr.star.proc->info.idnt)))
+        {
+            goto end;
+        }
+    }
+
+    // we're done!
+    if ((ret = ndt_fprintf(fd, "%s", "\n")))
     {
         goto end;
     }
@@ -1099,6 +1261,10 @@ static int icao_printrt(FILE *fd, ndt_list *rte, ndt_fltplanformat fmt)
             goto end;
         }
 
+        if (i && (ret = ndt_fprintf(fd, "%s", " ")))
+        {
+            goto end;
+        }
         switch (rsg->type)
         {
             case NDT_RSTYPE_AWY:
@@ -1106,38 +1272,8 @@ static int icao_printrt(FILE *fd, ndt_list *rte, ndt_fltplanformat fmt)
                 break;
 
             case NDT_RSTYPE_DCT:
-                {
-                    switch (rsg->dst->type)
-                    {
-                        case NDT_WPTYPE_APT:
-                        case NDT_WPTYPE_DME:
-                        case NDT_WPTYPE_FIX:
-                        case NDT_WPTYPE_NDB:
-                        case NDT_WPTYPE_VOR: // use the identifier
-                            ret = ndt_fprintf(fd, "%s", rsg->dst->info.idnt);
-                            break;
-
-                        case NDT_WPTYPE_PBD:
-                            if ((fmt == NDT_FLTPFMT_ICAOR || fmt == NDT_FLTPFMT_SBRIF) &&
-                                (rsg->dst->pbd.place->type == NDT_WPTYPE_FIX ||
-                                 rsg->dst->pbd.place->type == NDT_WPTYPE_NDB ||
-                                 rsg->dst->pbd.place->type == NDT_WPTYPE_VOR))
-                            {
-                                double   nm = ndt_distance_get(rsg->dst->pbd.distance, NDT_ALTUNIT_ME) / 1852.;
-                                if (fabs(nm - round(nm)) < .05) // distance in nm is basically an integer, yay!
-                                {
-                                    ret = ndt_fprintf(fd, "%5s%03.0lf%03.0lf",
-                                                      rsg->dst->pbd.place->info.idnt,
-                                                      rsg->dst->pbd.bearing, round(nm));
-                                    break;
-                                }
-                            }
-                        default: // use latitude/longitude coordinates
-                            ret = ndt_position_fprintllc(rsg->dst->position, llcfmt, fd);
-                            break;
-                    }
-                    break;
-                }
+                ret = icao_printwp(fd, rsg->dst, llcfmt, fmt);
+                break;
 
             case NDT_RSTYPE_DSC: // skip discontinuities
                 break;
@@ -1151,18 +1287,50 @@ static int icao_printrt(FILE *fd, ndt_list *rte, ndt_fltplanformat fmt)
         {
             goto end;
         }
-        if (i + 1 < ndt_list_count(rte))
-        {
-            ret = ndt_fprintf(fd, "%s", " ");
-            if (ret)
-            {
-                goto end;
-            }
-        }
     }
 
 end:
     return ret;
+}
+
+static int icao_printwp(FILE *fd, ndt_waypoint *dst, ndt_llcfmt llcfmt, ndt_fltplanformat fmt)
+{
+    if (!fd || !dst)
+    {
+        return ENOMEM;
+    }
+    if (fmt == NDT_FLTPFMT_DTSTG)
+    {
+        return ndt_position_fprintllc(dst->position, llcfmt, fd);
+    }
+    switch (dst->type)
+    {
+        case NDT_WPTYPE_APT:
+        case NDT_WPTYPE_DME:
+        case NDT_WPTYPE_FIX:
+        case NDT_WPTYPE_NDB:
+        case NDT_WPTYPE_VOR: // use the identifier
+            return ndt_fprintf(fd, "%s", dst->info.idnt);
+
+        case NDT_WPTYPE_PBD:
+            if ((fmt == NDT_FLTPFMT_DCDED ||
+                 fmt == NDT_FLTPFMT_ICAOR ||
+                 fmt == NDT_FLTPFMT_SBRIF) &&
+                (dst->pbd.place->type == NDT_WPTYPE_FIX ||
+                 dst->pbd.place->type == NDT_WPTYPE_NDB ||
+                 dst->pbd.place->type == NDT_WPTYPE_VOR))
+            {
+                double   nm = ndt_distance_get(dst->pbd.distance, NDT_ALTUNIT_ME) / 1852.;
+                if (fabs(nm - round(nm)) < .05) // nm distance basically an integer, yay!
+                {
+                    return ndt_fprintf(fd, "%5s%03.0lf%03.0lf",
+                                       dst->pbd.place->info.idnt,
+                                       dst->pbd.bearing, round(nm));
+                }
+            }
+        default: // use latitude/longitude coordinates
+            return ndt_position_fprintllc(dst->position, llcfmt, fd);
+    }
 }
 
 static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_fltplanformat fmt)
@@ -1179,6 +1347,7 @@ static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_fltplanformat fmt)
     switch (fmt)
     {
         case NDT_FLTPFMT_DCDED:
+        case NDT_FLTPFMT_DTSTG:
             llcfmt = NDT_LLCFMT_SVECT;
             break;
 
@@ -1188,7 +1357,7 @@ static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_fltplanformat fmt)
             goto end;
     }
 
-    for (size_t i = 0; i < ndt_list_count(lgs); i++)
+    for (size_t i = 0, need_space = 0; i < ndt_list_count(lgs); i++)
     {
         ndt_route_leg *leg = ndt_list_item(lgs, i);
         if (!leg)
@@ -1197,64 +1366,267 @@ static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_fltplanformat fmt)
             goto end;
         }
 
-        switch (leg->type)
-        {
-            case NDT_LEGTYPE_TF:
-                {
-                    switch (leg->dst->type)
-                    {
-                        case NDT_WPTYPE_APT:
-                        case NDT_WPTYPE_DME:
-                        case NDT_WPTYPE_FIX:
-                        case NDT_WPTYPE_NDB:
-                        case NDT_WPTYPE_VOR: // use the identifier
-                            ret = ndt_fprintf(fd, "%s", leg->dst->info.idnt);
-                            break;
-
-                        case NDT_WPTYPE_PBD:
-                            if ((fmt == NDT_FLTPFMT_DCDED) &&
-                                (leg->dst->pbd.place->type == NDT_WPTYPE_FIX ||
-                                 leg->dst->pbd.place->type == NDT_WPTYPE_NDB ||
-                                 leg->dst->pbd.place->type == NDT_WPTYPE_VOR))
-                            {
-                                double   nm = ndt_distance_get(leg->dst->pbd.distance, NDT_ALTUNIT_ME) / 1852.;
-                                if (fabs(nm - round(nm)) < .05) // distance in nm is basically an integer, yay!
-                                {
-                                    ret = ndt_fprintf(fd, "%5s%03.0lf%03.0lf",
-                                                      leg->dst->pbd.place->info.idnt,
-                                                      leg->dst->pbd.bearing, round(nm));
-                                    break;
-                                }
-                            }
-                        default: // use latitude/longitude coordinates
-                            ret = ndt_position_fprintllc(leg->dst->position, llcfmt, fd);
-                            break;
-                    }
-                    break;
-                }
-
-            case NDT_LEGTYPE_ZZ: // skip discontinuities
-                break;
-
-            default:
-                ndt_log("[icao_printlg]: unknown leg type '%d'\n", leg->type);
-                ret = EINVAL;
-                break;
-        }
-        if (ret)
+        if (need_space && (ret = ndt_fprintf(fd, "%s", " ")))
         {
             goto end;
         }
-        if (i + 1 < ndt_list_count(lgs))
+        else
         {
-            ret = ndt_fprintf(fd, "%s", " ");
-            if (ret)
+            need_space = 0;
+        }
+        switch (leg->type)
+        {
+            case NDT_LEGTYPE_HF: // skipped
+            case NDT_LEGTYPE_HA: // skipped
+            case NDT_LEGTYPE_HM: // skipped
+            case NDT_LEGTYPE_ZZ: // skipped
+                break;
+
+            case NDT_LEGTYPE_DF:
             {
-                goto end;
+                if (leg->dst && (leg->dst != leg->src || ndt_list_count(leg->xpfms)))
+                {
+                    for (size_t j = 0; j < ndt_list_count(leg->xpfms); j++)
+                    {
+                        if (j && (ret = ndt_fprintf(fd, "%s", " ")))
+                        {
+                            goto end;
+                        }
+                        if ((ret = icao_printwp(fd, ndt_list_item(leg->xpfms, j), llcfmt, fmt)))
+                        {
+                            goto end;
+                        }
+                    }
+                    if (ndt_list_count(leg->xpfms) && (ret = ndt_fprintf(fd, "%s", " ")))
+                    {
+                        goto end;
+                    }
+                    if ((ret = icao_printwp(fd, leg->dst, llcfmt, fmt)))
+                    {
+                        goto end;
+                    }
+                    need_space = 1;
+                }
+                break;
+            }
+
+            default:
+            {
+                for (size_t j = 0; j < ndt_list_count(leg->xpfms); j++)
+                {
+                    if (j && (ret = ndt_fprintf(fd, "%s", " ")))
+                    {
+                        goto end;
+                    }
+                    if ((ret = icao_printwp(fd, ndt_list_item(leg->xpfms, j), llcfmt, fmt)))
+                    {
+                        goto end;
+                    }
+                    need_space = 1;
+                }
+                if (leg->dst)
+                {
+                    if (ndt_list_count(leg->xpfms) && (ret = ndt_fprintf(fd, "%s", " ")))
+                    {
+                        goto end;
+                    }
+                    if ((ret = icao_printwp(fd, leg->dst, llcfmt, fmt)))
+                    {
+                        goto end;
+                    }
+                    need_space = 1;
+                }
+                break;
             }
         }
     }
 
 end:
+    return ret;
+}
+
+int ndt_fmt_icaor_print_airportnfo(ndt_navdatabase *ndb, const char *icao)
+{
+    ndt_procedure *pr1, *pr2;
+    ndt_route_leg       *leg;
+    ndt_airport         *apt;
+    ndt_runway          *rwy;
+    ndt_list   *names = NULL;
+    ndt_list   *trans = NULL;
+    int     i, j, k, ret = 0;
+
+    if (!(ndt_navdata_init_airport(ndb, (apt = ndt_navdata_get_airport(ndb, icao)))))
+    {
+        fprintf(stderr, "Airport %s not found\n", icao);
+        ret = EINVAL;
+        goto end;
+    }
+
+    i = ndt_distance_get(apt->coordinates.altitude, NDT_ALTUNIT_FT);
+    j = ndt_distance_get(apt->tr_altitude,          NDT_ALTUNIT_FT);
+    k = ndt_distance_get(apt->trans_level,          NDT_ALTUNIT_FT);
+    if (j && k)
+    {
+        fprintf(stdout,
+                "Airport: %s (%s), elevation: %d, transition: %d/FL%d\n",
+                apt->info.idnt, apt->info.misc, i, j, k / 100);
+    }
+    else if (j)
+    {
+        fprintf(stdout,
+                "Airport: %s (%s), elevation: %d, transition: %d/ATC\n",
+                apt->info.idnt, apt->info.misc, i, j);
+    }
+    else if (k)
+    {
+        fprintf(stdout,
+                "Airport: %s (%s), elevation: %d, transition: ATC/FL%d\n",
+                apt->info.idnt, apt->info.misc, i, k / 100);
+    }
+    else
+    {
+        fprintf(stdout,
+                "Airport: %s (%s), elevation: %d, transition: ATC\n",
+                apt->info.idnt, apt->info.misc, i);
+    }
+
+    fprintf(stdout, "Runways:%s", "\n\n");
+    for (i = 0; i < ndt_list_count(apt->runways); i++)
+    {
+        if ((rwy = ndt_list_item(apt->runways, i)))
+        {
+            j = ndt_distance_get(rwy->length, NDT_ALTUNIT_FT);
+            k = ndt_distance_get(rwy->width,  NDT_ALTUNIT_FT);
+            if (rwy->ils.avail)
+            {
+                fprintf(stdout, "    %-3s %03d°   Length: %5d, width: %3d, surface: %9s, %s: %.2lf (%03d°, %.1lf°)\n",
+                        rwy->info.idnt,   rwy->heading, j, k,
+                        surfacetype_name (rwy),
+                        navaid_type_name (rwy),
+                        ndt_frequency_get(rwy->ils.freq),
+                        rwy->ils.course,  rwy->ils.slope);
+            }
+            else
+            {
+                fprintf(stdout, "    %-3s %03d°   Length: %5d, width: %3d, surface: %9s\n",
+                        rwy->info.idnt, rwy->heading, j, k,
+                        surfacetype_name(rwy));
+            }
+            for (j = 0; j < ndt_list_count(rwy->approaches); j++)
+            {
+                if ((pr1 = ndt_list_item(rwy->approaches, j)))
+                {
+                    leg = ndt_list_item(pr1->proclegs, 0);
+                    fprintf(stdout, "        approach: %-11s from: %-5s",
+                            pr1->info.idnt,
+                            leg && leg->type == NDT_LEGTYPE_IF ? leg->dst->info.idnt :
+                            leg && leg->src  != NULL           ? leg->src->info.idnt : "");
+                    if (ndt_list_count(pr1->transition.approach))
+                    {
+                        fprintf(stdout, "%s", " with transition(s):");
+                    }
+                    for (k = 0; k < ndt_list_count(pr1->transition.approach); k++)
+                    {
+                        if ((pr2 = ndt_list_item(pr1->transition.approach, k)))
+                        {
+                            fprintf(stdout, " %s", pr2->info.misc);
+                        }
+                    }
+                    fprintf(stdout, "%s", "\n");
+                }
+            }
+            fprintf(stdout, "%s", "\n");
+        }
+    }
+
+    if (!(names = ndt_list_init()) || !(trans = ndt_list_init()))
+    {
+        ret = ENOMEM;
+        goto end;
+    }
+    ndt_procedure_names(apt->sids, names);
+    if (ndt_list_count(names))
+    {
+        fprintf(stdout, "Standard Instrument Departures:%s", "\n\n");
+        for (i = 0; i < ndt_list_count(names); i++)
+        {
+            fprintf(stdout, "    %s\n", ndt_list_item(names, i));
+            fprintf(stdout, "    %s", "applicable to runways:");
+            for (j = 0; j < ndt_list_count(apt->runways); j++)
+            {
+                if ((rwy = ndt_list_item(apt->runways, j)) &&
+                    (ndt_procedure_get(apt->sids, ndt_list_item(names, i), rwy)))
+                {
+                    fprintf(stdout, " %s", rwy->info.idnt);
+                }
+            }
+            fprintf(stdout, "%s", "\n");
+            pr1 = ndt_procedure_get(apt->sids, ndt_list_item(names, i), NULL);
+            if (pr1)
+            {
+                pr2 = pr1->transition.sid ? pr1->transition.sid : pr1;
+                if ((leg = ndt_list_item(pr2->proclegs, -1)) && leg->dst)
+                {
+                    fprintf(stdout, "    procedure's final fix: %s\n", leg->dst->info.idnt);
+                }
+            }
+            ndt_procedure_trans(pr1 ? pr1->transition.enroute : NULL, trans);
+            if (ndt_list_count(trans))
+            {
+                fprintf(stdout, "    %s", "enroute transition(s):");
+                for (j = 0; j < ndt_list_count(trans); j++)
+                {
+                    fprintf(stdout, " %s", ndt_list_item(trans, j));
+                }
+                fprintf(stdout, "%s", "\n");
+            }
+            fprintf(stdout, "%s", "\n");
+        }
+    }
+
+    ndt_procedure_names(apt->stars, names);
+    if (ndt_list_count(names))
+    {
+        fprintf(stdout, "Standard Terminal Arrival Routes:%s", "\n\n");
+        for (i = 0; i < ndt_list_count(names); i++)
+        {
+            fprintf(stdout, "    %s\n", ndt_list_item(names, i));
+            pr1 = ndt_procedure_get(apt->stars, ndt_list_item(names, i), NULL);
+            ndt_procedure_trans(pr1 ? pr1->transition.enroute : NULL, trans);
+            if (ndt_list_count(trans))
+            {
+                fprintf(stdout, "    %s", "enroute transition(s):");
+                for (j = 0; j < ndt_list_count(trans); j++)
+                {
+                    fprintf(stdout, " %s", ndt_list_item(trans, j));
+                }
+                fprintf(stdout, "%s", "\n");
+            }
+            if (pr1)
+            {
+                pr2 = pr1->transition.star ? pr1->transition.star : pr1;
+                if ((leg = ndt_list_item(pr2->proclegs, 0)) &&
+                    (leg->src || leg->type == NDT_LEGTYPE_IF))
+                {
+                    fprintf(stdout, "    initial procedure fix: %s\n",
+                            leg->src ? leg->src->info.idnt : leg->dst->info.idnt);
+                }
+            }
+            fprintf(stdout, "    %s", "applicable to runways:");
+            for (j = 0; j < ndt_list_count(apt->runways); j++)
+            {
+                if ((rwy = ndt_list_item(apt->runways, j)) &&
+                    (ndt_procedure_get(apt->stars, ndt_list_item(names, i), rwy)))
+                {
+                    fprintf(stdout, " %s", rwy->info.idnt);
+                }
+            }
+            fprintf(stdout, "%s", "\n\n");
+        }
+    }
+
+end:
+    ndt_list_close(&names);
+    ndt_list_close(&trans);
     return ret;
 }

@@ -23,8 +23,10 @@
 
 #include "common/common.h"
 
+#include "airport.h"
 #include "navdata.h"
 
-int ndt_ndb_xpgns_navdatabase_init(ndt_navdatabase *ndb, const char *ndr);
+int          ndt_ndb_xpgns_navdatabase_init    (ndt_navdatabase *ndb                  );
+ndt_airport* ndt_ndb_xpgns_navdata_init_airport(ndt_navdatabase *ndb, ndt_airport *apt);
 
 #endif /* NDT_NDB_XPGNS_H */

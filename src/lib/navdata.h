@@ -38,23 +38,26 @@ typedef enum ndt_navdataformat
 
 typedef struct ndt_navdatabase
 {
-    ndt_info  info;        // identification information
-    ndt_list *airports;    // list of all airports  in database (struct ndt_airport)
-    ndt_list *airways;     // list of all airways   in database (struct ndt_airway)
-    ndt_list *waypoints;   // list of all waypoints in database (struct ndt_waypoint)
+    ndt_info         info;      // identification information
+    ndt_list *   airports;      // list of all airports  in database (struct ndt_airport)
+    ndt_list     *airways;      // list of all airways   in database (struct ndt_airway)
+    ndt_list   *waypoints;      // list of all waypoints in database (struct ndt_waypoint)
+    ndt_navdataformat fmt;      // backend database's format
+    const char      *root;      // backend database's root folder
 
-    void *wmm;             // World Magnetic Model library wrapper
+    void *wmm;                  // World Magnetic Model library wrapper
 } ndt_navdatabase;
 
-ndt_navdatabase* ndt_navdatabase_init (const char            *root, ndt_navdataformat fmt);
-void             ndt_navdatabase_close(      ndt_navdatabase **ptr                       );
+ndt_navdatabase* ndt_navdatabase_init (const char      *root, ndt_navdataformat fmt);
+void             ndt_navdatabase_close(ndt_navdatabase **ptr                       );
 
-ndt_airport*  ndt_navdata_get_airport (ndt_navdatabase *ndb, const char   *idt                                                                                                          );
-ndt_airway*   ndt_navdata_get_airway  (ndt_navdatabase *ndb, const char   *idt, size_t     *idx                                                                                         );
-ndt_waypoint* ndt_navdata_get_waypoint(ndt_navdatabase *ndb, const char   *idt, size_t     *idx                                                                                         );
-ndt_waypoint* ndt_navdata_get_wptnear2(ndt_navdatabase *ndb, const char   *idt, size_t     *idx,    ndt_position  pos                                                                   );
-ndt_waypoint* ndt_navdata_get_wpt4pos (ndt_navdatabase *ndb, const char   *idt, size_t     *idx,    ndt_position  pos                                                                   );
-ndt_waypoint* ndt_navdata_get_wpt4aws (ndt_navdatabase *ndb, ndt_waypoint *src, const char *awy2id, const char   *awyidt, ndt_airway **_awy, ndt_airway_leg **_in, ndt_airway_leg **_out);
-ndt_waypoint* ndt_navdata_get_wpt4awy (ndt_navdatabase *ndb, ndt_waypoint *src, const char *dstidt, const char   *awyidt, ndt_airway **_awy, ndt_airway_leg **_in, ndt_airway_leg **_out);
+ndt_airport*  ndt_navdata_get_airport (ndt_navdatabase *ndb, const char   *idt                                                                                                        );
+ndt_airport*  ndt_navdata_init_airport(ndt_navdatabase *ndb, ndt_airport  *apt                                                                                                        );
+ndt_airway*   ndt_navdata_get_airway  (ndt_navdatabase *ndb, const char   *idt, size_t        *idx                                                                                    );
+ndt_waypoint* ndt_navdata_get_waypoint(ndt_navdatabase *ndb, const char   *idt, size_t        *idx                                                                                    );
+ndt_waypoint* ndt_navdata_get_wptnear2(ndt_navdatabase *ndb, const char   *idt, size_t        *idx, ndt_position   pos                                                                );
+ndt_waypoint* ndt_navdata_get_wpt4pos (ndt_navdatabase *ndb, const char   *idt, size_t        *idx, ndt_position   pos                                                                );
+ndt_waypoint* ndt_navdata_get_wpt4aws (ndt_navdatabase *ndb, ndt_waypoint *src, const char *awy2id, const char *awyidt, ndt_airway **_awy, ndt_airway_leg **_in, ndt_airway_leg **_out);
+ndt_waypoint* ndt_navdata_get_wpt4awy (ndt_navdatabase *ndb, ndt_waypoint *src, const char *dstidt, const char *awyidt, ndt_airway **_awy, ndt_airway_leg **_in, ndt_airway_leg **_out);
 
 #endif /* NDT_NAVDATA_H */

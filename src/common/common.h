@@ -62,29 +62,35 @@ typedef struct ndt_airspeed
     int64_t value;        // unit: millimeters per hour
 } ndt_airspeed;
 
-extern ndt_airspeed NDT_MACH_DEFAULT;
+#define NDT_MACH_DEFAULT (ndt_airspeed_mach(-50.))
 
-/* TODO: true vs. indicated vs. calibrated airspeed */
+/* Future: true vs. indicated vs. calibrated airspeed */
 ndt_airspeed ndt_airspeed_init(int64_t      speed, int unit                   );
 ndt_airspeed ndt_airspeed_mach(double       oatmp                             );
 int64_t      ndt_airspeed_get (ndt_airspeed speed, int unit, ndt_airspeed mach);
 
+enum
+{
+    NDT_ALTUNIT_FL, // flight level
+    NDT_ALTUNIT_FT, // foot
+    NDT_ALTUNIT_ME, // meter
+    NDT_ALTUNIT_NM, // nautical mile
+    NDT_ALTUNIT_NA, // native representation
+};
+
 typedef struct ndt_distance
 {
-    enum
-    {
-        NDT_ALTUNIT_FL, // flight level
-        NDT_ALTUNIT_FT, // foot
-        NDT_ALTUNIT_ME, // meter
-        NDT_ALTUNIT_NM, // nautical mile
-        NDT_ALTUNIT_NA, // native representation
-    } unit;
-
-    int64_t value;      // unit: 0.10 millimeter ticks
+    int64_t value;  // unit: 0.10 millimeter ticks
 } ndt_distance;
 
-ndt_distance ndt_distance_init(int64_t      distance, int unit);
-int64_t      ndt_distance_get (ndt_distance distance, int unit);
+#define NDT_DISTANCE_ZERO (ndt_distance_init(INT64_C(0), NDT_ALTUNIT_NA))
+
+ndt_distance ndt_distance_init(int64_t      distance,  int unit);
+int64_t      ndt_distance_get (ndt_distance distance,  int unit);
+ndt_distance ndt_distance_max (ndt_distance d1, ndt_distance d2);
+ndt_distance ndt_distance_min (ndt_distance d1, ndt_distance d2);
+ndt_distance ndt_distance_add (ndt_distance d1, ndt_distance d2);
+ndt_distance ndt_distance_rem (ndt_distance d1, ndt_distance d2);
 
 typedef enum ndt_angle_unit
 {
@@ -132,19 +138,25 @@ typedef enum
     NDT_LLCFMT_SVECT,   // optimized for SkyVector
 } ndt_llcfmt;
 
-ndt_position ndt_position_init         (double        latitude, double         longitude,   ndt_distance altitude);
-ndt_distance ndt_position_getaltitude  (ndt_position  position                                                   );
-double       ndt_position_getlatitude  (ndt_position  position, ndt_angle_unit unit                              );
-double       ndt_position_getlongitude (ndt_position  position, ndt_angle_unit unit                              );
-void         ndt_position_getprecision (ndt_position  position, ndt_distance  *precision[2]                      );
-void         ndt_position_setprecision (ndt_position *position, ndt_distance   precision[2]                      );
-double       ndt_position_calcbearing  (ndt_position  from,     ndt_position   to                                );
-ndt_distance ndt_position_calcdistance (ndt_position  from,     ndt_position   to                                );
-int          ndt_position_calcduration (ndt_position  from,     ndt_position   to,          ndt_airspeed at      );
-int          ndt_position_calcintercept(ndt_position  from,     ndt_position   to,          ndt_position orig    );
-ndt_position ndt_position_calcpos4pbd  (ndt_position  from,     double trubearing,          ndt_distance dist    );
-int          ndt_position_sprintllc    (ndt_position position,  ndt_llcfmt format, char *buffer,  size_t size    );
-int          ndt_position_fprintllc    (ndt_position position,  ndt_llcfmt format, FILE *fd                      );
+#define NDT_POSITION_NULL (ndt_position_init(0., 0., NDT_DISTANCE_ZERO))
+
+ndt_position ndt_position_init         (double        latitude, double         longitude,                       ndt_distance altitude);
+ndt_distance ndt_position_getaltitude  (ndt_position  position                                                                       );
+double       ndt_position_getlatitude  (ndt_position  position, ndt_angle_unit unit                                                  );
+double       ndt_position_getlongitude (ndt_position  position, ndt_angle_unit unit                                                  );
+void         ndt_position_getprecision (ndt_position  position, ndt_distance  *precision[2]                                          );
+void         ndt_position_setprecision (ndt_position *position, ndt_distance   precision[2]                                          );
+double       ndt_position_calcbearing  (ndt_position  from,     ndt_position   to                                                    );
+double       ndt_position_bearing_angle(double initial_bearing, double target_bearing                                                );
+double       ndt_position_angle_reverse(double obverse_angle                                                                         );
+ndt_distance ndt_position_calcdistance (ndt_position  from,     ndt_position   to                                                    );
+int          ndt_position_calcduration (ndt_position  from,     ndt_position   to,                                    ndt_airspeed at);
+int          ndt_position_calcintercept(ndt_position  from,     ndt_position   to,                                  ndt_position orig);
+ndt_position ndt_position_calcpos4pbd  (ndt_position  from,     double trubearing,                                  ndt_distance dist);
+int          ndt_position_calcpos4pbpb (ndt_position  *out,     ndt_position pos1, double true1, ndt_position pos2,      double true2);
+int          ndt_position_calcpos4pbpd (ndt_position  *out,     ndt_position pos1, double trueb, ndt_position pos2, ndt_distance dist);
+int          ndt_position_sprintllc    (ndt_position position,  ndt_llcfmt format, char *buffer,                          size_t size);
+int          ndt_position_fprintllc    (ndt_position position,  ndt_llcfmt format, FILE *fd                                          );
 
 typedef struct ndt_frequency
 {

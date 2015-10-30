@@ -18,6 +18,7 @@
  *     Timothy D. Walker
  */
 
+#include <errno.h>
 #include <inttypes.h>
 #include <math.h>
 #include <stdio.h>
@@ -342,8 +343,7 @@ end:
 ndt_waypoint* ndt_waypoint_pbd(ndt_waypoint *plce, double magb, ndt_distance dist, ndt_date date, void *wmm)
 {
     ndt_waypoint *wpt = NULL;
-
-    if (!plce || !(wpt = ndt_waypoint_init()))
+    if (!plce || !wmm || !(wpt = ndt_waypoint_init()))
     {
         goto end;
     }
@@ -358,23 +358,81 @@ ndt_waypoint* ndt_waypoint_pbd(ndt_waypoint *plce, double magb, ndt_distance dis
              plce->info.idnt, magb,
              ndt_distance_get(dist, NDT_ALTUNIT_ME) / 1852.);
 
-#if 0
+end:
+    return wpt;
+}
+
+ndt_waypoint* ndt_waypoint_pbpb(ndt_waypoint *src1, double mag1, ndt_waypoint *src2, double mag2, ndt_date date, void *wmm)
+{
+    ndt_waypoint *wpt = NULL;
+    if (!src1 || !src2 || !wmm || !(wpt = ndt_waypoint_init()))
     {
-        double       trub = ndt_position_calcbearing (plce->position, wpt->position);
-        ndt_distance d1st = ndt_position_calcdistance(plce->position, wpt->position);
-        ndt_log("-------------------------------------------------------------\n");
-        ndt_log("%s\n", wpt->info.idnt);
-        ndt_log("Bearing:  expected %5.1lf° (%05.1lf° T) actual %5.1lf° (%05.1lf° T)\n",
-                magb,
-                ndt_wmm_getbearing_tru(wmm, magb, plce->position, date),
-                ndt_wmm_getbearing_mag(wmm, trub, plce->position, date),
-                trub);
-        ndt_log("Distance: expected %5.1lf             actual %5.1lf\n",
-                ndt_distance_get(dist, NDT_ALTUNIT_ME) / 1852.,
-                ndt_distance_get(d1st, NDT_ALTUNIT_ME) / 1852.);
-        ndt_log("\n");
+        goto end;
     }
-#endif
+    wpt->pbpb.wpt1 = src1;
+    wpt->pbpb.brg1 = mag1;
+    wpt->pbpb.wpt2 = src2;
+    wpt->pbpb.brg2 = mag2;
+    wpt->type      = NDT_WPTYPE_PPB;
+    int rtval      = ndt_position_calcpos4pbpb(&wpt->position,
+                                               src1->position,
+                                               ndt_wmm_getbearing_tru(wmm, mag1, src1->position, date),
+                                               src2->position,
+                                               ndt_wmm_getbearing_tru(wmm, mag2, src2->position, date));
+    switch (rtval)
+    {
+        case 0:
+            break;
+        case EDOM:
+            ndt_log("%s %05.1lf, %s %05.1lf: infinity of intersections\n", src1->info.idnt, mag1, src2->info.idnt, mag2);
+            ndt_waypoint_close(&wpt);
+            goto end;
+        case ERANGE:
+            ndt_log("%s %05.1lf, %s %05.1lf: intersection(s) ambiguous\n", src1->info.idnt, mag1, src2->info.idnt, mag2);
+            ndt_waypoint_close(&wpt);
+            goto end;
+        default:
+            ndt_waypoint_close(&wpt);
+            goto end;
+    }
+    snprintf( wpt->info.idnt, sizeof(wpt->info.idnt), "%s-%03.0lf/%s-%03.0lf",
+             src1->info.idnt, mag1, src2->info.idnt, mag2);
+
+end:
+    return wpt;
+}
+
+ndt_waypoint* ndt_waypoint_pbpd(ndt_waypoint *src1, double magb, ndt_waypoint *src2, ndt_distance dist, ndt_date date, void *wmm)
+{
+    ndt_waypoint *wpt = NULL;
+    if (!src1 || !src2 || !wmm || !(wpt = ndt_waypoint_init()))
+    {
+        goto end;
+    }
+    wpt->pbpd.place    = src1;
+    wpt->pbpd.bearing  = magb;
+    wpt->pbpd.navaid   = src2;
+    wpt->pbpd.distance = dist;
+    wpt->type          = NDT_WPTYPE_PPD;
+    int rtval          = ndt_position_calcpos4pbpd(&wpt->position,
+                                                   src1->position,
+                                                   ndt_wmm_getbearing_tru(wmm, magb, src1->position, date),
+                                                   src2->position, dist);
+    switch (rtval)
+    {
+        case 0:
+            break;
+        case EDOM:
+            ndt_log("%s %05.1lf, %s D%.1lf: not found\n", src1->info.idnt, magb,
+                    src2->info.idnt, ndt_distance_get(dist, NDT_ALTUNIT_ME) / 1852.);
+            ndt_waypoint_close(&wpt);
+            goto end;
+        default:
+            ndt_waypoint_close(&wpt);
+            goto end;
+    }
+    snprintf( wpt->info.idnt, sizeof(wpt->info.idnt), "%s-%03.0lf/%s-D%.1lf",
+             src1->info.idnt, magb, src2->info.idnt, ndt_distance_get(dist, NDT_ALTUNIT_ME) / 1852.);
 
 end:
     return wpt;

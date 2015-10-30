@@ -18,6 +18,7 @@
  *     Timothy D. Walker
  */
 
+#include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
 #include <inttypes.h>
@@ -31,6 +32,7 @@
 #include "common/common.h"
 #include "compat/compat.h"
 #include "lib/flightplan.h"
+#include "lib/fmt_icaor.h"
 #include "lib/navdata.h"
 
 // executable name and version
@@ -61,8 +63,34 @@
 #define OPT_ATRS 273
 #define OPT_AFIN 274
 #define OPT_IRTE 275
+#define OPT_ANFO 276
+#define OPT_QPAC 277
 
-static int fprintairac = 0;
+// navigation data
+static char *info_aptidt = NULL;
+static char *path_navdat = NULL;
+static char *path_xplane = NULL;
+static char *qpac_aptids = NULL;
+
+// file input/output
+static char *path_in     = NULL;
+static int format_in     =   -1;
+static char *path_out    = NULL;
+static int format_out    =   -1;
+static int fprintairac   =    0;
+
+// departure, arrival, route
+static char *dep_apt     = NULL;
+static char *dep_rwy     = NULL;
+static char *sid_name    = NULL;
+static char *sid_trans   = NULL;
+static char *arr_apt     = NULL;
+static char *arr_rwy     = NULL;
+static char *star_name   = NULL;
+static char *star_trans  = NULL;
+static char *appr_trans  = NULL;
+static char *final_appr  = NULL;
+static char *icao_route  = NULL;
 
 static struct option navdconv_opts[] =
 {
@@ -76,13 +104,15 @@ static struct option navdconv_opts[] =
     // navigation data
     { "db",            required_argument, NULL, OPT_DTBS, },
     { "xplane",        required_argument, NULL, OPT_XPLN, },
-    { "airac",         no_argument,      &fprintairac, 1, },
+    { "info",          required_argument, NULL, OPT_ANFO, },
+    { "qpac",          required_argument, NULL, OPT_QPAC, },
 
     // file input/output
     { "i",             required_argument, NULL, OPT_INPT, },
     { "ifmt",          required_argument, NULL, OPT_IFMT, },
     { "o",             required_argument, NULL, OPT_OTPT, },
     { "ofmt",          required_argument, NULL, OPT_OFMT, },
+    { "airac",         no_argument,      &fprintairac, 1, },
 
     // departure, arrival, route
     { "dep",           required_argument, NULL, OPT_DAPT, },
@@ -100,35 +130,14 @@ static struct option navdconv_opts[] =
     { "rte",           required_argument, NULL, OPT_IRTE, },
 
     // that's all folks!
-    { NULL,            0,                 NULL,  0,  },
+    { NULL,            0,                 NULL,        0, },
 };
 
-// navigation data
-static char *path_navdat = NULL;
-static char *path_xplane = NULL;
-
-// file input/output
-static char *path_in     = NULL;
-static int format_in     =   -1;
-static char *path_out    = NULL;
-static int format_out    =   -1;
-
-// departure, arrival, route
-static char *dep_apt     = NULL;
-static char *dep_rwy     = NULL;
-static char *sid_name    = NULL;
-static char *sid_trans   = NULL;
-static char *arr_apt     = NULL;
-static char *arr_rwy     = NULL;
-static char *star_name   = NULL;
-static char *star_trans  = NULL;
-static char *appr_trans  = NULL;
-static char *final_appr  = NULL;
-static char *icao_route  = NULL;
-
+static int sidstar_task    (void);
 static int execute_task    (void);
 static int parse_options   (int argc, char **argv);
 static int validate_options(void);
+static int print_airportnfo(void);
 static int print_airac     (ndt_navdatabase  *ndb);
 static int print_help      (void);
 static int print_examples  (void);
@@ -154,6 +163,16 @@ int main(int argc, char **argv)
         goto end;
     }
 
+    if (info_aptidt)
+    {
+        ret = print_airportnfo();
+        goto end;
+    }
+    if (qpac_aptids)
+    {
+        ret = sidstar_task();
+        goto end;
+    }
     ret = execute_task();
 
 end:
@@ -164,9 +183,381 @@ end:
     return ret;
 }
 
+static int print_airportnfo(void)
+{
+    ndt_navdatabase *navdata = ndt_navdatabase_init(path_navdat, NDT_NAVDFMT_XPGNS);
+    if (!navdata)
+    {
+        return EINVAL;
+    }
+    return ndt_fmt_icaor_print_airportnfo(navdata, info_aptidt);
+}
+
+static int sidstar_procedure(ndt_navdatabase *ndb, int type,
+                             ndt_procedure  *proc, ndt_procedure *trans)
+{
+    ndt_flightplan *flp = NULL;
+    FILE            *fd = NULL;
+    char          *path = NULL;
+    char        *outdir = NULL;
+    int         pathlen = 0;
+    int             ret = 0;
+
+    /*
+     * Initialize empty flight plan.
+     */
+    if (!proc || !(flp = ndt_flightplan_init(ndb)))
+    {
+        ret = ENOMEM;
+        goto end;
+    }
+
+    /*
+     * Setup the requested procedure (1: SID, 2: STAR, 3: approach).
+     * We set the same departure and arrival airport; combined with the lack of
+     * enroute legs and the presence of a SID/STAR/approach procedure, we tell
+     * the XPFMS flightplan writer to skip writing the departure airport for
+     * SID procedures, resp. the arrival airport for STAR/approach procedures.
+     */
+    switch (type)
+    {
+        case 1:
+            if ((ret = ndt_flightplan_set_departure(flp, dep_apt, dep_rwy)) ||
+                (ret = ndt_flightplan_set_arrival  (flp, dep_apt, NULL)))
+            {
+                goto end;
+            }
+            ret = ndt_flightplan_set_departsid(flp, proc->info.idnt, trans ? trans->info.misc : NULL);
+            break;
+        case 2:
+            if ((ret = ndt_flightplan_set_departure(flp, arr_apt, NULL)) ||
+                (ret = ndt_flightplan_set_arrival  (flp, arr_apt, arr_rwy)))
+            {
+                goto end;
+            }
+            ret = ndt_flightplan_set_arrivstar(flp, proc->info.idnt, trans ? trans->info.misc : NULL);
+            break;
+        case 3:
+            if ((ret = ndt_flightplan_set_departure(flp, arr_apt, NULL)) ||
+                (ret = ndt_flightplan_set_arrival  (flp, arr_apt, arr_rwy)))
+            {
+                goto end;
+            }
+            ret = ndt_flightplan_set_arrivapch(flp, proc->info.idnt, trans ? trans->info.misc : NULL);
+            break;
+        default:
+            fprintf(stderr, "Unknown procedure generic type '%d' for %s.%s\n",
+                    type, proc->info.idnt, trans ? trans->info.idnt : "");
+            ret  =  EINVAL;
+            goto end;
+    }
+    if (ret)
+    {
+        goto end;
+    }
+
+    /*
+     * Determine an appropriate output file name.
+     * Note: to sort near the top,    use ' '
+     *       to sort near the bottom, use '_' instead
+     *       letters sort nearer the bottom than both of the above.
+     */
+    const char *transition;
+    char filename[6+7+9+6+4+1];// "/STAR_" "ICAO06L" "_VORDME-Y" ".WAYPT" ".fms" "\n"
+    ndt_route_leg *fleg = ndt_list_item(flp->legs,  0);
+    ndt_route_leg *lleg = ndt_list_item(flp->legs, -1);
+    if (fleg && fleg->type == NDT_LEGTYPE_ZZ)
+    {
+        fleg = ndt_list_item(flp->legs, 1);
+    }
+    if (!fleg || !lleg)
+    {
+        fprintf(stderr, "Flightplan is empty! %d: %s.%s\n",
+                type, proc->info.idnt, trans ? trans->info.idnt : "");
+        ret  =  EINVAL;
+        goto end;
+    }
+    switch (type)
+    {
+        case 1:
+            transition = lleg->dst ? lleg->dst->info.idnt : NULL;
+            transition = trans     ? trans->    info.misc : transition;
+            snprintf(filename, sizeof(filename), "/SID_%s%s %s%s%s.fms",
+                     dep_apt, dep_rwy, proc->info.idnt,
+                     transition == NULL ? "" : ".",
+                     transition == NULL ? "" : transition);
+            break;
+        case 2:
+            transition = fleg->dst ? fleg->dst->info.idnt : NULL;
+            transition = trans     ? trans->    info.misc : transition;
+            snprintf(filename, sizeof(filename), "/STAR_%s%s %s%s%s.fms",
+                     arr_apt, arr_rwy, proc->info.idnt,
+                     transition == NULL ? "" : ".",
+                     transition == NULL ? "" : transition);
+            break;
+        case 3:
+            transition = fleg->dst ? fleg->dst->info.idnt : NULL;
+            transition = trans     ? trans->    info.misc : transition;
+            snprintf(filename, sizeof(filename), "/STAR_%s%s_%s%s%s.fms",
+                     arr_apt, arr_rwy, proc->approach.short_name,
+                     transition == NULL ? "" : ".",
+                     transition == NULL ? "" : transition);
+            break;
+        default:
+            fprintf(stderr, "Unknown procedure generic type '%d' for %s.%s\n",
+                    type, proc->info.idnt, trans ? trans->info.idnt : "");
+            ret  =  EINVAL;
+            goto end;
+    }
+
+    /*
+     * If a subdirectory using the airport's ICAO code exists,
+     * use said subfolder instead of the output folder's root.
+     */
+    struct stat stats;
+    char subdir[1+4+1];// "/" "ICAO" "\n"
+    snprintf(subdir, sizeof(subdir), "/%4s", dep_apt);
+    if (!ndt_file_getpath(path_out, subdir, &path, &pathlen) &&
+        !stat(path, &stats) && !!S_ISDIR(stats.st_mode) && !access(path, W_OK))
+    {
+        outdir = strdup(path);
+    }
+    else
+    {
+        outdir = strdup(path_out);
+    }
+    if ((ret = ndt_file_getpath(outdir, filename, &path, &pathlen)))
+    {
+        goto end;
+    }
+
+    /*
+     * Finally, let's write the (partial) flightplan to a file.
+     */
+    if  (!(fd = fopen(path, "w")))
+    {
+        ret = errno;
+        goto end;
+    }
+    if ((ret = ndt_flightplan_write(flp, fd, NDT_FLTPFMT_XPFMS)))
+    {
+        goto end;
+    }
+
+end:
+    if (flp)
+    {
+        ndt_flightplan_close(&flp);
+    }
+    if (fd)
+    {
+        fclose(fd);
+    }
+    if (ret)
+    {
+        if (type == 1)
+        {
+            ndt_log("failed to create file for %s%s%s: %s%s%s (%s)\n", dep_apt,
+                    dep_rwy == NULL     ? "" : "/",
+                    dep_rwy == NULL     ? "" : dep_rwy,
+                    proc  ? proc-> info.idnt : NULL,
+                    trans   == NULL     ? "" : ".",
+                    trans   == NULL     ? "" : trans->info.misc, strerror(ret));
+        }
+        else
+        {
+            ndt_log("failed to create file for %s%s%s: %s%s%s (%s)\n", arr_apt,
+                    arr_rwy == NULL     ? "" : "/",
+                    arr_rwy == NULL     ? "" : arr_rwy,
+                    proc  ? proc-> info.idnt : NULL,
+                    trans   == NULL     ? "" : ".",
+                    trans   == NULL     ? "" : trans->info.misc, strerror(ret));
+        }
+    }
+    free(outdir);
+    free  (path);
+    return     0;
+}
+
+static int sidstar_task(void)
+{
+    ndt_navdatabase   *navdata = NULL;
+    int                   rval = 0;
+    ndt_runway           *rnwy;
+    ndt_route_leg        *rleg;
+    ndt_airport   *apt1, *apt2;
+    ndt_procedure *proc, *tran;
+
+    /*
+     * Free some global variables we'll be re-using shortly.
+     */
+    free(dep_rwy);
+    free(arr_rwy);
+
+    /*
+     * Initialize navigation data and airport procedures.
+     */
+    if (!(navdata = ndt_navdatabase_init(path_navdat, NDT_NAVDFMT_XPGNS)))
+    {
+        rval = EINVAL;
+        goto end;
+    }
+    if (!(apt1 = ndt_navdata_get_airport(navdata, dep_apt)))
+    {
+        fprintf(stderr, "Airport %s not found\n", dep_apt);
+        rval = EINVAL;
+        goto end;
+    }
+    if (!(apt2 = ndt_navdata_get_airport(navdata, arr_apt)))
+    {
+        fprintf(stderr, "Airport %s not found\n", arr_apt);
+        rval = EINVAL;
+        goto end;
+    }
+    if (!(ndt_navdata_init_airport(navdata, apt1)) ||
+        !(ndt_navdata_init_airport(navdata, apt2)))
+    {
+        rval = EINVAL;
+        goto end;
+    }
+
+    /*
+     * First airport, all departures:
+     * - one file per runway for each SID procedure;
+     * - one file per runway for each transition (prepending its parent SID).
+     */
+    for (size_t i = 0; i < ndt_list_count(apt1->runways); i++)
+    {
+        if (!(rnwy = ndt_list_item(apt1->runways, i)))
+        {
+            rval = ENOMEM;
+            goto end;
+        }
+        else
+        {
+            dep_rwy = rnwy->info.idnt;
+            arr_rwy = NULL;
+        }
+        for (size_t j = 0; j < ndt_list_count(rnwy->sids); j++)
+        {
+            if (!(proc = ndt_list_item(rnwy->sids, j)))
+            {
+                rval = ENOMEM;
+                goto end;
+            }
+            if ((rval = sidstar_procedure(navdata, 1, proc, NULL)))
+            {
+                goto end;
+            }
+            if (!proc->transition.enroute)
+            {
+                continue;
+            }
+            for (size_t k = 0; k < ndt_list_count(proc->transition.enroute); k++)
+            {
+                if (!(tran = ndt_list_item(proc->transition.enroute, k)))
+                {
+                    rval = ENOMEM;
+                    goto end;
+                }
+                if ((rval = sidstar_procedure(navdata, 1, proc, tran)))
+                {
+                    goto end;
+                }
+            }
+        }
+    }
+
+    /*
+     * Second airport, all departures:
+     * - one file per runway for each STAR procedure;
+     * - one file per runway for each transition (appending its parent STAR);
+     * - one file per runway for each final approach procedure;
+     * - one file per runway for each transition (appending the final approach).
+     */
+    for (size_t i = 0; i < ndt_list_count(apt2->runways); i++)
+    {
+        if (!(rnwy = ndt_list_item(apt2->runways, i)))
+        {
+            rval = ENOMEM;
+            goto end;
+        }
+        else
+        {
+            dep_rwy = NULL;
+            arr_rwy = rnwy->info.idnt;
+        }
+        for (size_t j = 0; j < ndt_list_count(rnwy->stars); j++)
+        {
+            if (!(proc = ndt_list_item(rnwy->stars, j)))
+            {
+                rval = ENOMEM;
+                goto end;
+            }
+            if ((rval = sidstar_procedure(navdata, 2, proc, NULL)))
+            {
+                goto end;
+            }
+            if (!proc->transition.enroute)
+            {
+                continue;
+            }
+            for (size_t k = 0; k < ndt_list_count(proc->transition.enroute); k++)
+            {
+                if (!(tran = ndt_list_item(proc->transition.enroute, k)))
+                {
+                    rval = ENOMEM;
+                    goto end;
+                }
+                if ((rval = sidstar_procedure(navdata, 2, proc, tran)))
+                {
+                    goto end;
+                }
+            }
+        }
+        for (size_t j = 0; j < ndt_list_count(rnwy->approaches); j++)
+        {
+            if (!(proc = ndt_list_item(rnwy->approaches, j)))
+            {
+                rval = ENOMEM;
+                goto end;
+            }
+            if ((rval = sidstar_procedure(navdata, 3, proc, NULL)))
+            {
+                goto end;
+            }
+            if (!proc->transition.approach)
+            {
+                continue;
+            }
+            for (size_t k = 0; k < ndt_list_count(proc->transition.approach); k++)
+            {
+                if (!(tran = ndt_list_item(proc->transition.approach, k)))
+                {
+                    rval = ENOMEM;
+                    goto end;
+                }
+                if ((rval = sidstar_procedure(navdata, 3, proc, tran)))
+                {
+                    goto end;
+                }
+            }
+        }
+    }
+
+end:
+    if (navdata)
+    {
+        ndt_navdatabase_close(&navdata);
+    }
+    dep_rwy = NULL;
+    arr_rwy = NULL;
+    return    rval;
+}
+
 static int execute_task(void)
 {
-    int              ret     = 0;
+    int                  ret = 0;
     ndt_navdatabase *navdata = NULL;
     ndt_flightplan  *fltplan = NULL;
     char            *flp_rte = NULL;
@@ -189,13 +580,25 @@ static int execute_task(void)
         goto end;
     }
 
-    if (dep_apt && (ret = ndt_flightplan_set_departure(fltplan, dep_apt, dep_rwy)))
+    // departure airport/runway, SID and arrival airport/runway must
+    // be set first for sequencing and filtering of duplicate waypoints
+    if (dep_apt)
     {
-        goto end;
+        if ((ret = ndt_flightplan_set_departure(fltplan, dep_apt, dep_rwy)))
+        {
+            goto end;
+        }
+        if (sid_name && (ret = ndt_flightplan_set_departsid(fltplan, sid_name, sid_trans)))
+        {
+            goto end;
+        }
     }
-    if (arr_apt && (ret = ndt_flightplan_set_arrival  (fltplan, arr_apt, arr_rwy)))
+    if (arr_apt)
     {
-        goto end;
+        if ((ret = ndt_flightplan_set_arrival(fltplan, arr_apt, arr_rwy)))
+        {
+            goto end;
+        }
     }
 
     if (path_in && !icao_route)
@@ -212,7 +615,84 @@ static int execute_task(void)
         format_in = NDT_FLTPFMT_ICAOR;
     }
 
+    // we can set the flight route now
     if (flp_rte && (ret = ndt_flightplan_set_route(fltplan, flp_rte, format_in)))
+    {
+        goto end;
+    }
+
+    // STAR and approach must be set after the flight route for proper sequencing
+    if (star_name)
+    {
+        if (fltplan->arr.star.proc) // STAR might be present in the flight route
+        {
+            if (star_trans)
+            {
+                fprintf(stderr, "warning: ignoring STAR '%s.%s'\n", star_name, star_trans);
+            }
+            else
+            {
+                fprintf(stderr, "warning: ignoring STAR '%s'\n", star_name);
+            }
+        }
+        else if ((ret = ndt_flightplan_set_arrivstar(fltplan, star_name, star_trans)))
+        {
+            goto end;
+        }
+    }
+    if (fltplan->arr.rwy && appr_trans && !strcasecmp(appr_trans, "auto"))
+    {
+        ndt_route_leg *leg = ndt_list_item(fltplan->legs, -1);
+        ndt_waypoint  *src = leg ? leg->dst : NULL;
+        free(appr_trans); appr_trans = NULL; // reset
+        if (src)
+        {
+            ndt_procedure *final = ndt_procedure_get(fltplan->arr.rwy->approaches, final_appr, NULL);
+            if (final)
+            {
+                for (size_t i = 0; i < ndt_list_count(final->transition.approach); i++)
+                {
+                    ndt_procedure *apptr = ndt_list_item(final->transition.approach, i);
+                    if (apptr)
+                    {
+                        ndt_route_leg *leg = ndt_list_item(apptr->proclegs, 0);
+                        if (leg)
+                        {
+                            if (leg->type == NDT_LEGTYPE_IF && leg->dst == src)
+                            {
+                                appr_trans = strdup(apptr->info.misc);
+                                break;
+                            }
+                            if (leg->src == src)
+                            {
+                                appr_trans = strdup(apptr->info.misc);
+                                break;
+                            }
+                        }
+                        for (size_t j = i; j < ndt_list_count(apptr->proclegs); j++)
+                        {
+                            leg = ndt_list_item(apptr->proclegs, j);
+                            if (leg && leg->type == NDT_LEGTYPE_IF && leg->dst == src)
+                            {
+                                appr_trans = strdup(apptr->info.misc);
+                                break;
+                            }
+                        }
+                        if (appr_trans)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if (!appr_trans)
+        {
+            fprintf(stderr, "warning: no valid approach transition found\n");
+        }
+    }
+    if ((final_appr && arr_rwy) &&
+        (ret = ndt_flightplan_set_arrivapch(fltplan, final_appr, appr_trans)))
     {
         goto end;
     }
@@ -270,15 +750,32 @@ static int parse_options(int argc, char **argv)
             case OPT_VRSN:
                 exit(print_version());
 
+            case OPT_ANFO:
+                free(info_aptidt);
+                info_aptidt = strdup(optarg);
+                break;
+
             case OPT_DTBS:
+                free(path_navdat);
+                free(path_xplane);
+                path_xplane = NULL;
                 path_navdat = strdup(optarg);
                 break;
 
             case OPT_XPLN:
+                free(path_xplane);
+                free(path_navdat);
+                path_navdat = NULL;
                 path_xplane = strdup(optarg);
                 break;
 
+            case OPT_QPAC:
+                free(qpac_aptids);
+                qpac_aptids = strdup(optarg);
+                break;
+
             case OPT_INPT:
+                free(path_in);
                 free(icao_route);
                 icao_route = NULL;
                 path_in    = strdup(optarg);
@@ -304,7 +801,11 @@ static int parse_options(int argc, char **argv)
                 return EINVAL;
 
             case OPT_OTPT:
-                path_out = strdup(optarg);
+                free(path_out);
+                if (!strcasecmp(optarg, "stdout"))
+                    path_out = NULL;
+                else
+                    path_out = strdup(optarg);
                 break;
 
             case OPT_OFMT:
@@ -322,6 +823,11 @@ static int parse_options(int argc, char **argv)
                     !strcasecmp(optarg, "skyvector")) // legacy name for flat, decoded route
                 {
                     format_out = NDT_FLTPFMT_DCDED;
+                    break;
+                }
+                if (!strcasecmp(optarg, "test"))
+                {
+                    format_out = NDT_FLTPFMT_DTSTG; // purposefully undocumented
                     break;
                 }
                 if (!strcasecmp(optarg, "helper"))
@@ -358,47 +864,88 @@ static int parse_options(int argc, char **argv)
                 return EINVAL;
 
             case OPT_DAPT:
-                dep_apt = strdup(optarg);
+                free(dep_apt);
+                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
+                    dep_apt = NULL;
+                else
+                    dep_apt = strdup(optarg);
                 break;
 
             case OPT_DRWY:
-                dep_rwy = strdup(optarg);
+                free(dep_rwy);
+                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
+                    dep_rwy = NULL;
+                else
+                    dep_rwy = strdup(optarg);
                 break;
 
             case OPT_DSID:
-                sid_name = strdup(optarg);
+                free(sid_name);
+                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
+                    sid_name = NULL;
+                else
+                    sid_name = strdup(optarg);
                 break;
 
             case OPT_DSTR:
-                sid_trans = strdup(optarg);
+                free(sid_trans);
+                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
+                    sid_trans = NULL;
+                else
+                    sid_trans = strdup(optarg);
                 break;
 
             case OPT_AAPT:
-                arr_apt = strdup(optarg);
+                free(arr_apt);
+                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
+                    arr_apt = NULL;
+                else
+                    arr_apt = strdup(optarg);
                 break;
 
             case OPT_ARWY:
-                arr_rwy = strdup(optarg);
+                free(arr_rwy);
+                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
+                    arr_rwy = NULL;
+                else
+                    arr_rwy = strdup(optarg);
                 break;
 
             case OPT_ASTA:
-                star_name = strdup(optarg);
+                free(star_name);
+                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
+                    star_name = NULL;
+                else
+                    star_name = strdup(optarg);
                 break;
 
             case OPT_ASTR:
-                star_trans = strdup(optarg);
+                free(star_trans);
+                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
+                    star_trans = NULL;
+                else
+                    star_trans = strdup(optarg);
                 break;
 
             case OPT_ATRS:
-                appr_trans = strdup(optarg);
+                free(appr_trans);
+                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
+                    appr_trans = NULL;
+                else
+                    appr_trans = strdup(optarg);
                 break;
 
             case OPT_AFIN:
-                final_appr = strdup(optarg);
+                free(final_appr);
+                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
+                    final_appr = NULL;
+                else
+                    final_appr = strdup(optarg);
                 break;
 
             case OPT_IRTE:
                 free(path_in);
+                free(icao_route);
                 path_in    = NULL;
                 icao_route = strdup(optarg);
                 break;
@@ -417,6 +964,99 @@ static int validate_options(void)
     int    pathlen, ret = 0;
     struct stat stats;
     char   error[64];
+
+    // convert all IDs and flight route to uppercase
+    if (info_aptidt)
+    {
+        for (size_t i = 0; info_aptidt[i] != '\0'; i++)
+        {
+            info_aptidt[i] = toupper(info_aptidt[i]);
+        }
+    }
+    if (qpac_aptids)
+    {
+        for (size_t i = 0; qpac_aptids[i] != '\0'; i++)
+        {
+            qpac_aptids[i] = toupper(qpac_aptids[i]);
+        }
+    }
+    if (dep_apt)
+    {
+        for (size_t i = 0; dep_apt[i] != '\0'; i++)
+        {
+            dep_apt[i] = toupper(dep_apt[i]);
+        }
+    }
+    if (dep_rwy)
+    {
+        for (size_t i = 0; dep_rwy[i] != '\0'; i++)
+        {
+            dep_rwy[i] = toupper(dep_rwy[i]);
+        }
+    }
+    if (sid_name)
+    {
+        for (size_t i = 0; sid_name[i] != '\0'; i++)
+        {
+            sid_name[i] = toupper(sid_name[i]);
+        }
+    }
+    if (sid_trans)
+    {
+        for (size_t i = 0; sid_trans[i] != '\0'; i++)
+        {
+            sid_trans[i] = toupper(sid_trans[i]);
+        }
+    }
+    if (arr_apt)
+    {
+        for (size_t i = 0; arr_apt[i] != '\0'; i++)
+        {
+            arr_apt[i] = toupper(arr_apt[i]);
+        }
+    }
+    if (arr_rwy)
+    {
+        for (size_t i = 0; arr_rwy[i] != '\0'; i++)
+        {
+            arr_rwy[i] = toupper(arr_rwy[i]);
+        }
+    }
+    if (star_name)
+    {
+        for (size_t i = 0; star_name[i] != '\0'; i++)
+        {
+            star_name[i] = toupper(star_name[i]);
+        }
+    }
+    if (star_trans)
+    {
+        for (size_t i = 0; star_trans[i] != '\0'; i++)
+        {
+            star_trans[i] = toupper(star_trans[i]);
+        }
+    }
+    if (final_appr)
+    {
+        for (size_t i = 0; final_appr[i] != '\0'; i++)
+        {
+            final_appr[i] = toupper(final_appr[i]);
+        }
+    }
+    if (appr_trans)
+    {
+        for (size_t i = 0; appr_trans[i] != '\0'; i++)
+        {
+            appr_trans[i] = toupper(appr_trans[i]);
+        }
+    }
+    if (icao_route)
+    {
+        for (size_t i = 0; icao_route[i] != '\0'; i++)
+        {
+            icao_route[i] = toupper(icao_route[i]);
+        }
+    }
 
     if (path_xplane)
     {
@@ -443,7 +1083,7 @@ static int validate_options(void)
             fprintf(stderr, "Invalid X-Plane directory: '%s' (%s)\n", path_xplane, error);
             goto end;
         }
-        else if (!path_navdat)
+        if (!path_navdat)
         {
             if (!(path_navdat = strdup(path)))
             {
@@ -454,10 +1094,10 @@ static int validate_options(void)
             // check if updated Custom Data is available
             if ((ret = ndt_file_getpath(path_xplane, "/Custom Data/GNS430/navdata", &path, &pathlen)))
             {
-                free(path);
+                free(path_navdat);
                 goto end;
             }
-            else if (!stat(path, &stats) && S_ISDIR(stats.st_mode))
+            if (!stat(path, &stats) && S_ISDIR(stats.st_mode))
             {
                 free(path_navdat);
                 if ((path_navdat = strdup(path)) == NULL)
@@ -502,19 +1142,75 @@ static int validate_options(void)
         goto end;
     }
 
+    if (qpac_aptids)
+    {
+        if (!path_out)
+        {
+            if (!path_xplane)
+            {
+                fprintf(stderr, "No X-Plane or output directory provided\n");
+                ret = EINVAL;
+                goto end;
+            }
+            if ((ret = ndt_file_getpath(path_xplane, "/Output/FMS plans", &path, &pathlen)))
+            {
+                goto end;
+            }
+            if (!(path_out = strdup(path)))
+            {
+                ret = ENOMEM;
+                goto end;
+            }
+        }
+        if (stat(path_out, &stats))
+        {
+            strerror_r((ret = errno), error, sizeof(error));
+            fprintf(stderr, "Bad output directory: '%s' (%s)\n", path_out, error);
+            goto end;
+        }
+        if (!S_ISDIR(stats.st_mode))
+        {
+            strerror_r((ret = ENOTDIR), error, sizeof(error));
+            fprintf(stderr, "Bad output directory: '%s' (%s)\n", path_out, error);
+            goto end;
+        }
+        if (access(path_out, W_OK))
+        {
+            strerror_r((ret = errno), error, sizeof(error));
+            fprintf(stderr, "Bad output directory: '%s' (%s)\n", path_out, error);
+            goto end;
+        }
+        free(arr_apt); arr_apt = strdup(qpac_aptids);
+        free(dep_apt); dep_apt = strsep(&arr_apt, "/\\-.");
+        if (!dep_apt || !strlen(dep_apt))
+        {
+            fprintf(stderr, "Failed to split \"%s\"\n", qpac_aptids);
+            ret = EINVAL;
+            goto end;
+        }
+        if (!arr_apt && !(arr_apt = strdup(dep_apt)))
+        {
+            ret = ENOMEM;
+            goto end;
+        }
+        goto end; // no other data needed
+    }
+    if (info_aptidt)
+    {
+        goto end; // no other data needed
+    }
     if (!path_in && !icao_route && !dep_apt && !arr_apt)
     {
         fprintf(stderr, "No input file or route provided\n");
         ret = EINVAL;
         goto end;
     }
-    else if (path_in && access(path_in, R_OK))
+    if (path_in && access(path_in, R_OK))
     {
         strerror_r((ret = errno), error, sizeof(error));
         fprintf(stderr, "Bad input file: '%s' (%s)\n", path_in, error);
         goto end;
     }
-
     if (path_out && strnlen(path_out, 1))
     {
         char  *dir, *sep;
@@ -631,29 +1327,41 @@ static int print_help(void)
             "                                        fly-over waypoints         \n"
             "                        Default: xplane                            \n"
             "                                                                   \n"
+            "  --info       <string> Print airport information to stdout for the\n"
+            "                        specified ICAO identifier, including all   \n"
+            "                        known procedure and transition names.      \n"
+            "                                                                   \n"
+            "  --qpac <icao>/<icao>  Write all SID procedures for the first ICAO\n"
+            "                        identifier, and all STAR and final approach\n"
+            "                        procedures for the second ICAO identifier, \n"
+            "                        to files in X-Plane .fms format (including \n"
+            "                        altitude and speed constraints using QPAC- \n"
+            "                        specific enhancements). Files are written  \n"
+            "                        to X-Plane's /Output/FMS plans/ folder by  \n"
+            "                        default, unless a different output folder  \n"
+            "                        is specified via option --o                \n"
+            "                                                                   \n"
             "### Flight planning     -------------------------------------------\n"
             "  --dep        <string> Set departure airport (4-letter ICAO code).\n"
             "                        May be omitted if the departure is present \n"
             "                        in the route as well.                      \n"
             "  --drwy       <string> Set departure runway. Can be omitted.      \n"
             "                                                                   \n"
-#if 0
-            "  --sid        <string> Select a SID procedure (not implemented).  \n"
-            "  --sidtr      <string> Set the SID transition (not implemented).  \n"
+            "  --sid        <string> Select a SID procedure.                    \n"
+            "  --sidtr      <string> Select enroute transition for the SID.     \n"
             "                                                                   \n"
-#endif
             "  --arr        <string> Set arrival airport (4-letter ICAO code).  \n"
             "                        May be omitted if the arrival is present   \n"
             "                        in the route as well.                      \n"
             "  --arwy       <string> Set arrival runway. Can be omitted.        \n"
             "                                                                   \n"
-#if 0
-            "  --star       <string> Select a STAR procedure (not implemented). \n"
-            "  --startr     <string> Set the STAR transition (not implemented). \n"
-            "  --apptr      <string> Set the approach trans. (not implemented). \n"
-            "  --final      <string> Set the final approach  (not implemented). \n"
+            "  --star       <string> Select a STAR procedure.                   \n"
+            "  --startr     <string> Select enroute transition for the STAR.    \n"
+            "  --final      <string> Select a final approach procedure.         \n"
+            "  --apptr      <string> Select a transition for the approach.      \n"
+            "                        Setting it to \"auto\" will attempt to pick\n"
+            "                        a valid approach transition automatically. \n"
             "                                                                   \n"
-#endif
             "  --rte        <string> Route in ICAO flight plan format. Should   \n"
             "                        include the departure and arrival airports,\n"
             "                        if not set via the --dep and --arr options.\n");
@@ -791,6 +1499,7 @@ static int print_examples(void)
             " \"recap\" (output only):                                          \n"
             "     ---------------------------------------------------------     \n"
             "     Departure: LSGG (GENEVA), elevation 1411 ft, transition altitude 7000 ft\n"
+            "     Arrival:   LSZH (ZURICH), elevation 1417 ft, transition level ATC\n"
             "                                                                   \n"
             "     Flight route:                                                 \n"
             "                                                                   \n"
@@ -814,10 +1523,9 @@ static int print_examples(void)
             "                                                                   \n"
             "     DCT             049.8° (051.7°T)  31.4 nm                     \n"
             "     LSZH                 N47°27.5'  E008°32.9'                    \n"
-            "                                                                   \n"
-            "     Arrival: LSZH (ZURICH), elevation 1417 ft, transition level ATC\n"
             "     ---------------------------------------------------------     \n"
             "     Departure: EIDW (DUBLIN INTL), elevation 242 ft, transition altitude 5000 ft\n"
+            "     Arrival:   KBOS (LOGAN INTL), elevation 19 ft, transition level FL180\n"
             "                                                                   \n"
             "     Flight route:                                                 \n"
             "                                                                   \n"
@@ -853,8 +1561,6 @@ static int print_examples(void)
             "                                                                   \n"
             "     DCT             262.7° (247.5°T)  37.3 nm                     \n"
             "     KBOS                 N42°21.8'  W071°00.4'                    \n"
-            "                                                                   \n"
-            "     Arrival: KBOS (LOGAN INTL), elevation 19 ft, transition level FL180\n"
             "     ---------------------------------------------------------     \n"
             "                                                                   \n"
             " \"airbusx\" (input and output):                                   \n"
@@ -905,6 +1611,7 @@ static int print_examples(void)
             "     11 BERSU 0 47.135278 7.941111 0.000000                        \n"
             "     1 LSZH 1417 47.458056 8.548056                                \n"
             "     0 ---- 0 0.000000 0.000000                                    \n"
+            "     0 ---- 0 0.000000 0.000000                                    \n"
             "     ---------------------------------------------------------     \n"
             "     I                                                             \n"
             "     3 version                                                     \n"
@@ -921,6 +1628,7 @@ static int print_examples(void)
             "     3 YQY 0 46.153333 -60.055556 0.000000                         \n"
             "     11 SCUPP 0 42.603056 -70.230278 0.000000                      \n"
             "     1 KBOS 19 42.362778 -71.006389                                \n"
+            "     0 ---- 0 0.000000 0.000000                                    \n"
             "     0 ---- 0 0.000000 0.000000                                    \n"
             "     ---------------------------------------------------------     \n",
             NDCONV_EXE, NDCONV_EXE, NDCONV_EXE);

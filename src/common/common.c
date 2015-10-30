@@ -260,8 +260,6 @@ ndt_airspeed ndt_airspeed_init(int64_t s, int u)
     return airspeed;
 }
 
-// assumes an OAT of -50°C
-ndt_airspeed NDT_MACH_DEFAULT = { .unit = NDT_SPDUNIT_NAT, .value = 1084680000, };
 ndt_airspeed ndt_airspeed_mach(double oat)
 {
     double speedofsound = (331.3 + (.6 * oat)) * 3600000.;
@@ -327,27 +325,22 @@ ndt_distance ndt_distance_init(int64_t d, int u)
     {
         case NDT_ALTUNIT_FL:
             distance.value = d * INT64_C(304800);
-            distance.unit  = NDT_ALTUNIT_NA;
             break;
 
         case NDT_ALTUNIT_FT:
             distance.value = d * INT64_C(3048);
-            distance.unit  = NDT_ALTUNIT_NA;
             break;
 
         case NDT_ALTUNIT_ME:
             distance.value = d * INT64_C(10000);
-            distance.unit  = NDT_ALTUNIT_NA;
             break;
 
         case NDT_ALTUNIT_NM:
             distance.value = d * INT64_C(18520000);
-            distance.unit  = NDT_ALTUNIT_NA;
             break;
 
         default:
             distance.value = d;
-            distance.unit  = NDT_ALTUNIT_NA;
             break;
     }
 
@@ -356,20 +349,6 @@ ndt_distance ndt_distance_init(int64_t d, int u)
 
 int64_t ndt_distance_get(ndt_distance d, int u)
 {
-    if (d.unit == u)
-    {
-        return d.value;
-    }
-
-    switch (d.unit)
-    {
-        case NDT_ALTUNIT_NA:
-            break;
-
-        default:
-            return ndt_distance_get(ndt_distance_init(d.value, d.unit), u);
-    }
-
     switch (u)
     {
         case NDT_ALTUNIT_FL:
@@ -389,6 +368,36 @@ int64_t ndt_distance_get(ndt_distance d, int u)
     }
 }
 
+ndt_distance ndt_distance_max(ndt_distance d1, ndt_distance d2)
+{
+    if (d1.value > d2.value)
+    {
+        return d1;
+    }
+    return d2;
+}
+
+ndt_distance ndt_distance_min(ndt_distance d1, ndt_distance d2)
+{
+    if (d1.value < d2.value)
+    {
+        return d1;
+    }
+    return d2;
+}
+
+ndt_distance ndt_distance_add(ndt_distance d1, ndt_distance d2)
+{
+    ndt_distance sum = { .value = d1.value + d2.value, };
+    return       sum;
+}
+
+ndt_distance ndt_distance_rem(ndt_distance d1, ndt_distance d2)
+{
+    ndt_distance sub = { .value = d1.value - d2.value, };
+    return       sub;
+}
+
 #define INTSEC (     1650)                     // ((INT_MAX / (361 * 3601)) - 1)
 #define INTMIN (  60*1650)
 #define INTDEG (3600*1650)
@@ -405,8 +414,8 @@ ndt_position ndt_position_init(double lat, double lon, ndt_distance alt)
     position.longitude.value    = ((lon * DECDEG) * position.longitude.meridian);
 
     position.altitude     = alt;
-    position.precision[0] = ndt_distance_init(1, alt.unit);
-    position.precision[1] = ndt_distance_init(1, alt.unit);
+    position.precision[0] = ndt_distance_init(1, NDT_ALTUNIT_FT);
+    position.precision[1] = ndt_distance_init(1, NDT_ALTUNIT_FT);
 
     return position;
 }
@@ -470,75 +479,243 @@ double ndt_position_calcbearing(ndt_position from, ndt_position to)
      * http://williams.best.vwh.net/avform.htm#Crs
      */
     double lat1 = ndt_position_getlatitude (from, NDT_ANGUNIT_RAD);
+    double lon1 = ndt_position_getlongitude(from, NDT_ANGUNIT_RAD) * -1.;
     double lat2 = ndt_position_getlatitude (to,   NDT_ANGUNIT_RAD);
-    double lon1 = ndt_position_getlongitude(from, NDT_ANGUNIT_RAD);
-    double lon2 = ndt_position_getlongitude(to,   NDT_ANGUNIT_RAD);
-    double brng = 2 * M_PI - ndt_mod(atan2(sin(lon1 - lon2) * cos(lat2),
-                                           cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(lon1 - lon2)),
-                                     2 * M_PI);
+    double lon2 = ndt_position_getlongitude(to,   NDT_ANGUNIT_RAD) * -1.;
+    double cr12 = ndt_mod(atan2(sin(lon1 - lon2) * cos(lat2),
+                                cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(lon1 - lon2)),
+                          2. * M_PI);
 
-    double degr = brng * 180. / M_PI;
+    double degr = cr12 * 180. / M_PI;
     return degr ? degr : 360.;
 }
+
+double ndt_position_bearing_angle(double bearing, double targetb)
+{
+    double brgdiff = ndt_mod(targetb, 360.) - ndt_mod(bearing, 360.);
+    if (fabs(brgdiff) > 180.)
+    {
+        return ndt_position_angle_reverse(brgdiff);
+    }
+    return brgdiff == 180. ? -180. : brgdiff; // default left
+}
+
+double ndt_position_angle_reverse(double obverse)
+{
+    if (obverse > 0.)
+    {
+        double reverse = ndt_mod(obverse - 360., -360.); // e.g. +90. to -270.
+        return reverse ? reverse : -360.;
+    }
+    if (obverse < 0.)
+    {
+        double reverse = ndt_mod(obverse + 360., +360.); // e.g. -90. to +270.
+        return reverse ? reverse : +360.;
+    }
+    return 0.; // obverse == +0. || obverse == -0. (no angle)
+}
+
+/*
+ * Earth radius: one minute == 1/60 degree == 1 nautical mile.
+ *
+ * Check: X-Plane 10.36, default 747, default FMC: LSGK -D-> YSSY
+ * Note with default scenery, LSGK ramp 0.0nm from LSGK airport's waypoint.
+ */
+#define EARTHRAD (6366707.0195)
 
 ndt_distance ndt_position_calcdistance(ndt_position from, ndt_position to)
 {
     if (!memcmp(&from.latitude,  &to.latitude,  sizeof(to.latitude)) &&
         !memcmp(&from.longitude, &to.longitude, sizeof(to.longitude)))
     {
-        return ndt_distance_init(0, NDT_ALTUNIT_NA);
+        return NDT_DISTANCE_ZERO;
     }
 
     /*
      * http://williams.best.vwh.net/avform.htm#Dist
-     *
-     * Earth radius (ellipsoidal quadratic mean): approx. 6,372,800 meters
      */
-    double  lat1 = ndt_position_getlatitude (from, NDT_ANGUNIT_RAD);
-    double  lat2 = ndt_position_getlatitude (to,   NDT_ANGUNIT_RAD);
-    double  lon1 = ndt_position_getlongitude(from, NDT_ANGUNIT_RAD);
-    double  lon2 = ndt_position_getlongitude(to,   NDT_ANGUNIT_RAD);
-    int64_t dist = 12745600. * asin(sqrt(pow(sin((lat1 - lat2) / 2.), 2.) +
-                                         pow(sin((lon1 - lon2) / 2.), 2.) * cos(lat1) * cos(lat2)));
+    double lat1 = ndt_position_getlatitude (from, NDT_ANGUNIT_RAD);
+    double lon1 = ndt_position_getlongitude(from, NDT_ANGUNIT_RAD) * -1.;
+    double lat2 = ndt_position_getlatitude (to,   NDT_ANGUNIT_RAD);
+    double lon2 = ndt_position_getlongitude(to,   NDT_ANGUNIT_RAD) * -1.;
+    double dis2 = 2. * asin(sqrt(pow(sin((lat1 - lat2) / 2.), 2.) +
+                                 pow(sin((lon1 - lon2) / 2.), 2.) * cos(lat1) * cos(lat2)));
 
-    return ndt_distance_init(dist, NDT_ALTUNIT_ME);
+    return ndt_distance_init(EARTHRAD * dis2, NDT_ALTUNIT_ME);
 }
 
 int ndt_position_calcduration(ndt_position from, ndt_position to, ndt_airspeed at)
 {
-    /* TODO: implement */
     return 0;
 }
 
 int ndt_position_calcintercept(ndt_position from, ndt_position to, ndt_position orig)
 {
-    /* TODO: implement */
     return 0;
 }
 
 ndt_position ndt_position_calcpos4pbd(ndt_position from, double trub, ndt_distance dist)
 {
-    /*
-     * Earth radius (ellipsoidal quadratic mean): approx. 6,372,800 meters
-     */
-    double brg0 = (360. - trub) / 180. * M_PI;
-    double dis0 = (double)ndt_distance_get (dist, NDT_ALTUNIT_ME) / 6372800.;
+    double cr12 = trub / 180. * M_PI;
+    double dis2 = ndt_distance_get(dist, NDT_ALTUNIT_ME) / EARTHRAD;
     double lat1 = ndt_position_getlatitude (from, NDT_ANGUNIT_RAD);
-    double lon1 = ndt_position_getlongitude(from, NDT_ANGUNIT_RAD);
+    double lon1 = ndt_position_getlongitude(from, NDT_ANGUNIT_RAD) * -1.;
 
     /*
      * http://williams.best.vwh.net/avform.htm#LL
      */
-    double lat2 = asin (sin(lat1) * cos(dis0) +
-                        cos(lat1) * sin(dis0) * cos(brg0));
-    double dlon = atan2(sin(brg0) * sin(dis0) * cos(lat1),
-                        cos(dis0) - sin(lat1) * sin(lat2));
+    double lat2 = asin (sin(lat1) * cos(dis2) +
+                        cos(lat1) * sin(dis2) * cos(cr12));
+    double dlon = atan2(sin(cr12) * sin(dis2) * cos(lat1),
+                        cos(dis2) - sin(lat1) * sin(lat2));
     double lon2 = ndt_mod(lon1 - dlon + M_PI, 2. * M_PI) - M_PI;
 
     /* Don't forget to convert radians to decimal degrees */
     return ndt_position_init(lat2 * 180. / M_PI,
-                             lon2 * 180. / M_PI,
-                             ndt_distance_init(0, NDT_ALTUNIT_NA));
+                             lon2 * 180. / M_PI * -1., NDT_DISTANCE_ZERO);
+}
+
+int ndt_position_calcpos4pbpb(ndt_position *out, ndt_position pos1, double tru1, ndt_position pos2, double tru2)
+{
+    double lat1 = ndt_position_getlatitude (pos1, NDT_ANGUNIT_RAD);
+    double lon1 = ndt_position_getlongitude(pos1, NDT_ANGUNIT_RAD) * -1.;
+    double lat2 = ndt_position_getlatitude (pos2, NDT_ANGUNIT_RAD);
+    double lon2 = ndt_position_getlongitude(pos2, NDT_ANGUNIT_RAD) * -1.;
+
+    /*
+     * http://williams.best.vwh.net/avform.htm#Dist
+     */
+    double dis2 = 2. * asin(sqrt(pow(sin((lat1 - lat2) / 2.), 2.) +
+                                 pow(sin((lon1 - lon2) / 2.), 2.) * cos(lat1) * cos(lat2)));
+
+    /*
+     * http://williams.best.vwh.net/avform.htm#Crs
+     */
+    double cr12 = ndt_mod(atan2(sin(lon1 - lon2) * cos(lat2),
+                                cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(lon1 - lon2)),
+                          2. * M_PI);
+    double cr21 = ndt_mod(atan2(sin(lon2 - lon1) * cos(lat1),
+                                cos(lat2) * sin(lat1) - sin(lat2) * cos(lat1) * cos(lon2 - lon1)),
+                          2. * M_PI);
+
+    /*
+     * http://williams.best.vwh.net/avform.htm#Intersection
+     */
+    double cr13 = tru1 / 180. * M_PI;
+    double cr23 = tru2 / 180. * M_PI;
+    double a1a3 = ndt_mod(cr13 - cr12 + M_PI, 2. * M_PI) - M_PI;
+    double a2a3 = ndt_mod(cr21 - cr23 + M_PI, 2. * M_PI) - M_PI;
+
+    if (!sin(a1a3) && !sin(a2a3))
+    {
+        return EDOM; // "infinity of intersections"
+    }
+    if (sin(a1a3) * sin(a2a3) < 0.)
+    {
+        return ERANGE; // "intersection ambiguous"
+    }
+
+    double ang1 = fabs (a1a3);
+    double ang2 = fabs (a2a3);
+    double ang3 = acos (cos(ang1) * cos(ang2) * -1.    +    sin(ang1) * sin(ang2) * cos(dis2));
+    double dis3 = atan2(sin(dis2) * sin(ang1) * sin(ang2),  cos(ang2) + cos(ang1) * cos(ang3));
+    double lat3 = asin (sin(lat1) * cos(dis2) + cos(lat1) * sin(dis3) * cos(cr13));
+    double dlon = atan2(sin(cr13) * sin(dis3) * cos(lat1),  cos(dis3) - sin(lat1) * sin(lat3));
+    double lon3 = ndt_mod(lon1 - dlon + M_PI, 2. * M_PI) - M_PI;
+    ndt_position pos3 = ndt_position_init(lat3 * 180. / M_PI, lon3 * 180. / M_PI * -1., NDT_DISTANCE_ZERO);
+    if (out) *out = pos3;
+    return 0;
+}
+
+int ndt_position_calcpos4pbpd(ndt_position *out, ndt_position pos1, double trub, ndt_position pos2, ndt_distance dist)
+{
+    ndt_position posn;
+
+    /*
+     * If pos1 == pos2, math is really easy :)
+     */
+    if (ndt_distance_get(ndt_position_calcdistance(pos1, pos2), NDT_ALTUNIT_FT) < INT64_C(66))
+    {
+        posn = ndt_position_calcpos4pbd(pos1, trub, dist);
+        goto end;
+    }
+
+    /*
+     * Special cases where we're outbound or inbound pos2, math is straightforward.
+     */
+    double br12 = ndt_position_calcbearing(pos1, pos2);
+    if (fabs(ndt_position_bearing_angle   (br12, trub)) < 2.)
+    {
+        // we're headed straight for pos2
+        ndt_distance p1p2 = ndt_position_calcdistance(pos1, pos2);
+        if (ndt_distance_get(p1p2, NDT_ALTUNIT_NA) >
+            ndt_distance_get(dist, NDT_ALTUNIT_NA))
+        {
+            // we stop before reaching pos2
+            posn = ndt_position_calcpos4pbd(pos1, br12, ndt_distance_rem(p1p2, dist));
+        }
+        else
+        {
+            // we reach pos2 and continue past it
+            posn = ndt_position_calcpos4pbd(pos1, br12, ndt_distance_add(p1p2, dist));
+        }
+        goto end;
+    }
+    double br21 = ndt_position_calcbearing(pos2, pos1);
+    if (fabs(ndt_position_bearing_angle   (br21, trub)) < 2.)
+    {
+        // pos1 -> (pos2 dist) is direct continuation of pos2 -> pos1
+        posn = ndt_position_calcpos4pbd(pos2, br21, dist);
+        goto end;
+    }
+
+    /*
+     * Most naive implementation imaginable :(
+     */
+    ndt_position tpos;
+    double       diff;
+    int  found = 0;
+    for (int i = 0; i < 360; i++)
+    {
+        if (!ndt_position_calcpos4pbpb(&tpos, pos1, trub, pos2, (double)i))
+        {
+            ndt_distance  p2tp = ndt_position_calcdistance(pos2, tpos);
+            double        tdis = ndt_distance_get(ndt_distance_rem(dist, p2tp), NDT_ALTUNIT_FT);
+            double        tdif = fabs(tdis);
+            if (!found || tdif < diff)
+            {
+                diff   =  tdif;
+                posn   =  tpos;
+                found  = i + 1;
+            }
+        }
+    }
+    if (found) // refine to reduce diff
+    {
+        double rmin = ndt_mod((found - 1) - 1., 360.);
+        double rmax = ndt_mod((found - 1) + 1., 360.);
+        for (double i = rmin; i < rmax; i += 2./360.)
+        {
+            if (!ndt_position_calcpos4pbpb(&tpos, pos1, trub, pos2, i))
+            {
+                ndt_distance p2tp = ndt_position_calcdistance(pos2, tpos);
+                double       tdis = ndt_distance_get(ndt_distance_rem(dist, p2tp), NDT_ALTUNIT_FT);
+                double       tdif = fabs(tdis);
+                if (diff  >  tdif)
+                {
+                    diff  =  tdif;
+                    posn  =  tpos;
+                }
+            }
+        }
+    }
+    if (!found || diff > 660.) // off by max. 1 furlong (660 feet, ~200m)
+    {
+        return EDOM;
+    }
+end:
+    if (out) *out = posn;
+    return 0;
 }
 
 int ndt_position_sprintllc(ndt_position pos, ndt_llcfmt fmt, char *buf, size_t len)

@@ -55,11 +55,13 @@ ndt_navdatabase* ndt_navdatabase_init(const char *ndr, ndt_navdataformat fmt)
         goto end;
     }
 
+    ndb->fmt       = fmt;
+    ndb->root      = ndr;
     ndb->airports  = ndt_list_init();
     ndb->airways   = ndt_list_init();
     ndb->waypoints = ndt_list_init();
 
-    if (!ndb->airports || !ndb->airways || !ndb->waypoints || !ndr)
+    if (!ndb->airports || !ndb->airways || !ndb->waypoints || !ndb->root)
     {
         err = ENOMEM;
         goto end;
@@ -76,7 +78,7 @@ ndt_navdatabase* ndt_navdatabase_init(const char *ndr, ndt_navdataformat fmt)
     switch (fmt)
     {
         case NDT_NAVDFMT_XPGNS:
-            if ((err = ndt_ndb_xpgns_navdatabase_init(ndb, ndr)))
+            if ((err = ndt_ndb_xpgns_navdatabase_init(ndb)))
             {
                 goto end;
             }
@@ -96,6 +98,18 @@ ndt_navdatabase* ndt_navdatabase_init(const char *ndr, ndt_navdataformat fmt)
     ndt_list_sort(ndb->airports,  sizeof(ndt_airport*),  &compare_apt);
     ndt_list_sort(ndb->airways,   sizeof(ndt_airway*),   &compare_awy);
     ndt_list_sort(ndb->waypoints, sizeof(ndt_waypoint*), &compare_wpt);
+
+#if 0
+    /* Database is complete, test parsing of all procedures (slow) */
+    for (size_t i = 0; i < ndt_list_count(ndb->airports); i++)
+    {
+        if (!ndt_navdata_init_airport(ndb, ndt_list_item(ndb->airports, i)))
+        {
+            err = EINVAL;
+            goto end;
+        }
+    }
+#endif
 
 end:
     if (err)
@@ -167,7 +181,7 @@ ndt_airport* ndt_navdata_get_airport(ndt_navdatabase *ndb, const char *idt)
             ndt_airport *apt = ndt_list_item (ndb->airports,  i);
             if (apt)
             {
-                int cmp  = strncasecmp(idt, apt->info.idnt, sizeof(apt->info.idnt));
+                int cmp  = strcmp(idt, apt->info.idnt);
                 if (cmp <= 0)
                 {
                     if (!cmp)
@@ -183,6 +197,24 @@ ndt_airport* ndt_navdata_get_airport(ndt_navdatabase *ndb, const char *idt)
     return NULL;
 }
 
+ndt_airport* ndt_navdata_init_airport(ndt_navdatabase *ndb, ndt_airport *apt)
+{
+    if (!ndb || !apt)
+    {
+        return NULL;
+    }
+
+    switch (ndb->fmt)
+    {
+        case NDT_NAVDFMT_XPGNS:
+            return ndt_ndb_xpgns_navdata_init_airport(ndb, apt);
+
+        case NDT_NAVDFMT_OTHER:
+        default:
+            return NULL;
+    }
+}
+
 ndt_airway* ndt_navdata_get_airway(ndt_navdatabase *ndb, const char *idt, size_t *idx)
 {
     if (idt)
@@ -192,7 +224,7 @@ ndt_airway* ndt_navdata_get_airway(ndt_navdatabase *ndb, const char *idt, size_t
             ndt_airway *awy = ndt_list_item(ndb->airways, i);
             if (awy)
             {
-                int cmp  = strncasecmp(idt, awy->info.idnt, sizeof(awy->info.idnt));
+                int cmp  = strcmp(idt, awy->info.idnt);
                 if (cmp <= 0)
                 {
                     if (!cmp)
@@ -218,7 +250,7 @@ ndt_waypoint* ndt_navdata_get_waypoint(ndt_navdatabase *ndb, const char *idt, si
             ndt_waypoint *wpt = ndt_list_item(ndb->waypoints, i);
             if (wpt)
             {
-                int cmp  = strncasecmp(idt, wpt->info.idnt, sizeof(wpt->info.idnt));
+                int cmp  = strcmp(idt, wpt->info.idnt);
                 if (cmp <= 0)
                 {
                     if (!cmp)
@@ -379,7 +411,7 @@ static int compare_apt(const void *p1, const void *p2)
     ndt_airport *apt2 = *(ndt_airport**)p2;
 
     // there shouldn't be any duplicates, but use latitude for determinism
-    int cmp = strncasecmp(apt1->info.idnt, apt2->info.idnt, sizeof(apt2->info.idnt));
+    int cmp = strcmp(apt1->info.idnt, apt2->info.idnt);
     if (cmp)
     {
         return cmp;
@@ -394,7 +426,7 @@ static int compare_awy(const void *p1, const void *p2)
     ndt_airway *awy2 = *(ndt_airway**)p2;
 
     // duplicates handled by the getter, no need for determinism
-    return strncasecmp(awy1->info.idnt, awy2->info.idnt, sizeof(awy2->info.idnt));
+    return strcmp(awy1->info.idnt, awy2->info.idnt);
 }
 
 static int compare_wpt(const void *p1, const void *p2)
@@ -403,7 +435,7 @@ static int compare_wpt(const void *p1, const void *p2)
     ndt_waypoint *wpt2 = *(ndt_waypoint**)p2;
 
     // use type then latitude for determinism
-    int cmp = strncasecmp(wpt1->info.idnt, wpt2->info.idnt, sizeof(wpt2->info.idnt));
+    int cmp = strcmp(wpt1->info.idnt, wpt2->info.idnt);
     if (cmp)
     {
         return cmp;

@@ -34,6 +34,7 @@ typedef enum ndt_fltplanformat
     NDT_FLTPFMT_OTHER, // unknown or unsupported format
     NDT_FLTPFMT_AIBXT, // Airbus X Extended format
     NDT_FLTPFMT_DCDED, // decoded route legs, same line
+    NDT_FLTPFMT_DTSTG, // decoded route legs, same line, lat/lon only
     NDT_FLTPFMT_ICAOR, // ICAO route with departure/arrival airports, no SID/STAR
     NDT_FLTPFMT_IRECP, // route recap, multiple lines per leg
     NDT_FLTPFMT_SBRIF, // ICAO route only, with FlightAware latitude/longitude
@@ -52,28 +53,139 @@ typedef struct ndt_flightplan
 
     struct
     {
-        ndt_airport *apt;      // departure airport
-        ndt_runway  *rwy;      // departure runway
+        ndt_airport *apt;                           // departure airport
+        ndt_runway  *rwy;                           // departure runway
+        struct
+        {
+            struct ndt_procedure     *proc;         // standard departure (template)
+            struct ndt_route_segment *rsgt;         // standard departure (editable)
+            struct
+            {
+                struct ndt_procedure     *proc;     // enroute transition (template)
+                struct ndt_route_segment *rsgt;     // enroute transition (editable)
+            } enroute;
+        } sid;
     } dep;
 
     struct
     {
-        ndt_airport *apt;      // arrival airport
-        ndt_runway  *rwy;      // arrival runway
+        ndt_airport *apt;                           // arrival airport
+        ndt_runway  *rwy;                           // arrival runway
+        struct
+        {
+            struct ndt_procedure     *proc;         // standard arrival (template)
+            struct ndt_route_segment *rsgt;         // standard arrival (editable)
+            struct
+            {
+                struct ndt_procedure     *proc;     // enroute transition (template)
+                struct ndt_route_segment *rsgt;     // enroute transition (editable)
+            } enroute;
+        } star;
+        struct
+        {
+            struct ndt_procedure     *proc;         // final approach (template)
+            struct ndt_route_segment *rsgt;         // final approach (editable)
+            struct
+            {
+                struct ndt_procedure     *proc;     // approach transition (template)
+                struct ndt_route_segment *rsgt;     // approach transition (editable)
+            } transition;
+        } apch;
+        struct
+        {
+            struct ndt_route_segment *rsgt;         // dummy leg to runway threshold
+            struct ndt_route_leg     *rleg;         // dummy leg to runway threshold
+        } last;
     } arr;
 
     ndt_list *rte;             // list of segments (struct ndt_route_segment)
     ndt_list *legs;            // decoded route    (struct ndt_route_leg)
-
-    /* TODO: everything else */
 } ndt_flightplan;
 
 ndt_flightplan* ndt_flightplan_init         (ndt_navdatabase *navdatabase                                             );
 void            ndt_flightplan_close        (ndt_flightplan **_flightplan                                             );
 int             ndt_flightplan_set_departure(ndt_flightplan   *flightplan, const char *icao,  const char       *runway);
+int             ndt_flightplan_set_departsid(ndt_flightplan   *flightplan, const char *name,  const char   *transition);
 int             ndt_flightplan_set_arrival  (ndt_flightplan   *flightplan, const char *icao,  const char       *runway);
+int             ndt_flightplan_set_arrivstar(ndt_flightplan   *flightplan, const char *name,  const char   *transition);
+int             ndt_flightplan_set_arrivapch(ndt_flightplan   *flightplan, const char *name,  const char   *transition);
 int             ndt_flightplan_set_route    (ndt_flightplan   *flightplan, const char *route, ndt_fltplanformat format);
 int             ndt_flightplan_write        (ndt_flightplan   *flightplan, FILE *file,        ndt_fltplanformat format);
+
+typedef struct ndt_procedure
+{
+    ndt_info      info;                 // identification information
+    ndt_list *proclegs;                 // legs (main procedure)
+    ndt_list *mapplegs;                 // legs (missed approach)
+    ndt_list *custwpts;                 // procedure-specific custom waypoints
+    ndt_list  *runways;                 // applicable runways for this procedure (NULL for SID/STAR enroute transitions)
+
+    struct
+    {
+        // transition lists             // (NULL if N/A)
+        ndt_list *approach;             // applicable to: final
+        ndt_list *enroute;              // applicable to: STAR, SID
+
+        // transition points            // (NULL if N/A)
+        union
+        {
+            struct ndt_waypoint   *wpt; // applicable to: transitions (approach, enroute)
+            struct ndt_procedure  *sid; // applicable to: transitions (runway  ->    SID)
+            struct ndt_procedure *star; // applicable to: transitions (STAR    -> runway)
+        };
+    } transition;
+
+    struct
+    {
+        enum
+        {
+            NDT_APPRTYPE_CRCL,          // circling (a.k.a. letdown)
+            NDT_APPRTYPE_GLS,           // GLS
+            NDT_APPRTYPE_IGS,           // IGS
+            NDT_APPRTYPE_ILS,           // ILS
+            NDT_APPRTYPE_LDA,           // LDA
+            NDT_APPRTYPE_LOC,           // LOC
+            NDT_APPRTYPE_LOCB,          // LOC back course
+            NDT_APPRTYPE_NDB,           // NDB
+            NDT_APPRTYPE_NDBD,          // NDB + DME
+            NDT_APPRTYPE_RNAV,          // RNAV
+            NDT_APPRTYPE_VOR,           // VOR
+            NDT_APPRTYPE_VORD,          // VOR + DME
+            NDT_APPRTYPE_VORT,          // VOR + TACAN
+            NDT_APPRTYPE_UNK,           // unknown
+        } type;
+
+        char short_name[9];             // for space-constrainted listing
+    } approach;
+
+    enum ndt_procedure_type
+    {
+        NDT_PROCTYPE_SID_1 = 10,        // transition: runway   ->  SID
+        NDT_PROCTYPE_SID_2 = 11,        // SID
+        NDT_PROCTYPE_SID_3 = 12,        // transition: SID      ->  enroute
+        NDT_PROCTYPE_SID_4 = 13,        // transition: runway   ->  SID      (RNAV)
+        NDT_PROCTYPE_SID_5 = 14,        // SID                               (RNAV)
+        NDT_PROCTYPE_SID_6 = 15,        // transition: SID      ->  enroute  (RNAV)
+        NDT_PROCTYPE_STAR1 = 20,        // transition: enroute  ->  STAR
+        NDT_PROCTYPE_STAR2 = 21,        // STAR
+        NDT_PROCTYPE_STAR3 = 22,        // transition: STAR     ->  runway
+        NDT_PROCTYPE_STAR4 = 23,        // transition: enroute  ->  STAR     (RNAV)
+        NDT_PROCTYPE_STAR5 = 24,        // STAR                              (RNAV)
+        NDT_PROCTYPE_STAR6 = 25,        // transition: STAR     ->  runway   (RNAV)
+        NDT_PROCTYPE_STAR7 = 26,        // transition: enroute  ->  profile descent
+        NDT_PROCTYPE_STAR8 = 27,        // profile descent
+        NDT_PROCTYPE_STAR9 = 28,        // transition: descent  ->  runway
+        NDT_PROCTYPE_APPTR = 30,        // transition: STAR     ->  final    (from STAR/transition endpoint)
+        NDT_PROCTYPE_FINAL = 31,        // final approach
+    } type;
+} ndt_procedure;
+
+ndt_procedure* ndt_procedure_init (                              enum ndt_procedure_type  type);
+void           ndt_procedure_close(                                   ndt_procedure **_pointer);
+ndt_procedure* ndt_procedure_get  (ndt_list *procedures,  const char *name, ndt_runway *runway);
+ndt_procedure* ndt_procedure_gettr(ndt_list *transitions, const char *name                    );
+void           ndt_procedure_names(ndt_list *procedures,  ndt_list *output                    );
+void           ndt_procedure_trans(ndt_list *transitions, ndt_list *output                    );
 
 typedef struct ndt_route_segment
 {
@@ -86,7 +198,8 @@ typedef struct ndt_route_segment
         NDT_RSTYPE_AWY,        // airway
         NDT_RSTYPE_DCT,        // direct to
         NDT_RSTYPE_DSC,        // route discontinuity
-        NDT_RSTYPE_PRC,        // procedure
+        NDT_RSTYPE_MAP,        // procedure (missed approach)
+        NDT_RSTYPE_PRC,        // procedure (everything else)
     } type;
 
     union
@@ -99,6 +212,9 @@ typedef struct ndt_route_segment
             ndt_airway_leg *dst;
         }
         awy;
+
+        // associated procedure
+        ndt_procedure *prc;
     };
 
     ndt_list *legs;
@@ -107,18 +223,21 @@ typedef struct ndt_route_segment
 ndt_route_segment* ndt_route_segment_init  (                                                                                                                                                 );
 void               ndt_route_segment_close (ndt_route_segment **_segment                                                                                                                     );
 ndt_route_segment* ndt_route_segment_airway(ndt_waypoint        *src_wpt,  ndt_waypoint *dst_wpt, ndt_airway *airway, ndt_airway_leg *inleg, ndt_airway_leg *outleg, ndt_navdatabase *navdata);
-ndt_route_segment* ndt_route_segment_direct(ndt_waypoint        *src_wpt,  ndt_waypoint *dst_wpt,                                                                    ndt_navdatabase *navdata);
+ndt_route_segment* ndt_route_segment_direct(ndt_waypoint        *src_wpt,  ndt_waypoint *dst_wpt                                                                                             );
 ndt_route_segment* ndt_route_segment_discon(                                                                                                                                                 );
+ndt_route_segment* ndt_route_segment_proced(ndt_waypoint        *src_wpt,  ndt_restriction              *constraints, ndt_procedure                      *procedure, ndt_navdatabase *navdata);
 
 typedef struct ndt_route_leg
 {
+    ndt_info          info;    // identification information
     ndt_waypoint      *src;    // leg's start point                       (may be NULL)
-    ndt_waypoint      *dst;    // leg's stop  point                       (NULL: manual termination)
+    ndt_waypoint      *dst;    // leg's stop  point                       (may be NULL)
     ndt_distance       dis;    // distance covered by leg                 (unset if src or dst NULL)
     double             trb;    // bearing (unit: deg), true               (unset if src or dst NULL)
     double             imb;    // bearing (unit: deg), magnetic,  inbound (unset if src or dst NULL)
     double             omb;    // bearing (unit: deg), magnetic, outbound (unset if src or dst NULL)
     ndt_route_segment *rsg;    // leg's parent route segment
+    ndt_list        *xpfms;    // list of fake waypoints for XPFMS based formats
 
     enum
     {
@@ -143,8 +262,8 @@ typedef struct ndt_route_leg
         NDT_LEGTYPE_VI = 18,   // heading to next leg
         NDT_LEGTYPE_VM = 19,   // heading to manual termination
         NDT_LEGTYPE_VR = 20,   // heading to radial
-        NDT_LEGTYPE_HF = 21,   // hold at a fix after one full circuit
-        NDT_LEGTYPE_HA = 22,   // hold at a fix after reaching an altitude
+        NDT_LEGTYPE_HF = 21,   // hold at a fix
+        NDT_LEGTYPE_HA = 22,   // hold at a fix to altitude
         NDT_LEGTYPE_HM = 23,   // hold manually
 
         // custom
@@ -153,19 +272,102 @@ typedef struct ndt_route_leg
 
     union
     {
-        // associated airway info
+        // airway leg
+        ndt_airway_leg *awyleg;
+
+        // course to fix, radial, altitude, DME distance or intercept
         struct
         {
-            ndt_airway_leg *leg;
-        }
-        awy;
+            ndt_waypoint *navaid;       // source navaid
+            double      magnetic;       // magnetic course
+            union
+            {
+                double         radial;  // navaid radial
+                ndt_distance altitude;  // target altitude
+                ndt_distance distance;  // DME or leg distance
+            };
+        } course;
+
+        // heading to fix, radial, altitude, DME distance or intercept
+        struct
+        {
+            ndt_waypoint *navaid;       // source navaid
+            double       degrees;       // heading
+            union
+            {
+                double         radial;  // navaid radial
+                ndt_distance altitude;  // target altitude
+                ndt_distance distance;  // DME or leg distance
+            };
+        } heading;
+
+        // procedure turn
+        struct
+        {
+            ndt_waypoint *waypoint;     // associated waypoint
+            ndt_waypoint   *navaid;     // associated navaid
+            ndt_distance    limdis;     // turn distance limit (from: ????????)
+            ndt_distance    outdis;     // outbound distance   (from: waypoint)
+            double          outbrg;     // outbound bearing    (from: waypoint)
+            double          tangle;     // turn angle from outbound bearing
+        } turn;
+
+        // arc to fix
+        struct
+        {
+            double          start;      // start radial
+            double           stop;      // stop  radial
+            ndt_waypoint  *center;      // arc   center
+            ndt_distance distance;      // DME distance
+        } arc;
+
+        // radius to fix
+        struct
+        {
+            double          start;      // mangetic bearing (src to center)
+            ndt_waypoint  *center;      // arc center
+            ndt_distance distance;      // radius
+        } radius;
+
+        // fix to altitude, DME/track distance or manual termination
+        struct
+        {
+            ndt_waypoint    *src;       // source waypoint (fix)
+            ndt_waypoint *navaid;       // source navaid
+            double        course;       // magnetic course
+            union
+            {
+                ndt_distance altitude;  // target altitude
+                ndt_distance distance;  // DME or along track distance
+            };
+        } fix;
+
+        // hold at fix/to altitude/manual termination
+        struct
+        {
+            enum
+            {
+                NDT_HOLD_SECONDS,
+                NDT_HOLD_DISTANCE,
+            } type;
+
+            union
+            {
+                int          duration;
+                ndt_distance distance;
+            };
+
+            ndt_waypoint *waypoint;
+            ndt_distance  altitude;
+            double  inbound_course;
+        } hold;
     };
 
     ndt_restriction constraints;
 } ndt_route_leg;
 
-ndt_route_leg* ndt_route_leg_init    (                    );
-void           ndt_route_leg_close   (ndt_route_leg **_leg);
+ndt_route_leg* ndt_route_leg_init    (                                                 );
+void           ndt_route_leg_close   (ndt_route_leg **_leg                             );
 int            ndt_route_leg_restrict(ndt_route_leg   *leg, ndt_restriction constraints);
 
 #endif /* NDT_FLIGHTPLAN_H */
