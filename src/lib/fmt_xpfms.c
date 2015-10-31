@@ -1045,11 +1045,11 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
                 altitude = altitude - 01 - (!overfly == 0);
                 break;
             case NDT_RESTRICT_AB:
+            case NDT_RESTRICT_BT: // the minimum altitude is the one we care about (for ground clearance)
                 altitude = round(ndt_distance_get(leg->constraints.altitude.min, NDT_ALTUNIT_FT) / 10.) * 10;
                 altitude = altitude + 10 * (altitude == 0);
                 altitude = altitude + 01 + (!overfly == 0);
                 break;
-            case NDT_RESTRICT_BT: // pick highest of the two limits for safety (ground clearance)
             case NDT_RESTRICT_AT:
                 altitude = round(ndt_distance_get(leg->constraints.altitude.max, NDT_ALTUNIT_FT) / 10.) * 10;
                 altitude = altitude + 10 * (altitude == 0);
