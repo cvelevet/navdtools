@@ -1070,7 +1070,6 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
             {
                 // bogus altitude restriction, we need to make a valid one so
                 // this approach can be flown as RNP by the QPAC's FBW plugin
-                // also use this waypoint as a reference for next waypoint(s)
                 double d1tratio; int64_t alt_diff; ndt_distance d1, d2, dt, da;
                 d1 = ndt_position_calcdistance      (fapchfix->position, leg->dst->position);
                 d2 = ndt_position_calcdistance      (leg->dst->position, arr_rwy->waypoint->position);
@@ -1080,11 +1079,12 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
                             (double)ndt_distance_get(dt, NDT_ALTUNIT_FT));
                 alt_diff = ((double)ndt_distance_get(da, NDT_ALTUNIT_FT) * d1tratio);
                 altitude = ndt_distance_get   (fapchalt, NDT_ALTUNIT_FT) - alt_diff - 1;
-                fapchalt = ndt_distance_init(round(altitude / 10.) * 10, NDT_ALTUNIT_FT);
-                fapchfix = leg->dst;
             }
             altitude = round(altitude / 10.) * 10;
             altitude = altitude + 10 * (altitude == 0) - 1;
+            // use this waypoint as the new reference for next waypoint
+            fapchalt = ndt_distance_init(round(altitude / 10.) * 10, NDT_ALTUNIT_FT);
+            fapchfix = leg->dst;
         }
         else if (arr_rwy && (leg->constraints.waypoint == NDT_WPTCONST_FAF) &&
                  leg->rsg      && (leg->rsg->     type == NDT_RSTYPE_PRC)   &&
