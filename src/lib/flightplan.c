@@ -1597,6 +1597,7 @@ static int endpoint_intcpt(ndt_list *xpfms,
     ndt_waypoint *wpt;
     ndt_position posn;
     double trb1, trb2;
+    int          pbpb;
 
     /*
      * Navigraph 1511 examples of "impossible" intercepts:
@@ -1632,9 +1633,10 @@ static int endpoint_intcpt(ndt_list *xpfms,
      * Different issue than the above 3, but the code below also works
      * to force-find a suitable incercept course and associated waypoint.
      */
-    trb1 = ndt_wmm_getbearing_tru(  wmm, brg1, src1->position, now);
-    trb2 = ndt_wmm_getbearing_tru(  wmm, brg2, src2->position, now);
-    if (ndt_position_calcpos4pbpb(&posn, src1->position, trb1, src2->position, trb2))
+    trb1 = ndt_wmm_getbearing_tru   ( wmm, brg1, src1->position, now);
+    trb2 = ndt_wmm_getbearing_tru   ( wmm, brg2, src2->position, now);
+    pbpb = ndt_position_calcpos4pbpb(NULL, src1->position, trb1, src2->position, trb2);
+    if (pbpb)
     {
         goto force_intercept;
     }
@@ -1674,6 +1676,13 @@ force_intercept:
     brg1 = (ndt_position_bearing_angle(brg1, brg2) < 0. ?
             ndt_mod(intc_crs - 90., 360.) :
             ndt_mod(intc_crs + 90., 360.));
+    trb1 = ndt_wmm_getbearing_tru   (  wmm, brg1, src1->position, now);
+    trb2 = ndt_wmm_getbearing_tru   (  wmm, brg2, src2->position, now);
+    pbpb = ndt_position_calcpos4pbpb(&posn, src1->position, trb1, src2->position, trb2);
+    if (pbpb)
+    {
+        return pbpb;
+    }
     goto endpoint;
 
 endpoint:
@@ -2325,7 +2334,13 @@ intc:
     if ((err = endpoint_intcpt(xpfm, flp->cws, wmm, now,
                                src1, brg1, src2, brg2, intc)))
     {
-        goto end;
+        if (leg->type == NDT_LEGTYPE_CI ||
+            leg->type == NDT_LEGTYPE_PI ||
+            leg->type == NDT_LEGTYPE_VI)
+        {
+            goto end; // mandatory intercept failed: error
+        }
+        err = 0; // ignore
     }
     goto altitude;
 
