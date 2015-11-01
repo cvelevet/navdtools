@@ -2301,7 +2301,7 @@ intc:
         {
             goto altitude; // xpfm == leg->xpfms (checked earlier except CI/VI)
         }
-        if (leg->type == NDT_LEGTYPE_CF)
+        if (xpfm == nxt->xpfms)
         {
             goto altitude; // xpfm == nxt->xpfms (checked here only)
         }
