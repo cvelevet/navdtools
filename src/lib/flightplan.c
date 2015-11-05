@@ -1651,6 +1651,9 @@ static int endpoint_intcpt(ndt_list *xpfms,
      *
      * There is a valid intercept (oops), but it's located thousands of miles
      * away, so we have to force a more reasonable one. So many workarounds :(
+     *
+     * Note: the issue described above is masked by the fact that we pre-compute
+     * the 90-degree angle when the previous leg isn't intercept-only (e.g. CF).
      */
     if ((ndt_distance_get(ndt_position_calcdistance(src1->position,           posn), NDT_ALTUNIT_NA)) >
         (ndt_distance_get(ndt_position_calcdistance(src1->position, src2->position), NDT_ALTUNIT_NA) * INT64_C(100)))
