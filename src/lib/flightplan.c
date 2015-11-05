@@ -2337,24 +2337,43 @@ intc:
     if ((err = endpoint_intcpt(xpfm, flp->cws, wmm, now,
                                src1, brg1, src2, brg2, intc)))
     {
-        if (leg->type == NDT_LEGTYPE_CI ||
-            leg->type == NDT_LEGTYPE_PI ||
-            leg->type == NDT_LEGTYPE_VI)
+        /*
+         * Aerosoft 1511, DTTA, ILS 01 approach, TUC transition:
+         * FC,TUC05,36.77061667,10.20523333,0,TUC,192.9,5.0,238,4.30,2,1900,0,0,0,0,0,0
+         * CI,1, ,0,58,0,0,0,0,0,0,0,0
+         * CF,R191H,36.72159444,10.19271667,0,TBL,191.0,9.1,11,2.00,0,0,0,0,0,0,0,0
+         *
+         * As depicted (LIDO chart), procedure appears to involve an overfly of
+         * the waypoint represented by FC/TUC05/238/4.3, followed by a turn to
+         * heading 058 from which we can intercept track 011 to R191H fix; since
+         * we don't account for the overfly, course 058 from said waypoint can
+         * only intercept track 011 after fix R919H, resulting in an impossible
+         * intercept. Our workaround then tries to fly heading 101 instead (to
+         * intercept track 011 with a 90-degree angle), but the direct course
+         * from the waypoint to R191H is approximately 102 degrees, resulting in
+         * yet another case of "intercept track to fix after fix, so impossible"
+         * issue. We can basically fly the procedure correctly by skipping said
+         * mandatory intercept and flying directly to fix R191H, so let's do so.
+         *
+         * More generally, whenever an intercept fails, if we have a fix we can
+         * fly direct to, then ignore the error; otherwise print and error out.
+         */
+        if (nxt->type == NDT_LEGTYPE_CF)
         {
-            switch (err)
-            {
-                case EDOM:
-                    ndt_log("%s %05.1lf, %s %05.1lf: infinity of intersections\n", src1->info.idnt, brg1, src2->info.idnt, brg2);
-                    break;
-                case ERANGE:
-                    ndt_log("%s %05.1lf, %s %05.1lf: intersection(s) ambiguous\n", src1->info.idnt, brg1, src2->info.idnt, brg2);
-                    break;
-                default:
-                    break;
-            }
-            goto end; // mandatory intercept failed: error
+            err = 0; goto altitude; // we have a fix we can go to, ignore error
         }
-        err = 0; // ignore
+        switch (err)
+        {
+            case EDOM:
+                ndt_log("%s %05.1lf, %s %05.1lf: infinity of intersections\n", src1->info.idnt, brg1, src2->info.idnt, brg2);
+                break;
+            case ERANGE:
+                ndt_log("%s %05.1lf, %s %05.1lf: intersection(s) ambiguous\n", src1->info.idnt, brg1, src2->info.idnt, brg2);
+                break;
+            default:
+                break;
+        }
+        goto end; // intercept failed without obvious fallback: let's error out
     }
     goto altitude;
 
@@ -2645,7 +2664,8 @@ end:
     if ((leg->type == NDT_LEGTYPE_CI ||
          leg->type == NDT_LEGTYPE_VI) && !ndt_list_count(leg->xpfms))
     {
-        // Navigraph 1511, LSZH, I16.RILAX: CI without next leg, etc.
+        // Navigraph 1511: some apptrs. end with CI leg (have nothing to intcpt)
+        // intcpt. failure followed by CF (we ignore error but have no waypoint)
         return legsrc;
     }
     return ndt_list_item(leg->xpfms, -1);
