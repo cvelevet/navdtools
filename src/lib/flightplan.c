@@ -1633,9 +1633,9 @@ static int endpoint_intcpt(ndt_list *xpfms,
      * Different issue than the above 3, but the code below also works
      * to force-find a suitable incercept course and associated waypoint.
      */
-    trb1 = ndt_wmm_getbearing_tru   (wmm,  brg1, src1->position, now);
-    trb2 = ndt_wmm_getbearing_tru   (wmm,  brg2, src2->position, now);
-    pbpb = ndt_position_calcpos4pbpb(NULL, src1->position, trb1, src2->position, trb2);
+    trb1 = ndt_wmm_getbearing_tru   (  wmm, brg1, src1->position, now);
+    trb2 = ndt_wmm_getbearing_tru   (  wmm, brg2, src2->position, now);
+    pbpb = ndt_position_calcpos4pbpb(&posn, src1->position, trb1, src2->position, trb2);
     if (pbpb)
     {
         goto force_intercept;
@@ -1653,7 +1653,7 @@ static int endpoint_intcpt(ndt_list *xpfms,
      * away, so we have to force a more reasonable one. So many workarounds :(
      */
     if ((ndt_distance_get(ndt_position_calcdistance(src1->position,           posn), NDT_ALTUNIT_NA)) >
-        (ndt_distance_get(ndt_position_calcdistance(src1->position, src2->position), NDT_ALTUNIT_NA) * INT64_C(2)))
+        (ndt_distance_get(ndt_position_calcdistance(src1->position, src2->position), NDT_ALTUNIT_NA) * INT64_C(100)))
     {
         goto force_intercept; // way too far, we have to do something about it
     }
@@ -2338,6 +2338,17 @@ intc:
             leg->type == NDT_LEGTYPE_PI ||
             leg->type == NDT_LEGTYPE_VI)
         {
+            switch (err)
+            {
+                case EDOM:
+                    ndt_log("%s %05.1lf, %s %05.1lf: infinity of intersections\n", src1->info.idnt, brg1, src2->info.idnt, brg2);
+                    break;
+                case ERANGE:
+                    ndt_log("%s %05.1lf, %s %05.1lf: intersection(s) ambiguous\n", src1->info.idnt, brg1, src2->info.idnt, brg2);
+                    break;
+                default:
+                    break;
+            }
             goto end; // mandatory intercept failed: error
         }
         err = 0; // ignore
