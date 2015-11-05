@@ -1270,6 +1270,16 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
     if (arr_rwy)
     {
+        /*
+         * For GPS approaches, our runway threshold must be an NPA waypoint.
+         *
+         * For other approaches, just make it a regular waypoint, as overfly
+         * waypoints may sometimes throw the QPAC plugin off, especially when
+         * loading the final approach mid-flight. Example of this would be the
+         * ILS approach for runway 19 at DTTA (Aerosoft 1511, with or without
+         * the TUC approach transition). Not marking the arrival rwy threshold
+         * as overfly may not fix the above case, but it's worth a try anyway.
+         */
         switch (flp->arr.apch.proc->approach.type)
         {
             case NDT_APPRTYPE_GLS:
@@ -1281,7 +1291,7 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
             default:
                 altitude = ndt_distance_get(flp->arr.rwy->threshold.altitude, NDT_ALTUNIT_FT);
                 altitude = round(altitude / 10.) * 10;
-                altitude = altitude + 10 * (altitude == 0) + 3; // ovf waypoint
+                altitude = altitude + 10 * (altitude == 0); // regular waypoint
                 break;
         }
         if ((ret = print_waypoint(fd, flp->arr.rwy->waypoint, altitude, 0)))
