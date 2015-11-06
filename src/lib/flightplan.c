@@ -2079,6 +2079,14 @@ dummies:
                 err = ENOMEM;
                 goto end;
             }
+            if (i + 1 < count &&
+                !ndt_distance_get(ndt_position_calcdistance(legsrc->position,
+                                                            wpt->position), NDT_ALTUNIT_NM))
+            {
+                // wpt too close to legsrc and we'll have another, skip this one
+                ndt_waypoint_close(&wpt);
+                continue;
+            }
             wpt->type = NDT_WPTYPE_LLC;
             snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s/D%.0lf/R%03.0lf",
                      leg->arc.center->info.idnt,
