@@ -1178,7 +1178,7 @@ static int procedure_appendleg(ndt_procedure *proc, ndt_route_leg *leg1, int spc
             break;
         case NDT_LEGTYPE_FM:
         case NDT_LEGTYPE_VM:
-            snprintf(leg1->info.idnt, sizeof(leg1->info.idnt),             "%s", "VECTORS");
+            snprintf(leg1->info.idnt, sizeof(leg1->info.idnt),           "(%s)", "VECTOR");
             break;
         default:
             ndt_log("procedure_appendleg: unknown leg \"%s\" of type %d\n", line, leg1->type);

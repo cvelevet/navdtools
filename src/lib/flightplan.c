@@ -1694,7 +1694,7 @@ endpoint:
         return ENOMEM;
     }
     wpt->type = NDT_WPTYPE_LLC;
-    snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "(INTC %03.0lf)", intc_crs);
+    snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "(INTC%03.0lf)", intc_crs);
     ndt_list_add(xpfms, wpt);
     ndt_list_add(cwlst, wpt);
     return 0;
@@ -1769,7 +1769,7 @@ static int endpoint_dmedis(ndt_list *xpfms, ndt_list *cwlst, void *wmm, ndt_date
         return ENOMEM;
     }
     wpt->type = NDT_WPTYPE_LLC;
-    snprintf(   wpt->info.idnt, sizeof(wpt->info.idnt), "(%s D%.1lf)",
+    snprintf(   wpt->info.idnt, sizeof(wpt->info.idnt), "(%s-%.1lf)",
              dmenav->info.idnt, ndt_distance_get(dmedis, NDT_ALTUNIT_ME) / 1852.);
     ndt_list_add(xpfms, wpt);
     ndt_list_add(cwlst, wpt);
