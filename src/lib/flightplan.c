@@ -1694,7 +1694,7 @@ endpoint:
         return ENOMEM;
     }
     wpt->type = NDT_WPTYPE_LLC;
-    snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "(INTC-%03.0lf)", intc_crs);
+    snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "(INTC-%03.0lf)", round(intc_crs));
     ndt_list_add(xpfms, wpt);
     ndt_list_add(cwlst, wpt);
     return 0;
@@ -1746,7 +1746,7 @@ static int endpoint_radial(ndt_list *xpfms, ndt_list *cwlst, void *wmm, ndt_date
         return ENOMEM;
     }
     wpt->type = NDT_WPTYPE_LLC;
-    snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "(%s-R%03.0lf)", navaid->info.idnt, radial);
+    snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "(%s-R%03.0lf)", navaid->info.idnt, round(radial));
     ndt_list_add(xpfms, wpt);
     ndt_list_add(cwlst, wpt);
     return 0;
@@ -2090,8 +2090,8 @@ dummies:
             wpt->type = NDT_WPTYPE_LLC;
             snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s/D%.0lf/R%03.0lf",
                      leg->arc.center->info.idnt,
-                     ndt_distance_get(leg->arc.distance, NDT_ALTUNIT_ME) / 1852.,
-                     radial);
+                     round(ndt_distance_get(leg->arc.distance, NDT_ALTUNIT_ME) / 1852.),
+                     round(radial));
             ndt_list_add(leg->xpfms, wpt);
             ndt_list_add(flp->cws,   wpt);
         }
@@ -2134,7 +2134,7 @@ dummies:
             snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s/D%.1lf/%03.0lf",
                      leg->radius.center->info.idnt,
                      ndt_distance_get(leg->radius.distance, NDT_ALTUNIT_ME) / 1852.,
-                     bearing);
+                     round(bearing));
             ndt_list_add(leg->xpfms, wpt);
             ndt_list_add(flp->cws,   wpt);
         }
