@@ -1092,13 +1092,16 @@ static int validate_options(void)
             }
 
             // check if updated Custom Data is available
-            if ((ret = ndt_file_getpath(path_xplane, "/Custom Data/GNS430/navdata", &path, &pathlen)))
+            if ((ret = ndt_file_getpath(path_xplane, "/Custom Data/GNS430/navdata/ATS.txt", &path, &pathlen)))
             {
-                free(path_navdat);
                 goto end;
             }
-            if (!stat(path, &stats) && S_ISDIR(stats.st_mode))
+            if (!stat(path, &stats) && S_ISREG(stats.st_mode))
             {
+                if ((ret = ndt_file_getpath(path_xplane, "/Custom Data/GNS430/navdata", &path, &pathlen)))
+                {
+                    goto end;
+                }
                 free(path_navdat);
                 if ((path_navdat = strdup(path)) == NULL)
                 {
