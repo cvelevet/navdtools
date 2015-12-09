@@ -1451,7 +1451,7 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
                 switch (*procid)
                 {
                     case 'X':
-                        proc->approach.type = NDT_APPRTYPE_LDA;
+                        proc->approach.type = NDT_APPRTYPE_LDA; // Navigraph
                         break;
                     default:
                         break;
@@ -1509,6 +1509,9 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
                         break;
                     case 'G':
                         proc->approach.type = NDT_APPRTYPE_IGS; // Aerosoft
+                        break;
+                    case 'X':
+                        proc->approach.type = NDT_APPRTYPE_LDA; // Aerosoft
                         break;
                     default:
                         break;
