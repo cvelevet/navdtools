@@ -3,8 +3,8 @@ LDLIBS      = -lm
 TARGET_ARCH =
 
 all:
-	$(MAKE) -f Makefile CFLAGS="$(CFLAGS)" LDLIBS="$(LDLIBS)" TARGET_ARCH="$(TARGET_ARCH)" all
+	$(MAKE) -f Makefile CFLAGS="$(CFLAGS)" LDLIBS="$(LDLIBS)" TARGET_ARCH="$(TARGET_ARCH)" navdconv
 
 .PHONY: clean
 clean:
-	$(MAKE) -f Makefile clean
+	@:

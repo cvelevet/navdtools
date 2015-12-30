@@ -4,8 +4,8 @@ NDCONV_EXE  = navdconv.exe
 TARGET_ARCH =
 
 all:
-	$(MAKE) -f Makefile CC="$(CC)" CFLAGS="$(CFLAGS)" TARGET_ARCH="$(TARGET_ARCH)" NDCONV_EXE="$(NDCONV_EXE)" all
+	$(MAKE) -f Makefile CC="$(CC)" CFLAGS="$(CFLAGS)" TARGET_ARCH="$(TARGET_ARCH)" NDCONV_EXE="$(NDCONV_EXE)" navdconv
 
 .PHONY: clean
 clean:
-	$(MAKE) -f Makefile NDCONV_EXE="$(NDCONV_EXE)" clean
+	$(RM) $(NDCONV_EXE)

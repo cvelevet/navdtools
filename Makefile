@@ -40,6 +40,12 @@ compat: $(CPT_SOURCES) $(CPT_HEADERS)
 wmmobj: $(WMM_SOURCES) $(WMM_HEADERS)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c $(WMM_SOURCES)
 
+linux:
+	$(MAKE) -f Makefile.linux
+
+mingw:
+	$(MAKE) -f Makefile.mingw
+
 .PHONY: version
 version:
 ifneq ($(strip $(GITVERSION)),)
@@ -48,4 +54,7 @@ endif
 
 .PHONY: clean
 clean:
-	$(RM) $(NDCONV_EXE) $(NDC_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(WMM_OBJECTS)
+	@ $(MAKE) -f Makefile.linux clean
+	@ $(MAKE) -f Makefile.mingw clean
+	$(RM) $(NDCONV_EXE)
+	$(RM) $(NDC_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(WMM_OBJECTS)
