@@ -1006,9 +1006,36 @@ static int xpfms_count_legs(ndt_list *legs)
     return count;
 }
 
+static int xpfms_skip4dist(ndt_waypoint *src, ndt_waypoint *leg_wpt, ndt_waypoint *leg_dst, ndt_route_leg *leg_nxt)
+{
+    /*
+     * Calculate distance from src to the next waypoint:
+     *     - leg_wpt: src's current leg, dummy waypoint (may be NULL)
+     *     - leg_dst: src's current leg, final waypoint (may be NULL)
+     *     - leg_nxt: the route's next leg, may also be NULL
+     *
+     * src should be skipped if the distance is below a preset threshold.
+     */
+    ndt_waypoint *dst = leg_wpt ? leg_wpt : leg_dst;
+    if (dst == NULL && leg_nxt)
+    {
+        dst = ndt_list_item(leg_nxt->xpfms, 0);
+        dst = dst ? dst : leg_nxt->dst;
+    }
+    if (dst && src)
+    {
+        // ensure at least 1 nautical mile between 2 consecutive waypoints
+        // avoids weird flight path drawing on the QPAC ND (KEWR: EWR2.22L)
+        return (ndt_distance_get(ndt_position_calcdistance(src->position,
+                                                           dst->position),
+                                 NDT_ALTUNIT_ME) < INT64_C(1852));
+    }
+    return 0;
+}
+
 static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
 {
-    ndt_waypoint  *fapchfix = NULL;
+    ndt_waypoint  *fapchfix = NULL, *lst = NULL;
     ndt_distance   fapchalt;
     int            ret = 0;
     ndt_route_leg *leg;
@@ -1168,6 +1195,16 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
                 }
                 for (size_t j = 0; j < ndt_list_count(leg->xpfms) && !fapchfix; j++)
                 {
+                    if (xpfms_skip4dist(ndt_list_item(leg->xpfms, j),
+                                        ndt_list_item(leg->xpfms, j + 1),
+                                        leg->dst, ndt_list_item(legs, i + 1)))
+                    {
+                        continue; // skip this dummy (too close to next waypoint)
+                    }
+                    if (xpfms_skip4dist(ndt_list_item(leg->xpfms, j), lst, NULL, NULL))
+                    {
+                        continue; // skip this dummy (too close to last fix)
+                    }
                     if ((ret = print_waypoint(fd, ndt_list_item(leg->xpfms, j), 0, speed)))
                     {
                         goto end;
@@ -1181,6 +1218,16 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
             {
                 for (size_t j = 0; j < ndt_list_count(leg->xpfms) && !fapchfix; j++)
                 {
+                    if (xpfms_skip4dist(ndt_list_item(leg->xpfms, j),
+                                        ndt_list_item(leg->xpfms, j + 1),
+                                        leg->dst, ndt_list_item(legs, i + 1)))
+                    {
+                        continue; // skip this dummy (too close to next waypoint)
+                    }
+                    if (xpfms_skip4dist(ndt_list_item(leg->xpfms, j), lst, NULL, NULL))
+                    {
+                        continue; // skip this dummy (too close to last fix)
+                    }
                     if ((ret = print_waypoint(fd, ndt_list_item(leg->xpfms, j), leg->dst ? 0 : altitude, speed)))
                     {
                         goto end;
@@ -1197,6 +1244,7 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
         {
             goto end;
         }
+        lst = leg->dst;
     }
 
 end:
