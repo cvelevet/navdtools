@@ -313,12 +313,19 @@ static int sidstar_procedure(ndt_navdatabase *ndb, int type,
     /*
      * If a subdirectory using the airport's ICAO code exists,
      * use said subfolder instead of the output folder's root.
+     *
+     * Also check for a directory named QPAC :)
      */
     struct stat stats;
     char subdir[1+4+1];// "/" "ICAO" "\n"
     snprintf(subdir, sizeof(subdir), "/%4s", dep_apt);
     if (!ndt_file_getpath(path_out, subdir, &path, &pathlen) &&
         !stat(path, &stats) && !!S_ISDIR(stats.st_mode) && !access(path, W_OK))
+    {
+        outdir = strdup(path);
+    }
+    else if (!ndt_file_getpath(path_out, "/QPAC", &path, &pathlen) &&
+             !stat(path, &stats) && !!S_ISDIR(stats.st_mode) && !access(path, W_OK))
     {
         outdir = strdup(path);
     }
