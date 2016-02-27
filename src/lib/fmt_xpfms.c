@@ -1195,16 +1195,6 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
                 }
                 for (size_t j = 0; j < ndt_list_count(leg->xpfms) && !fapchfix; j++)
                 {
-                    if (xpfms_skip4dist(ndt_list_item(leg->xpfms, j),
-                                        ndt_list_item(leg->xpfms, j + 1),
-                                        leg->dst, ndt_list_item(legs, i + 1)))
-                    {
-                        continue; // skip this dummy (too close to next waypoint)
-                    }
-                    if (xpfms_skip4dist(ndt_list_item(leg->xpfms, j), lst, NULL, NULL))
-                    {
-                        continue; // skip this dummy (too close to last fix)
-                    }
                     if ((ret = print_waypoint(fd, ndt_list_item(leg->xpfms, j), 0, speed)))
                     {
                         goto end;
