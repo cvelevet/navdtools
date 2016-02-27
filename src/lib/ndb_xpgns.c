@@ -1477,7 +1477,7 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
                         proc->approach.type = NDT_APPRTYPE_VORT;
                         break;
                     case 'V':
-                        proc->approach.type = NDT_APPRTYPE_CRCL;
+                        proc->approach.type = NDT_APPRTYPE_CTL;
                         break;
                     default:
                         break;
@@ -3692,8 +3692,8 @@ static int rename_finalappr(ndt_airport *apt)
                         case NDT_APPRTYPE_RNAV:
                             prefix = "RNAV";
                             break;
-                        case NDT_APPRTYPE_CRCL:
-                            prefix = "CIRCLG";
+                        case NDT_APPRTYPE_CTL:
+                            prefix = "CTL";
                             break;
                         case NDT_APPRTYPE_VOR:
                             prefix = "VOR";

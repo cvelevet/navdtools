@@ -139,7 +139,7 @@ typedef struct ndt_procedure
     {
         enum
         {
-            NDT_APPRTYPE_CRCL,          // circling (a.k.a. letdown)
+            NDT_APPRTYPE_CTL,           // circle-to-land (a.k.a. letdown)
             NDT_APPRTYPE_GLS,           // GLS
             NDT_APPRTYPE_IGS,           // IGS
             NDT_APPRTYPE_ILS,           // ILS
