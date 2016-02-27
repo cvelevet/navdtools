@@ -2402,9 +2402,14 @@ intc_drect:
      * Direct from a fix and back.
      * Calibrated for nicest turn using FlightFactor/QPAC A350 1.20:
      * LIPE 30 LSGG none none none "BOA7P FRZ"
+     *
+     * Note: we previously relied on distance-based checks only (1nm), but it
+     *       gave false positives, e.g. KABQ, JEMEZ3.08, (5860) -> TYILR: ~417m
      */
     ndt_distance dctd = ndt_position_calcdistance(src1->position, nxt->dst->position);
-    if (!ndt_distance_get(dctd, NDT_ALTUNIT_NM))
+    if ((src1 == nxt->dst) ||
+        (src1 == leg->dst &&
+         ndt_distance_get(dctd, NDT_ALTUNIT_FT) < INT64_C(660))) // 1 furlong
     {
         dctd = ndt_distance_init(INT64_C(3000), NDT_ALTUNIT_ME);
         if (!(wpt = ndt_waypoint_pbd(nxt->dst, brg1, dctd, now, wmm)))
@@ -2443,6 +2448,10 @@ intc_drect:
      * Direct from somewhere to a fix. Avoid sharp turns by adding turn
      * helper points, according to how large the turn angle actually is.
      */
+    if (!ndt_distance_get(dctd, NDT_ALTUNIT_NM))
+    {
+        goto altitude; // waypoints too close, so angle unreliable: skip helpers
+    }
     double dtrb = ndt_position_calcbearing  (src1->position, nxt->dst->position);
     double dctb = ndt_wmm_getbearing_mag    (wmm,  dtrb,    src1->position, now);
     double angl = ndt_position_bearing_angle(brg1, dctb);
