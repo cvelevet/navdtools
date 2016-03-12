@@ -283,10 +283,11 @@ int nvp_chandlers_close(void **_chandler_context)
     }
 
     /* …and all datarefs */
-//    if (ctx->priv.rc_fbw1.pkb_tmp)
-//    {
-//        XPLMUnregisterDataAccessor(ctx->priv.rc_fbw1.pkb_tmp);
-//    }
+    if (ctx->bking.rc_brk.qpac.pkb_tmp)
+    {
+        XPLMUnregisterDataAccessor(ctx->bking.rc_brk.qpac.pkb_tmp);
+        ctx->bking.rc_brk.qpac.pkb_tmp = NULL;
+    }
 
     /* all good */
     free(ctx);
