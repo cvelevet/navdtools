@@ -73,6 +73,8 @@ typedef struct
 typedef struct
 {
     int initialized;
+    int first_fcall;
+    int kill_daniel;
 
     enum
     {
@@ -152,6 +154,7 @@ static int  chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, v
 static int  chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  first_fcall_do(                                             chandler_context *ctx);
 static int  aibus_350_init(                                               refcon_ff_a350 *ffa);
 static int  aibus_fbw_init(                                               refcon_qpacfbw *fbw);
 static int  priv_getdata_i(                                       void *inRefcon             );
@@ -351,6 +354,8 @@ int nvp_chandlers_update(void *inContext)
         return 0;
     }
     ctx->initialized = 1;
+    ctx->first_fcall = 1;
+    ctx->kill_daniel = 1;
 
     /* get the aircraft path and model information */
     if ((xdref_acf_ICAO = XPLMFindDataRef("sim/aircraft/view/acf_ICAO")))
@@ -478,6 +483,18 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     chandler_context *ctx = inRefcon;
     refcon_braking   *rcb = &ctx->bking.rc_brk;
+    /*
+     * XXX: this function is basically guaranteed to be called early, so here we
+     *      do any additional aircraft-specific stuff that can't be done earlier.
+     */
+    if (ctx->first_fcall)
+    {
+        first_fcall_do(ctx);
+    }
+//    if (ctx->kill_daniel)
+//    {
+//        // TODO: implement
+//    }
     if (ctx->atyp == NVP_ACF_A350_FF)
     {
         if (rcb->a350.ready == 0)
@@ -675,6 +692,28 @@ static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
     }
     return 0;
+}
+
+static int first_fcall_do(chandler_context *ctx)//fixme
+{
+    XPLMDataRef d_ref;
+    switch (ctx->atyp)
+    {
+        case NVP_ACF_A350_FF:
+            if ((d_ref = XPLMFindDataRef("1-sim/radio/push/1/11")))
+            {
+                XPLMSetDatai(d_ref, 1);      // cabin announcement listen-in: on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/radio/1/11/rotary")))
+            {
+                XPLMSetDataf(d_ref, 270.0f); // cabin announcements' volume: max
+            }
+            break;
+
+        default:
+            break;
+    }
+    return (ctx->first_fcall = 0);
 }
 
 static int aibus_350_init(refcon_ff_a350 *ffa)
