@@ -47,14 +47,12 @@ typedef struct
 
 typedef struct
 {
-    int              on;
     int           ready;
     XPLMDataRef pkb_ref;
 } refcon_ff_a350;
 
 typedef struct
 {
-    int                 on;
     int              ready;
     int            pkb_var;
     XPLMDataRef    pkb_tmp;
@@ -70,6 +68,7 @@ typedef struct
     XPLMDataRef p_b_rat;
     XPLMDataRef l_b_rat;
     XPLMDataRef r_b_rat;
+    int         acf_typ;
 } refcon_braking;
 
 typedef struct
@@ -78,13 +77,25 @@ typedef struct
 
     enum
     {
-        NVP_ACF_GENERIC = 0,
-        NVP_ACF_A320_QP,
-        NVP_ACF_A330_RW,
-        NVP_ACF_A350_FF,
-        NVP_ACF_B763_FF,
-        NVP_ACF_B77L_FF,
+        NVP_ACF_GENERIC = 0x0000000,
+        NVP_ACF_A320_JD = 0x0000010,
+        NVP_ACF_A332_JD = 0x0000020,
+        NVP_ACF_A320_QP = 0x0000100,
+        NVP_ACF_A333_RW = 0x0000200,
+        NVP_ACF_A350_FF = 0x0001000,
+        NVP_ACF_B752_FF = 0x0010000,
+        NVP_ACF_B763_FF = 0x0100000,
+        NVP_ACF_B77L_FF = 0x1000000,
     } atyp;
+#define NVP_ACF_MASK_JDN  0x00000F0 // all J.A.R.Design addons
+#define NVP_ACF_MASK_QPC  0x000FF00 // all QPAC-powered addons
+#define NVP_ACF_MASK_FFR  0xFFFF000 // all FlightFactor addons
+#define NVP_ACF_MASK_32x  0x0000110 // all A320 series aircraft
+#define NVP_ACF_MASK_33x  0x0000220 // all A330 series aircraft
+#define NVP_ACF_MASK_35x  0x000F000 // all A350 series aircraft
+#define NVP_ACF_MASK_75x  0x00F0000 // all B757 series aircraft
+#define NVP_ACF_MASK_76x  0x0F00000 // all B767 series aircraft
+#define NVP_ACF_MASK_77x  0xF000000 // all B777 series aircraft
 
     struct
     {
@@ -316,11 +327,11 @@ int nvp_chandlers_reset(void *inContext)
     ctx->atyp = NVP_ACF_GENERIC;
 
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
-    ctx->bking.rc_brk.a350.on = 0;
-    ctx->bking.rc_brk.qpac.on = 0;
-    ctx->athr.disc.cc.name = NULL;
-    ctx->athr.toga.cc.name = NULL;
-    ctx->otto.disc.cc.name = NULL;
+    ctx->bking.rc_brk.a350.ready = 0;
+    ctx->bking.rc_brk.qpac.ready = 0;
+    ctx->   athr.disc.cc.name = NULL;
+    ctx->   athr.toga.cc.name = NULL;
+    ctx->   otto.disc.cc.name = NULL;
 
     /* all good */
     ndt_log("navP [info]: nvp_chandlers_reset OK\n"); return (ctx->initialized = 0);
@@ -363,7 +374,7 @@ int nvp_chandlers_update(void *inContext)
                     break;
                 }
                 ndt_log("navP [info]: plane is RWDesigns-QPAC Airbus A330-300\n");
-                ctx->atyp = NVP_ACF_A330_RW;
+                ctx->atyp = NVP_ACF_A333_RW;
                 break;
             }
             if (!strcasecmp(xaircraft_icao_code, "A320"))
@@ -403,25 +414,25 @@ int nvp_chandlers_update(void *inContext)
     }
     while (0);
 
+    /* we know the aircraft type, propagate it where it's needed */
+    ctx->bking.rc_brk.acf_typ = ctx->atyp;
+
     /* all good */
     switch (ctx->atyp)
     {
         case NVP_ACF_A320_QP:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-            ctx->bking.rc_brk.qpac.on = 1; ctx->bking.rc_brk.qpac.ready = 0;
             break;
 
-        case NVP_ACF_A330_RW:
+        case NVP_ACF_A333_RW:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-            ctx->bking.rc_brk.qpac.on = 1; ctx->bking.rc_brk.qpac.ready = 0;
             break;
 
         case NVP_ACF_A350_FF:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-            ctx->bking.rc_brk.a350.on = 1; ctx->bking.rc_brk.a350.ready = 0;
             break;
 
         case NVP_ACF_B763_FF:
@@ -470,7 +481,7 @@ static int dataref_read_string(XPLMDataRef dataref, char *string_buffer, size_t 
 static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     refcon_braking *rc = inRefcon;
-    if (rc->a350.on)
+    if (rc->acf_typ == NVP_ACF_A350_FF)
     {
         if (rc->a350.ready == 0)
         {
@@ -482,7 +493,7 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         return 0;
     }
-    if (rc->qpac.on)
+    if (rc->acf_typ & NVP_ACF_MASK_QPC)
     {
         if (rc->qpac.ready == 0)
         {
@@ -505,7 +516,7 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     refcon_braking *rc = inRefcon;
-    if (rc->a350.on)
+    if (rc->acf_typ == NVP_ACF_A350_FF)
     {
         if (rc->a350.ready == 0)
         {
@@ -517,7 +528,7 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         return 0;
     }
-    if (rc->qpac.on)
+    if (rc->acf_typ & NVP_ACF_MASK_QPC)
     {
         if (rc->qpac.ready == 0)
         {
@@ -547,7 +558,7 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     refcon_braking *rc = inRefcon;
-    if (rc->qpac.on)
+    if (rc->acf_typ & NVP_ACF_MASK_QPC)
     {
         if (rc->qpac.ready == 0)
         {
@@ -598,7 +609,7 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     refcon_braking *rc = inRefcon;
-    if (rc->qpac.on)
+    if (rc->acf_typ & NVP_ACF_MASK_QPC)
     {
         if (rc->qpac.ready == 0)
         {
@@ -668,15 +679,11 @@ static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int aibus_350_init(refcon_ff_a350 *ffa)
 {
-    if (ffa && ffa->on)
+    if (ffa && ffa->ready == 0)
     {
-        if (ffa->ready == 0)
+        if ((ffa->pkb_ref = XPLMFindDataRef("1-sim/parckBrake")))
         {
-            ffa->pkb_ref = XPLMFindDataRef("1-sim/parckBrake");
-        }
-        if (ffa->pkb_ref)
-        {
-            ffa->ready = 1;
+            (ffa->ready = 1);
         }
     }
     return 0;
@@ -684,27 +691,24 @@ static int aibus_350_init(refcon_ff_a350 *ffa)
 
 static int aibus_fbw_init(refcon_qpacfbw *fbw)
 {
-    if (fbw && fbw->on)
+    if (fbw && fbw->ready == 0)
     {
-        if (fbw->ready == 0)
+        if (fbw->pkb_tmp == NULL)
         {
-            if (fbw->pkb_tmp == NULL)
-            {
-                fbw->pkb_tmp = XPLMRegisterDataAccessor("navP/refcon_qpacfbw/pkb_tmp",
-                                                        xplmType_Int, 1,
-                                                        &priv_getdata_i,
-                                                        &priv_setdata_i,
-                                                        NULL, NULL, NULL, NULL, NULL,
-                                                        NULL, NULL, NULL, NULL, NULL,
-                                                        &fbw->pkb_var, &fbw->pkb_var);
-            }
-            fbw->pkb_ref = XPLMFindDataRef("AirbusFBW/ParkBrake");
-            fbw->h_b_max = XPLMFindCommand("sim/flight_controls/brakes_max");
-            fbw->h_b_reg = XPLMFindCommand("sim/flight_controls/brakes_regular");
-            if (fbw->pkb_tmp && fbw->pkb_ref && fbw->h_b_max && fbw->h_b_reg)
-            {
-                fbw->ready = 1;
-            }
+            fbw->pkb_tmp = XPLMRegisterDataAccessor("navP/refcon_qpacfbw/pkb_tmp",
+                                                    xplmType_Int, 1,
+                                                    &priv_getdata_i,
+                                                    &priv_setdata_i,
+                                                    NULL, NULL, NULL, NULL, NULL,
+                                                    NULL, NULL, NULL, NULL, NULL,
+                                                    &fbw->pkb_var, &fbw->pkb_var);
+        }
+        fbw->pkb_ref = XPLMFindDataRef("AirbusFBW/ParkBrake");
+        fbw->h_b_max = XPLMFindCommand("sim/flight_controls/brakes_max");
+        fbw->h_b_reg = XPLMFindCommand("sim/flight_controls/brakes_regular");
+        if (fbw->pkb_tmp && fbw->pkb_ref && fbw->h_b_max && fbw->h_b_reg)
+        {
+            fbw->ready = 1;
         }
     }
     return 0;
