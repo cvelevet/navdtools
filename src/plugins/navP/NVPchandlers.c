@@ -76,6 +76,16 @@ typedef struct
 {
     int initialized;
 
+    enum
+    {
+        NVP_ACF_GENERIC = 0,
+        NVP_ACF_A320_QP,
+        NVP_ACF_A330_RW,
+        NVP_ACF_A350_FF,
+        NVP_ACF_B763_FF,
+        NVP_ACF_B77L_FF,
+    } atyp;
+
     struct
     {
         struct
@@ -302,6 +312,9 @@ int nvp_chandlers_reset(void *inContext)
         return -1;
     }
 
+    /* Reset the aircraft/addon type */
+    ctx->atyp = NVP_ACF_GENERIC;
+
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
     ctx->bking.rc_brk.a350.on = 0;
     ctx->bking.rc_brk.qpac.on = 0;
@@ -317,7 +330,7 @@ int nvp_chandlers_update(void *inContext)
 {
     XPLMDataRef xdref_acf_ICAO = NULL;
     char xaircraft_icao_code[41] = "";
-    char acf_file[257], acf_path[513];
+//  char acf_file[257], acf_path[513];
     chandler_context *ctx = inContext;
     if (!ctx)
     {
@@ -334,58 +347,102 @@ int nvp_chandlers_update(void *inContext)
     {
         dataref_read_string(xdref_acf_ICAO, xaircraft_icao_code, sizeof(xaircraft_icao_code));
     }
-    XPLMGetNthAircraftModel(XPLM_USER_AIRCRAFT, acf_file, acf_path);
+//  XPLMGetNthAircraftModel(XPLM_USER_AIRCRAFT, acf_file, acf_path);
 
     /* check enabled plugins to determine which plane we're flying */
-    if (strcasecmp(xaircraft_icao_code, "B763") == 0 &&
-        XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("ru.flightfactor-steptosky.757767avionics"))
+    do // dummy loop we can break out of
     {
-        ndt_log("navP [info]: plane is FlightFactor-StepToSky Boeing 767 Professional\n");
-        ctx->otto.disc.cc.name = "1-sim/comm/AP/ap_disc";
-        ctx->athr.disc.cc.name = "1-sim/comm/AP/at_disc";
-        ctx->athr.toga.cc.name = "1-sim/comm/AP/at_toga";
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.airbus.fbw"))
+        {
+            if (!strlen(xaircraft_icao_code))
+            {
+                if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("FFSTSmousehandler"))
+                {
+                    ndt_log("navP [info]: plane is FlightFactor-QPAC Airbus A350 XWB Advanced\n");
+                    ctx->atyp = NVP_ACF_A350_FF;
+                    break;
+                }
+                ndt_log("navP [info]: plane is RWDesigns-QPAC Airbus A330-300\n");
+                ctx->atyp = NVP_ACF_A330_RW;
+                break;
+            }
+            if (!strcasecmp(xaircraft_icao_code, "A320"))
+            {
+                ndt_log("navP [info]: plane is QPAC Airbus A320-200 IAE\n");
+                ctx->atyp = NVP_ACF_A320_QP;
+                break;
+            }
+            ndt_log("navP [warning]: no aircraft type match despite plugin (QPAC.airbus.fbw)\n");
+            break; // fall back to generic
+        }
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("de-ru.philippmuenzel-den_rain.757avionics") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("ru.flightfactor-steptosky.757767avionics"))
+        {
+            if (!strcasecmp(xaircraft_icao_code, "B763"))
+            {
+                ndt_log("navP [info]: plane is FlightFactor-StepToSky Boeing 767 Professional\n");
+                ctx->atyp = NVP_ACF_B763_FF;
+                break;
+            }
+            // TODO: future FlightFactor 757 and 767 addons
+            ndt_log("navP [warning]: no aircraft type match despite plugin (757767avionics)\n");
+            break; // fall back to generic
+        }
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("de.philippmuenzel.t7avionics"))
+        {
+            if (!strcasecmp(xaircraft_icao_code, "B77L"))
+            {
+                ndt_log("navP [info]: plane is FlightFactor Boeing 777 Worldliner Professional\n");
+                ctx->atyp = NVP_ACF_B77L_FF;
+                break;
+            }
+            // TODO: other FlightFactor T7 addons
+            ndt_log("navP [warning]: no aircraft type match despite plugin (t7avionics)\n");
+            break; // fall back to generic
+        }
     }
-    else if (strcasecmp(xaircraft_icao_code, "B77L") == 0 &&
-             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("de.philippmuenzel.t7avionics"))
-    {
-        ndt_log("navP [info]: plane is FlightFactor Boeing 777 Worldliner Professional\n");
-        ctx->otto.disc.cc.name = "777/ap_disc";
-        ctx->athr.disc.cc.name = "777/at_disc";
-        ctx->athr.toga.cc.name = "777/at_toga";
-    }
-    else if (strlen(xaircraft_icao_code) == 0 &&
-             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.airbus.fbw") &&
-             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("FFSTSmousehandler"))
-    {
-        ndt_log("navP [info]: plane is FlightFactor-QPAC Airbus A350 XWB Advanced\n");
-        ctx->bking.rc_brk.a350.on = 1; ctx->bking.rc_brk.a350.ready = 0;
-        ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-        ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-    }
-    else if (strlen(xaircraft_icao_code) == 0 &&
-             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.airbus.fbw"))
-    {
-        ndt_log("navP [info]: plane is RWDesigns-QPAC Airbus A330-300\n");
-        ctx->bking.rc_brk.qpac.on = 1; ctx->bking.rc_brk.qpac.ready = 0;
-        ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-        ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-    }
-    else if (strcasecmp(xaircraft_icao_code, "A320") == 0 &&
-             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.airbus.fbw"))
-    {
-        ndt_log("navP [info]: plane is QPAC Airbus A320-200 IAE\n");
-        ctx->bking.rc_brk.qpac.on = 1; ctx->bking.rc_brk.qpac.ready = 0;
-        ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-        ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-    }
-    else
-    {
-        ndt_log("navP [info]: plane is generic\n");
-        ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-        ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-    }
+    while (0);
 
     /* all good */
+    switch (ctx->atyp)
+    {
+        case NVP_ACF_A320_QP:
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+            ctx->bking.rc_brk.qpac.on = 1; ctx->bking.rc_brk.qpac.ready = 0;
+            break;
+
+        case NVP_ACF_A330_RW:
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+            ctx->bking.rc_brk.qpac.on = 1; ctx->bking.rc_brk.qpac.ready = 0;
+            break;
+
+        case NVP_ACF_A350_FF:
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+            ctx->bking.rc_brk.a350.on = 1; ctx->bking.rc_brk.a350.ready = 0;
+            break;
+
+        case NVP_ACF_B763_FF:
+            ctx->otto.disc.cc.name = "1-sim/comm/AP/ap_disc";
+            ctx->athr.disc.cc.name = "1-sim/comm/AP/at_disc";
+            ctx->athr.toga.cc.name = "1-sim/comm/AP/at_toga";
+            break;
+
+        case NVP_ACF_B77L_FF:
+            ctx->otto.disc.cc.name = "777/ap_disc";
+            ctx->athr.disc.cc.name = "777/at_disc";
+            ctx->athr.toga.cc.name = "777/at_toga";
+            break;
+
+        case NVP_ACF_GENERIC:
+        default:
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+            ndt_log("navP [info]: plane is generic\n");
+            break;
+    }
     ndt_log("navP [info]: nvp_chandlers_update OK\n"); XPLMSpeakString("command handlers OK"); return 0;
 }
 
