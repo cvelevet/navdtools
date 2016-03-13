@@ -68,7 +68,6 @@ typedef struct
     XPLMDataRef p_b_rat;
     XPLMDataRef l_b_rat;
     XPLMDataRef r_b_rat;
-    int         acf_typ;
 } refcon_braking;
 
 typedef struct
@@ -187,19 +186,19 @@ void* nvp_chandlers_init(void)
         XPLMRegisterCommandHandler((ctx->bking.prk.cb.command),
                                    (ctx->bking.prk.cb.handler = &chandler_p_max),
                                    (ctx->bking.prk.cb.before  = 0),
-                                   (ctx->bking.prk.cb.refcon  = &ctx->bking.rc_brk));
+                                   (ctx->bking.prk.cb.refcon  = ctx));
         XPLMRegisterCommandHandler((ctx->bking.off.cb.command),
                                    (ctx->bking.off.cb.handler = &chandler_p_off),
                                    (ctx->bking.off.cb.before  = 0),
-                                   (ctx->bking.off.cb.refcon  = &ctx->bking.rc_brk));
+                                   (ctx->bking.off.cb.refcon  = ctx));
         XPLMRegisterCommandHandler((ctx->bking.max.cb.command),
                                    (ctx->bking.max.cb.handler = &chandler_b_max),
                                    (ctx->bking.max.cb.before  = 0),
-                                   (ctx->bking.max.cb.refcon  = &ctx->bking.rc_brk));
+                                   (ctx->bking.max.cb.refcon  = ctx));
         XPLMRegisterCommandHandler((ctx->bking.reg.cb.command),
                                    (ctx->bking.reg.cb.handler = &chandler_b_reg),
                                    (ctx->bking.reg.cb.before  = 0),
-                                   (ctx->bking.reg.cb.refcon  = &ctx->bking.rc_brk));
+                                   (ctx->bking.reg.cb.refcon  = ctx));
     }
 
     /* Custom commands: autopilot and autothrottle */
@@ -414,9 +413,6 @@ int nvp_chandlers_update(void *inContext)
     }
     while (0);
 
-    /* we know the aircraft type, propagate it where it's needed */
-    ctx->bking.rc_brk.acf_typ = ctx->atyp;
-
     /* all good */
     switch (ctx->atyp)
     {
@@ -480,70 +476,72 @@ static int dataref_read_string(XPLMDataRef dataref, char *string_buffer, size_t 
  */
 static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    refcon_braking *rc = inRefcon;
-    if (rc->acf_typ == NVP_ACF_A350_FF)
+    chandler_context *ctx = inRefcon;
+    refcon_braking   *rcb = &ctx->bking.rc_brk;
+    if (ctx->atyp == NVP_ACF_A350_FF)
     {
-        if (rc->a350.ready == 0)
+        if (rcb->a350.ready == 0)
         {
-            aibus_350_init(&rc->a350);
+            aibus_350_init(&rcb->a350);
         }
-        if (rc->a350.ready && inPhase == xplm_CommandEnd)
+        if (rcb->a350.ready && inPhase == xplm_CommandEnd)
         {
-            XPLMSetDatai(rc->a350.pkb_ref, 0); // inverted
+            XPLMSetDatai(rcb->a350.pkb_ref, 0); // inverted
         }
         return 0;
     }
-    if (rc->acf_typ & NVP_ACF_MASK_QPC)
+    if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
-        if (rc->qpac.ready == 0)
+        if (rcb->qpac.ready == 0)
         {
-            aibus_fbw_init(&rc->qpac);
+            aibus_fbw_init(&rcb->qpac);
         }
-        if (rc->qpac.ready && inPhase == xplm_CommandEnd)
+        if (rcb->qpac.ready && inPhase == xplm_CommandEnd)
         {
-            XPLMSetDatai(rc->qpac.pkb_ref, 1);
-            XPLMSetDatai(rc->qpac.pkb_tmp, 1);
+            XPLMSetDatai(rcb->qpac.pkb_ref, 1);
+            XPLMSetDatai(rcb->qpac.pkb_tmp, 1);
         }
         return 0;
     }
     if (inPhase == xplm_CommandEnd)
     {
-        XPLMSetDataf(rc->p_b_rat, 1.0f);
+        XPLMSetDataf(rcb->p_b_rat, 1.0f);
     }
     return 0;
 }
 
 static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    refcon_braking *rc = inRefcon;
-    if (rc->acf_typ == NVP_ACF_A350_FF)
+    chandler_context *ctx = inRefcon;
+    refcon_braking   *rcb = &ctx->bking.rc_brk;
+    if (ctx->atyp == NVP_ACF_A350_FF)
     {
-        if (rc->a350.ready == 0)
+        if (rcb->a350.ready == 0)
         {
-            aibus_350_init(&rc->a350);
+            aibus_350_init(&rcb->a350);
         }
-        if (rc->a350.ready && inPhase == xplm_CommandEnd)
+        if (rcb->a350.ready && inPhase == xplm_CommandEnd)
         {
-            XPLMSetDatai(rc->a350.pkb_ref, 1); // inverted
+            XPLMSetDatai(rcb->a350.pkb_ref, 1); // inverted
         }
         return 0;
     }
-    if (rc->acf_typ & NVP_ACF_MASK_QPC)
+    if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
-        if (rc->qpac.ready == 0)
+        if (rcb->qpac.ready == 0)
         {
-            aibus_fbw_init(&rc->qpac);
+            aibus_fbw_init(&rcb->qpac);
         }
-        if (rc->qpac.ready && inPhase == xplm_CommandEnd)
+        if (rcb->qpac.ready && inPhase == xplm_CommandEnd)
         {
-            XPLMSetDatai(rc->qpac.pkb_ref, 0);
-            XPLMSetDatai(rc->qpac.pkb_tmp, 0);
+            XPLMSetDatai(rcb->qpac.pkb_ref, 0);
+            XPLMSetDatai(rcb->qpac.pkb_tmp, 0);
         }
         return 0;
     }
     if (inPhase == xplm_CommandEnd)
     {
-        XPLMSetDataf(rc->p_b_rat, 0.0f);
+        XPLMSetDataf(rcb->p_b_rat, 0.0f);
     }
     return 0;
 }
@@ -557,25 +555,26 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
  */
 static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    refcon_braking *rc = inRefcon;
-    if (rc->acf_typ & NVP_ACF_MASK_QPC)
+    chandler_context *ctx = inRefcon;
+    refcon_braking   *rcb = &ctx->bking.rc_brk;
+    if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
-        if (rc->qpac.ready == 0)
+        if (rcb->qpac.ready == 0)
         {
-            aibus_fbw_init(&rc->qpac);
+            aibus_fbw_init(&rcb->qpac);
         }
-        if (rc->qpac.ready)
+        if (rcb->qpac.ready)
         {
             switch (inPhase)
             {
                 case xplm_CommandBegin:
-                    XPLMSetDatai(rc->qpac.pkb_tmp, XPLMGetDatai(rc->qpac.pkb_ref));
-                    XPLMSetDatai(rc->qpac.pkb_ref, 1);
-                    XPLMCommandBegin(rc->qpac.h_b_max);
+                    XPLMSetDatai(rcb->qpac.pkb_tmp, XPLMGetDatai(rcb->qpac.pkb_ref));
+                    XPLMSetDatai(rcb->qpac.pkb_ref, 1);
+                    XPLMCommandBegin(rcb->qpac.h_b_max);
                     break;
                 case xplm_CommandEnd:
-                    XPLMCommandEnd(rc->qpac.h_b_max);
-                    XPLMSetDatai(rc->qpac.pkb_ref, XPLMGetDatai(rc->qpac.pkb_tmp));
+                    XPLMCommandEnd(rcb->qpac.h_b_max);
+                    XPLMSetDatai(rcb->qpac.pkb_ref, XPLMGetDatai(rcb->qpac.pkb_tmp));
                     break;
                 default:
                     break;
@@ -590,17 +589,17 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     switch (inPhase)
     {
         case xplm_CommandBegin:
-            XPLMSetDataf(rc->l_b_rat, 0.9f);
-            XPLMSetDataf(rc->r_b_rat, 0.9f);
+            XPLMSetDataf(rcb->l_b_rat, 0.9f);
+            XPLMSetDataf(rcb->r_b_rat, 0.9f);
             break;
         case xplm_CommandContinue:
-            XPLMSetDataf(rc->l_b_rat, 0.9f);
-            XPLMSetDataf(rc->r_b_rat, 0.9f);
+            XPLMSetDataf(rcb->l_b_rat, 0.9f);
+            XPLMSetDataf(rcb->r_b_rat, 0.9f);
             break;
         case xplm_CommandEnd:
         default:
-            XPLMSetDataf(rc->l_b_rat, 0.0f);
-            XPLMSetDataf(rc->r_b_rat, 0.0f);
+            XPLMSetDataf(rcb->l_b_rat, 0.0f);
+            XPLMSetDataf(rcb->r_b_rat, 0.0f);
             break;
     }
     return 0;
@@ -608,25 +607,26 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    refcon_braking *rc = inRefcon;
-    if (rc->acf_typ & NVP_ACF_MASK_QPC)
+    chandler_context *ctx = inRefcon;
+    refcon_braking   *rcb = &ctx->bking.rc_brk;
+    if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
-        if (rc->qpac.ready == 0)
+        if (rcb->qpac.ready == 0)
         {
-            aibus_fbw_init(&rc->qpac);
+            aibus_fbw_init(&rcb->qpac);
         }
-        if (rc->qpac.ready)
+        if (rcb->qpac.ready)
         {
             switch (inPhase)
             {
                 case xplm_CommandBegin:
-                    XPLMSetDatai(rc->qpac.pkb_tmp, XPLMGetDatai(rc->qpac.pkb_ref));
-                    XPLMSetDatai(rc->qpac.pkb_ref, 1);
-                    XPLMCommandBegin(rc->qpac.h_b_reg);
+                    XPLMSetDatai(rcb->qpac.pkb_tmp, XPLMGetDatai(rcb->qpac.pkb_ref));
+                    XPLMSetDatai(rcb->qpac.pkb_ref, 1);
+                    XPLMCommandBegin(rcb->qpac.h_b_reg);
                     break;
                 case xplm_CommandEnd:
-                    XPLMCommandEnd(rc->qpac.h_b_reg);
-                    XPLMSetDatai(rc->qpac.pkb_ref, XPLMGetDatai(rc->qpac.pkb_tmp));
+                    XPLMCommandEnd(rcb->qpac.h_b_reg);
+                    XPLMSetDatai(rcb->qpac.pkb_ref, XPLMGetDatai(rcb->qpac.pkb_tmp));
                     break;
                 default:
                     break;
@@ -637,17 +637,17 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     switch (inPhase)
     {
         case xplm_CommandBegin:
-            XPLMSetDataf(rc->l_b_rat, 0.5f);
-            XPLMSetDataf(rc->r_b_rat, 0.5f);
+            XPLMSetDataf(rcb->l_b_rat, 0.5f);
+            XPLMSetDataf(rcb->r_b_rat, 0.5f);
             break;
         case xplm_CommandContinue:
-            XPLMSetDataf(rc->l_b_rat, 0.5f);
-            XPLMSetDataf(rc->r_b_rat, 0.5f);
+            XPLMSetDataf(rcb->l_b_rat, 0.5f);
+            XPLMSetDataf(rcb->r_b_rat, 0.5f);
             break;
         case xplm_CommandEnd:
         default:
-            XPLMSetDataf(rc->l_b_rat, 0.0f);
-            XPLMSetDataf(rc->r_b_rat, 0.0f);
+            XPLMSetDataf(rcb->l_b_rat, 0.0f);
+            XPLMSetDataf(rcb->r_b_rat, 0.0f);
             break;
     }
     return 0;
