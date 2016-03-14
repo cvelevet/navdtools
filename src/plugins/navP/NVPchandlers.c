@@ -89,7 +89,7 @@ typedef struct
         NVP_ACF_B77L_FF = 0x1000000,
     } atyp;
 #define NVP_ACF_MASK_JDN  0x00000F0 // all J.A.R.Design addons
-#define NVP_ACF_MASK_QPC  0x000FF00 // all QPAC-powered addons
+#define NVP_ACF_MASK_QPC  0x0000F00 // all QPAC-powered addons
 #define NVP_ACF_MASK_FFR  0xFFFF000 // all FlightFactor addons
 #define NVP_ACF_MASK_32x  0x0000110 // all A320 series aircraft
 #define NVP_ACF_MASK_33x  0x0000220 // all A330 series aircraft
