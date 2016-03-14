@@ -455,7 +455,7 @@ int nvp_chandlers_update(void *inContext)
             ndt_log("navP [info]: plane is generic\n");
             break;
     }
-    ndt_log("navP [info]: nvp_chandlers_update OK\n"); XPLMSpeakString("command handlers OK"); return 0;
+    ndt_log("navP [info]: nvp_chandlers_update OK\n"); XPLMSpeakString("nav P configured"); return 0;
 }
 
 static int dataref_read_string(XPLMDataRef dataref, char *string_buffer, size_t buffer_size)
