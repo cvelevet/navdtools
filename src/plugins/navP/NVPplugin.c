@@ -30,12 +30,14 @@
 #include "common/common.h"
 
 #include "NVPchandlers.h"
+#include "NVPmenu.h"
 
 /* Logging callback */
 static int log_with_sdk(const char *format, va_list ap);
 
 /* Miscellaneous data */
 void *chandler_context = NULL;
+void *navpmenu_context = NULL;
 
 #if IBM
 #include <windows.h>
@@ -91,6 +93,12 @@ PLUGIN_API int XPluginEnable(void)
     /* set ndt_log callback so we write everything to the X-Plane log */
     ndt_log_set_callback(&log_with_sdk);
 
+    /* navP features a menu :-) */
+    if ((navpmenu_context = nvp_menu_init()) == NULL)
+    {
+        return 0; // menu creation failed :(
+    }
+
     /* all good */
     XPLMDebugString("navP [info]: XPluginEnable OK\n"); XPLMSpeakString("nav P OK"); return 1;
 }
@@ -102,6 +110,9 @@ PLUGIN_API void XPluginDisable(void)
 
     /* reset command handlers */
     nvp_chandlers_reset(chandler_context);
+
+    /* kill the menu */
+    if (navpmenu_context) nvp_menu_close(&navpmenu_context);
 
     /* all good */
     XPLMDebugString("navP [info]: XPluginDisable OK\n");
