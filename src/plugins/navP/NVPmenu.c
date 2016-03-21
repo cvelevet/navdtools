@@ -134,7 +134,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         float temp_dc = XPLMGetDataf(ctx->data_speakweather.temp_dc);
         float temp_dp = XPLMGetDataf(ctx->data_speakweather.temp_dp);
         snprintf(baro, sizeof(baro), "Altimeter %04d, area QNH %04d.",
-                 (int)(baro_sl * 100.), (int)(baro_sl * 33.86389));
+                 (int)round(baro_sl * 100.), (int)round(baro_sl * 33.86389));
         if (wind_sd < 4.5f)
         {
             if (wind_sd < 1.5f)
