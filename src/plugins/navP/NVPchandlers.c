@@ -97,6 +97,29 @@ typedef struct
 #define NVP_ACF_MASK_75x  0x00F0000 // all B757 series aircraft
 #define NVP_ACF_MASK_76x  0x0F00000 // all B767 series aircraft
 #define NVP_ACF_MASK_77x  0xF000000 // all B777 series aircraft
+    /*
+     * Note to self: the QPAC plugin (at least A320) seems to overwrite radio
+     * frequency datarefs with its own; I found the datarefs but they're not
+     * writable. There are custom commands though:
+     *
+     * - AirbusFBW/RMP3FreqUpLrg
+     * - AirbusFBW/RMP3FreqUpSml
+     * - AirbusFBW/RMP3FreqDownLrg
+     * - AirbusFBW/RMP3FreqDownSml
+     * - AirbusFBW/RMP3Swap etc.
+     *
+     * A plugin could control radio frequencies manually via said commands.
+     *
+     * It's worth noting that RMP1 != COM1, RMP2 != COM2; each RMP may control
+     * either of COM1 or 2; before changing frequencies via an RMP, we must set
+     * the RMP to the COM radio we want to change frequency for using the
+     * relevant custom command:
+     *
+     * - AirbusFBW/VHF1RMP3
+     * - AirbusFBW/VHF2RMP3
+     *
+     * RMP3 should be the backup radio panel located overhead the pilots.
+     */
 
     struct
     {
