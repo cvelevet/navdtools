@@ -699,6 +699,19 @@ static int first_fcall_do(chandler_context *ctx)//fixme
     XPLMDataRef d_ref;
     switch (ctx->atyp)
     {
+        case NVP_ACF_A320_QP:
+            if ((d_ref = XPLMFindDataRef("AirbusFBW/DUBrightness")))
+            {
+                float DUBrightness[8];
+                int   valuesCopied = XPLMGetDatavf(d_ref, DUBrightness, 0, 8);
+                for  (int i = 0; i < valuesCopied; i++)
+                {
+                    DUBrightness[i] = 0.9f;
+                }
+                XPLMSetDatavf(d_ref, DUBrightness, 0, valuesCopied);
+            }
+            break;
+
         case NVP_ACF_A350_FF:
             if ((d_ref = XPLMFindDataRef("1-sim/radio/push/1/11")))
             {
