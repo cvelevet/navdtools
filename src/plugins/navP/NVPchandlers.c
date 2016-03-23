@@ -733,6 +733,7 @@ static int first_fcall_do(chandler_context *ctx)//fixme
                 }
                 XPLMSetDatavf(d_ref, DUBrightness, 0, valuesCopied);
             }
+            XPLMSpeakString("nav P auto setup done");
             break;
 
         case NVP_ACF_A350_FF:
@@ -764,6 +765,7 @@ static int first_fcall_do(chandler_context *ctx)//fixme
             {
                 XPLMSetDataf(d_ref, 270.0f); // pass. announcements' volume: max
             }
+            XPLMSpeakString("nav P auto setup done");
             break;
 
         default:
