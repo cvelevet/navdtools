@@ -77,6 +77,11 @@ PLUGIN_API int XPluginStart(char *outName,
 #endif
 
     /* all good */
+#ifdef NDT_VERSION
+    XPLMDebugString("navP [info]: version %s\n", NDT_VERSION);
+#else
+    XPLMDebugString("navP [info]: unknown version :-(\n");
+#endif
     XPLMDebugString("navP [info]: XPluginStart OK\n"); return 1;
 }
 
