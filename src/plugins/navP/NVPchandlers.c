@@ -736,13 +736,33 @@ static int first_fcall_do(chandler_context *ctx)//fixme
             break;
 
         case NVP_ACF_A350_FF:
+            if ((d_ref = XPLMFindDataRef("1-sim/radio/button/1/16")))
+            {
+                XPLMSetDatai(d_ref, 1);      // RMP1 - on VHF1 radio, button: on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/radio/push/1/1")))
+            {
+                XPLMSetDatai(d_ref, 1);      // RMP1 - on VHF1 radio, switch: on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/radio/1/1/rotary")))
+            {
+                XPLMSetDataf(d_ref, 270.0f); // RMP1 - on VHF1 radio volume: max
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/radio/push/1/10")))
+            {
+                XPLMSetDatai(d_ref, 1);      // cabin crew intercomm, switch: on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/radio/1/10/rotary")))
+            {
+                XPLMSetDataf(d_ref, 270.0f); // cabin crew intercomm volume: max
+            }
             if ((d_ref = XPLMFindDataRef("1-sim/radio/push/1/11")))
             {
-                XPLMSetDatai(d_ref, 1);      // cabin announcement listen-in: on
+                XPLMSetDatai(d_ref, 1);      // pass. announcements', switch: on
             }
             if ((d_ref = XPLMFindDataRef("1-sim/radio/1/11/rotary")))
             {
-                XPLMSetDataf(d_ref, 270.0f); // cabin announcements' volume: max
+                XPLMSetDataf(d_ref, 270.0f); // pass. announcements' volume: max
             }
             break;
 
