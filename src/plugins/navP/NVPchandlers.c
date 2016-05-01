@@ -766,6 +766,13 @@ static int first_fcall_do(chandler_context *ctx)
             }
             break;
 
+        case NVP_ACF_B763_FF:
+            if ((d_ref = XPLMFindDataRef("anim/75/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // terrain override switch/button: on
+            }
+            break;
+
         default:
             break;
     }
