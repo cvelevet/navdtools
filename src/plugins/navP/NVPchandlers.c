@@ -717,7 +717,7 @@ static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
-static int first_fcall_do(chandler_context *ctx)//fixme
+static int first_fcall_do(chandler_context *ctx)
 {
     XPLMDataRef d_ref;
     switch (ctx->atyp)
@@ -733,7 +733,6 @@ static int first_fcall_do(chandler_context *ctx)//fixme
                 }
                 XPLMSetDatavf(d_ref, DUBrightness, 0, valuesCopied);
             }
-            XPLMSpeakString("nav P auto setup done");
             break;
 
         case NVP_ACF_A350_FF:
@@ -765,12 +764,12 @@ static int first_fcall_do(chandler_context *ctx)//fixme
             {
                 XPLMSetDataf(d_ref, 270.0f); // pass. announcements' volume: max
             }
-            XPLMSpeakString("nav P auto setup done");
             break;
 
         default:
             break;
     }
+    XPLMSpeakString("nav P first call");
     return (ctx->first_fcall = 0);
 }
 
