@@ -67,6 +67,7 @@ mingw:
 version:
 ifneq ($(strip $(GITVERSION)),)
 NDC_DEFINES += -DNDT_VERSION="\"$(GITVERSION)\""
+NVP_DEFINES += -DNDT_VERSION="\"$(GITVERSION)\""
 endif
 
 .PHONY: clean
