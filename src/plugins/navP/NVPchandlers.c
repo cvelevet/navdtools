@@ -260,6 +260,26 @@ typedef struct
     } athr;
 } chandler_context;
 
+/* Readability macros to (un)register custom command handlers */
+#define REGISTER_CHANDLER(_callback, _handler, _before, _refcon)                \
+{                                                                               \
+    XPLMRegisterCommandHandler(((_callback).command),                           \
+                               ((_callback).handler = (&(_handler))),           \
+                               ((_callback).before  = (((_before)))),           \
+                               ((_callback).refcon  = (((_refcon)))));          \
+}
+#define UNREGSTR_CHANDLER(_callback)                                            \
+{                                                                               \
+    if ((_callback).handler)                                                    \
+    {                                                                           \
+        XPLMUnregisterCommandHandler((_callback).command,                       \
+                                     (_callback).handler,                       \
+                                     (_callback).before,                        \
+                                     (_callback).refcon);                       \
+        (_callback).handler = NULL;                                             \
+    }                                                                           \
+}
+
 static int  dataref_read_string(XPLMDataRef dataref, char *string_buffer,  size_t buffer_size);
 static int  chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -308,22 +328,10 @@ void* nvp_chandlers_init(void)
     }
     else
     {
-        XPLMRegisterCommandHandler((ctx->bking.prk.cb.command),
-                                   (ctx->bking.prk.cb.handler = &chandler_p_max),
-                                   (ctx->bking.prk.cb.before  = 0),
-                                   (ctx->bking.prk.cb.refcon  = ctx));
-        XPLMRegisterCommandHandler((ctx->bking.off.cb.command),
-                                   (ctx->bking.off.cb.handler = &chandler_p_off),
-                                   (ctx->bking.off.cb.before  = 0),
-                                   (ctx->bking.off.cb.refcon  = ctx));
-        XPLMRegisterCommandHandler((ctx->bking.max.cb.command),
-                                   (ctx->bking.max.cb.handler = &chandler_b_max),
-                                   (ctx->bking.max.cb.before  = 0),
-                                   (ctx->bking.max.cb.refcon  = ctx));
-        XPLMRegisterCommandHandler((ctx->bking.reg.cb.command),
-                                   (ctx->bking.reg.cb.handler = &chandler_b_reg),
-                                   (ctx->bking.reg.cb.before  = 0),
-                                   (ctx->bking.reg.cb.refcon  = ctx));
+        REGISTER_CHANDLER(ctx->bking.prk.cb, chandler_p_max, 0, ctx);
+        REGISTER_CHANDLER(ctx->bking.off.cb, chandler_p_off, 0, ctx);
+        REGISTER_CHANDLER(ctx->bking.max.cb, chandler_b_max, 0, ctx);
+        REGISTER_CHANDLER(ctx->bking.reg.cb, chandler_b_reg, 0, ctx);
     }
 
     /* Custom commands: speedbrakes/spoilers */
@@ -339,14 +347,8 @@ void* nvp_chandlers_init(void)
     }
     else
     {
-        XPLMRegisterCommandHandler((ctx->spbrk.ext.cb.command),
-                                   (ctx->spbrk.ext.cb.handler = &chandler_sp_ex),
-                                   (ctx->spbrk.ext.cb.before  = 0),
-                                   (ctx->spbrk.ext.cb.refcon  = ctx));
-        XPLMRegisterCommandHandler((ctx->spbrk.ret.cb.command),
-                                   (ctx->spbrk.ret.cb.handler = &chandler_sp_re),
-                                   (ctx->spbrk.ret.cb.before  = 0),
-                                   (ctx->spbrk.ret.cb.refcon  = ctx));
+        REGISTER_CHANDLER(ctx->spbrk.ext.cb, chandler_sp_ex, 0, ctx);
+        REGISTER_CHANDLER(ctx->spbrk.ret.cb, chandler_sp_re, 0, ctx);
     }
 
     /* Custom commands: trims */
@@ -373,30 +375,12 @@ void* nvp_chandlers_init(void)
     }
     else
     {
-        XPLMRegisterCommandHandler((ctx->trims.pch.up.cb.command),
-                                   (ctx->trims.pch.up.cb.handler = &chandler_pt_up),
-                                   (ctx->trims.pch.up.cb.before  = 0),
-                                   (ctx->trims.pch.up.cb.refcon  = ctx));
-        XPLMRegisterCommandHandler((ctx->trims.pch.dn.cb.command),
-                                   (ctx->trims.pch.dn.cb.handler = &chandler_pt_dn),
-                                   (ctx->trims.pch.dn.cb.before  = 0),
-                                   (ctx->trims.pch.dn.cb.refcon  = ctx));
-        XPLMRegisterCommandHandler((ctx->trims.ail.lt.cb.command),
-                                   (ctx->trims.ail.lt.cb.handler = &chandler_at_lt),
-                                   (ctx->trims.ail.lt.cb.before  = 0),
-                                   (ctx->trims.ail.lt.cb.refcon  = ctx));
-        XPLMRegisterCommandHandler((ctx->trims.ail.rt.cb.command),
-                                   (ctx->trims.ail.rt.cb.handler = &chandler_at_rt),
-                                   (ctx->trims.ail.rt.cb.before  = 0),
-                                   (ctx->trims.ail.rt.cb.refcon  = ctx));
-        XPLMRegisterCommandHandler((ctx->trims.rud.lt.cb.command),
-                                   (ctx->trims.rud.lt.cb.handler = &chandler_rt_lt),
-                                   (ctx->trims.rud.lt.cb.before  = 0),
-                                   (ctx->trims.rud.lt.cb.refcon  = ctx));
-        XPLMRegisterCommandHandler((ctx->trims.rud.rt.cb.command),
-                                   (ctx->trims.rud.rt.cb.handler = &chandler_rt_rt),
-                                   (ctx->trims.rud.rt.cb.before  = 0),
-                                   (ctx->trims.rud.rt.cb.refcon  = ctx));
+        REGISTER_CHANDLER(ctx->trims.pch.up.cb, chandler_pt_up, 0, ctx);
+        REGISTER_CHANDLER(ctx->trims.pch.dn.cb, chandler_pt_dn, 0, ctx);
+        REGISTER_CHANDLER(ctx->trims.ail.lt.cb, chandler_at_lt, 0, ctx);
+        REGISTER_CHANDLER(ctx->trims.ail.rt.cb, chandler_at_rt, 0, ctx);
+        REGISTER_CHANDLER(ctx->trims.rud.lt.cb, chandler_rt_lt, 0, ctx);
+        REGISTER_CHANDLER(ctx->trims.rud.rt.cb, chandler_rt_rt, 0, ctx);
     }
 
     /* Custom commands: autopilot and autothrottle */
@@ -411,18 +395,9 @@ void* nvp_chandlers_init(void)
     }
     else
     {
-        XPLMRegisterCommandHandler((ctx->otto.disc.cb.command),
-                                   (ctx->otto.disc.cb.handler = &chandler_swtch),
-                                   (ctx->otto.disc.cb.before  = 0),
-                                   (ctx->otto.disc.cb.refcon  = &ctx->otto.disc.cc));
-        XPLMRegisterCommandHandler((ctx->athr.disc.cb.command),
-                                   (ctx->athr.disc.cb.handler = &chandler_swtch),
-                                   (ctx->athr.disc.cb.before  = 0),
-                                   (ctx->athr.disc.cb.refcon  = &ctx->athr.disc.cc));
-        XPLMRegisterCommandHandler((ctx->athr.toga.cb.command),
-                                   (ctx->athr.toga.cb.handler = &chandler_swtch),
-                                   (ctx->athr.toga.cb.before  = 0),
-                                   (ctx->athr.toga.cb.refcon  = &ctx->athr.toga.cc));
+        REGISTER_CHANDLER(ctx->otto.disc.cb, chandler_swtch, 0, &ctx->otto.disc.cc);
+        REGISTER_CHANDLER(ctx->athr.disc.cb, chandler_swtch, 0, &ctx->athr.disc.cc);
+        REGISTER_CHANDLER(ctx->athr.toga.cb, chandler_swtch, 0, &ctx->athr.toga.cc);
     }
 
     /* all good */
@@ -442,127 +417,22 @@ int nvp_chandlers_close(void **_chandler_context)
         return -1;
     }
 
-    /* unregister all handlers */
-    if (ctx->bking.prk.cb.handler)
-    {
-        XPLMUnregisterCommandHandler(ctx->bking.prk.cb.command,
-                                     ctx->bking.prk.cb.handler,
-                                     ctx->bking.prk.cb.before,
-                                     ctx->bking.prk.cb.refcon);
-        ctx->bking.prk.cb.handler = NULL;
-    }
-    if (ctx->bking.off.cb.handler)
-    {
-        XPLMUnregisterCommandHandler(ctx->bking.off.cb.command,
-                                     ctx->bking.off.cb.handler,
-                                     ctx->bking.off.cb.before,
-                                     ctx->bking.off.cb.refcon);
-        ctx->bking.off.cb.handler = NULL;
-    }
-    if (ctx->bking.reg.cb.handler)
-    {
-        XPLMUnregisterCommandHandler(ctx->bking.max.cb.command,
-                                     ctx->bking.max.cb.handler,
-                                     ctx->bking.max.cb.before,
-                                     ctx->bking.max.cb.refcon);
-        ctx->bking.max.cb.handler = NULL;
-    }
-    if (ctx->bking.reg.cb.handler)
-    {
-        XPLMUnregisterCommandHandler(ctx->bking.reg.cb.command,
-                                     ctx->bking.reg.cb.handler,
-                                     ctx->bking.reg.cb.before,
-                                     ctx->bking.reg.cb.refcon);
-        ctx->bking.reg.cb.handler = NULL;
-    }
-    if (ctx->spbrk.ext.cb.handler)
-    {
-        XPLMUnregisterCommandHandler(ctx->spbrk.ext.cb.command,
-                                     ctx->spbrk.ext.cb.handler,
-                                     ctx->spbrk.ext.cb.before,
-                                     ctx->spbrk.ext.cb.refcon);
-        ctx->spbrk.ext.cb.handler = NULL;
-    }
-    if (ctx->spbrk.ret.cb.handler)
-    {
-        XPLMUnregisterCommandHandler(ctx->spbrk.ret.cb.command,
-                                     ctx->spbrk.ret.cb.handler,
-                                     ctx->spbrk.ret.cb.before,
-                                     ctx->spbrk.ret.cb.refcon);
-        ctx->spbrk.ret.cb.handler = NULL;
-    }
-    if (ctx->trims.pch.up.cb.handler)
-    {
-        XPLMUnregisterCommandHandler(ctx->trims.pch.up.cb.command,
-                                     ctx->trims.pch.up.cb.handler,
-                                     ctx->trims.pch.up.cb.before,
-                                     ctx->trims.pch.up.cb.refcon);
-        ctx->trims.pch.up.cb.handler = NULL;
-    }
-    if (ctx->trims.pch.dn.cb.handler)
-    {
-        XPLMUnregisterCommandHandler(ctx->trims.pch.dn.cb.command,
-                                     ctx->trims.pch.dn.cb.handler,
-                                     ctx->trims.pch.dn.cb.before,
-                                     ctx->trims.pch.dn.cb.refcon);
-        ctx->trims.pch.dn.cb.handler = NULL;
-    }
-    if (ctx->trims.ail.lt.cb.handler)
-    {
-        XPLMUnregisterCommandHandler(ctx->trims.ail.lt.cb.command,
-                                     ctx->trims.ail.lt.cb.handler,
-                                     ctx->trims.ail.lt.cb.before,
-                                     ctx->trims.ail.lt.cb.refcon);
-        ctx->trims.ail.lt.cb.handler = NULL;
-    }
-    if (ctx->trims.ail.rt.cb.handler)
-    {
-        XPLMUnregisterCommandHandler(ctx->trims.ail.rt.cb.command,
-                                     ctx->trims.ail.rt.cb.handler,
-                                     ctx->trims.ail.rt.cb.before,
-                                     ctx->trims.ail.rt.cb.refcon);
-        ctx->trims.ail.rt.cb.handler = NULL;
-    }
-    if (ctx->trims.rud.lt.cb.handler)
-    {
-        XPLMUnregisterCommandHandler(ctx->trims.rud.lt.cb.command,
-                                     ctx->trims.rud.lt.cb.handler,
-                                     ctx->trims.rud.lt.cb.before,
-                                     ctx->trims.rud.lt.cb.refcon);
-        ctx->trims.rud.lt.cb.handler = NULL;
-    }
-    if (ctx->trims.rud.rt.cb.handler)
-    {
-        XPLMUnregisterCommandHandler(ctx->trims.rud.rt.cb.command,
-                                     ctx->trims.rud.rt.cb.handler,
-                                     ctx->trims.rud.rt.cb.before,
-                                     ctx->trims.rud.rt.cb.refcon);
-        ctx->trims.rud.rt.cb.handler = NULL;
-    }
-    if (ctx->otto.disc.cb.handler)
-    {
-        XPLMUnregisterCommandHandler(ctx->otto.disc.cb.command,
-                                     ctx->otto.disc.cb.handler,
-                                     ctx->otto.disc.cb.before,
-                                     ctx->otto.disc.cb.refcon);
-        ctx->otto.disc.cb.handler = NULL;
-    }
-    if (ctx->athr.disc.cb.handler)
-    {
-        XPLMUnregisterCommandHandler(ctx->athr.disc.cb.command,
-                                     ctx->athr.disc.cb.handler,
-                                     ctx->athr.disc.cb.before,
-                                     ctx->athr.disc.cb.refcon);
-        ctx->athr.disc.cb.handler = NULL;
-    }
-    if (ctx->athr.toga.cb.handler)
-    {
-        XPLMUnregisterCommandHandler(ctx->athr.toga.cb.command,
-                                     ctx->athr.toga.cb.handler,
-                                     ctx->athr.toga.cb.before,
-                                     ctx->athr.toga.cb.refcon);
-        ctx->athr.toga.cb.handler = NULL;
-    }
+    /* unregister all handlers… */
+    UNREGSTR_CHANDLER(ctx->bking.   prk.cb);
+    UNREGSTR_CHANDLER(ctx->bking.   off.cb);
+    UNREGSTR_CHANDLER(ctx->bking.   max.cb);
+    UNREGSTR_CHANDLER(ctx->bking.   reg.cb);
+    UNREGSTR_CHANDLER(ctx->spbrk.   ext.cb);
+    UNREGSTR_CHANDLER(ctx->spbrk.   ret.cb);
+    UNREGSTR_CHANDLER(ctx->trims.pch.up.cb);
+    UNREGSTR_CHANDLER(ctx->trims.pch.dn.cb);
+    UNREGSTR_CHANDLER(ctx->trims.ail.lt.cb);
+    UNREGSTR_CHANDLER(ctx->trims.ail.rt.cb);
+    UNREGSTR_CHANDLER(ctx->trims.rud.lt.cb);
+    UNREGSTR_CHANDLER(ctx->trims.rud.rt.cb);
+    UNREGSTR_CHANDLER(ctx->otto.   disc.cb);
+    UNREGSTR_CHANDLER(ctx->athr.   disc.cb);
+    UNREGSTR_CHANDLER(ctx->athr.   toga.cb);
 
     /* …and all datarefs */
     if (ctx->acfspec.qpac.pkb_tmp)
@@ -1431,3 +1301,6 @@ static void priv_setdata_i(void *inRefcon, int inValue)
 {
     *((int*)inRefcon) = inValue;
 }
+
+#undef REGISTER_CHANDLER
+#undef UNREGSTR_CHANDLER
