@@ -240,6 +240,23 @@ typedef struct
         struct
         {
             chandler_callback cb;
+        } fwd;
+
+        struct
+        {
+            chandler_callback cb;
+        } rev;
+
+        int         n_engines;
+        XPLMDataRef acf_numng;
+        XPLMDataRef prop_mode;
+    } revrs;
+
+    struct
+    {
+        struct
+        {
+            chandler_callback cb;
             chandler_command  cc;
         } disc;
     } otto;
@@ -263,6 +280,10 @@ typedef struct
 /* Callout default values */
 static int CALLOUT_PARKBRAKE = 1;
 static int CALLOUT_SPEEDBRAK = 1;
+
+/* thrust reverser mode constants */
+static int PROPMODE_FWD[8] = { 1, 1, 1, 1, 1, 1, 1, 1, };
+static int PROPMODE_REV[8] = { 3, 3, 3, 3, 3, 3, 3, 3, };
 
 /* Readability macros to (un)register custom command handlers */
 #define REGISTER_CHANDLER(_callback, _handler, _before, _refcon)                \
@@ -298,6 +319,8 @@ static int  chandler_at_lt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, v
 static int  chandler_at_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_rt_lt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_rt_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  first_fcall_do(                                             chandler_context *ctx);
 static int  aibus_350_init(                                               refcon_ff_a350 *ffa);
 static int  aibus_fbw_init(                                               refcon_qpacfbw *fbw);
@@ -387,6 +410,22 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->trims.rud.rt.cb, chandler_rt_rt, 0, ctx);
     }
 
+    /* Custom commands: reverser control */
+    ctx->revrs.fwd.cb.command = XPLMCreateCommand("navP/thrust/forward", "stow thrust reversers");
+    ctx->revrs.rev.cb.command = XPLMCreateCommand("navP/thrust/reverse", "deploy thrust reversers");
+    ctx->revrs.acf_numng      = XPLMFindDataRef  ("sim/aircraft/engine/acf_num_engines");
+    ctx->revrs.prop_mode      = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/prop_mode");
+    if (!ctx->revrs.fwd.cb.command || !ctx->revrs.rev.cb.command ||
+        !ctx->revrs.acf_numng      || !ctx->revrs.prop_mode)
+    {
+        goto fail;
+    }
+    else
+    {
+        REGISTER_CHANDLER(ctx->revrs.fwd.cb, chandler_r_fwd, 0, ctx);
+        REGISTER_CHANDLER(ctx->revrs.rev.cb, chandler_r_rev, 0, ctx);
+    }
+
     /* Custom commands: autopilot and autothrottle */
     ctx->otto.disc.cb.command = XPLMCreateCommand("navP/switches/ap_disc", "A/P disconnect");
     ctx->athr.disc.cb.command = XPLMCreateCommand("navP/switches/at_disc", "A/T disconnect");
@@ -469,6 +508,9 @@ int nvp_chandlers_reset(void *inContext)
     ctx->athr.disc.cc.name  = NULL;
     ctx->athr.toga.cc.name  = NULL;
     ctx->otto.disc.cc.name  = NULL;
+
+    /* Reset engine count */
+    ctx->revrs.n_engines = -1;
 
     /* all good */
     ndt_log("navP [info]: nvp_chandlers_reset OK\n"); return (ctx->initialized = 0);
@@ -1161,6 +1203,43 @@ static int chandler_rt_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             if (inPhase == xplm_CommandBegin) { XPLMCommandBegin(ctx->trims.rud.rt.cd); return 0; }
             if (inPhase == xplm_CommandEnd)   { XPLMCommandEnd  (ctx->trims.rud.rt.cd); return 0; }
             return 0;
+    }
+    return 0;
+}
+
+/*
+ * action: stow or deploy thrust reversers.
+ *
+ * rationale: X-Plane only has a toggle for this :(
+ */
+static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    chandler_context *ctx = inRefcon;
+    if (ctx->revrs.n_engines == -1)
+    {
+        ctx->revrs.n_engines = XPLMGetDatai(ctx->revrs.acf_numng);
+        ctx->revrs.n_engines = ctx->revrs.n_engines > 8 ? 8 : ctx->revrs.n_engines;
+        ctx->revrs.n_engines = ctx->revrs.n_engines < 0 ? 0 : ctx->revrs.n_engines;
+    }
+    if (ctx->revrs.n_engines >= 1)
+    {
+        XPLMSetDatavi(ctx->revrs.prop_mode, PROPMODE_FWD, 0, ctx->revrs.n_engines);
+    }
+    return 0;
+}
+
+static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    chandler_context *ctx = inRefcon;
+    if (ctx->revrs.n_engines == -1)
+    {
+        ctx->revrs.n_engines = XPLMGetDatai(ctx->revrs.acf_numng);
+        ctx->revrs.n_engines = ctx->revrs.n_engines > 8 ? 8 : ctx->revrs.n_engines;
+        ctx->revrs.n_engines = ctx->revrs.n_engines < 0 ? 0 : ctx->revrs.n_engines;
+    }
+    if (ctx->revrs.n_engines >= 1)
+    {
+        XPLMSetDatavi(ctx->revrs.prop_mode, PROPMODE_REV, 0, ctx->revrs.n_engines);
     }
     return 0;
 }
