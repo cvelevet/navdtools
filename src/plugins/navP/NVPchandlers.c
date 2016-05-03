@@ -1233,8 +1233,9 @@ static int aibus_350_init(refcon_ff_a350 *ffa)
     {
         if ((ffa->pkb_ref = XPLMFindDataRef("1-sim/parckBrake")))
         {
-            (ffa->ready = 1);
+            (ffa->ready = 1); return 0;
         }
+        return -1;
     }
     return 0;
 }
@@ -1252,14 +1253,15 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
                                                     NULL, NULL, NULL, NULL, NULL,
                                                     NULL, NULL, NULL, NULL, NULL,
                                                     &fbw->pkb_var, &fbw->pkb_var);
+            if (!fbw->pkb_tmp) return -1;
         }
-        fbw->pkb_ref = XPLMFindDataRef("AirbusFBW/ParkBrake");
-        fbw->h_b_max = XPLMFindCommand("sim/flight_controls/brakes_max");
-        fbw->h_b_reg = XPLMFindCommand("sim/flight_controls/brakes_regular");
-        if (fbw->pkb_tmp && fbw->pkb_ref && fbw->h_b_max && fbw->h_b_reg)
+        if ((fbw->pkb_ref = XPLMFindDataRef("AirbusFBW/ParkBrake"               )) &&
+            (fbw->h_b_max = XPLMFindCommand("sim/flight_controls/brakes_max"    )) &&
+            (fbw->h_b_reg = XPLMFindCommand("sim/flight_controls/brakes_regular")))
         {
-            fbw->ready = 1;
+            (fbw->ready = 1); return 0;
         }
+        return -1;
     }
     return 0;
 }
@@ -1270,8 +1272,9 @@ static int boing_733_init(refcon_ixeg733 *i33)
     {
         if ((i33->slat = XPLMFindDataRef("ixeg/733/hydraulics/speedbrake_act")))
         {
-            (i33->ready = 1);
+            (i33->ready = 1); return 0;
         }
+        return -1;
     }
     return 0;
 }
@@ -1280,14 +1283,14 @@ static int boing_738_init(refcon_eadt738 *x38)
 {
     if (x38 && x38->ready == 0)
     {
-        x38->sparm = XPLMFindCommand("x737/speedbrakes/SPEEDBRAKES_ARM");
-        x38->spret = XPLMFindCommand("x737/speedbrakes/SPEEDBRAKES_DOWN");
-        x38->pt_up = XPLMFindCommand("x737/trim/CAPT_STAB_TRIM_UP_ALL");
-        x38->pt_dn = XPLMFindCommand("x737/trim/CAPT_STAB_TRIM_DOWN_ALL");
-        if (x38->sparm && x38->spret && x38->pt_up && x38->pt_dn)
+        if ((x38->sparm = XPLMFindCommand("x737/speedbrakes/SPEEDBRAKES_ARM" )) &&
+            (x38->spret = XPLMFindCommand("x737/speedbrakes/SPEEDBRAKES_DOWN")) &&
+            (x38->pt_up = XPLMFindCommand("x737/trim/CAPT_STAB_TRIM_UP_ALL"  )) &&
+            (x38->pt_dn = XPLMFindCommand("x737/trim/CAPT_STAB_TRIM_DOWN_ALL")))
         {
-            x38->ready = 1;
+            (x38->ready = 1); return 0;
         }
+        return -1;
     }
     return 0;
 }
