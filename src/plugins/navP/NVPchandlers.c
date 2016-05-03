@@ -79,6 +79,8 @@ typedef struct
     int            ready;
     XPLMCommandRef sparm;
     XPLMCommandRef spret;
+    XPLMCommandRef pt_up;
+    XPLMCommandRef pt_dn;
 } refcon_eadt738;
 
 typedef struct
@@ -189,6 +191,54 @@ typedef struct
     {
         struct
         {
+            struct
+            {
+                XPLMCommandRef    cd;
+                chandler_callback cb;
+            } up;
+
+            struct
+            {
+                XPLMCommandRef    cd;
+                chandler_callback cb;
+            } dn;
+        } pch;
+
+        struct
+        {
+            struct
+            {
+                XPLMCommandRef    cd;
+                chandler_callback cb;
+            } lt;
+
+            struct
+            {
+                XPLMCommandRef    cd;
+                chandler_callback cb;
+            } rt;
+        } ail;
+
+        struct
+        {
+            struct
+            {
+                XPLMCommandRef    cd;
+                chandler_callback cb;
+            } lt;
+
+            struct
+            {
+                XPLMCommandRef    cd;
+                chandler_callback cb;
+            } rt;
+        } rud;
+    } trims;
+
+    struct
+    {
+        struct
+        {
             chandler_callback cb;
             chandler_command  cc;
         } disc;
@@ -218,6 +268,12 @@ static int  chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, v
 static int  chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_pt_up(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_pt_dn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_at_lt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_at_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_rt_lt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_rt_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  first_fcall_do(                                             chandler_context *ctx);
 static int  aibus_350_init(                                               refcon_ff_a350 *ffa);
 static int  aibus_fbw_init(                                               refcon_qpacfbw *fbw);
@@ -291,6 +347,56 @@ void* nvp_chandlers_init(void)
                                    (ctx->spbrk.ret.cb.handler = &chandler_sp_re),
                                    (ctx->spbrk.ret.cb.before  = 0),
                                    (ctx->spbrk.ret.cb.refcon  = ctx));
+    }
+
+    /* Custom commands: trims */
+    ctx->trims.pch.up.cb.command = XPLMCreateCommand("navP/trims/pitch_up",      "pitch trim up one");
+    ctx->trims.pch.up.cd         = XPLMFindCommand  ("sim/flight_controls/pitch_trim_up");
+    ctx->trims.pch.dn.cb.command = XPLMCreateCommand("navP/trims/pitch_down",    "pitch trim down one");
+    ctx->trims.pch.dn.cd         = XPLMFindCommand  ("sim/flight_controls/pitch_trim_down");
+    ctx->trims.ail.lt.cb.command = XPLMCreateCommand("navP/trims/aileron_left",  "aileron trim left one");
+    ctx->trims.ail.lt.cd         = XPLMFindCommand  ("sim/flight_controls/aileron_trim_left");
+    ctx->trims.ail.rt.cb.command = XPLMCreateCommand("navP/trims/aileron_right", "aileron trim right one");
+    ctx->trims.ail.rt.cd         = XPLMFindCommand  ("sim/flight_controls/aileron_trim_right");
+    ctx->trims.rud.lt.cb.command = XPLMCreateCommand("navP/trims/rudder_left",   "rudder trim left one");
+    ctx->trims.rud.lt.cd         = XPLMFindCommand  ("sim/flight_controls/rudder_trim_left");
+    ctx->trims.rud.rt.cb.command = XPLMCreateCommand("navP/trims/rudder_right",  "rudder trim right one");
+    ctx->trims.rud.rt.cd         = XPLMFindCommand  ("sim/flight_controls/rudder_trim_right");
+    if (!ctx->trims.pch.up.cb.command || !ctx->trims.pch.up.cd ||
+        !ctx->trims.pch.dn.cb.command || !ctx->trims.pch.dn.cd ||
+        !ctx->trims.ail.lt.cb.command || !ctx->trims.ail.lt.cd ||
+        !ctx->trims.ail.rt.cb.command || !ctx->trims.ail.rt.cd ||
+        !ctx->trims.rud.lt.cb.command || !ctx->trims.rud.lt.cd ||
+        !ctx->trims.rud.rt.cb.command || !ctx->trims.rud.rt.cd)
+    {
+        goto fail;
+    }
+    else
+    {
+        XPLMRegisterCommandHandler((ctx->trims.pch.up.cb.command),
+                                   (ctx->trims.pch.up.cb.handler = &chandler_pt_up),
+                                   (ctx->trims.pch.up.cb.before  = 0),
+                                   (ctx->trims.pch.up.cb.refcon  = ctx));
+        XPLMRegisterCommandHandler((ctx->trims.pch.dn.cb.command),
+                                   (ctx->trims.pch.dn.cb.handler = &chandler_pt_dn),
+                                   (ctx->trims.pch.dn.cb.before  = 0),
+                                   (ctx->trims.pch.dn.cb.refcon  = ctx));
+        XPLMRegisterCommandHandler((ctx->trims.ail.lt.cb.command),
+                                   (ctx->trims.ail.lt.cb.handler = &chandler_at_lt),
+                                   (ctx->trims.ail.lt.cb.before  = 0),
+                                   (ctx->trims.ail.lt.cb.refcon  = ctx));
+        XPLMRegisterCommandHandler((ctx->trims.ail.rt.cb.command),
+                                   (ctx->trims.ail.rt.cb.handler = &chandler_at_rt),
+                                   (ctx->trims.ail.rt.cb.before  = 0),
+                                   (ctx->trims.ail.rt.cb.refcon  = ctx));
+        XPLMRegisterCommandHandler((ctx->trims.rud.lt.cb.command),
+                                   (ctx->trims.rud.lt.cb.handler = &chandler_rt_lt),
+                                   (ctx->trims.rud.lt.cb.before  = 0),
+                                   (ctx->trims.rud.lt.cb.refcon  = ctx));
+        XPLMRegisterCommandHandler((ctx->trims.rud.rt.cb.command),
+                                   (ctx->trims.rud.rt.cb.handler = &chandler_rt_rt),
+                                   (ctx->trims.rud.rt.cb.before  = 0),
+                                   (ctx->trims.rud.rt.cb.refcon  = ctx));
     }
 
     /* Custom commands: autopilot and autothrottle */
@@ -384,6 +490,54 @@ int nvp_chandlers_close(void **_chandler_context)
                                      ctx->spbrk.ret.cb.before,
                                      ctx->spbrk.ret.cb.refcon);
         ctx->spbrk.ret.cb.handler = NULL;
+    }
+    if (ctx->trims.pch.up.cb.handler)
+    {
+        XPLMUnregisterCommandHandler(ctx->trims.pch.up.cb.command,
+                                     ctx->trims.pch.up.cb.handler,
+                                     ctx->trims.pch.up.cb.before,
+                                     ctx->trims.pch.up.cb.refcon);
+        ctx->trims.pch.up.cb.handler = NULL;
+    }
+    if (ctx->trims.pch.dn.cb.handler)
+    {
+        XPLMUnregisterCommandHandler(ctx->trims.pch.dn.cb.command,
+                                     ctx->trims.pch.dn.cb.handler,
+                                     ctx->trims.pch.dn.cb.before,
+                                     ctx->trims.pch.dn.cb.refcon);
+        ctx->trims.pch.dn.cb.handler = NULL;
+    }
+    if (ctx->trims.ail.lt.cb.handler)
+    {
+        XPLMUnregisterCommandHandler(ctx->trims.ail.lt.cb.command,
+                                     ctx->trims.ail.lt.cb.handler,
+                                     ctx->trims.ail.lt.cb.before,
+                                     ctx->trims.ail.lt.cb.refcon);
+        ctx->trims.ail.lt.cb.handler = NULL;
+    }
+    if (ctx->trims.ail.rt.cb.handler)
+    {
+        XPLMUnregisterCommandHandler(ctx->trims.ail.rt.cb.command,
+                                     ctx->trims.ail.rt.cb.handler,
+                                     ctx->trims.ail.rt.cb.before,
+                                     ctx->trims.ail.rt.cb.refcon);
+        ctx->trims.ail.rt.cb.handler = NULL;
+    }
+    if (ctx->trims.rud.lt.cb.handler)
+    {
+        XPLMUnregisterCommandHandler(ctx->trims.rud.lt.cb.command,
+                                     ctx->trims.rud.lt.cb.handler,
+                                     ctx->trims.rud.lt.cb.before,
+                                     ctx->trims.rud.lt.cb.refcon);
+        ctx->trims.rud.lt.cb.handler = NULL;
+    }
+    if (ctx->trims.rud.rt.cb.handler)
+    {
+        XPLMUnregisterCommandHandler(ctx->trims.rud.rt.cb.command,
+                                     ctx->trims.rud.rt.cb.handler,
+                                     ctx->trims.rud.rt.cb.before,
+                                     ctx->trims.rud.rt.cb.refcon);
+        ctx->trims.rud.rt.cb.handler = NULL;
     }
     if (ctx->otto.disc.cb.handler)
     {
@@ -1001,6 +1155,118 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 }
 
 /*
+ * Default trim controls' command handlers. For most planes, we just pass
+ * the default command through, but a few addons require special handling.
+ */
+static int chandler_pt_up(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    chandler_context *ctx = inRefcon;
+    refcon_eadt738   *x38 = NULL;
+    switch (ctx->atyp)
+    {
+        case NVP_ACF_B738_EA:
+            x38 = &ctx->acfspec.x738;
+            if (x38->ready == 0)
+            {
+                boing_738_init(x38);
+            }
+            break;
+
+        default:
+            if (inPhase == xplm_CommandBegin) { XPLMCommandBegin(ctx->trims.pch.up.cd); return 0; }
+            if (inPhase == xplm_CommandEnd)   { XPLMCommandEnd  (ctx->trims.pch.up.cd); return 0; }
+            return 0;
+    }
+    if (x38 && x38->ready)
+    {
+        if (inPhase == xplm_CommandBegin) { XPLMCommandBegin(x38->pt_up); return 0; }
+        if (inPhase == xplm_CommandEnd)   { XPLMCommandEnd  (x38->pt_up); return 0; }
+        return 0;
+    }
+    return 0;
+}
+
+static int chandler_pt_dn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    chandler_context *ctx = inRefcon;
+    refcon_eadt738   *x38 = NULL;
+    switch (ctx->atyp)
+    {
+        case NVP_ACF_B738_EA:
+            x38 = &ctx->acfspec.x738;
+            if (x38->ready == 0)
+            {
+                boing_738_init(x38);
+            }
+            break;
+
+        default:
+            if (inPhase == xplm_CommandBegin) { XPLMCommandBegin(ctx->trims.pch.dn.cd); return 0; }
+            if (inPhase == xplm_CommandEnd)   { XPLMCommandEnd  (ctx->trims.pch.dn.cd); return 0; }
+            return 0;
+    }
+    if (x38 && x38->ready)
+    {
+        if (inPhase == xplm_CommandBegin) { XPLMCommandBegin(x38->pt_dn); return 0; }
+        if (inPhase == xplm_CommandEnd)   { XPLMCommandEnd  (x38->pt_dn); return 0; }
+        return 0;
+    }
+    return 0;
+}
+
+static int chandler_at_lt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    chandler_context *ctx = inRefcon;
+    switch (ctx->atyp)
+    {
+        default:
+            if (inPhase == xplm_CommandBegin) { XPLMCommandBegin(ctx->trims.ail.lt.cd); return 0; }
+            if (inPhase == xplm_CommandEnd)   { XPLMCommandEnd  (ctx->trims.ail.lt.cd); return 0; }
+            return 0;
+    }
+    return 0;
+}
+
+static int chandler_at_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    chandler_context *ctx = inRefcon;
+    switch (ctx->atyp)
+    {
+        default:
+            if (inPhase == xplm_CommandBegin) { XPLMCommandBegin(ctx->trims.ail.rt.cd); return 0; }
+            if (inPhase == xplm_CommandEnd)   { XPLMCommandEnd  (ctx->trims.ail.rt.cd); return 0; }
+            return 0;
+    }
+    return 0;
+}
+
+static int chandler_rt_lt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    chandler_context *ctx = inRefcon;
+    switch (ctx->atyp)
+    {
+        default:
+            if (inPhase == xplm_CommandBegin) { XPLMCommandBegin(ctx->trims.rud.lt.cd); return 0; }
+            if (inPhase == xplm_CommandEnd)   { XPLMCommandEnd  (ctx->trims.rud.rt.cd); return 0; }
+            return 0;
+    }
+    return 0;
+}
+
+static int chandler_rt_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    chandler_context *ctx = inRefcon;
+    switch (ctx->atyp)
+    {
+        default:
+            if (inPhase == xplm_CommandBegin) { XPLMCommandBegin(ctx->trims.rud.rt.cd); return 0; }
+            if (inPhase == xplm_CommandEnd)   { XPLMCommandEnd  (ctx->trims.rud.rt.cd); return 0; }
+            return 0;
+    }
+    return 0;
+}
+
+/*
  * action: always-available custom command which applies the appropriate switch
  *         (be it default or custom) based on the plane/addon we'll be flying.
  *
@@ -1146,7 +1412,9 @@ static int boing_738_init(refcon_eadt738 *x38)
     {
         x38->sparm = XPLMFindCommand("x737/speedbrakes/SPEEDBRAKES_ARM");
         x38->spret = XPLMFindCommand("x737/speedbrakes/SPEEDBRAKES_DOWN");
-        if (x38->sparm && x38->spret)
+        x38->pt_up = XPLMFindCommand("x737/trim/CAPT_STAB_TRIM_UP_ALL");
+        x38->pt_dn = XPLMFindCommand("x737/trim/CAPT_STAB_TRIM_DOWN_ALL");
+        if (x38->sparm && x38->spret && x38->pt_up && x38->pt_dn)
         {
             x38->ready = 1;
         }
