@@ -390,6 +390,23 @@ int nvp_chandlers_update(void *inContext)
     /* check enabled plugins to determine which plane we're flying */
     do // dummy loop we can break out of
     {
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("jardesign.sound3d"))
+        {
+            if (!strcasecmp(xaircraft_icao_code, "A320"))
+            {
+                ndt_log("navP [info]: plane is J.A.R. Design Airbus A320-200 CFM\n");
+                ctx->atyp = NVP_ACF_A320_JD;
+                break;
+            }
+            if (1) // TODO: add check for ICAO code when I know it
+            {
+                ndt_log("navP [info]: plane is J.A.R. Design Airbus A330-200 RR\n");
+                ctx->atyp = NVP_ACF_A332_JD;
+                break;
+            }
+            ndt_log("navP [warning]: no aircraft type match despite plugin (jardesign.sound3d)\n");
+            break; // fall back to generic
+        }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.airbus.fbw"))
         {
             if (!strlen(xaircraft_icao_code))
@@ -444,7 +461,17 @@ int nvp_chandlers_update(void *inContext)
     /* all good */
     switch (ctx->atyp)
     {
+        case NVP_ACF_A320_JD:
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+            break;
+
         case NVP_ACF_A320_QP:
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+            break;
+
+        case NVP_ACF_A332_JD:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             break;
