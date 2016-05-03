@@ -466,9 +466,9 @@ int nvp_chandlers_reset(void *inContext)
     ctx->acfspec.qpac.ready = 0;
     ctx->acfspec.i733.ready = 0;
     ctx->acfspec.x738.ready = 0;
-    ctx->athr.disc.cc.name = NULL;
-    ctx->athr.toga.cc.name = NULL;
-    ctx->otto.disc.cc.name = NULL;
+    ctx->athr.disc.cc.name  = NULL;
+    ctx->athr.toga.cc.name  = NULL;
+    ctx->otto.disc.cc.name  = NULL;
 
     /* all good */
     ndt_log("navP [info]: nvp_chandlers_reset OK\n"); return (ctx->initialized = 0);
@@ -693,10 +693,10 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         first_fcall_do(ctx);
         speak = 0;
     }
-//    if (ctx->kill_daniel)
-//    {
-//        // TODO: implement
-//    }
+//  if (ctx->kill_daniel)
+//  {
+//      // TODO: implement
+//  }
     if (ctx->atyp & NVP_ACF_MASK_JDN)
     {
         speak = 0;
