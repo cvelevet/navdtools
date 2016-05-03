@@ -47,6 +47,13 @@ typedef struct
 
 typedef struct
 {
+    XPLMDataRef p_b_rat;
+    XPLMDataRef l_b_rat;
+    XPLMDataRef r_b_rat;
+} refcon_braking;
+
+typedef struct
+{
     int           ready;
     XPLMDataRef pkb_ref;
 } refcon_ff_a350;
@@ -63,12 +70,16 @@ typedef struct
 
 typedef struct
 {
-    refcon_ff_a350 a350;
-    refcon_qpacfbw qpac;
-    XPLMDataRef p_b_rat;
-    XPLMDataRef l_b_rat;
-    XPLMDataRef r_b_rat;
-} refcon_braking;
+    int        ready;
+    XPLMDataRef slat;
+} refcon_ixeg733;
+
+typedef struct
+{
+    int            ready;
+    XPLMCommandRef sparm;
+    XPLMCommandRef spret;
+} refcon_eadt738;
 
 typedef struct
 {
@@ -84,6 +95,8 @@ typedef struct
         NVP_ACF_A320_QP = 0x0000100,
         NVP_ACF_A333_RW = 0x0000200,
         NVP_ACF_A350_FF = 0x0001000,
+        NVP_ACF_B733_XG = 0x0004000,
+        NVP_ACF_B738_EA = 0x0008000,
         NVP_ACF_B752_FF = 0x0010000,
         NVP_ACF_B763_FF = 0x0100000,
         NVP_ACF_B77L_FF = 0x1000000,
@@ -93,7 +106,8 @@ typedef struct
 #define NVP_ACF_MASK_FFR  0xFFFF000 // all FlightFactor addons
 #define NVP_ACF_MASK_32x  0x0000110 // all A320 series aircraft
 #define NVP_ACF_MASK_33x  0x0000220 // all A330 series aircraft
-#define NVP_ACF_MASK_35x  0x000F000 // all A350 series aircraft
+#define NVP_ACF_MASK_35x  0x0001000 // all A350 series aircraft
+#define NVP_ACF_MASK_73x  0x000C000 // all B737 series aircraft
 #define NVP_ACF_MASK_75x  0x00F0000 // all B757 series aircraft
 #define NVP_ACF_MASK_76x  0x0F00000 // all B767 series aircraft
 #define NVP_ACF_MASK_77x  0xF000000 // all B777 series aircraft
@@ -123,6 +137,14 @@ typedef struct
 
     struct
     {
+        refcon_ff_a350 a350;
+        refcon_qpacfbw qpac;
+        refcon_ixeg733 i733;
+        refcon_eadt738 x738;
+    } acfspec;
+
+    struct
+    {
         struct
         {
             chandler_callback cb;
@@ -145,6 +167,23 @@ typedef struct
 
         refcon_braking rc_brk;
     } bking;
+
+    struct
+    {
+        struct
+        {
+            chandler_callback cb;
+        } ext;
+
+        struct
+        {
+            chandler_callback cb;
+        } ret;
+
+        XPLMDataRef    srat;
+        XPLMCommandRef sext;
+        XPLMCommandRef sret;
+    } spbrk;
 
     struct
     {
@@ -177,9 +216,13 @@ static int  chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, v
 static int  chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  first_fcall_do(                                             chandler_context *ctx);
 static int  aibus_350_init(                                               refcon_ff_a350 *ffa);
 static int  aibus_fbw_init(                                               refcon_qpacfbw *fbw);
+static int  boing_733_init(                                               refcon_ixeg733 *i33);
+static int  boing_738_init(                                               refcon_eadt738 *x38);
 static int  priv_getdata_i(                                       void *inRefcon             );
 static void priv_setdata_i(                                       void *inRefcon, int inValue);
 
@@ -225,6 +268,29 @@ void* nvp_chandlers_init(void)
                                    (ctx->bking.reg.cb.handler = &chandler_b_reg),
                                    (ctx->bking.reg.cb.before  = 0),
                                    (ctx->bking.reg.cb.refcon  = ctx));
+    }
+
+    /* Custom commands: speedbrakes/spoilers */
+    ctx->spbrk.ext.cb.command = XPLMCreateCommand("navP/spoilers/extend",  "speedbrakes extend one");
+    ctx->spbrk.ret.cb.command = XPLMCreateCommand("navP/spoilers/retract", "speedbrakes retract one");
+    ctx->spbrk.sext           = XPLMFindCommand  ("sim/flight_controls/speed_brakes_down_one");
+    ctx->spbrk.sret           = XPLMFindCommand  ("sim/flight_controls/speed_brakes_up_one");
+    ctx->spbrk.srat           = XPLMFindDataRef  ("sim/cockpit2/controls/speedbrake_ratio");
+    if (!ctx->spbrk.ext.cb.command || !ctx->spbrk.ret.cb.command ||
+        !ctx->spbrk.sext || !ctx->spbrk.sret || !ctx->spbrk.srat)
+    {
+        goto fail;
+    }
+    else
+    {
+        XPLMRegisterCommandHandler((ctx->spbrk.ext.cb.command),
+                                   (ctx->spbrk.ext.cb.handler = &chandler_sp_ex),
+                                   (ctx->spbrk.ext.cb.before  = 0),
+                                   (ctx->spbrk.ext.cb.refcon  = ctx));
+        XPLMRegisterCommandHandler((ctx->spbrk.ret.cb.command),
+                                   (ctx->spbrk.ret.cb.handler = &chandler_sp_re),
+                                   (ctx->spbrk.ret.cb.before  = 0),
+                                   (ctx->spbrk.ret.cb.refcon  = ctx));
     }
 
     /* Custom commands: autopilot and autothrottle */
@@ -303,6 +369,22 @@ int nvp_chandlers_close(void **_chandler_context)
                                      ctx->bking.reg.cb.refcon);
         ctx->bking.reg.cb.handler = NULL;
     }
+    if (ctx->spbrk.ext.cb.handler)
+    {
+        XPLMUnregisterCommandHandler(ctx->spbrk.ext.cb.command,
+                                     ctx->spbrk.ext.cb.handler,
+                                     ctx->spbrk.ext.cb.before,
+                                     ctx->spbrk.ext.cb.refcon);
+        ctx->spbrk.ext.cb.handler = NULL;
+    }
+    if (ctx->spbrk.ret.cb.handler)
+    {
+        XPLMUnregisterCommandHandler(ctx->spbrk.ret.cb.command,
+                                     ctx->spbrk.ret.cb.handler,
+                                     ctx->spbrk.ret.cb.before,
+                                     ctx->spbrk.ret.cb.refcon);
+        ctx->spbrk.ret.cb.handler = NULL;
+    }
     if (ctx->otto.disc.cb.handler)
     {
         XPLMUnregisterCommandHandler(ctx->otto.disc.cb.command,
@@ -329,10 +411,10 @@ int nvp_chandlers_close(void **_chandler_context)
     }
 
     /* …and all datarefs */
-    if (ctx->bking.rc_brk.qpac.pkb_tmp)
+    if (ctx->acfspec.qpac.pkb_tmp)
     {
-        XPLMUnregisterDataAccessor(ctx->bking.rc_brk.qpac.pkb_tmp);
-        ctx->bking.rc_brk.qpac.pkb_tmp = NULL;
+        XPLMUnregisterDataAccessor(ctx->acfspec.qpac.pkb_tmp);
+        ctx->acfspec.qpac.pkb_tmp = NULL;
     }
 
     /* all good */
@@ -352,11 +434,13 @@ int nvp_chandlers_reset(void *inContext)
     ctx->atyp = NVP_ACF_GENERIC;
 
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
-    ctx->bking.rc_brk.a350.ready = 0;
-    ctx->bking.rc_brk.qpac.ready = 0;
-    ctx->   athr.disc.cc.name = NULL;
-    ctx->   athr.toga.cc.name = NULL;
-    ctx->   otto.disc.cc.name = NULL;
+    ctx->acfspec.a350.ready = 0;
+    ctx->acfspec.qpac.ready = 0;
+    ctx->acfspec.i733.ready = 0;
+    ctx->acfspec.x738.ready = 0;
+    ctx->athr.disc.cc.name = NULL;
+    ctx->athr.toga.cc.name = NULL;
+    ctx->otto.disc.cc.name = NULL;
 
     /* all good */
     ndt_log("navP [info]: nvp_chandlers_reset OK\n"); return (ctx->initialized = 0);
@@ -430,6 +514,32 @@ int nvp_chandlers_update(void *inContext)
             ndt_log("navP [warning]: no aircraft type match despite plugin (QPAC.airbus.fbw)\n");
             break; // fall back to generic
         }
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("gizmo.x-plugins.com"))
+        {
+            if (!strcasecmp(xaircraft_icao_code, "B733"))
+            {
+                XPLMDataRef override_throttles =
+                XPLMFindDataRef("sim/operation/override/override_throttles");
+                if  (override_throttles && XPLMGetDatai(override_throttles))
+                {
+                    ndt_log("navP [info]: plane is IXEG Boeing 737-300 Classic\n");
+                    ctx->atyp = NVP_ACF_B733_XG;
+                    break;
+                }
+            }
+            // fall through (no generic fallback, Gizmo running for all planes)
+        }
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("bs.x737.plugin"))
+        {
+            if (!strcasecmp(xaircraft_icao_code, "B737"))
+            {
+                ndt_log("navP [info]: plane is EADT Boeing x737-800\n");
+                ctx->atyp = NVP_ACF_B738_EA;
+                break;
+            }
+            ndt_log("navP [warning]: no aircraft type match despite plugin (bs.x737.plugin)\n");
+            break; // fall back to generic
+        }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("de-ru.philippmuenzel-den_rain.757avionics") ||
             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("ru.flightfactor-steptosky.757767avionics"))
         {
@@ -486,6 +596,18 @@ int nvp_chandlers_update(void *inContext)
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             break;
 
+        case NVP_ACF_B733_XG:
+            ctx->otto.disc.cc.name = "ixeg/733/autopilot/AP_disengage";
+            ctx->athr.disc.cc.name = "ixeg/733/autopilot/at_disengage";
+            ctx->athr.toga.cc.name = "sim/engines/TOGA_power";
+            break;
+
+        case NVP_ACF_B738_EA:
+            ctx->otto.disc.cc.name = "x737/yoke/capt_AP_DISENG_BTN";
+            ctx->athr.disc.cc.name = "x737/mcp/ATHR_ARM_TOGGLE";
+            ctx->athr.toga.cc.name = "x737/mcp/TOGA_TOGGLE";
+            break;
+
         case NVP_ACF_B763_FF:
             ctx->otto.disc.cc.name = "1-sim/comm/AP/ap_disc";
             ctx->athr.disc.cc.name = "1-sim/comm/AP/at_disc";
@@ -502,7 +624,7 @@ int nvp_chandlers_update(void *inContext)
         default:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-            ndt_log("navP [info]: plane is generic\n");
+            ndt_log("navP [info]: plane is generic (ICAO: \"%s\")\n", xaircraft_icao_code);
             break;
     }
     ndt_log("navP [info]: nvp_chandlers_update OK\n"); XPLMSpeakString("nav P configured"); return 0;
@@ -547,26 +669,26 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 //    }
     if (ctx->atyp == NVP_ACF_A350_FF)
     {
-        if (rcb->a350.ready == 0)
+        if (ctx->acfspec.a350.ready == 0)
         {
-            aibus_350_init(&rcb->a350);
+            aibus_350_init(&ctx->acfspec.a350);
         }
-        if (rcb->a350.ready && inPhase == xplm_CommandEnd)
+        if (ctx->acfspec.a350.ready && inPhase == xplm_CommandEnd)
         {
-            XPLMSetDatai(rcb->a350.pkb_ref, 0); // inverted
+            XPLMSetDatai(ctx->acfspec.a350.pkb_ref, 0); // inverted
         }
         return 0;
     }
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
-        if (rcb->qpac.ready == 0)
+        if (ctx->acfspec.qpac.ready == 0)
         {
-            aibus_fbw_init(&rcb->qpac);
+            aibus_fbw_init(&ctx->acfspec.qpac);
         }
-        if (rcb->qpac.ready && inPhase == xplm_CommandEnd)
+        if (ctx->acfspec.qpac.ready && inPhase == xplm_CommandEnd)
         {
-            XPLMSetDatai(rcb->qpac.pkb_ref, 1);
-            XPLMSetDatai(rcb->qpac.pkb_tmp, 1);
+            XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1);
+            XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, 1);
         }
         return 0;
     }
@@ -583,26 +705,26 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     refcon_braking   *rcb = &ctx->bking.rc_brk;
     if (ctx->atyp == NVP_ACF_A350_FF)
     {
-        if (rcb->a350.ready == 0)
+        if (ctx->acfspec.a350.ready == 0)
         {
-            aibus_350_init(&rcb->a350);
+            aibus_350_init(&ctx->acfspec.a350);
         }
-        if (rcb->a350.ready && inPhase == xplm_CommandEnd)
+        if (ctx->acfspec.a350.ready && inPhase == xplm_CommandEnd)
         {
-            XPLMSetDatai(rcb->a350.pkb_ref, 1); // inverted
+            XPLMSetDatai(ctx->acfspec.a350.pkb_ref, 1); // inverted
         }
         return 0;
     }
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
-        if (rcb->qpac.ready == 0)
+        if (ctx->acfspec.qpac.ready == 0)
         {
-            aibus_fbw_init(&rcb->qpac);
+            aibus_fbw_init(&ctx->acfspec.qpac);
         }
-        if (rcb->qpac.ready && inPhase == xplm_CommandEnd)
+        if (ctx->acfspec.qpac.ready && inPhase == xplm_CommandEnd)
         {
-            XPLMSetDatai(rcb->qpac.pkb_ref, 0);
-            XPLMSetDatai(rcb->qpac.pkb_tmp, 0);
+            XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 0);
+            XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, 0);
         }
         return 0;
     }
@@ -626,22 +748,22 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     refcon_braking   *rcb = &ctx->bking.rc_brk;
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
-        if (rcb->qpac.ready == 0)
+        if (ctx->acfspec.qpac.ready == 0)
         {
-            aibus_fbw_init(&rcb->qpac);
+            aibus_fbw_init(&ctx->acfspec.qpac);
         }
-        if (rcb->qpac.ready)
+        if (ctx->acfspec.qpac.ready)
         {
             switch (inPhase)
             {
                 case xplm_CommandBegin:
-                    XPLMSetDatai(rcb->qpac.pkb_tmp, XPLMGetDatai(rcb->qpac.pkb_ref));
-                    XPLMSetDatai(rcb->qpac.pkb_ref, 1);
-                    XPLMCommandBegin(rcb->qpac.h_b_max);
+                    XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, XPLMGetDatai(ctx->acfspec.qpac.pkb_ref));
+                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1);
+                    XPLMCommandBegin(ctx->acfspec.qpac.h_b_max);
                     break;
                 case xplm_CommandEnd:
-                    XPLMCommandEnd(rcb->qpac.h_b_max);
-                    XPLMSetDatai(rcb->qpac.pkb_ref, XPLMGetDatai(rcb->qpac.pkb_tmp));
+                    XPLMCommandEnd(ctx->acfspec.qpac.h_b_max);
+                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(ctx->acfspec.qpac.pkb_tmp));
                     break;
                 default:
                     break;
@@ -678,22 +800,22 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     refcon_braking   *rcb = &ctx->bking.rc_brk;
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
-        if (rcb->qpac.ready == 0)
+        if (ctx->acfspec.qpac.ready == 0)
         {
-            aibus_fbw_init(&rcb->qpac);
+            aibus_fbw_init(&ctx->acfspec.qpac);
         }
-        if (rcb->qpac.ready)
+        if (ctx->acfspec.qpac.ready)
         {
             switch (inPhase)
             {
                 case xplm_CommandBegin:
-                    XPLMSetDatai(rcb->qpac.pkb_tmp, XPLMGetDatai(rcb->qpac.pkb_ref));
-                    XPLMSetDatai(rcb->qpac.pkb_ref, 1);
-                    XPLMCommandBegin(rcb->qpac.h_b_reg);
+                    XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, XPLMGetDatai(ctx->acfspec.qpac.pkb_ref));
+                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1);
+                    XPLMCommandBegin(ctx->acfspec.qpac.h_b_reg);
                     break;
                 case xplm_CommandEnd:
-                    XPLMCommandEnd(rcb->qpac.h_b_reg);
-                    XPLMSetDatai(rcb->qpac.pkb_ref, XPLMGetDatai(rcb->qpac.pkb_tmp));
+                    XPLMCommandEnd(ctx->acfspec.qpac.h_b_reg);
+                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(ctx->acfspec.qpac.pkb_tmp));
                     break;
                 default:
                     break;
@@ -721,6 +843,164 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 }
 
 /*
+ * Default speedbrake extend/retract command handlers. For most planes, we just
+ * pass the default command through, but a few addons require special handling.
+ */
+static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        chandler_context *ctx = inRefcon;
+        refcon_ixeg733   *i33 = NULL;
+        refcon_eadt738   *x38 = NULL;
+        switch (ctx->atyp)
+        {
+            case NVP_ACF_B733_XG:
+                i33 = &ctx->acfspec.i733;
+                if (i33->ready == 0)
+                {
+                    boing_733_init(i33);
+                }
+                break;
+
+            case NVP_ACF_B738_EA:
+                x38 = &ctx->acfspec.x738;
+                if (x38->ready == 0)
+                {
+                    boing_738_init(x38);
+                }
+                break;
+
+            default:
+                XPLMCommandOnce (ctx->spbrk.sext);
+                if (XPLMGetDataf(ctx->spbrk.srat) < +.01f)
+                {
+                    XPLMSpeakString("spoilers disarmed");
+                    return 0;
+                }
+                if (XPLMGetDataf(ctx->spbrk.srat) > +.01f)
+                {
+                    XPLMSpeakString("speedbrake");
+                    return 0;
+                }
+                return 0;
+        }
+        {
+            float ratio = XPLMGetDataf(ctx->spbrk.srat);
+            if (i33 && i33->ready)
+            {
+                if (ratio < -.01f)
+                {
+                    XPLMSpeakString("spoilers disarmed");
+                    XPLMSetDataf(i33->slat, 0.0f);    // armed: retract fully
+                    return 0;
+                }
+                XPLMSpeakString("speedbrake");
+                XPLMSetDataf(i33->slat, 0.8f);        // extend: flight detent
+                return 0;
+            }
+            if (x38 && x38->ready)
+            {
+                if (ratio > .1f && ratio < .2f)
+                {
+                    XPLMSpeakString("spoilers disarmed");
+                    XPLMCommandOnce(x38->spret);      // extend: disarm spoilers
+                    return 0;
+                }
+                XPLMSpeakString("speedbrake");
+                XPLMCommandOnce(ctx->spbrk.sext);     // extend: one
+                return 0;
+            }
+        }
+    }
+    return 0;
+}
+
+static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        chandler_context *ctx = inRefcon;
+        refcon_ixeg733   *i33 = NULL;
+        refcon_eadt738   *x38 = NULL;
+        switch (ctx->atyp)
+        {
+            case NVP_ACF_B733_XG:
+                i33 = &ctx->acfspec.i733;
+                if (i33->ready == 0)
+                {
+                    boing_733_init(i33);
+                }
+                break;
+
+            case NVP_ACF_B738_EA:
+                x38 = &ctx->acfspec.x738;
+                if (x38->ready == 0)
+                {
+                    boing_738_init(x38);
+                }
+                break;
+
+            default:
+                XPLMCommandOnce (ctx->spbrk.sret);
+                if (XPLMGetDataf(ctx->spbrk.srat) < -.01f)
+                {
+                    XPLMSpeakString("spoilers armed");
+                    return 0;
+                }
+                if (XPLMGetDataf(ctx->spbrk.srat) < +.01f)
+                {
+                    XPLMSpeakString("speedbrake retracted");
+                    return 0;
+                }
+                return 0;
+        }
+        {
+            float ratio = XPLMGetDataf(ctx->spbrk.srat);
+            if (i33 && i33->ready)
+            {
+                if (ratio < +.01f)
+                {
+                    if (ratio > -.01f)
+                    {
+                        XPLMSetDataf(i33->slat, .15f);// retract: arm spoilers
+                    }
+                    XPLMSpeakString("spoilers armed");
+                    return 0;
+                }
+                if (ratio > +.51f)
+                {
+                    XPLMSetDataf(i33->slat, 0.8f);    // retract: flight detent
+                    return 0;
+                }
+                XPLMSetDataf(i33->slat, 0.0f);        // retract: fully
+                XPLMSpeakString("speedbrake retracted");
+                return 0;
+            }
+            if (x38 && x38->ready)
+            {
+                if ((ratio < .01f) || (ratio > .1f && ratio < .2f))
+                {
+                    if (ratio < .01f)
+                    {
+                        XPLMCommandOnce(x38->sparm);  // retract: arm spoilers
+                    }
+                    XPLMSpeakString("spoilers armed");
+                    return 0;
+                }
+                XPLMCommandOnce (ctx->spbrk.sret);    // retract: one
+                if (XPLMGetDataf(ctx->spbrk.srat) < .01f)
+                {
+                    XPLMSpeakString("speedbrake retracted");
+                }
+                return 0;
+            }
+        }
+    }
+    return 0;
+}
+
+/*
  * action: always-available custom command which applies the appropriate switch
  *         (be it default or custom) based on the plane/addon we'll be flying.
  *
@@ -735,6 +1015,10 @@ static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (cc->xpcr == NULL)
         {
             cc->xpcr = XPLMFindCommand(cc->name);
+            if (NULL == cc->xpcr)
+            {
+                XPLMSpeakString("Failed to resolve command");
+            }
         }
         if (cc->xpcr && inPhase == xplm_CommandEnd)
         {
@@ -839,6 +1123,32 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
         if (fbw->pkb_tmp && fbw->pkb_ref && fbw->h_b_max && fbw->h_b_reg)
         {
             fbw->ready = 1;
+        }
+    }
+    return 0;
+}
+
+static int boing_733_init(refcon_ixeg733 *i33)
+{
+    if (i33 && i33->ready == 0)
+    {
+        if ((i33->slat = XPLMFindDataRef("ixeg/733/hydraulics/speedbrake_act")))
+        {
+            (i33->ready = 1);
+        }
+    }
+    return 0;
+}
+
+static int boing_738_init(refcon_eadt738 *x38)
+{
+    if (x38 && x38->ready == 0)
+    {
+        x38->sparm = XPLMFindCommand("x737/speedbrakes/SPEEDBRAKES_ARM");
+        x38->spret = XPLMFindCommand("x737/speedbrakes/SPEEDBRAKES_DOWN");
+        if (x38->sparm && x38->spret)
+        {
+            x38->ready = 1;
         }
     }
     return 0;
