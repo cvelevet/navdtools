@@ -306,8 +306,16 @@ typedef struct
 #define CALLOUT_SPEEDBRAK 1
 
 /* thrust reverser mode constants */
-static int PROPMODE_FWD[8] = { 1, 1, 1, 1, 1, 1, 1, 1, };
-static int PROPMODE_REV[8] = { 3, 3, 3, 3, 3, 3, 3, 3, };
+static int _PROPMODE_FWD[8] = { 1, 1, 1, 1, 1, 1, 1, 1, };
+static int _PROPMODE_REV[8] = { 3, 3, 3, 3, 3, 3, 3, 3, };
+static int* propmode_fwd_get(void)
+{
+    return _PROPMODE_FWD;
+}
+static int* propmode_rev_get(void)
+{
+    return _PROPMODE_REV;
+}
 
 /* Quicklook view index and accessors */
 static int         _var_ql_idx = 0; // default view minus 1
@@ -1372,7 +1380,7 @@ static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     }
     if (ctx->revrs.n_engines >= 1)
     {
-        XPLMSetDatavi(ctx->revrs.prop_mode, PROPMODE_FWD, 0, ctx->revrs.n_engines);
+        XPLMSetDatavi(ctx->revrs.prop_mode, propmode_fwd_get(), 0, ctx->revrs.n_engines);
     }
     return 0;
 }
@@ -1388,7 +1396,7 @@ static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     }
     if (ctx->revrs.n_engines >= 1)
     {
-        XPLMSetDatavi(ctx->revrs.prop_mode, PROPMODE_REV, 0, ctx->revrs.n_engines);
+        XPLMSetDatavi(ctx->revrs.prop_mode, propmode_rev_get(), 0, ctx->revrs.n_engines);
     }
     return 0;
 }
