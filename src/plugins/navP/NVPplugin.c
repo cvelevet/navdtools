@@ -65,6 +65,9 @@ PLUGIN_API int XPluginStart(char *outName,
     strncpy(outSig,  "Rodeo314.navP",        255);
     strncpy(outDesc, "Miscellaneous stuff.", 255);
 
+    /* set ndt_log callback so we write everything to the X-Plane log */
+    ndt_log_set_callback(&log_with_sdk);
+
     /* Initialize command handling context */
     if ((chandler_context = nvp_chandlers_init()) == NULL)
     {
@@ -87,17 +90,18 @@ PLUGIN_API int XPluginStart(char *outName,
 
 PLUGIN_API void XPluginStop(void)
 {
+    /* close command handling context */
     if (chandler_context)
     {
         nvp_chandlers_close(&chandler_context);
     }
+
+    /* unset ndt_log callback */
+    ndt_log_set_callback(NULL);
 }
 
 PLUGIN_API int XPluginEnable(void)
 {
-    /* set ndt_log callback so we write everything to the X-Plane log */
-    ndt_log_set_callback(&log_with_sdk);
-
     /* navP features a menu :-) */
     if ((navpmenu_context = nvp_menu_init()) == NULL)
     {
@@ -110,9 +114,6 @@ PLUGIN_API int XPluginEnable(void)
 
 PLUGIN_API void XPluginDisable(void)
 {
-    /* unset ndt_log callback */
-    ndt_log_set_callback(NULL);
-
     /* reset command handlers */
     nvp_chandlers_reset(chandler_context);
 
