@@ -265,6 +265,22 @@ typedef struct
         struct
         {
             chandler_callback cb;
+        } prev;
+
+        struct
+        {
+            chandler_callback cb;
+        } next;
+
+        int               idx[10];
+        chandler_callback cbs[10];
+    } views;
+
+    struct
+    {
+        struct
+        {
+            chandler_callback cb;
             chandler_command  cc;
         } disc;
     } otto;
@@ -292,6 +308,26 @@ typedef struct
 /* thrust reverser mode constants */
 static int PROPMODE_FWD[8] = { 1, 1, 1, 1, 1, 1, 1, 1, };
 static int PROPMODE_REV[8] = { 3, 3, 3, 3, 3, 3, 3, 3, };
+
+/* Quicklook view index and accessors */
+static int         _var_ql_idx = 0; // default view minus 1
+static int*         var_ql_idx_get(void)
+{
+    return &_var_ql_idx;
+}
+static XPLMDataRef _ref_ql_idx = NULL;
+static void         ref_ql_idx_set(XPLMDataRef xdr)
+{
+    _ref_ql_idx = xdr;
+}
+static XPLMDataRef  ref_ql_idx_get(void)
+{
+    return _ref_ql_idx;
+}
+static int          ref_ql_idx_val(void)
+{
+    return XPLMGetDatai(_ref_ql_idx);
+}
 
 /* Readability macros to (un)register custom command handlers */
 #define REGISTER_CHANDLER(_callback, _handler, _before, _refcon)                \
@@ -329,6 +365,9 @@ static int  chandler_rt_lt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, v
 static int  chandler_rt_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_sview(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_qlprv(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  first_fcall_do(                                             chandler_context *ctx);
 static int  aibus_350_init(                                               refcon_ff_a350 *ffa);
 static int  aibus_fbw_init(                                               refcon_qpacfbw *fbw);
@@ -465,6 +504,56 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->revrs.rev.cb, chandler_r_rev, 0, ctx);
     }
 
+    /* Custom commands: quick look views */
+    ctx->views.cbs[0].command = XPLMFindCommand("sim/view/quick_look_0");
+    ctx->views.cbs[1].command = XPLMFindCommand("sim/view/quick_look_1");
+    ctx->views.cbs[2].command = XPLMFindCommand("sim/view/quick_look_2");
+    ctx->views.cbs[3].command = XPLMFindCommand("sim/view/quick_look_3");
+    ctx->views.cbs[4].command = XPLMFindCommand("sim/view/quick_look_4");
+    ctx->views.cbs[5].command = XPLMFindCommand("sim/view/quick_look_5");
+    ctx->views.cbs[6].command = XPLMFindCommand("sim/view/quick_look_6");
+    ctx->views.cbs[7].command = XPLMFindCommand("sim/view/quick_look_7");
+    ctx->views.cbs[8].command = XPLMFindCommand("sim/view/quick_look_8");
+    ctx->views.cbs[9].command = XPLMFindCommand("sim/view/quick_look_9");
+    for (int i = 0; i < 10; i++)
+    {
+        if (!ctx->views.cbs[i].command)
+        {
+            goto fail;
+        }
+        else
+        {
+            ctx->views.idx[i] = i;
+            REGISTER_CHANDLER(ctx->views.cbs[i], chandler_sview, 0, &ctx->views.idx[i]);
+        }
+    }
+    XPLMDataRef ref_ql_idx = XPLMRegisterDataAccessor("navP/views/quicklook_index",
+                                                      xplmType_Int, 1,
+                                                      &priv_getdata_i,
+                                                      &priv_setdata_i,
+                                                      NULL, NULL, NULL, NULL, NULL,
+                                                      NULL, NULL, NULL, NULL, NULL,
+                                                      var_ql_idx_get(), var_ql_idx_get());
+    if (!ref_ql_idx)
+    {
+        goto fail;
+    }
+    else
+    {
+        ref_ql_idx_set(ref_ql_idx);
+    }
+    ctx->views.prev.cb.command = XPLMCreateCommand("navP/views/quick_look_prev", "previous quick look view preset");
+    ctx->views.next.cb.command = XPLMCreateCommand("navP/views/quick_look_next",     "next quick look view preset");
+    if (!ctx->views.prev.cb.command || !ctx->views.next.cb.command)
+    {
+        goto fail;
+    }
+    else
+    {
+        REGISTER_CHANDLER(ctx->views.prev.cb, chandler_qlprv, 0, ctx);
+        REGISTER_CHANDLER(ctx->views.next.cb, chandler_qlnxt, 0, ctx);
+    }
+
     /* Custom commands: autopilot and autothrottle */
     ctx->otto.disc.cb.command = XPLMCreateCommand("navP/switches/ap_disc", "A/P disconnect");
     ctx->athr.disc.cb.command = XPLMCreateCommand("navP/switches/at_disc", "A/T disconnect");
@@ -515,6 +604,12 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->otto.   disc.cb);
     UNREGSTR_CHANDLER(ctx->athr.   disc.cb);
     UNREGSTR_CHANDLER(ctx->athr.   toga.cb);
+    UNREGSTR_CHANDLER(ctx->views.  prev.cb);
+    UNREGSTR_CHANDLER(ctx->views.  next.cb);
+    for (int i = 0; i < 10; i++)
+    {
+        UNREGSTR_CHANDLER(ctx->views.cbs[i]);
+    }
 
     /* …and all datarefs */
     if (ctx->acfspec.qpac.pkb_tmp)
@@ -531,6 +626,11 @@ int nvp_chandlers_close(void **_chandler_context)
     {
         XPLMUnregisterDataAccessor(ctx->callouts.ref_speedbrake);
         ctx->callouts.ref_speedbrake = NULL;
+    }
+    if (ref_ql_idx_get())
+    {
+        XPLMUnregisterDataAccessor(ref_ql_idx_get());
+        ref_ql_idx_set            (NULL);
     }
 
     /* all good */
@@ -1320,6 +1420,45 @@ static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     }
     return 0;
 }
+
+/*
+ * Quick look view presets, utilities:
+ *
+ * - store the latest quick look view index
+ * - select previous/next quick look view preset
+ */
+static int chandler_sview(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        int index = *((int*)inRefcon);
+        XPLMSetDatai(ref_ql_idx_get(), index);
+    }
+    return 1; // passthrough
+}
+
+static int chandler_qlprv(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        chandler_context *ctx = inRefcon;
+        int index = ndt_mod(ref_ql_idx_val() - 1, 10);
+        XPLMCommandOnce(ctx->views.cbs[index].command);
+    }
+    return 0;
+}
+
+static int chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        chandler_context *ctx = inRefcon;
+        int index = ndt_mod(ref_ql_idx_val() + 1, 10);
+        XPLMCommandOnce(ctx->views.cbs[index].command);
+    }
+    return 0;
+}
+
 
 static int first_fcall_do(chandler_context *ctx)
 {
