@@ -34,6 +34,7 @@ typedef struct
     int id;
     enum
     {
+        MENUITEM_CALLOUTS_STS,
         MENUITEM_SPEAKWEATHER,
     } mivalue;
 } item_context;
@@ -41,11 +42,19 @@ typedef struct
 typedef struct
 {
     XPLMMenuID id;
+    int setupdone;
 
     struct
     {
+        item_context callouts_sts;
         item_context speakweather;
     } items;
+
+    struct
+    {
+        XPLMDataRef park_brake;
+        XPLMDataRef speedbrake;
+    } data_callouts_sts;
 
     struct
     {
@@ -76,6 +85,25 @@ void* nvp_menu_init(void)
     }
 
     /* add desired items */
+    ctx->items.callouts_sts.mivalue = MENUITEM_CALLOUTS_STS;
+    if ((ctx->items.callouts_sts.id = XPLMAppendMenuItem( ctx->id, "navP custom callouts",
+                                                         &ctx->items.callouts_sts, 0)) < 0)
+    {
+        goto fail;
+    }
+    ctx->data_callouts_sts.park_brake = XPLMFindDataRef("navP/callouts/park_brake");
+    ctx->data_callouts_sts.speedbrake = XPLMFindDataRef("navP/callouts/speedbrake");
+    if (!ctx->data_callouts_sts.park_brake ||
+        !ctx->data_callouts_sts.speedbrake)
+    {
+        goto fail;
+    }
+    else
+    {
+        // Note: XPLMSetDatai doesn't seem to work from XPluginEnable() either,
+        //       so the default dataref and checkbox values can't be set here.
+        XPLMAppendMenuSeparator(ctx->id);
+    }
     ctx->items.speakweather.mivalue = MENUITEM_SPEAKWEATHER;
     if ((ctx->items.speakweather.id = XPLMAppendMenuItem( ctx->id, "Speak weather",
                                                          &ctx->items.speakweather, 0)) < 0)
@@ -89,6 +117,25 @@ void* nvp_menu_init(void)
 fail:
     nvp_menu_close((void**)&ctx);
     return NULL;
+}
+
+int nvp_menu_setup(void *_menu_context)
+{
+    menu_context *ctx = _menu_context;
+    if (ctx && !ctx->setupdone)
+    {
+        /*
+         * Set defaults for dataref-backed variables,
+         * since we can't do it in XPluginEnable().
+         *
+         * Future: read from a config file instead of hardcoding said defaults.
+         */
+        XPLMCheckMenuItem(ctx->id, ctx->items.callouts_sts.id, xplm_Menu_Checked);
+        XPLMSetDatai     (         ctx->data_callouts_sts.park_brake,          1);
+        XPLMSetDatai     (         ctx->data_callouts_sts.speedbrake,          1);
+        ctx->setupdone = 1; return 0;
+    }
+    return ctx ? 0 : -1;
 }
 
 int nvp_menu_close(void **_menu_context)
@@ -115,6 +162,23 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
 {
     menu_context *ctx = inMenuRef;
     item_context *itx = inItemRef;
+
+    if (itx->mivalue == MENUITEM_CALLOUTS_STS)
+    {
+        XPLMMenuCheck state = xplm_Menu_Checked;
+        XPLMCheckMenuItemState(ctx->id, itx->id, &state);
+        if (state == xplm_Menu_Checked)
+        {
+            XPLMCheckMenuItem(ctx->id, itx->id,  xplm_Menu_NoCheck);
+            XPLMSetDatai     (ctx->data_callouts_sts.park_brake, 0);
+            XPLMSetDatai     (ctx->data_callouts_sts.speedbrake, 0);
+            return;
+        }
+        XPLMCheckMenuItem(ctx->id, itx->id,  xplm_Menu_Checked);
+        XPLMSetDatai     (ctx->data_callouts_sts.park_brake, 1);
+        XPLMSetDatai     (ctx->data_callouts_sts.speedbrake, 1);
+        return;
+    }
 
     if (itx->mivalue == MENUITEM_SPEAKWEATHER)
     {

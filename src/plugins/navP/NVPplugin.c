@@ -158,6 +158,7 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
         case XPLM_MSG_LIVERY_LOADED:
             if (inParam == XPLM_USER_AIRCRAFT)
             {
+                nvp_menu_setup      (navpmenu_context); // menu's one-time setup
                 nvp_chandlers_update(chandler_context); // custom plugins loaded
             }
             break;

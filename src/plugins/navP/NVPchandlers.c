@@ -139,6 +139,14 @@ typedef struct
 
     struct
     {
+        int         var_park_brake;
+        XPLMDataRef ref_park_brake;
+        int         var_speedbrake;
+        XPLMDataRef ref_speedbrake;
+    } callouts;
+
+    struct
+    {
         refcon_ff_a350 a350;
         refcon_qpacfbw qpac;
         refcon_ixeg733 i733;
@@ -278,8 +286,8 @@ typedef struct
 } chandler_context;
 
 /* Callout default values */
-static int CALLOUT_PARKBRAKE = 1;
-static int CALLOUT_SPEEDBRAK = 1;
+#define CALLOUT_PARKBRAKE 1
+#define CALLOUT_SPEEDBRAK 1
 
 /* thrust reverser mode constants */
 static int PROPMODE_FWD[8] = { 1, 1, 1, 1, 1, 1, 1, 1, };
@@ -335,6 +343,37 @@ void* nvp_chandlers_init(void)
     if (!ctx)
     {
         return NULL;
+    }
+
+    /*
+     * Private datarefs: callouts.
+     *
+     * Defaults are set by the menu code, but we
+     * also initialize the variables here anyway.
+     *
+     * Note: XPLMGet/SetDatai don't seem to work from XPluginStart().
+     */
+    ctx->callouts.var_park_brake = CALLOUT_PARKBRAKE;
+    ctx->callouts.ref_park_brake = XPLMRegisterDataAccessor("navP/callouts/park_brake",
+                                                            xplmType_Int, 1,
+                                                            &priv_getdata_i,
+                                                            &priv_setdata_i,
+                                                            NULL, NULL, NULL, NULL, NULL,
+                                                            NULL, NULL, NULL, NULL, NULL,
+                                                            &ctx->callouts.var_park_brake,
+                                                            &ctx->callouts.var_park_brake);
+    ctx->callouts.var_speedbrake = CALLOUT_SPEEDBRAK;
+    ctx->callouts.ref_speedbrake = XPLMRegisterDataAccessor("navP/callouts/speedbrake",
+                                                            xplmType_Int, 1,
+                                                            &priv_getdata_i,
+                                                            &priv_setdata_i,
+                                                            NULL, NULL, NULL, NULL, NULL,
+                                                            NULL, NULL, NULL, NULL, NULL,
+                                                            &ctx->callouts.var_speedbrake,
+                                                            &ctx->callouts.var_speedbrake);
+    if (!ctx->callouts.ref_park_brake || !ctx->callouts.ref_speedbrake)
+    {
+        goto fail;
     }
 
     /* Custom commands: braking */
@@ -482,6 +521,16 @@ int nvp_chandlers_close(void **_chandler_context)
     {
         XPLMUnregisterDataAccessor(ctx->acfspec.qpac.pkb_tmp);
         ctx->acfspec.qpac.pkb_tmp = NULL;
+    }
+    if (ctx->callouts.ref_park_brake)
+    {
+        XPLMUnregisterDataAccessor(ctx->callouts.ref_park_brake);
+        ctx->callouts.ref_park_brake = NULL;
+    }
+    if (ctx->callouts.ref_speedbrake)
+    {
+        XPLMUnregisterDataAccessor(ctx->callouts.ref_speedbrake);
+        ctx->callouts.ref_speedbrake = NULL;
     }
 
     /* all good */
@@ -725,7 +774,7 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     chandler_context *ctx = inRefcon;
     refcon_braking   *rcb = &ctx->bking.rc_brk;
-    int             speak = CALLOUT_PARKBRAKE;
+    int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
     /*
      * XXX: this function is basically guaranteed to be called early, so here we
      *      do any additional aircraft-specific stuff that can't be done earlier.
@@ -782,7 +831,7 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     chandler_context *ctx = inRefcon;
     refcon_braking   *rcb = &ctx->bking.rc_brk;
-    int             speak = CALLOUT_PARKBRAKE;
+    int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
     if (ctx->atyp & NVP_ACF_MASK_JDN)
     {
         speak = 0;
@@ -937,10 +986,10 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     if (inPhase == xplm_CommandEnd)
     {
-        int             speak = CALLOUT_SPEEDBRAK;
-        chandler_context *ctx = inRefcon;
         refcon_ixeg733   *i33 = NULL;
         refcon_eadt738   *x38 = NULL;
+        chandler_context *ctx = inRefcon;
+        int speak = XPLMGetDatai(ctx->callouts.ref_speedbrake);
         switch (ctx->atyp)
         {
             case NVP_ACF_B733_XG:
@@ -1011,10 +1060,10 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     if (inPhase == xplm_CommandEnd)
     {
-        int             speak = CALLOUT_SPEEDBRAK;
-        chandler_context *ctx = inRefcon;
         refcon_ixeg733   *i33 = NULL;
         refcon_eadt738   *x38 = NULL;
+        chandler_context *ctx = inRefcon;
+        int speak = XPLMGetDatai(ctx->callouts.ref_speedbrake);
         switch (ctx->atyp)
         {
             case NVP_ACF_B733_XG:
@@ -1418,3 +1467,5 @@ static void priv_setdata_i(void *inRefcon, int inValue)
 
 #undef REGISTER_CHANDLER
 #undef UNREGSTR_CHANDLER
+#undef CALLOUT_PARKBRAKE
+#undef CALLOUT_SPEEDBRAK
