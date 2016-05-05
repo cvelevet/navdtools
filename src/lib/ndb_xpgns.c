@@ -3165,22 +3165,30 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
 end:
     if (ret)
     {
-        char errbuf[64];
+        char *errstr = NULL;
+        char  errbuf[64];
+#ifdef _GNU_SOURCE
+        // GNU-specific strerror_r() variant
+        errstr = strerror_r(ret, errbuf, sizeof(errbuf));
+#else
         int errcode = strerror_r(ret, errbuf, sizeof(errbuf));
-        if (errcode == 0 || errcode == EINVAL)
+        if (errcode != 0 && errcode != EINVAL)
         {
-            switch (ret)
-            {
-                case EINVAL:
-                    ndt_log("[ndb_xpgns] parse_procedures: failed to parse \"%s\"\n", line);
-                    break;
+            goto linefree;
+        }
+#endif
+        switch (ret)
+        {
+            case EINVAL:
+                ndt_log("[ndb_xpgns] parse_procedures: failed to parse \"%s\"\n", line);
+                break;
 
-                default:
-                    ndt_log("[ndb_xpgns] parse_procedures: '%s'\n", errbuf);
-                    break;
-            }
+            default:
+                ndt_log("[ndb_xpgns] parse_procedures: '%.63s'\n", errstr ? errstr : errbuf);
+                break;
         }
     }
+linefree:
     free(line);
     return ret;
 }

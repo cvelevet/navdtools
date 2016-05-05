@@ -1550,7 +1550,7 @@ int ndt_fmt_icaor_print_airportnfo(ndt_navdatabase *ndb, const char *icao)
         fprintf(stdout, "Standard Instrument Departures:%s", "\n\n");
         for (i = 0; i < ndt_list_count(names); i++)
         {
-            fprintf(stdout, "    %s\n", ndt_list_item(names, i));
+            fprintf(stdout, "    %s\n", (char*)ndt_list_item(names, i));
             fprintf(stdout, "    %s", "applicable to runways:");
             for (j = 0; j < ndt_list_count(apt->runways); j++)
             {
@@ -1576,7 +1576,7 @@ int ndt_fmt_icaor_print_airportnfo(ndt_navdatabase *ndb, const char *icao)
                 fprintf(stdout, "    %s", "enroute transition(s):");
                 for (j = 0; j < ndt_list_count(trans); j++)
                 {
-                    fprintf(stdout, " %s", ndt_list_item(trans, j));
+                    fprintf(stdout, " %s", (char*)ndt_list_item(trans, j));
                 }
                 fprintf(stdout, "%s", "\n");
             }
@@ -1590,7 +1590,7 @@ int ndt_fmt_icaor_print_airportnfo(ndt_navdatabase *ndb, const char *icao)
         fprintf(stdout, "Standard Terminal Arrival Routes:%s", "\n\n");
         for (i = 0; i < ndt_list_count(names); i++)
         {
-            fprintf(stdout, "    %s\n", ndt_list_item(names, i));
+            fprintf(stdout, "    %s\n", (char*)ndt_list_item(names, i));
             pr1 = ndt_procedure_get(apt->stars, ndt_list_item(names, i), NULL);
             ndt_procedure_trans(pr1 ? pr1->transition.enroute : NULL, trans);
             if (ndt_list_count(trans))
@@ -1598,7 +1598,7 @@ int ndt_fmt_icaor_print_airportnfo(ndt_navdatabase *ndb, const char *icao)
                 fprintf(stdout, "    %s", "enroute transition(s):");
                 for (j = 0; j < ndt_list_count(trans); j++)
                 {
-                    fprintf(stdout, " %s", ndt_list_item(trans, j));
+                    fprintf(stdout, " %s", (char*)ndt_list_item(trans, j));
                 }
                 fprintf(stdout, "%s", "\n");
             }
