@@ -1,5 +1,5 @@
 CFLAGS     = -O3 -std=gnu99 -Wno-unused-result -D_GNU_SOURCE
-LDLIBS     = -lm
+LDLIBS     = -lm -static
 TARGETARCH =
 
 all:
