@@ -52,19 +52,21 @@ typedef struct
 
     struct
     {
-        XPLMDataRef park_brake;
-        XPLMDataRef speedbrake;
-    } data_callouts_sts;
+        struct
+        {
+            XPLMDataRef park_brake;
+            XPLMDataRef speedbrake;
+        } callouts_sts;
 
-    struct
-    {
-        int     initialized;
-        XPLMDataRef baro_sl;
-        XPLMDataRef wind_dt;
-        XPLMDataRef wind_sd;
-        XPLMDataRef temp_dc;
-        XPLMDataRef temp_dp;
-    } data_speakweather;
+        struct
+        {
+            XPLMDataRef baro_sl;
+            XPLMDataRef wind_dt;
+            XPLMDataRef wind_sd;
+            XPLMDataRef temp_dc;
+            XPLMDataRef temp_dp;
+        } speakweather;
+    } data;
 } menu_context;
 
 static void  menu_handler(void *inMenuRef,          void *inItemRef);
@@ -91,10 +93,10 @@ void* nvp_menu_init(void)
     {
         goto fail;
     }
-    ctx->data_callouts_sts.park_brake = XPLMFindDataRef("navP/callouts/park_brake");
-    ctx->data_callouts_sts.speedbrake = XPLMFindDataRef("navP/callouts/speedbrake");
-    if (!ctx->data_callouts_sts.park_brake ||
-        !ctx->data_callouts_sts.speedbrake)
+    ctx->data.callouts_sts.park_brake = XPLMFindDataRef("navP/callouts/park_brake");
+    ctx->data.callouts_sts.speedbrake = XPLMFindDataRef("navP/callouts/speedbrake");
+    if (!ctx->data.callouts_sts.park_brake ||
+        !ctx->data.callouts_sts.speedbrake)
     {
         goto fail;
     }
@@ -107,6 +109,19 @@ void* nvp_menu_init(void)
     ctx->items.speakweather.mivalue = MENUITEM_SPEAKWEATHER;
     if ((ctx->items.speakweather.id = XPLMAppendMenuItem( ctx->id, "Speak weather",
                                                          &ctx->items.speakweather, 0)) < 0)
+    {
+        goto fail;
+    }
+    ctx->data.speakweather.baro_sl = XPLMFindDataRef("sim/weather/barometer_sealevel_inhg");
+    ctx->data.speakweather.wind_dt = XPLMFindDataRef("sim/weather/wind_direction_degt[0]" );
+    ctx->data.speakweather.wind_sd = XPLMFindDataRef("sim/weather/wind_speed_kt[0]"       );
+    ctx->data.speakweather.temp_dc = XPLMFindDataRef("sim/weather/temperature_ambient_c"  );
+    ctx->data.speakweather.temp_dp = XPLMFindDataRef("sim/weather/dewpoi_sealevel_c"      );
+    if (!ctx->data.speakweather.baro_sl ||
+        !ctx->data.speakweather.wind_dt ||
+        !ctx->data.speakweather.wind_sd ||
+        !ctx->data.speakweather.temp_dc ||
+        !ctx->data.speakweather.temp_dp)
     {
         goto fail;
     }
@@ -131,8 +146,8 @@ int nvp_menu_setup(void *_menu_context)
          * Future: read from a config file instead of hardcoding said defaults.
          */
         XPLMCheckMenuItem(ctx->id, ctx->items.callouts_sts.id, xplm_Menu_Checked);
-        XPLMSetDatai     (         ctx->data_callouts_sts.park_brake,          1);
-        XPLMSetDatai     (         ctx->data_callouts_sts.speedbrake,          1);
+        XPLMSetDatai     (         ctx->data.callouts_sts.park_brake,          1);
+        XPLMSetDatai     (         ctx->data.callouts_sts.speedbrake,          1);
         ctx->setupdone = 1; return 0;
     }
     return ctx ? 0 : -1;
@@ -170,33 +185,24 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         if (state == xplm_Menu_Checked)
         {
             XPLMCheckMenuItem(ctx->id, itx->id,  xplm_Menu_NoCheck);
-            XPLMSetDatai     (ctx->data_callouts_sts.park_brake, 0);
-            XPLMSetDatai     (ctx->data_callouts_sts.speedbrake, 0);
+            XPLMSetDatai     (ctx->data.callouts_sts.park_brake, 0);
+            XPLMSetDatai     (ctx->data.callouts_sts.speedbrake, 0);
             return;
         }
         XPLMCheckMenuItem(ctx->id, itx->id,  xplm_Menu_Checked);
-        XPLMSetDatai     (ctx->data_callouts_sts.park_brake, 1);
-        XPLMSetDatai     (ctx->data_callouts_sts.speedbrake, 1);
+        XPLMSetDatai     (ctx->data.callouts_sts.park_brake, 1);
+        XPLMSetDatai     (ctx->data.callouts_sts.speedbrake, 1);
         return;
     }
 
     if (itx->mivalue == MENUITEM_SPEAKWEATHER)
     {
-        if (ctx->data_speakweather.initialized == 0)
-        {
-            ctx->data_speakweather.baro_sl = XPLMFindDataRef("sim/weather/barometer_sealevel_inhg");
-            ctx->data_speakweather.wind_dt = XPLMFindDataRef("sim/weather/wind_direction_degt[0]" );
-            ctx->data_speakweather.wind_sd = XPLMFindDataRef("sim/weather/wind_speed_kt[0]"       );
-            ctx->data_speakweather.temp_dc = XPLMFindDataRef("sim/weather/temperature_ambient_c"  );
-            ctx->data_speakweather.temp_dp = XPLMFindDataRef("sim/weather/dewpoi_sealevel_c"      );
-            ctx->data_speakweather.initialized = 1;
-        }
         char  baro[127], wind[127], temp[127], weather[255];
-        float baro_sl = XPLMGetDataf(ctx->data_speakweather.baro_sl);
-        float wind_dt = XPLMGetDataf(ctx->data_speakweather.wind_dt);
-        float wind_sd = XPLMGetDataf(ctx->data_speakweather.wind_sd);
-        float temp_dc = XPLMGetDataf(ctx->data_speakweather.temp_dc);
-        float temp_dp = XPLMGetDataf(ctx->data_speakweather.temp_dp);
+        float baro_sl = XPLMGetDataf(ctx->data.speakweather.baro_sl);
+        float wind_dt = XPLMGetDataf(ctx->data.speakweather.wind_dt);
+        float wind_sd = XPLMGetDataf(ctx->data.speakweather.wind_sd);
+        float temp_dc = XPLMGetDataf(ctx->data.speakweather.temp_dc);
+        float temp_dp = XPLMGetDataf(ctx->data.speakweather.temp_dp);
         snprintf(baro, sizeof(baro), "Altimeter %04d, area QNH %04d.",
                  (int)round(baro_sl * 100.), (int)round(baro_sl * 33.86389));
         if (wind_sd < 4.5f)
