@@ -872,8 +872,8 @@ static float refuel_hdlr1(float inElapsedSinceLastCall,
                 c += 1;
                 XPLMSpeakString("Fueling/defueling done");
             }
-            ndt_log("navP [info]: refuel/defuel procedure completed\n");
             ctx->data.refuel_dialg.adjust_fuel = 0;
+            ndt_log("navP [info]: refuel/defuel procedure completed\n");
         }
     }
     if (ctx->data.refuel_dialg.adjust_plod)
@@ -896,8 +896,8 @@ static float refuel_hdlr1(float inElapsedSinceLastCall,
                 c += 1;
                 XPLMSpeakString("Boarding/deboarding done");
             }
-            ndt_log("navP [info]: board/deboard procedure completed\n");
             ctx->data.refuel_dialg.adjust_plod = 0;
+            ndt_log("navP [info]: board/deboard procedure completed\n");
         }
     }
     if (disable_cllbk)
