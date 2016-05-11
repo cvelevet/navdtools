@@ -19,22 +19,42 @@
  */
 
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "Widgets/XPStandardWidgets.h"
+#include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMDataAccess.h"
+#include "XPLM/XPLMDisplay.h"
 #include "XPLM/XPLMMenus.h"
+#include "XPLM/XPLMProcessing.h"
 #include "XPLM/XPLMUtilities.h"
 
+#include "common/common.h"
+
 #include "NVPmenu.h"
+
+#define REFUEL_DIALG_CAPW 120
+#define REFUEL_DIALG_CAPH  24
+#define REFUEL_DIALG_CLBW 140
+#define REFUEL_DIALG_CLBH  24
+#define REFUEL_DIALG_DEFW 200
+#define REFUEL_DIALG_DEFH 200
+#define REFUEL_DIALG_TXTW  50
+#define REFUEL_DIALG_TXTH  24
+#define REFUEL_FUEL_KHSEC 35.0f // 35kg/0.5s: 42,000kg of fuel in 10m (600s)
+#define REFUEL_PLOD_KHSEC 26.0f // 26kg/0.5s: 300 pax (x104kg) in 10m (600s)
 
 typedef struct
 {
     int id;
     enum
     {
+        MENUITEM_NOTHING_TODO,
         MENUITEM_CALLOUTS_STS,
+        MENUITEM_REFUEL_DIALG,
         MENUITEM_SPEAKWEATHER,
     } mivalue;
 } item_context;
@@ -47,6 +67,7 @@ typedef struct
     struct
     {
         item_context callouts_sts;
+        item_context refuel_dialg;
         item_context speakweather;
     } items;
 
@@ -60,6 +81,30 @@ typedef struct
 
         struct
         {
+            int      adjust_fuel;
+            int      adjust_plod;
+            int   num_fuel_tanks;
+            float min_fuel_total;
+            float max_fuel_total;
+            float fuel_tank_r[9];
+            float fuel_target_kg;
+            float plod_target_kg;
+            char  fueltot_str[9];
+            char  payload_str[9];
+            XPLMDataRef pay_load;
+            XPLMDataRef fuel_max;
+            XPLMDataRef fuel_rat;
+            XPLMDataRef fuel_qty;
+            XPLMDataRef fuel_tot;
+            XPWidgetID dialog_id;
+            XPWidgetID f_txtf_id;
+            XPWidgetID p_txtf_id;
+            XPWidgetID button_id;
+            XPLMFlightLoop_f rfc;
+        } refuel_dialg;
+
+        struct
+        {
             XPLMDataRef baro_sl;
             XPLMDataRef wind_dt;
             XPLMDataRef wind_sd;
@@ -69,8 +114,12 @@ typedef struct
     } data;
 } menu_context;
 
-static void  menu_handler(void *inMenuRef,          void *inItemRef);
-static char* string4speak(char *string, size_t alloc, int text_only);
+static void  mainw_center(int out[4],                  int in_w, int in_h);
+static void  menu_rm_item(menu_context *ctx,                    int index);
+static void  menu_handler(void *inMenuRef,                void *inItemRef);
+static char* string4speak(char *string,       size_t alloc, int text_only);
+static int   widget_hdlr1(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
+static float refuel_hdlr1(                       float, float, int, void*);
 
 void* nvp_menu_init(void)
 {
@@ -87,6 +136,7 @@ void* nvp_menu_init(void)
     }
 
     /* add desired items */
+    /* toggle: callouts on/off */
     ctx->items.callouts_sts.mivalue = MENUITEM_CALLOUTS_STS;
     if ((ctx->items.callouts_sts.id = XPLMAppendMenuItem( ctx->id, "navP custom callouts",
                                                          &ctx->items.callouts_sts, 0)) < 0)
@@ -106,6 +156,33 @@ void* nvp_menu_init(void)
         //       so the default dataref and checkbox values can't be set here.
         XPLMAppendMenuSeparator(ctx->id);
     }
+
+    /* show payload & fuel dialog */
+    ctx->items.refuel_dialg.mivalue = MENUITEM_REFUEL_DIALG;
+    if ((ctx->items.refuel_dialg.id = XPLMAppendMenuItem( ctx->id, "Fuel & Payload",
+                                                         &ctx->items.refuel_dialg, 0)) < 0)
+    {
+        goto fail;
+    }
+    ctx->data.refuel_dialg.fuel_max = XPLMFindDataRef("sim/aircraft/weight/acf_m_fuel_tot" );
+    ctx->data.refuel_dialg.fuel_rat = XPLMFindDataRef("sim/aircraft/overflow/acf_tank_rat" );
+    ctx->data.refuel_dialg.fuel_qty = XPLMFindDataRef("sim/flightmodel/weight/m_fuel"      );
+    ctx->data.refuel_dialg.fuel_tot = XPLMFindDataRef("sim/flightmodel/weight/m_fuel_total");
+    ctx->data.refuel_dialg.pay_load = XPLMFindDataRef("sim/flightmodel/weight/m_fixed"     );
+    if (!ctx->data.refuel_dialg.fuel_max ||
+        !ctx->data.refuel_dialg.fuel_rat ||
+        !ctx->data.refuel_dialg.fuel_qty ||
+        !ctx->data.refuel_dialg.fuel_tot ||
+        !ctx->data.refuel_dialg.pay_load)
+    {
+        goto fail;
+    }
+    else
+    {
+        XPLMAppendMenuSeparator(ctx->id);
+    }
+
+    /* speak local weather */
     ctx->items.speakweather.mivalue = MENUITEM_SPEAKWEATHER;
     if ((ctx->items.speakweather.id = XPLMAppendMenuItem( ctx->id, "Speak weather",
                                                          &ctx->items.speakweather, 0)) < 0)
@@ -148,7 +225,133 @@ int nvp_menu_setup(void *_menu_context)
         XPLMCheckMenuItem(ctx->id, ctx->items.callouts_sts.id, xplm_Menu_Checked);
         XPLMSetDatai     (         ctx->data.callouts_sts.park_brake,          1);
         XPLMSetDatai     (         ctx->data.callouts_sts.speedbrake,          1);
+
+        /*
+         * Create and place the payload & fuel dialog's window and contents.
+         * Do not show it until requested by the user (hide root by default).
+         *
+         * x and y axes start at bottom left (obviously, except for me).
+         * We create widgets directly there: 0 -> (height - 1)
+         *                                   0 -> (width  - 1)
+         * We move the widgets to the display center just before showing them.
+         * Thankfully the child widgets move with their parents :-)
+         */
+        /* Payload & fuel main window (root, container) */
+        int inLT = 0;
+        int inTP = REFUEL_DIALG_DEFH - 1;
+        int inRT = REFUEL_DIALG_DEFW - 1;
+        int inBM = 0;
+        ctx->data.refuel_dialg.dialog_id = XPCreateWidget(inLT, inTP, inRT, inBM,
+                                                          0, "Fuel & Payload", 1, NULL,
+                                                          xpWidgetClass_MainWindow);
+        if (!ctx->data.refuel_dialg.dialog_id)
+        {
+            ndt_log("navP [warning]: could not create payload & fuel dialog\n");
+            menu_rm_item(ctx, ctx->items.refuel_dialg.id);
+            ctx->setupdone = -1; return -1;
+        }
+        XPSetWidgetProperty(ctx->data.refuel_dialg.dialog_id,
+                            xpProperty_MainWindowHasCloseBoxes, 1);
+        XPSetWidgetProperty(ctx->data.refuel_dialg.dialog_id,
+                            xpProperty_MainWindowType, xpMainWindowStyle_Translucent);
+        XPAddWidgetCallback(ctx->data.refuel_dialg.dialog_id, &widget_hdlr1);
+        /* push button to initialie re/defuel */
+        inLT = (REFUEL_DIALG_DEFW - REFUEL_DIALG_CLBW) / 2;
+        inTP = (REFUEL_DIALG_CLBH) - 1 + (inBM = 10);
+        inRT = (REFUEL_DIALG_CLBW) - 1 + (inLT);
+        ctx->data.refuel_dialg.button_id = XPCreateWidget(inLT, inTP, inRT, inBM,
+                                                          1, "LOAD/UNLOAD", 0,
+                                                          ctx->data.refuel_dialg.dialog_id,
+                                                          xpWidgetClass_Button);
+        if (!ctx->data.refuel_dialg.button_id)
+        {
+            ndt_log("navP [warning]: could not create fuel & payload button\n");
+            menu_rm_item(ctx, ctx->items.refuel_dialg.id);
+            ctx->setupdone = -1; return -1;
+        }
+        XPSetWidgetProperty(ctx->data.refuel_dialg.button_id,
+                            xpProperty_ButtonType, xpPushButton);
+        XPSetWidgetProperty(ctx->data.refuel_dialg.button_id,
+                            xpProperty_Refcon, (intptr_t)ctx);
+        /* caption & fuel entry text field */
+        inLT = (((REFUEL_DIALG_DEFW - REFUEL_DIALG_CAPW - REFUEL_DIALG_TXTW) / 3) & (~1));
+        inBM = (((REFUEL_DIALG_DEFH * 15 / 20) & (~1)));
+        inTP = (((REFUEL_DIALG_CAPH) - 1 + (inBM)));
+        inRT = (((REFUEL_DIALG_CAPW) - 1 + (inLT)));
+        XPWidgetID f_txtx_ll = XPCreateWidget(inLT, inTP, inRT, inBM,
+                                              1, "(KG x1000) FUEL", 0,
+                                              ctx->data.refuel_dialg.dialog_id,
+                                              xpWidgetClass_Caption);
+        if (!f_txtx_ll)
+        {
+            ndt_log("navP [warning]: could not create label for fuel entry\n");
+            menu_rm_item(ctx, ctx->items.refuel_dialg.id);
+            ctx->setupdone = -1; return -1;
+        }
+        XPSetWidgetProperty(f_txtx_ll, xpProperty_CaptionLit, 1);
+        inLT = (REFUEL_DIALG_CAPW + inLT * 2); // right next to the field caption
+        inTP = (REFUEL_DIALG_TXTH) - 1 + (inBM = inBM - 2); // widget mismatch
+        inRT = (REFUEL_DIALG_TXTW) - 1 + (inLT);
+        ctx->data.refuel_dialg.f_txtf_id = XPCreateWidget(inLT, inTP, inRT, inBM,
+                                                          1, "0.0", 0,
+                                                          ctx->data.refuel_dialg.dialog_id,
+                                                          xpWidgetClass_TextField);
+        if (!ctx->data.refuel_dialg.f_txtf_id)
+        {
+            ndt_log("navP [warning]: could not create text field for fuel entry\n");
+            menu_rm_item(ctx, ctx->items.refuel_dialg.id);
+            ctx->setupdone = -1; return -1;
+        }
+        XPSetWidgetProperty(ctx->data.refuel_dialg.f_txtf_id,
+                            xpProperty_TextFieldType, xpTextTranslucent);
+        /* caption & payload entry text field */
+        inLT = (((REFUEL_DIALG_DEFW - REFUEL_DIALG_CAPW - REFUEL_DIALG_TXTW) / 3) & (~1));
+        inBM = (((REFUEL_DIALG_DEFH * 12 / 20) & (~1)));
+        inTP = (((REFUEL_DIALG_CAPH) - 1 + (inBM)));
+        inRT = (((REFUEL_DIALG_CAPW) - 1 + (inLT)));
+        XPWidgetID p_txtx_ll = XPCreateWidget(inLT, inTP, inRT, inBM,
+                                              1, "(KG x1000) PAYLOAD", 0,
+                                              ctx->data.refuel_dialg.dialog_id,
+                                              xpWidgetClass_Caption);
+        if (!p_txtx_ll)
+        {
+            ndt_log("navP [warning]: could not create label for payload entry\n");
+            menu_rm_item(ctx, ctx->items.refuel_dialg.id);
+            ctx->setupdone = -1; return -1;
+        }
+        XPSetWidgetProperty(p_txtx_ll, xpProperty_CaptionLit, 1);
+        inLT = (REFUEL_DIALG_CAPW + inLT * 2); // right next to the field caption
+        inTP = (REFUEL_DIALG_TXTH) - 1 + (inBM = inBM - 2); // widget mismatch
+        inRT = (REFUEL_DIALG_TXTW) - 1 + (inLT);
+        ctx->data.refuel_dialg.p_txtf_id = XPCreateWidget(inLT, inTP, inRT, inBM,
+                                                          1, "0.0", 0,
+                                                          ctx->data.refuel_dialg.dialog_id,
+                                                          xpWidgetClass_TextField);
+        if (!ctx->data.refuel_dialg.p_txtf_id)
+        {
+            ndt_log("navP [warning]: could not create text field for payload entry\n");
+            menu_rm_item(ctx, ctx->items.refuel_dialg.id);
+            ctx->setupdone = -1; return -1;
+        }
+        XPSetWidgetProperty(ctx->data.refuel_dialg.p_txtf_id,
+                            xpProperty_TextFieldType, xpTextTranslucent);
+
+        /* all done, we're good to go! */
         ctx->setupdone = 1; return 0;
+    }
+    return ctx ? 0 : -1;
+}
+
+int nvp_menu_reset(void *_menu_context)
+{
+    menu_context *ctx = _menu_context;
+    if (ctx && ctx->setupdone)
+    {
+        if (ctx->data.refuel_dialg.rfc)
+        {
+            XPLMUnregisterFlightLoopCallback(ctx->data.refuel_dialg.rfc, ctx);
+            ctx->data.refuel_dialg.rfc = NULL;
+        }
     }
     return ctx ? 0 : -1;
 }
@@ -168,9 +371,43 @@ int nvp_menu_close(void **_menu_context)
         XPLMDestroyMenu(ctx->id);
     }
 
+    /* if we still have a flight loop callback, unregister it */
+    if (ctx->data.refuel_dialg.rfc)
+    {
+        XPLMUnregisterFlightLoopCallback(ctx->data.refuel_dialg.rfc, ctx);
+    }
+
     /* all good */
     free(ctx);
     return 0;
+}
+
+static void mainw_center(int out[4], int in_w, int in_h)
+{
+    int scrn_w, scrn_h;
+    XPLMGetScreenSize(&scrn_w, &scrn_h);
+    out[0] = (scrn_w - in_w) / 2; // inLeft
+    out[3] = (scrn_h - in_h) / 2; // inBottom
+    out[2] = (out[0] + in_w) - 1; // inRight
+    out[1] = (out[3] + in_h) - 1; // inTop
+}
+
+static void menu_rm_item(menu_context *ctx, int index)
+{
+#define MENUITEM_UNDEF_VAL(item_ctx) { if ((item_ctx).id == index) (item_ctx).mivalue = MENUITEM_NOTHING_TODO; }
+#define MENUITEM_CHECK_IDX(item_idx) { if ((item_idx)     > index) (item_idx)--; }
+    if (ctx && ctx->id)
+    {
+        XPLMRemoveMenuItem(ctx->id, index);
+        MENUITEM_UNDEF_VAL(ctx->items.callouts_sts);
+        MENUITEM_CHECK_IDX(ctx->items.callouts_sts.id);
+        MENUITEM_UNDEF_VAL(ctx->items.refuel_dialg);
+        MENUITEM_CHECK_IDX(ctx->items.refuel_dialg.id);
+        MENUITEM_UNDEF_VAL(ctx->items.speakweather);
+        MENUITEM_CHECK_IDX(ctx->items.speakweather.id);
+    }
+#undef MENUITEM_CHECK_IDX
+#undef MENUITEM_UNDEF_VAL
 }
 
 static void menu_handler(void *inMenuRef, void *inItemRef)
@@ -192,6 +429,61 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         XPLMCheckMenuItem(ctx->id, itx->id,  xplm_Menu_Checked);
         XPLMSetDatai     (ctx->data.callouts_sts.park_brake, 1);
         XPLMSetDatai     (ctx->data.callouts_sts.speedbrake, 1);
+        return;
+    }
+
+    if (itx->mivalue == MENUITEM_REFUEL_DIALG)
+    {
+        float fuel_rat[9];
+        ctx->data.refuel_dialg.num_fuel_tanks = 0;
+        ctx->data.refuel_dialg.max_fuel_total =
+        floorf(XPLMGetDataf(ctx->data.refuel_dialg.fuel_max));
+        ctx->data.refuel_dialg.min_fuel_total =
+        floorf(XPLMGetDataf(ctx->data.refuel_dialg.fuel_max) / 6.242f); // 18726max -> 3000min (QPAC A320)
+        XPLMGetDatavf(ctx->data.refuel_dialg.fuel_rat, fuel_rat, 0, 9);
+        for (int i = 0; i < 9; i++)
+        {
+            if (fuel_rat[i] > .01f)
+            {
+                ctx->data.refuel_dialg.fuel_tank_r[i] = fuel_rat[i];
+                ctx->data.refuel_dialg.num_fuel_tanks++;
+            }
+        }
+#if 0
+        {
+            ndt_log("navP [info]: Fuel tanks: %d, ratio:", ctx->data.refuel_dialg.num_fuel_tanks);
+            for (int i = 0; i < ctx->data.refuel_dialg.num_fuel_tanks; i++)
+            {
+                ndt_log(" %.3f", ctx->data.refuel_dialg.fuel_tank_r[i]);
+            }
+            ndt_log(", maximum: %.0f kgs (%.0f lbs)\n",
+                    ctx->data.refuel_dialg.max_fuel_total,
+                    floorf(XPLMGetDataf(ctx->data.refuel_dialg.fuel_max) / 0.45359f));
+        }
+#endif
+        if (XPIsWidgetVisible(ctx->data.refuel_dialg.dialog_id) == 0)
+        {
+            int g[4];
+            if (ctx->data.refuel_dialg.rfc)
+            {
+                XPLMUnregisterFlightLoopCallback(ctx->data.refuel_dialg.rfc, ctx);
+                ctx->data.refuel_dialg.rfc = NULL;
+            }
+            snprintf(       ctx->data.refuel_dialg.fueltot_str,
+                     sizeof(ctx->data.refuel_dialg.fueltot_str), "%.2f",
+                     XPLMGetDataf(ctx->data.refuel_dialg.fuel_tot) / 1000.0f);
+            XPSetWidgetDescriptor(ctx->data.refuel_dialg.f_txtf_id,
+                                  ctx->data.refuel_dialg.fueltot_str);
+            snprintf(       ctx->data.refuel_dialg.payload_str,
+                     sizeof(ctx->data.refuel_dialg.payload_str), "%.2f",
+                     XPLMGetDataf(ctx->data.refuel_dialg.pay_load) / 1000.0f);
+            XPSetWidgetDescriptor(ctx->data.refuel_dialg.p_txtf_id,
+                                  ctx->data.refuel_dialg.payload_str);
+            mainw_center            (g, REFUEL_DIALG_DEFW, REFUEL_DIALG_DEFH);
+            XPSetWidgetGeometry     (ctx->data.refuel_dialg.dialog_id, g[0], g[1], g[2], g[3]);
+            XPShowWidget            (ctx->data.refuel_dialg.dialog_id);
+            XPBringRootWidgetToFront(ctx->data.refuel_dialg.dialog_id);
+        }
         return;
     }
 
@@ -472,3 +764,146 @@ static char* string4speak(char *string, size_t alloc, int text_only)
     }
     return strncpy(string, buffer, maxlen);
 }
+
+static int widget_hdlr1(XPWidgetMessage inMessage,
+                        XPWidgetID      inWidget,
+                        intptr_t        inParam1,
+                        intptr_t        inParam2)
+{
+    /*
+     * the callback is only ever added to a specific
+     * main window, with just a single custom button
+     */
+    if (inMessage == xpMessage_CloseButtonPushed)
+    {
+        XPHideWidget(inWidget);
+        return 1;
+    }
+    if (inMessage == xpMsg_PushButtonPressed)
+    {
+        float temp; char descr_buf[9]; descr_buf[8] = '\0';
+        menu_context *ctx = (void*)XPGetWidgetProperty((void*)inParam1, xpProperty_Refcon, NULL);
+        XPHideWidget (ctx->data.refuel_dialg.dialog_id);
+        XPGetWidgetDescriptor(ctx->data.refuel_dialg.f_txtf_id, descr_buf, sizeof(descr_buf) - 1);
+        if (sscanf(descr_buf, "%f", &temp) != 1)
+        {
+            ctx->data.refuel_dialg.fuel_target_kg = ctx->data.refuel_dialg.min_fuel_total;
+        }
+        else if ((1000.0f * temp) < ctx->data.refuel_dialg.min_fuel_total)
+        {
+            ctx->data.refuel_dialg.fuel_target_kg = ctx->data.refuel_dialg.min_fuel_total;
+        }
+        else if ((1000.0f * temp) > ctx->data.refuel_dialg.max_fuel_total)
+        {
+            ctx->data.refuel_dialg.fuel_target_kg = ctx->data.refuel_dialg.max_fuel_total;
+        }
+        else
+        {
+            ctx->data.refuel_dialg.fuel_target_kg = 1000.0f * temp;
+        }
+        XPGetWidgetDescriptor(ctx->data.refuel_dialg.p_txtf_id, descr_buf, sizeof(descr_buf) - 1);
+        if (sscanf(descr_buf, "%f", &temp) != 1 || temp < 0.2f)
+        {
+            ctx->data.refuel_dialg.plod_target_kg = 0.0f;
+        }
+        else
+        {
+            ctx->data.refuel_dialg.plod_target_kg = 1000.0f * temp;
+        }
+        float fuel_tot = XPLMGetDataf(ctx->data.refuel_dialg.fuel_tot);
+        ctx->data.refuel_dialg.adjust_fuel = (fabsf(fuel_tot - ctx->data.refuel_dialg.fuel_target_kg) > 50.0f);
+        float pay_load = XPLMGetDataf(ctx->data.refuel_dialg.pay_load);
+        ctx->data.refuel_dialg.adjust_plod = (fabsf(pay_load - ctx->data.refuel_dialg.plod_target_kg) > 50.0f);
+        if (ctx->data.refuel_dialg.rfc)
+        {
+            XPLMUnregisterFlightLoopCallback(ctx->data.refuel_dialg.rfc, ctx);
+        }
+        if (ctx->data.refuel_dialg.adjust_fuel || ctx->data.refuel_dialg.adjust_plod)
+        {
+            ndt_log("navP [info]: loading/unloading: fuel %.2f metric tons, payload %.2f metric tons\n",
+                    ctx->data.refuel_dialg.fuel_target_kg / 1000.0f,
+                    ctx->data.refuel_dialg.plod_target_kg / 1000.0f);
+            XPLMRegisterFlightLoopCallback((ctx->data.refuel_dialg.rfc = &refuel_hdlr1), 1.5f, ctx);
+        }
+        return 1;
+    }
+    return 0;
+}
+
+static float refuel_hdlr1(float inElapsedSinceLastCall,
+                          float inElapsedTimeSinceLastFlightLoop,
+                          int   inCounter,
+                          void *inRefcon)
+{
+    int disable_cllbk = 1;
+    menu_context *ctx = inRefcon;
+    if (ctx->data.refuel_dialg.adjust_fuel)
+    {
+        float fuel_qty[9];
+        float fuel_tot = XPLMGetDataf(ctx->data.refuel_dialg.fuel_tot);
+        if   (fuel_tot < ctx->data.refuel_dialg.fuel_target_kg - 1.0f)
+        {
+            disable_cllbk = 0;
+            XPLMGetDatavf(ctx->data.refuel_dialg.fuel_qty, fuel_qty, 0,
+                          ctx->data.refuel_dialg.num_fuel_tanks);
+            for (int i = 0; i < ctx->data.refuel_dialg.num_fuel_tanks; i++)
+            {
+                fuel_qty[i] += REFUEL_FUEL_KHSEC * ctx->data.refuel_dialg.fuel_tank_r[i];
+            }
+            XPLMSetDatavf(ctx->data.refuel_dialg.fuel_qty, fuel_qty, 0,
+                          ctx->data.refuel_dialg.num_fuel_tanks);
+        }
+        else if (fuel_tot > ctx->data.refuel_dialg.fuel_target_kg + 1.0f + REFUEL_FUEL_KHSEC)
+        {
+            disable_cllbk = 0;
+            XPLMGetDatavf(ctx->data.refuel_dialg.fuel_qty, fuel_qty, 0,
+                          ctx->data.refuel_dialg.num_fuel_tanks);
+            for (int i = 0; i < ctx->data.refuel_dialg.num_fuel_tanks; i++)
+            {
+                fuel_qty[i] -= REFUEL_FUEL_KHSEC * ctx->data.refuel_dialg.fuel_tank_r[i];
+            }
+            XPLMSetDatavf(ctx->data.refuel_dialg.fuel_qty, fuel_qty, 0,
+                          ctx->data.refuel_dialg.num_fuel_tanks);
+        }
+        else
+        {
+            ctx->data.refuel_dialg.adjust_fuel = 0;
+        }
+    }
+    if (ctx->data.refuel_dialg.adjust_plod)
+    {
+        float pay_load = XPLMGetDataf(ctx->data.refuel_dialg.pay_load);
+        if   (pay_load < ctx->data.refuel_dialg.plod_target_kg - 1.0f)
+        {
+            disable_cllbk = 0;
+            XPLMSetDataf(ctx->data.refuel_dialg.pay_load, pay_load + REFUEL_PLOD_KHSEC);
+        }
+        else if (pay_load > ctx->data.refuel_dialg.plod_target_kg + 1.0f + REFUEL_PLOD_KHSEC)
+        {
+            disable_cllbk = 0;
+            XPLMSetDataf(ctx->data.refuel_dialg.pay_load, pay_load - REFUEL_PLOD_KHSEC);
+        }
+        else
+        {
+            ctx->data.refuel_dialg.adjust_plod = 0;
+        }
+    }
+    if (disable_cllbk)
+    {
+        ndt_log("navP [info]: refuel/defuel procedure completed\n");
+        XPLMSpeakString("Loading/unloading done");
+        return 0;
+    }
+    return 0.5f;
+}
+
+#undef REFUEL_DIALG_CAPW
+#undef REFUEL_DIALG_CAPH
+#undef REFUEL_DIALG_CLBW
+#undef REFUEL_DIALG_CLBH
+#undef REFUEL_DIALG_DEFW
+#undef REFUEL_DIALG_DEFH
+#undef REFUEL_DIALG_TXTW
+#undef REFUEL_DIALG_TXTH
+#undef REFUEL_FUEL_KHSEC
+#undef REFUEL_PLOD_KHSEC

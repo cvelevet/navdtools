@@ -134,16 +134,19 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
             break;
 
         case XPLM_MSG_PLANE_LOADED:
-            if (inParam == XPLM_USER_AIRCRAFT)
+            if (inParam == XPLM_USER_AIRCRAFT) // user's plane changed
             {
-                nvp_chandlers_reset(chandler_context); // user's plane changed
+                nvp_menu_reset     (navpmenu_context);
+                nvp_chandlers_reset(chandler_context);
             }
             break;
 
         case XPLM_MSG_AIRPORT_LOADED:
+            nvp_menu_reset(navpmenu_context);
             break;
 
         case XPLM_MSG_SCENERY_LOADED:
+            nvp_menu_reset(navpmenu_context);
             break;
 
         case XPLM_MSG_AIRPLANE_COUNT_CHANGED:
@@ -156,10 +159,10 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
             break;
 
         case XPLM_MSG_LIVERY_LOADED:
-            if (inParam == XPLM_USER_AIRCRAFT)
+            if (inParam == XPLM_USER_AIRCRAFT) // custom plugins loaded
             {
-                nvp_menu_setup      (navpmenu_context); // menu's one-time setup
-                nvp_chandlers_update(chandler_context); // custom plugins loaded
+                nvp_menu_setup      (navpmenu_context);
+                nvp_chandlers_update(chandler_context);
             }
             break;
 
