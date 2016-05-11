@@ -835,7 +835,7 @@ static float refuel_hdlr1(float inElapsedSinceLastCall,
                           int   inCounter,
                           void *inRefcon)
 {
-    int disable_cllbk = 1;
+    int disable_cllbk = 1, c = 0;
     menu_context *ctx = inRefcon;
     if (ctx->data.refuel_dialg.adjust_fuel)
     {
@@ -867,6 +867,12 @@ static float refuel_hdlr1(float inElapsedSinceLastCall,
         }
         else
         {
+            if (c == 0)
+            {
+                c += 1;
+                XPLMSpeakString("Fueling/defueling done");
+            }
+            ndt_log("navP [info]: refuel/defuel procedure completed\n");
             ctx->data.refuel_dialg.adjust_fuel = 0;
         }
     }
@@ -885,13 +891,17 @@ static float refuel_hdlr1(float inElapsedSinceLastCall,
         }
         else
         {
+            if (c == 0)
+            {
+                c += 1;
+                XPLMSpeakString("Boarding/deboarding done");
+            }
+            ndt_log("navP [info]: board/deboard procedure completed\n");
             ctx->data.refuel_dialg.adjust_plod = 0;
         }
     }
     if (disable_cllbk)
     {
-        ndt_log("navP [info]: refuel/defuel procedure completed\n");
-        XPLMSpeakString("Loading/unloading done");
         return 0;
     }
     return 0.5f;
