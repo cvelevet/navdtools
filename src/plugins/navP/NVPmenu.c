@@ -820,9 +820,16 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
         }
         if (ctx->data.refuel_dialg.adjust_fuel || ctx->data.refuel_dialg.adjust_plod)
         {
-            ndt_log("navP [info]: loading/unloading: fuel %.2f metric tons, payload %.2f metric tons\n",
-                    ctx->data.refuel_dialg.fuel_target_kg / 1000.0f,
-                    ctx->data.refuel_dialg.plod_target_kg / 1000.0f);
+            ndt_log("navP [info]: loading/unloading:");
+            if (ctx->data.refuel_dialg.adjust_fuel)
+            {
+                ndt_log(" fuel %.2f metric tons", ctx->data.refuel_dialg.fuel_target_kg / 1000.0f);
+                ndt_log(ctx->data.refuel_dialg.adjust_plod ? "," : "\n");
+            }
+            if (ctx->data.refuel_dialg.adjust_plod)
+            {
+                ndt_log(" payload %.2f metric tons\n", ctx->data.refuel_dialg.plod_target_kg / 1000.0f);
+            }
             XPLMRegisterFlightLoopCallback((ctx->data.refuel_dialg.rfc = &refuel_hdlr1), 1.5f, ctx);
         }
         return 1;
@@ -870,7 +877,7 @@ static float refuel_hdlr1(float inElapsedSinceLastCall,
             if (c == 0)
             {
                 c += 1;
-                XPLMSpeakString("Fueling/defueling done");
+                XPLMSpeakString("Fueling/de-fueling done");
             }
             ctx->data.refuel_dialg.adjust_fuel = 0;
             ndt_log("navP [info]: refuel/defuel procedure completed\n");
@@ -894,7 +901,7 @@ static float refuel_hdlr1(float inElapsedSinceLastCall,
             if (c == 0)
             {
                 c += 1;
-                XPLMSpeakString("Boarding/deboarding done");
+                XPLMSpeakString("Boarding/de-boarding done");
             }
             ctx->data.refuel_dialg.adjust_plod = 0;
             ndt_log("navP [info]: board/deboard procedure completed\n");
