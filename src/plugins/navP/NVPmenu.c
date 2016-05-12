@@ -44,7 +44,7 @@
 #define REFUEL_DIALG_DEFH 200
 #define REFUEL_DIALG_TXTW  50
 #define REFUEL_DIALG_TXTH  24
-#define REFUEL_FUEL_KHSEC 35.0f // 35kg/0.5s: 42,000kg of fuel in 10m (600s)
+#define REFUEL_FUEL_KHSEC 34.0f // 34kg/0.5s: 40,800kg of fuel in 10m (600s)
 #define REFUEL_PLOD_KHSEC 26.0f // 26kg/0.5s: 300 pax (x104kg) in 10m (600s)
 
 typedef struct
