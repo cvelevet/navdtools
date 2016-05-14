@@ -758,7 +758,8 @@ int nvp_chandlers_update(void *inContext)
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("bs.x737.plugin"))
         {
-            if (!strcasecmp(xaircraft_icao_code, "B737"))
+            if (!strcasecmp(xaircraft_icao_code, "B737") ||
+                !strcasecmp(xaircraft_icao_code, "B738"))
             {
                 ndt_log("navP [info]: plane is EADT Boeing x737-800\n");
                 ctx->atyp = NVP_ACF_B738_EA;
