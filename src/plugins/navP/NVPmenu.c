@@ -29,6 +29,7 @@
 #include "XPLM/XPLMDataAccess.h"
 #include "XPLM/XPLMDisplay.h"
 #include "XPLM/XPLMMenus.h"
+#include "XPLM/XPLMPlugin.h"
 #include "XPLM/XPLMProcessing.h"
 #include "XPLM/XPLMUtilities.h"
 
@@ -54,6 +55,8 @@ typedef struct
     {
         MENUITEM_NOTHING_TODO,
         MENUITEM_CALLOUTS_STS,
+        MENUITEM_SPEEDBOOSTER,
+        MENUITEM_CLOUD_KILLER,
         MENUITEM_REFUEL_DIALG,
         MENUITEM_SPEAKWEATHER,
     } mivalue;
@@ -67,6 +70,9 @@ typedef struct
     struct
     {
         item_context callouts_sts;
+        item_context speedbooster;
+        item_context cloud_killer;
+        item_context dummy_item_1;
         item_context refuel_dialg;
         item_context speakweather;
     } items;
@@ -111,6 +117,39 @@ typedef struct
             XPLMDataRef temp_dc;
             XPLMDataRef temp_dp;
         } speakweather;
+
+        struct
+        {
+            // toggle drawing clouds altogether
+            // note: sim/operation/override/override_clouds disables real weather, kudos to Laminar…
+            XPLMDataRef dr_kill_2d; // sim/private/controls/clouds/kill_2d      (toggle: 0/1 (default 0))
+            XPLMDataRef dr_kill_3d; // sim/private/controls/clouds/kill_3d      (toggle: 0/1 (default 0))
+            XPLMDataRef dr_skpdraw; // sim/private/controls/clouds/skip_draw    (toggle: 0/1 (default 0))
+
+            // cloud resolution & drawing parameters
+            XPLMDataRef dr_frstr3d; // sim/private/controls/clouds/first_res_3d
+            float       df_frstr3d;
+            XPLMDataRef dr_lastr3d; // sim/private/controls/clouds/last_res_3d
+            float       df_lastr3d;
+            XPLMDataRef dr_plotrad; // sim/private/controls/clouds/plot_radius
+            float       df_plotrad;
+            XPLMDataRef dr_shadrad; // sim/private/controls/clouds/shad_radius
+            float       df_shadrad;
+            XPLMDataRef dr_limitfr; // sim/private/controls/clouds/limit_far
+            float       df_limitfr;
+            XPLMDataRef dr_difgain; // sim/private/controls/clouds/diffuse_gain
+            float       df_difgain;
+            XPLMDataRef dr_ovrdctl; // sim/private/controls/clouds/overdraw_control
+            float       df_ovrdctl;
+
+            // advanced features
+            XPLMDataRef dr_use_csm; // sim/private/controls/caps/use_csm
+            float       df_use_csm;
+            XPLMDataRef dr_disprep; // sim/private/controls/perf/disable_shadow_prep
+            float       df_disprep;
+            XPLMDataRef dr_disrcam; // sim/private/controls/perf/disable_reflection_cam
+            float       df_disrcam;
+        } speedbooster;
     } data;
 } menu_context;
 
@@ -154,6 +193,30 @@ void* nvp_menu_init(void)
     {
         // Note: XPLMSetDatai doesn't seem to work from XPluginEnable() either,
         //       so the default dataref and checkbox values can't be set here.
+        XPLMAppendMenuSeparator(ctx->id);
+    }
+
+    /* toggle: speed boost on/off */
+    ctx->items.speedbooster.mivalue = MENUITEM_SPEEDBOOSTER;
+    if ((ctx->items.speedbooster.id = XPLMAppendMenuItem( ctx->id, "Tachyon Enhancement",
+                                                         &ctx->items.speedbooster, 0)) < 0)
+    {
+        goto fail;
+    }
+    ctx->items.cloud_killer.mivalue = MENUITEM_CLOUD_KILLER;
+    if ((ctx->items.cloud_killer.id = XPLMAppendMenuItem( ctx->id, "Inoperative clouds",
+                                                         &ctx->items.cloud_killer, 0)) < 0)
+    {
+        goto fail;
+    }
+    ctx->items.dummy_item_1.mivalue = MENUITEM_NOTHING_TODO;
+    if ((ctx->items.dummy_item_1.id = XPLMAppendMenuItem( ctx->id, "",
+                                                         &ctx->items.dummy_item_1, 0)) < 0)
+    {
+        goto fail;
+    }
+    else
+    {
         XPLMAppendMenuSeparator(ctx->id);
     }
 
@@ -222,9 +285,123 @@ int nvp_menu_setup(void *_menu_context)
          *
          * Future: read from a config file instead of hardcoding said defaults.
          */
+        /*
+         * Speed boost features.
+         * Note: art controls aren't available in XPluginEnable(),
+         *       so we must resolve private datarefs here instead.
+         *
+         * Defaults are loosely based on:
+         * - Tom Knudsen's Clouds 2015 v1.1 script
+         * - maydayc's "XP10 Performance tweak" forum post
+         * - jörn-jören jörensön's 3jFPS-control 1.23 script
+         *
+         * Check whewther SkyMaxx Pro is installed & enabled
+         * and disable all cloud-related features when it is.
+         */
+        XPLMPluginID skyMaxxPro;
+        ctx->data.speedbooster.dr_kill_2d = XPLMFindDataRef("sim/private/controls/clouds/kill_2d"               );
+        ctx->data.speedbooster.dr_kill_3d = XPLMFindDataRef("sim/private/controls/clouds/kill_3d"               );
+        ctx->data.speedbooster.dr_skpdraw = XPLMFindDataRef("sim/private/controls/clouds/skip_draw"             );
+        ctx->data.speedbooster.dr_frstr3d = XPLMFindDataRef("sim/private/controls/clouds/first_res_3d"          );
+        ctx->data.speedbooster.dr_lastr3d = XPLMFindDataRef("sim/private/controls/clouds/last_res_3d"           );
+        ctx->data.speedbooster.dr_plotrad = XPLMFindDataRef("sim/private/controls/clouds/plot_radius"           );
+        ctx->data.speedbooster.dr_shadrad = XPLMFindDataRef("sim/private/controls/clouds/shad_radius"           );
+        ctx->data.speedbooster.dr_limitfr = XPLMFindDataRef("sim/private/controls/clouds/limit_far"             );
+        ctx->data.speedbooster.dr_difgain = XPLMFindDataRef("sim/private/controls/clouds/diffuse_gain"          );
+        ctx->data.speedbooster.dr_ovrdctl = XPLMFindDataRef("sim/private/controls/clouds/overdraw_control"      );
+        ctx->data.speedbooster.dr_use_csm = XPLMFindDataRef("sim/private/controls/caps/use_csm"                 );
+        ctx->data.speedbooster.dr_disprep = XPLMFindDataRef("sim/private/controls/perf/disable_shadow_prep"     );
+        ctx->data.speedbooster.dr_disrcam = XPLMFindDataRef("sim/private/controls/perf/disable_reflection_cam"  );
+        if (XPLM_NO_PLUGIN_ID != (skyMaxxPro = XPLMFindPluginBySignature("SilverLiningV2.Clouds")) ||
+            XPLM_NO_PLUGIN_ID != (skyMaxxPro = XPLMFindPluginBySignature("SilverLiningV3.Clouds")))
+        {
+            if (XPLMIsPluginEnabled(skyMaxxPro))
+            {
+                menu_rm_item(ctx,
+                             ctx->items.cloud_killer.id);
+                ctx->data.speedbooster.dr_kill_2d = NULL;
+                ctx->data.speedbooster.dr_kill_3d = NULL;
+                ctx->data.speedbooster.dr_skpdraw = NULL;
+                ctx->data.speedbooster.dr_frstr3d = NULL;
+                ctx->data.speedbooster.dr_lastr3d = NULL;
+                ctx->data.speedbooster.dr_plotrad = NULL;
+                ctx->data.speedbooster.dr_shadrad = NULL;
+                ctx->data.speedbooster.dr_limitfr = NULL;
+                ctx->data.speedbooster.dr_difgain = NULL;
+                ctx->data.speedbooster.dr_ovrdctl = NULL;
+            }
+        }
+        if (ctx->data.speedbooster.dr_kill_2d)
+        {
+            XPLMSetDataf(ctx->data.speedbooster.dr_kill_2d, 0.00f);
+        }
+        if (ctx->data.speedbooster.dr_kill_3d)
+        {
+            XPLMSetDataf(ctx->data.speedbooster.dr_kill_3d, 0.00f);
+        }
+        if (ctx->data.speedbooster.dr_skpdraw)
+        {
+            XPLMSetDataf(ctx->data.speedbooster.dr_skpdraw, 0.00f);
+        }
+        if (ctx->data.speedbooster.dr_frstr3d)
+        {
+            ctx->data.speedbooster.df_frstr3d = XPLMGetDataf(ctx->data.speedbooster.dr_frstr3d);
+            XPLMSetDataf(ctx->data.speedbooster.dr_frstr3d, 3.00f);
+        }
+        if (ctx->data.speedbooster.dr_lastr3d)
+        {
+            ctx->data.speedbooster.df_lastr3d = XPLMGetDataf(ctx->data.speedbooster.dr_lastr3d);
+            XPLMSetDataf(ctx->data.speedbooster.dr_lastr3d, 3.00f);
+        }
+        if (ctx->data.speedbooster.dr_plotrad)
+        {
+            ctx->data.speedbooster.df_plotrad = XPLMGetDataf(ctx->data.speedbooster.dr_plotrad);
+            XPLMSetDataf(ctx->data.speedbooster.dr_plotrad, 0.60f);
+        }
+        if (ctx->data.speedbooster.dr_shadrad)
+        {
+            ctx->data.speedbooster.df_shadrad = XPLMGetDataf(ctx->data.speedbooster.dr_shadrad);
+            XPLMSetDataf(ctx->data.speedbooster.dr_shadrad, 0.40f);
+        }
+        if (ctx->data.speedbooster.dr_limitfr)
+        {
+            ctx->data.speedbooster.df_limitfr = XPLMGetDataf(ctx->data.speedbooster.dr_limitfr);
+            XPLMSetDataf(ctx->data.speedbooster.dr_limitfr, 0.35f);
+        }
+        if (ctx->data.speedbooster.dr_difgain)
+        {
+            ctx->data.speedbooster.df_difgain = XPLMGetDataf(ctx->data.speedbooster.dr_difgain);
+            XPLMSetDataf(ctx->data.speedbooster.dr_difgain, 1.00f);
+        }
+        if (ctx->data.speedbooster.dr_ovrdctl)
+        {
+            ctx->data.speedbooster.df_ovrdctl = XPLMGetDataf(ctx->data.speedbooster.dr_ovrdctl);
+            XPLMSetDataf(ctx->data.speedbooster.dr_ovrdctl, 1.00f);
+        }
+        if (ctx->data.speedbooster.dr_use_csm)
+        {
+            ctx->data.speedbooster.df_use_csm = XPLMGetDataf(ctx->data.speedbooster.dr_use_csm);
+            XPLMSetDataf(ctx->data.speedbooster.dr_use_csm, 0.00f);
+        }
+        if (ctx->data.speedbooster.dr_disprep)
+        {
+            ctx->data.speedbooster.df_disprep = XPLMGetDataf(ctx->data.speedbooster.dr_disprep);
+            XPLMSetDataf(ctx->data.speedbooster.dr_disprep, 1.00f);
+        }
+        if (ctx->data.speedbooster.dr_disrcam)
+        {
+            ctx->data.speedbooster.df_disrcam = XPLMGetDataf(ctx->data.speedbooster.dr_disrcam);
+            XPLMSetDataf(ctx->data.speedbooster.dr_disrcam, 1.00f);
+        }
+        XPLMCheckMenuItem(ctx->id, ctx->items.cloud_killer.id, xplm_Menu_NoCheck);
+        XPLMCheckMenuItem(ctx->id, ctx->items.speedbooster.id, xplm_Menu_Checked);
+        ndt_log          ("navP [info]: enabling clouds & Tachyon Enhancement\n");
+
+        /* custom brake brake and speedbrake callouts */
         XPLMCheckMenuItem(ctx->id, ctx->items.callouts_sts.id, xplm_Menu_Checked);
         XPLMSetDatai     (         ctx->data.callouts_sts.park_brake,          1);
         XPLMSetDatai     (         ctx->data.callouts_sts.speedbrake,          1);
+        ndt_log          (             "navP [info]: enabling custom callouts\n");
 
         /*
          * Create and place the payload & fuel dialog's window and contents.
@@ -401,6 +578,12 @@ static void menu_rm_item(menu_context *ctx, int index)
         XPLMRemoveMenuItem(ctx->id, index);
         MENUITEM_UNDEF_VAL(ctx->items.callouts_sts);
         MENUITEM_CHECK_IDX(ctx->items.callouts_sts.id);
+        MENUITEM_UNDEF_VAL(ctx->items.speedbooster);
+        MENUITEM_CHECK_IDX(ctx->items.speedbooster.id);
+        MENUITEM_UNDEF_VAL(ctx->items.cloud_killer);
+        MENUITEM_CHECK_IDX(ctx->items.cloud_killer.id);
+        MENUITEM_UNDEF_VAL(ctx->items.dummy_item_1);
+        MENUITEM_CHECK_IDX(ctx->items.dummy_item_1.id);
         MENUITEM_UNDEF_VAL(ctx->items.refuel_dialg);
         MENUITEM_CHECK_IDX(ctx->items.refuel_dialg.id);
         MENUITEM_UNDEF_VAL(ctx->items.speakweather);
@@ -415,6 +598,11 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
     menu_context *ctx = inMenuRef;
     item_context *itx = inItemRef;
 
+    if (itx->mivalue == MENUITEM_NOTHING_TODO)
+    {
+        return;
+    }
+
     if (itx->mivalue == MENUITEM_CALLOUTS_STS)
     {
         XPLMMenuCheck state = xplm_Menu_Checked;
@@ -424,11 +612,13 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             XPLMCheckMenuItem(ctx->id, itx->id,  xplm_Menu_NoCheck);
             XPLMSetDatai     (ctx->data.callouts_sts.park_brake, 0);
             XPLMSetDatai     (ctx->data.callouts_sts.speedbrake, 0);
+            ndt_log    ("navP [info]: disabling custom callouts\n");
             return;
         }
         XPLMCheckMenuItem(ctx->id, itx->id,  xplm_Menu_Checked);
         XPLMSetDatai     (ctx->data.callouts_sts.park_brake, 1);
         XPLMSetDatai     (ctx->data.callouts_sts.speedbrake, 1);
+        ndt_log     ("navP [info]: enabling custom callouts\n");
         return;
     }
 
@@ -520,6 +710,67 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         XPLMSpeakString(string4speak(weather, sizeof(weather), 0));
         return;
     }
+
+#define SPEEDBOOSTER_DEFAULTV(_function, _dataref, _default) \
+{ if (ctx->data.speedbooster._dataref) { _function(ctx->data.speedbooster._dataref, ctx->data.speedbooster._default); } }
+#define SPEEDBOOSTER_SETVALUE(_function, _dataref, _value) \
+{ if (ctx->data.speedbooster._dataref) { _function(ctx->data.speedbooster._dataref, (_value)); } }
+    if (itx->mivalue == MENUITEM_SPEEDBOOSTER)
+    {
+        XPLMMenuCheck state = xplm_Menu_Checked;
+        XPLMCheckMenuItemState(ctx->id, itx->id, &state);
+        if (state == xplm_Menu_Checked)
+        {
+            XPLMCheckMenuItem(ctx->id, itx->id, xplm_Menu_NoCheck);
+            SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_frstr3d, df_frstr3d);
+            SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_lastr3d, df_lastr3d);
+            SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_plotrad, df_plotrad);
+            SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_shadrad, df_shadrad);
+            SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_limitfr, df_limitfr);
+            SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_difgain, df_difgain);
+            SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_ovrdctl, df_ovrdctl);
+            SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_use_csm, df_use_csm);
+            SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_disprep, df_disprep);
+            SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_disrcam, df_disrcam);
+            ndt_log(    "navP [info]: disabling Tachyon Enhancement\n");
+            return;
+        }
+        XPLMCheckMenuItem(ctx->id, itx->id, xplm_Menu_Checked);
+        SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_frstr3d, 3.00f);
+        SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_lastr3d, 3.00f);
+        SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_plotrad, 0.60f);
+        SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_shadrad, 0.40f);
+        SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_limitfr, 0.35f);
+        SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_difgain, 1.00f);
+        SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_ovrdctl, 1.00f);
+        SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_use_csm, 0.00f);
+        SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_disprep, 1.00f);
+        SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_disrcam, 1.00f);
+        ndt_log("navP [info]: enabling Tachyon Enhancement\n");
+        return;
+    }
+    if (itx->mivalue == MENUITEM_CLOUD_KILLER)
+    {
+        XPLMMenuCheck state = xplm_Menu_Checked;
+        XPLMCheckMenuItemState(ctx->id, itx->id, &state);
+        if (state == xplm_Menu_Checked)
+        {
+            XPLMCheckMenuItem(ctx->id, itx->id, xplm_Menu_NoCheck);
+            SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_kill_2d, 0.00f);
+            SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_kill_3d, 0.00f);
+            SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_skpdraw, 0.00f);
+            ndt_log(          "navP [info]: re-enabling clouds\n");
+            return;
+        }
+        XPLMCheckMenuItem(ctx->id, itx->id, xplm_Menu_Checked);
+        SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_kill_2d, 1.00f);
+        SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_kill_3d, 1.00f);
+        SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_skpdraw, 1.00f);
+        ndt_log(     "navP [info]: disabling clouds (INOP)\n");
+        return;
+    }
+#undef SPEEDBOOSTER_DEFAULTV
+#undef SPEEDBOOSTER_SETVALUE
 }
 
 static char* string4speak(char *string, size_t alloc, int text_only)
