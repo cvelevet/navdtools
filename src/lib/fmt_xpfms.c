@@ -1062,6 +1062,10 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
          * - navdconv-function nzch n nzqn 05 rnav05-f ibabu dct xplane
          * - navdconv-function loww n lowi 26 rnav26   wi001 dct xplane
          */
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wlogical-not-parentheses"
+#endif
         int speed, altitude = 0;
         int overfly = leg->constraints.waypoint == NDT_WPTCONST_FOV;
         switch (leg->constraints.altitude.typ)
@@ -1084,6 +1088,9 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
                 altitude = altitude + 00 + (!overfly == 0) * 3;
                 break;
         }
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
         if (fapchfix)
         {
             if (!leg->dst)
@@ -1267,12 +1274,19 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
      * If we don't include the arrival airport (it's a SID) and we're writing
      * the departure runway as well, then also skip the departure airport.
      */
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wlogical-not-parentheses"
+#endif
     int dep_apt = !(flp->dep.apt == flp->arr.apt && !ndt_list_count(flp->rte) && (flp->arr.star.proc || flp->arr.apch.proc));
     int arr_apt = !(flp->dep.apt == flp->arr.apt && !ndt_list_count(flp->rte) && (flp->dep.sid.proc));
     if (arr_apt == 0 && !dep_rwy == 0)
     {
         dep_apt =  0;
     }
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
     /*
      * Count the legs based on the above and write our header.
      */
