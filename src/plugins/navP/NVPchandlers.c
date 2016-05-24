@@ -1477,13 +1477,21 @@ static int first_fcall_do(chandler_context *ctx)
         case NVP_ACF_A320_QP:
             if ((d_ref = XPLMFindDataRef("AirbusFBW/DUBrightness")))
             {
-                float DUBrightness[8];
-                int   valuesCopied = XPLMGetDatavf(d_ref, DUBrightness, 0, 8);
-                for  (int i = 0; i < valuesCopied; i++)
+                float DUBrightness[8] =
                 {
-                    DUBrightness[i] = 0.9f;
-                }
-                XPLMSetDatavf(d_ref, DUBrightness, 0, valuesCopied);
+                    0.9f, 0.9f, 0.9f, 0.9f, 0.9f, 0.9f, 0.9f, 0.9f,
+                };
+                XPLMSetDatavf(d_ref, DUBrightness, 0, 8);
+            }
+            if ((d_ref = XPLMFindDataRef("AirbusFBW/OHPLightSwitches")))
+            {
+                int OHPLightSwitches[16] =
+                {
+                    [2] = 1, // nav&logo: system 1
+                    [7] = 1, // strobes: automatic
+                };
+                XPLMSetDatavi(d_ref, &OHPLightSwitches[2], 2, 1);
+                XPLMSetDatavi(d_ref, &OHPLightSwitches[7], 7, 1);
             }
             break;
 
@@ -1516,12 +1524,426 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 XPLMSetDataf(d_ref, 270.0f); // pass. announcements' volume: max
             }
+//          if ((d_ref = XPLMFindDataRef("1-sim/3/cover")))
+//          {
+//              XPLMSetDataf(d_ref, 1.0f);   // gnd hf datalnk cover/guard: lift
+//          }
+//          if ((d_ref = XPLMFindDataRef("1-sim/8/button")))
+//          {
+//              XPLMSetDataf(d_ref, 1.0f);   // gnd hf datalnk switch/but.:  off
+//          }
+            if ((d_ref = XPLMFindDataRef("1-sim/15/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // cabin wireless switch/but.: auto
+            }
+//          if ((d_ref = XPLMFindDataRef("1-sim/7/cover")))
+//          {
+//              XPLMSetDataf(d_ref, 1.0f);   // cabin pa. data cover/guard: lift
+//          }
+            if ((d_ref = XPLMFindDataRef("1-sim/16/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // cabin pa. data switch/but.: auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/17/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // cabin sat.com. switch/but.: auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/18/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // cabin ldg.cam. switch/but.: auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/19/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // cabin far four switch/but.: auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/20/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // cabin mob.com. switch/but.: auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/21/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // cabin IFEC sys switch/but.: auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/22/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // cabin DER. sys switch/but.: auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/65/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // engine 1 yellow hyd. pump:  auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/67/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // engine 1 green  hyd. pump:  auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/75/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // engine 2 yellow hyd. pump:  auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/77/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // engine 2 green  hyd. pump:  auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/84/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // fuel pan. c. tk feed mode:  auto
+            }
+//          if ((d_ref = XPLMFindDataRef("1-sim/90/button")))
+//          {
+//              XPLMSetDataf(d_ref, 1.0f);   // elec. panel ELMU. system:     on
+//          }
+//          if ((d_ref = XPLMFindDataRef("1-sim/91/button")))
+//          {
+//              XPLMSetDataf(d_ref, 1.0f);   // elec. panel pass. system:     on
+//          }
+//          if ((d_ref = XPLMFindDataRef("1-sim/92/button")))
+//          {
+//              XPLMSetDataf(d_ref, 1.0f);   // elec. panel galley power:     on
+//          }
+//          if ((d_ref = XPLMFindDataRef("1-sim/93/button")))
+//          {
+//              XPLMSetDataf(d_ref, 1.0f);   // elec. panel commercial 1:     on
+//          }
+//          if ((d_ref = XPLMFindDataRef("1-sim/94/button")))
+//          {
+//              XPLMSetDataf(d_ref, 1.0f);   // elec. panel commercial 2:     on
+//          }
+            if ((d_ref = XPLMFindDataRef("1-sim/96/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // elec. panel ACbus1A switch:   on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/99/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // elec. panel ACbus1B switch:   on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/100/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // elec. panel bus tie switch: auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/101/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // elec. panel APUgen.  switch:  on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/103/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // elec. panel ACbus2B switch:   on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/106/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // elec. panel ACbus2A switch:   on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/109/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // L engine bleed air valve:     on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/110/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // L engine hot air switch:      on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/114/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // R engine hot air switch:      on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/115/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // R engine bleed air valve:     on
+            }
+//          if ((d_ref = XPLMFindDataRef("1-sim/122/button")))
+//          {
+//              XPLMSetDataf(d_ref, 1.0f);   // cabin press. alt. mode:     auto
+//          }
+//          if ((d_ref = XPLMFindDataRef("1-sim/123/button")))
+//          {
+//              XPLMSetDataf(d_ref, 1.0f);   // cabin press. V/S. mode:     auto
+//          }
+            if ((d_ref = XPLMFindDataRef("1-sim/air/airFlowSwitch")))
+            {
+                XPLMSetDatai(d_ref, 1);      // bleed air airflow switch:   norm
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/air/crossBeedSwitch")))
+            {
+                XPLMSetDatai(d_ref, 1);      // bleed air c.bleed switch:   auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/air/ckptSettingRotery")))
+            {
+                XPLMSetDataf(d_ref, 0.4f);   // flight deck temp. control: purs.
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/air/cabinSettingRotery")))
+            {
+                XPLMSetDataf(d_ref, 0.4f);   // cabin temp. control (all): purs.
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/1/switch")))
+            {
+                XPLMSetDatai(d_ref, 1);       // evac. panel:     captain & purs
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/38/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // oxygen panel, crew supply:    on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/42/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // vent. panel: cooling switch:  on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/44/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // vent. panel: cabin fans 1:    on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/45/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // vent. panel: cabin fans 2:    on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/53/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // NSS panel, data to avionics:  on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/54/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // NSS panel, cab. data to NSS:  on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/230/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // NSS panel, gate link:         on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/55/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // cargo A/C ISO valves (fwd): auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/56/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // cargo A/C ISO valves (aft): auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/57/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // cargo A/C ISO valves (blk): auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/59/button")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);   // cargo A/C heater switch:    auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/2/switch")))
+            {
+                XPLMSetDatai(d_ref, 1);       // strobe light switch:       auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/4/switch")))
+            {
+                XPLMSetDatai(d_ref, 1);       // navigation light switch:     on
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/5/switch")))
+            {
+                XPLMSetDatai(d_ref, 1);       // logo light switch:         auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/20/switch")))
+            {
+                XPLMSetDatai(d_ref, 1);       // emergency exit lights:      arm
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/37/switch")))
+            {
+                XPLMSetDatai(d_ref, 1);       // braking system anti-skid:    on
+            }
+            break;
+
+        case NVP_ACF_B733_XG:
+            if ((d_ref = XPLMFindDataRef("ixeg/733/bleedair/bleedair_recirc_fan_act")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);    // bleed air system rec. fan: auto
+            }
+            if ((d_ref = XPLMFindDataRef("ixeg/733/aircond/aircond_cont_cabin_sel_act")))
+            {
+                XPLMSetDataf(d_ref, 0.0f);    // cont. cabin air t.: auto/normal
+            }
+            if ((d_ref = XPLMFindDataRef("ixeg/733/aircond/aircond_pass_cabin_sel_act")))
+            {
+                XPLMSetDataf(d_ref, 0.0f);    // pass. cabin air t.: auto/normal
+            }
+            if ((d_ref = XPLMFindDataRef("ixeg/733/lighting/position_lt_act")))
+            {
+                XPLMSetDataf(d_ref, 1.0f);    // position light switch:       on
+            }
             break;
 
         case NVP_ACF_B763_FF:
-            if ((d_ref = XPLMFindDataRef("anim/75/button")))
+            if ((d_ref = XPLMFindDataRef("1-sim/electrical/batteryCover")))
             {
-                XPLMSetDatai(d_ref, 1);    // terrain override switch/button: on
+                XPLMSetDataf(d_ref, 1.0f); // cover/guard (battery):        lift
+            }
+//          if ((d_ref = XPLMFindDataRef("1-sim/elecengcont/leftCover")))
+//          {
+//              XPLMSetDataf(d_ref, 1.0f); // cover/guard (EEC L):          lift
+//          }
+            if ((d_ref = XPLMFindDataRef("anim/3/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // button (mode EEC L):          norm
+            }
+//          if ((d_ref = XPLMFindDataRef("1-sim/elecengcont/rightCover")))
+//          {
+//              XPLMSetDataf(d_ref, 1.0f); // cover/guard (EEC R):          lift
+//          }
+            if ((d_ref = XPLMFindDataRef("anim/4/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // button (mode EEC R):          norm
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/cond/fwdTempControl")))
+            {
+                XPLMSetDataf(d_ref, 0.5f); // cabin temp. control (fwd):    auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/cond/midTempControl")))
+            {
+                XPLMSetDataf(d_ref, 0.5f); // cabin temp. control (mid):    auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/cond/aftTempControl")))
+            {
+                XPLMSetDataf(d_ref, 0.5f); // cabin temp. control (aft):    auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/cond/fltdkTempControl")))
+            {
+                XPLMSetDataf(d_ref, 0.5f); // flight deck temp. control:    auto
+            }
+            if ((d_ref = XPLMFindDataRef("anim/8/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // L engine-driven hydraulic pump: on
+            }
+            if ((d_ref = XPLMFindDataRef("anim/11/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // R engine-driven hydraulic pump: on
+            }
+            if ((d_ref = XPLMFindDataRef("anim/54/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // TRIM bleed air valve switch:    on
+            }
+            if ((d_ref = XPLMFindDataRef("anim/55/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // L bleed air recirc. fan switch: on
+            }
+            if ((d_ref = XPLMFindDataRef("anim/56/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // R bleed air recirc. fan switch: on
+            }
+            if ((d_ref = XPLMFindDataRef("anim/59/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // L bleed air ISLN valve:    on/open
+            }
+            if ((d_ref = XPLMFindDataRef("anim/87/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // R bleed air ISLN valve:    on/open
+            }
+            if ((d_ref = XPLMFindDataRef("anim/90/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // C bleed air ISLN valve:    on/open
+            }
+            if ((d_ref = XPLMFindDataRef("anim/60/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // L engine bleed air valve:  on/open
+            }
+            if ((d_ref = XPLMFindDataRef("anim/62/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // R engine bleed air valve:  on/open
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/gauges/terrOVRDcover")))
+            {
+                XPLMSetDataf(d_ref, 1.0f); // cover/guard   (terrain OVRD): lift
+            }
+//          if ((d_ref = XPLMFindDataRef("anim/75/button")))
+//          {
+//              XPLMSetDatai(d_ref, 1);    // switch/button (terrain OVRD):   on
+//          }
+            if ((d_ref = XPLMFindDataRef("anim/43/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // position light switch:          on
+            }
+            break;
+
+        case NVP_ACF_B77L_FF:
+//          if ((d_ref = XPLMFindDataRef("anim/14/cover")))
+//          {
+//              XPLMSetDataf(d_ref, 1.0f); // cover/guard (EEC L):          lift
+//          }
+            if ((d_ref = XPLMFindDataRef("anim/116/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // button (mode EEC L):          norm
+            }
+//          if ((d_ref = XPLMFindDataRef("anim/16/cover")))
+//          {
+//              XPLMSetDataf(d_ref, 1.0f); // cover/guard (EEC R):          lift
+//          }
+            if ((d_ref = XPLMFindDataRef("anim/117/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // button (mode EEC R):          norm
+            }
+            if ((d_ref = XPLMFindDataRef("anim/154/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // button (engine autostart):      on
+            }
+            if ((d_ref = XPLMFindDataRef("anim/5/rotery")))
+            {
+                XPLMSetDataf(d_ref, 0.5f); // flight deck temp. control:    auto
+            }
+            if ((d_ref = XPLMFindDataRef("anim/6/rotery")))
+            {
+                XPLMSetDataf(d_ref, 0.5f); // cabin temp. control (all):    auto
+            }
+            if ((d_ref = XPLMFindDataRef("anim/25/switch")))
+            {
+                XPLMSetDatai(d_ref, 1);    // cargo temp. control (aft):     low
+            }
+            if ((d_ref = XPLMFindDataRef("anim/26/switch")))
+            {
+                XPLMSetDatai(d_ref, 1);    // cargo temp. control (blk):     low
+            }
+            if ((d_ref = XPLMFindDataRef("anim/108/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // L engine-driven hydraulic pump: on
+            }
+            if ((d_ref = XPLMFindDataRef("anim/111/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // R engine-driven hydraulic pump: on
+            }
+            if ((d_ref = XPLMFindDataRef("anim/134/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // L bleed air recirc. fan switch: on
+            }
+            if ((d_ref = XPLMFindDataRef("anim/135/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // R bleed air recirc. fan switch: on
+            }
+            if ((d_ref = XPLMFindDataRef("anim/137/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // L TRIM bleed air valve switch:  on
+            }
+            if ((d_ref = XPLMFindDataRef("anim/138/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // R TRIM bleed air valve switch:  on
+            }
+            if ((d_ref = XPLMFindDataRef("anim/139/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // L bleed air ISLN valve:       auto
+            }
+            if ((d_ref = XPLMFindDataRef("anim/140/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // C bleed air ISLN valve:       auto
+            }
+            if ((d_ref = XPLMFindDataRef("anim/141/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // R bleed air ISLN valve:       auto
+            }
+            if ((d_ref = XPLMFindDataRef("anim/142/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // L engine bleed air valve:  on/open
+            }
+            if ((d_ref = XPLMFindDataRef("anim/144/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // R engine bleed air valve:  on/open
+            }
+            if ((d_ref = XPLMFindDataRef("anim/33/cover")))
+            {
+                XPLMSetDataf(d_ref, 1.0f); // cover/guard   (terrain OVRD): lift
+            }
+            if ((d_ref = XPLMFindDataRef("anim/130/button")))
+            {
+                XPLMSetDatai(d_ref, 1);    // navigation light switch:        on
+            }
+            if ((d_ref = XPLMFindDataRef("anim/12/switch")))
+            {
+                XPLMSetDatai(d_ref, 2);    // passenger signs (no smoking):   on
             }
             break;
 
