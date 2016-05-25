@@ -1481,7 +1481,7 @@ static int first_fcall_do(chandler_context *ctx)
                 {
                     0.9f, 0.9f, 0.9f, 0.9f, 0.9f, 0.9f, 0.9f, 0.9f,
                 };
-                XPLMSetDatavf(d_ref, DUBrightness, 0, 8);
+                XPLMSetDatavf(d_ref, &DUBrightness[0], 0, 8);
             }
             if ((d_ref = XPLMFindDataRef("AirbusFBW/OHPLightSwitches")))
             {
