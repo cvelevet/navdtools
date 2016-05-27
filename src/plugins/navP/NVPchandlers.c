@@ -1560,6 +1560,18 @@ static int first_fcall_do(chandler_context *ctx)
             break;
 
         case NVP_ACF_B763_FF:
+            // the following two are special, the buttons auto-revert to zero;
+            // thankfully they always work (even without any electrical power)
+            if ((d_ref = XPLMFindDataRef("1-sim/vor1/isAuto")) &&
+                (0000 == XPLMGetDatai(d_ref)))
+            {
+                _DO(XPLMSetDatai,1, "anim/78/button"); // VOR 1: manual -> auto
+            }
+            if ((d_ref = XPLMFindDataRef("1-sim/vor2/isAuto")) &&
+                (0000 == XPLMGetDatai(d_ref)))
+            {
+                _DO(XPLMSetDatai,1, "anim/79/button"); // VOR 2: manual -> auto
+            }
 //          _DO(XPLMSetDatai,    1, "anim/75/button");                          // Terrain override switch (on)
             _DO(XPLMSetDataf, 1.0f, "1-sim/gauges/terrOVRDcover");              // Terrain override switch (lift cover)
             _DO(XPLMSetDataf, 1.0f, "1-sim/electrical/batteryCover");           // Battery on/off selector (lift cover)
@@ -1579,7 +1591,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(XPLMSetDatai,    1, "anim/60/button");                          // Air: L e. bleed air sw. (on)
             _DO(XPLMSetDatai,    1, "anim/62/button");                          // Air: R e. bleed air sw. (on)
             _DO(XPLMSetDataf, 0.5f, "1-sim/cond/fwdTempControl");               // Temp. control (fwd ca.) (auto)
-            _DO(XPLMSetDataf, 0.5f, "1-sim/cond/fwdTempControl");               // Temp. control (mid ca.) (auto)
+            _DO(XPLMSetDataf, 0.5f, "1-sim/cond/midTempControl");               // Temp. control (mid ca.) (auto)
             _DO(XPLMSetDataf, 0.5f, "1-sim/cond/aftTempControl");               // Temp. control (aft ca.) (auto)
             _DO(XPLMSetDataf, 0.5f, "1-sim/cond/fltdkTempControl");             // Temp. control (f. deck) (auto)
             break;
