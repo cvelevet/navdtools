@@ -19,12 +19,14 @@
  */
 
 #include <errno.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "XPLM/XPLMDataAccess.h"
 #include "XPLM/XPLMPlanes.h"
 #include "XPLM/XPLMPlugin.h"
+#include "XPLM/XPLMProcessing.h"
 #include "XPLM/XPLMUtilities.h"
 
 #include "common/common.h"
@@ -143,6 +145,14 @@ typedef struct
         XPLMDataRef ref_park_brake;
         int         var_speedbrake;
         XPLMDataRef ref_speedbrake;
+        int         var_flap_lever;
+        XPLMDataRef ref_flap_lever;
+
+        // named, plane-specific (hardcoded) flap callouts
+        chandler_callback cb_flapu;
+        chandler_callback cb_flapd;
+        XPLMDataRef ref_flap_ratio;
+        XPLMFlightLoop_f flc_flaps;
     } callouts;
 
     struct
@@ -304,6 +314,32 @@ typedef struct
 /* Callout default values */
 #define CALLOUT_PARKBRAKE 1
 #define CALLOUT_SPEEDBRAK 1
+#define CALLOUT_FLAPLEVER 1
+
+/* Flap lever position name constants */
+static       char  _flap_callout_st[11];
+static const char* _flap_names_AIB1[10] = { "up",  "1",  "2",  "3", "full", NULL, NULL, NULL, NULL, NULL, };
+static const char* _flap_names_BNG1[10] = { "up",  "1",  "2",  "5",   "10", "15", "25", "30", "40", NULL, };
+static const char* _flap_names_BNG2[10] = { "up",  "1",  "5", "15",   "20", "25", "30", NULL, NULL, NULL, };
+static       void   flap_callout_setst(const char *names[], int index)
+{
+    if (index < 0) index = 0; else if (index > 9) index = 9;
+    if (names[index])
+    {
+        snprintf(_flap_callout_st, sizeof(_flap_callout_st), "Flaps %s", names[index]);
+    }
+    else
+    {
+        snprintf(_flap_callout_st, sizeof(_flap_callout_st), "%s", "");
+    }
+}
+static void flap_callout_speak(void)
+{
+    if (strnlen(_flap_callout_st, 1))
+    {
+        XPLMSpeakString(_flap_callout_st);
+    }
+}
 
 /* thrust reverser mode constants */
 static int _PROPMODE_FWD[8] = { 1, 1, 1, 1, 1, 1, 1, 1, };
@@ -376,6 +412,8 @@ static int  chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, v
 static int  chandler_sview(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_qlprv(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static float flc_flap_func(                                          float, float, int, void*);
 static int  first_fcall_do(                                             chandler_context *ctx);
 static int  aibus_350_init(                                               refcon_ff_a350 *ffa);
 static int  aibus_fbw_init(                                               refcon_qpacfbw *fbw);
@@ -418,7 +456,18 @@ void* nvp_chandlers_init(void)
                                                             NULL, NULL, NULL, NULL, NULL,
                                                             &ctx->callouts.var_speedbrake,
                                                             &ctx->callouts.var_speedbrake);
-    if (!ctx->callouts.ref_park_brake || !ctx->callouts.ref_speedbrake)
+    ctx->callouts.var_flap_lever = CALLOUT_FLAPLEVER;
+    ctx->callouts.ref_flap_lever = XPLMRegisterDataAccessor("navP/callouts/flap_lever",
+                                                            xplmType_Int, 1,
+                                                            &priv_getdata_i,
+                                                            &priv_setdata_i,
+                                                            NULL, NULL, NULL, NULL, NULL,
+                                                            NULL, NULL, NULL, NULL, NULL,
+                                                            &ctx->callouts.var_flap_lever,
+                                                            &ctx->callouts.var_flap_lever);
+    if (!ctx->callouts.ref_park_brake ||
+        !ctx->callouts.ref_speedbrake ||
+        !ctx->callouts.ref_flap_lever)
     {
         goto fail;
     }
@@ -579,6 +628,23 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->athr.toga.cb, chandler_swtch, 0, &ctx->athr.toga.cc);
     }
 
+    /* Default commands' handlers: flaps up or down */
+    ctx->callouts.cb_flapu.command = XPLMFindCommand("sim/flight_controls/flaps_up");
+    ctx->callouts.cb_flapd.command = XPLMFindCommand("sim/flight_controls/flaps_down");
+    ctx->callouts.ref_flap_ratio   = XPLMFindDataRef("sim/cockpit2/controls/flap_ratio");
+    if (!ctx->callouts.cb_flapu.command ||
+        !ctx->callouts.cb_flapd.command ||
+        !ctx->callouts.ref_flap_ratio)
+    {
+        goto fail;
+    }
+    else
+    {
+        REGISTER_CHANDLER(ctx->callouts.cb_flapu, chandler_flchg, 0, ctx);
+        REGISTER_CHANDLER(ctx->callouts.cb_flapd, chandler_flchg, 0, ctx);
+    }
+    XPLMRegisterFlightLoopCallback((ctx->callouts.flc_flaps = &flc_flap_func), 0, NULL);
+
     /* all good */
     return ctx;
 
@@ -618,6 +684,8 @@ int nvp_chandlers_close(void **_chandler_context)
     {
         UNREGSTR_CHANDLER(ctx->views.cbs[i]);
     }
+    UNREGSTR_CHANDLER(ctx->callouts.cb_flapu);
+    UNREGSTR_CHANDLER(ctx->callouts.cb_flapd);
 
     /* …and all datarefs */
     if (ctx->acfspec.qpac.pkb_tmp)
@@ -635,11 +703,19 @@ int nvp_chandlers_close(void **_chandler_context)
         XPLMUnregisterDataAccessor(ctx->callouts.ref_speedbrake);
         ctx->callouts.ref_speedbrake = NULL;
     }
+    if (ctx->callouts.ref_flap_lever)
+    {
+        XPLMUnregisterDataAccessor(ctx->callouts.ref_flap_lever);
+        ctx->callouts.ref_flap_lever = NULL;
+    }
     if (ref_ql_idx_get())
     {
         XPLMUnregisterDataAccessor(ref_ql_idx_get());
         ref_ql_idx_set            (NULL);
     }
+
+    /* …and all callbacks */
+    XPLMUnregisterFlightLoopCallback(ctx->callouts.flc_flaps, NULL);
 
     /* all good */
     free(ctx);
@@ -1468,6 +1544,48 @@ static int chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
+static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        chandler_context *ctx = inRefcon;
+        if (!XPLMGetDatai(ctx->callouts.ref_flap_lever))
+        {
+            return 1;
+        }
+        switch (ctx->atyp)
+        {
+            case NVP_ACF_A320_QP:
+            case NVP_ACF_A333_RW:
+            case NVP_ACF_A350_FF:
+                flap_callout_setst(_flap_names_AIB1, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                break;
+            case NVP_ACF_B733_XG:
+            case NVP_ACF_B738_EA:
+                flap_callout_setst(_flap_names_BNG1, lroundf(8.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                break;
+            case NVP_ACF_B752_FF:
+            case NVP_ACF_B763_FF:
+            case NVP_ACF_B77L_FF:
+                flap_callout_setst(_flap_names_BNG2, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                break;
+            default:
+                return 1;
+        }
+        XPLMSetFlightLoopCallbackInterval(ctx->callouts.flc_flaps, 1.0f, 1, NULL);
+    }
+    return 1;
+}
+
+static float flc_flap_func(float inElapsedSinceLastCall,
+                           float inElapsedTimeSinceLastFlightLoop,
+                           int   inCounter,
+                           void *inRefcon)
+{
+    flap_callout_speak();
+    return 0;
+}
+
 #define _DO(_func, _val, _name) { if ((d_ref = XPLMFindDataRef(_name))) _func(d_ref, _val); }
 static int first_fcall_do(chandler_context *ctx)
 {
@@ -1716,3 +1834,4 @@ static void priv_setdata_i(void *inRefcon, int inValue)
 #undef UNREGSTR_CHANDLER
 #undef CALLOUT_PARKBRAKE
 #undef CALLOUT_SPEEDBRAK
+#undef CALLOUT_FLAPLEVER

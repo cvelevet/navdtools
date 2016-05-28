@@ -83,6 +83,7 @@ typedef struct
         {
             XPLMDataRef park_brake;
             XPLMDataRef speedbrake;
+            XPLMDataRef flap_lever;
         } callouts_sts;
 
         struct
@@ -184,8 +185,10 @@ void* nvp_menu_init(void)
     }
     ctx->data.callouts_sts.park_brake = XPLMFindDataRef("navP/callouts/park_brake");
     ctx->data.callouts_sts.speedbrake = XPLMFindDataRef("navP/callouts/speedbrake");
+    ctx->data.callouts_sts.flap_lever = XPLMFindDataRef("navP/callouts/flap_lever");
     if (!ctx->data.callouts_sts.park_brake ||
-        !ctx->data.callouts_sts.speedbrake)
+        !ctx->data.callouts_sts.speedbrake ||
+        !ctx->data.callouts_sts.flap_lever)
     {
         goto fail;
     }
@@ -401,6 +404,7 @@ int nvp_menu_setup(void *_menu_context)
         XPLMCheckMenuItem(ctx->id, ctx->items.callouts_sts.id, xplm_Menu_Checked);
         XPLMSetDatai     (         ctx->data.callouts_sts.park_brake,          1);
         XPLMSetDatai     (         ctx->data.callouts_sts.speedbrake,          1);
+        XPLMSetDatai     (         ctx->data.callouts_sts.flap_lever,          1);
         ndt_log          (             "navP [info]: enabling custom callouts\n");
 
         /*
@@ -612,12 +616,14 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             XPLMCheckMenuItem(ctx->id, itx->id,  xplm_Menu_NoCheck);
             XPLMSetDatai     (ctx->data.callouts_sts.park_brake, 0);
             XPLMSetDatai     (ctx->data.callouts_sts.speedbrake, 0);
+            XPLMSetDatai     (ctx->data.callouts_sts.flap_lever, 0);
             ndt_log    ("navP [info]: disabling custom callouts\n");
             return;
         }
         XPLMCheckMenuItem(ctx->id, itx->id,  xplm_Menu_Checked);
         XPLMSetDatai     (ctx->data.callouts_sts.park_brake, 1);
         XPLMSetDatai     (ctx->data.callouts_sts.speedbrake, 1);
+        XPLMSetDatai     (ctx->data.callouts_sts.flap_lever, 1);
         ndt_log     ("navP [info]: enabling custom callouts\n");
         return;
     }
