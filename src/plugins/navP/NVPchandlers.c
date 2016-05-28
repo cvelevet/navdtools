@@ -94,27 +94,33 @@ typedef struct
     enum
     {
         NVP_ACF_GENERIC = 0x0000000,
-        NVP_ACF_A320_JD = 0x0000010,
-        NVP_ACF_A332_JD = 0x0000020,
-        NVP_ACF_A320_QP = 0x0000100,
-        NVP_ACF_A333_RW = 0x0000200,
-        NVP_ACF_A350_FF = 0x0001000,
-        NVP_ACF_B733_XG = 0x0004000,
-        NVP_ACF_B738_EA = 0x0008000,
-        NVP_ACF_B752_FF = 0x0010000,
-        NVP_ACF_B763_FF = 0x0100000,
-        NVP_ACF_B77L_FF = 0x1000000,
+        NVP_ACF_A320_JD = 0x0000001,
+        NVP_ACF_A320_QP = 0x0000002,
+        NVP_ACF_A330_JD = 0x0000004,
+        NVP_ACF_A330_RW = 0x0000008,
+        NVP_ACF_A350_FF = 0x0000010,
+        NVP_ACF_A380_PH = 0x0000020,
+        NVP_ACF_B727_FJ = 0x0000040,
+        NVP_ACF_B737_EA = 0x0000080,
+        NVP_ACF_B737_FJ = 0x0000100,
+        NVP_ACF_B737_XG = 0x0000200,
+        NVP_ACF_B757_FF = 0x0001000,
+        NVP_ACF_B767_FF = 0x0002000,
+        NVP_ACF_B777_FF = 0x0004000,
     } atyp;
-#define NVP_ACF_MASK_JDN  0x00000F0 // all J.A.R.Design addons
-#define NVP_ACF_MASK_QPC  0x0000F00 // all QPAC-powered addons
-#define NVP_ACF_MASK_FFR  0xFFFF000 // all FlightFactor addons
-#define NVP_ACF_MASK_32x  0x0000110 // all A320 series aircraft
-#define NVP_ACF_MASK_33x  0x0000220 // all A330 series aircraft
-#define NVP_ACF_MASK_35x  0x0001000 // all A350 series aircraft
-#define NVP_ACF_MASK_73x  0x000C000 // all B737 series aircraft
-#define NVP_ACF_MASK_75x  0x00F0000 // all B757 series aircraft
-#define NVP_ACF_MASK_76x  0x0F00000 // all B767 series aircraft
-#define NVP_ACF_MASK_77x  0xF000000 // all B777 series aircraft
+#define NVP_ACF_MASK_FFR  0x0007010 // all FlightFactor addons
+#define NVP_ACF_MASK_FJS  0x0000140 // all of FlyJSim's addons
+#define NVP_ACF_MASK_JDN  0x0000005 // all J.A.R.Design addons
+#define NVP_ACF_MASK_QPC  0x000002A // all QPAC-powered addons
+#define NVP_ACF_MASK_320  0x0000003 // all A320 series aircraft
+#define NVP_ACF_MASK_330  0x000000C // all A330 series aircraft
+#define NVP_ACF_MASK_350  0x0000010 // all A350 series aircraft
+#define NVP_ACF_MASK_380  0x0000020 // all A380 series aircraft
+#define NVP_ACF_MASK_727  0x0000040 // all B727 series aircraft
+#define NVP_ACF_MASK_737  0x0000380 // all B737 series aircraft
+#define NVP_ACF_MASK_757  0x0001000 // all B757 series aircraft
+#define NVP_ACF_MASK_767  0x0002000 // all B767 series aircraft
+#define NVP_ACF_MASK_777  0x0004000 // all B777 series aircraft
     /*
      * Note to self: the QPAC plugin (at least A320) seems to overwrite radio
      * frequency datarefs with its own; I found the datarefs but they're not
@@ -788,7 +794,7 @@ int nvp_chandlers_update(void *inContext)
             if (1) // TODO: add check for ICAO code when I know it
             {
                 ndt_log("navP [info]: plane is J.A.R. Design Airbus A330-200 RR\n");
-                ctx->atyp = NVP_ACF_A332_JD;
+                ctx->atyp = NVP_ACF_A330_JD;
                 break;
             }
             ndt_log("navP [warning]: no aircraft type match despite plugin (jardesign.sound3d)\n");
@@ -796,6 +802,12 @@ int nvp_chandlers_update(void *inContext)
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.airbus.fbw"))
         {
+            if (!strcasecmp(xaircraft_icao_code, "A320"))
+            {
+                ndt_log("navP [info]: plane is QPAC Airbus A320-200 IAE\n");
+                ctx->atyp = NVP_ACF_A320_QP;
+                break;
+            }
             if (!strlen(xaircraft_icao_code))
             {
                 if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("FFSTSmousehandler"))
@@ -805,16 +817,22 @@ int nvp_chandlers_update(void *inContext)
                     break;
                 }
                 ndt_log("navP [info]: plane is RWDesigns-QPAC Airbus A330-300\n");
-                ctx->atyp = NVP_ACF_A333_RW;
-                break;
-            }
-            if (!strcasecmp(xaircraft_icao_code, "A320"))
-            {
-                ndt_log("navP [info]: plane is QPAC Airbus A320-200 IAE\n");
-                ctx->atyp = NVP_ACF_A320_QP;
+                ctx->atyp = NVP_ACF_A330_RW;
                 break;
             }
             ndt_log("navP [warning]: no aircraft type match despite plugin (QPAC.airbus.fbw)\n");
+            break; // fall back to generic
+        }
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("bs.x737.plugin"))
+        {
+            if (!strcasecmp(xaircraft_icao_code, "B737") ||
+                !strcasecmp(xaircraft_icao_code, "B738"))
+            {
+                ndt_log("navP [info]: plane is EADT Boeing x737-800\n");
+                ctx->atyp = NVP_ACF_B737_EA;
+                break;
+            }
+            ndt_log("navP [warning]: no aircraft type match despite plugin (bs.x737.plugin)\n");
             break; // fall back to generic
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("gizmo.x-plugins.com"))
@@ -826,23 +844,11 @@ int nvp_chandlers_update(void *inContext)
                 if  (override_throttles && XPLMGetDatai(override_throttles))
                 {
                     ndt_log("navP [info]: plane is IXEG Boeing 737-300 Classic\n");
-                    ctx->atyp = NVP_ACF_B733_XG;
+                    ctx->atyp = NVP_ACF_B737_XG;
                     break;
                 }
             }
             // fall through (no generic fallback, Gizmo running for all planes)
-        }
-        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("bs.x737.plugin"))
-        {
-            if (!strcasecmp(xaircraft_icao_code, "B737") ||
-                !strcasecmp(xaircraft_icao_code, "B738"))
-            {
-                ndt_log("navP [info]: plane is EADT Boeing x737-800\n");
-                ctx->atyp = NVP_ACF_B738_EA;
-                break;
-            }
-            ndt_log("navP [warning]: no aircraft type match despite plugin (bs.x737.plugin)\n");
-            break; // fall back to generic
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("de-ru.philippmuenzel-den_rain.757avionics") ||
             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("ru.flightfactor-steptosky.757767avionics"))
@@ -850,7 +856,7 @@ int nvp_chandlers_update(void *inContext)
             if (!strcasecmp(xaircraft_icao_code, "B763"))
             {
                 ndt_log("navP [info]: plane is FlightFactor-StepToSky Boeing 767 Professional\n");
-                ctx->atyp = NVP_ACF_B763_FF;
+                ctx->atyp = NVP_ACF_B767_FF;
                 break;
             }
             // TODO: future FlightFactor 757 and 767 addons
@@ -862,7 +868,7 @@ int nvp_chandlers_update(void *inContext)
             if (!strcasecmp(xaircraft_icao_code, "B77L"))
             {
                 ndt_log("navP [info]: plane is FlightFactor Boeing 777 Worldliner Professional\n");
-                ctx->atyp = NVP_ACF_B77L_FF;
+                ctx->atyp = NVP_ACF_B777_FF;
                 break;
             }
             // TODO: other FlightFactor T7 addons
@@ -885,12 +891,12 @@ int nvp_chandlers_update(void *inContext)
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             break;
 
-        case NVP_ACF_A332_JD:
+        case NVP_ACF_A330_JD:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             break;
 
-        case NVP_ACF_A333_RW:
+        case NVP_ACF_A330_RW:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             break;
@@ -900,25 +906,25 @@ int nvp_chandlers_update(void *inContext)
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             break;
 
-        case NVP_ACF_B733_XG:
-            ctx->otto.disc.cc.name = "ixeg/733/autopilot/AP_disengage";
-            ctx->athr.disc.cc.name = "ixeg/733/autopilot/at_disengage";
-            ctx->athr.toga.cc.name = "sim/engines/TOGA_power";
-            break;
-
-        case NVP_ACF_B738_EA:
+        case NVP_ACF_B737_EA:
             ctx->otto.disc.cc.name = "x737/yoke/capt_AP_DISENG_BTN";
             ctx->athr.disc.cc.name = "x737/mcp/ATHR_ARM_TOGGLE";
             ctx->athr.toga.cc.name = "x737/mcp/TOGA_TOGGLE";
             break;
 
-        case NVP_ACF_B763_FF:
+        case NVP_ACF_B737_XG:
+            ctx->otto.disc.cc.name = "ixeg/733/autopilot/AP_disengage";
+            ctx->athr.disc.cc.name = "ixeg/733/autopilot/at_disengage";
+            ctx->athr.toga.cc.name = "sim/engines/TOGA_power";
+            break;
+
+        case NVP_ACF_B767_FF:
             ctx->otto.disc.cc.name = "1-sim/comm/AP/ap_disc";
             ctx->athr.disc.cc.name = "1-sim/comm/AP/at_disc";
             ctx->athr.toga.cc.name = "1-sim/comm/AP/at_toga";
             break;
 
-        case NVP_ACF_B77L_FF:
+        case NVP_ACF_B777_FF:
             ctx->otto.disc.cc.name = "777/ap_disc";
             ctx->athr.disc.cc.name = "777/at_disc";
             ctx->athr.toga.cc.name = "777/at_toga";
@@ -1177,15 +1183,7 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         int speak = XPLMGetDatai(ctx->callouts.ref_speedbrake);
         switch (ctx->atyp)
         {
-            case NVP_ACF_B733_XG:
-                i33 = &ctx->acfspec.i733;
-                if (i33->ready == 0)
-                {
-                    boing_733_init(i33);
-                }
-                break;
-
-            case NVP_ACF_B738_EA:
+            case NVP_ACF_B737_EA:
                 x38 = &ctx->acfspec.x738;
                 if (x38->ready == 0)
                 {
@@ -1193,8 +1191,16 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 break;
 
+            case NVP_ACF_B737_XG:
+                i33 = &ctx->acfspec.i733;
+                if (i33->ready == 0)
+                {
+                    boing_733_init(i33);
+                }
+                break;
+
             case NVP_ACF_A320_JD:
-            case NVP_ACF_A332_JD:
+            case NVP_ACF_A330_JD:
                 speak = 0; // fall through
             default:
                 XPLMCommandOnce (ctx->spbrk.sext);
@@ -1251,15 +1257,7 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         int speak = XPLMGetDatai(ctx->callouts.ref_speedbrake);
         switch (ctx->atyp)
         {
-            case NVP_ACF_B733_XG:
-                i33 = &ctx->acfspec.i733;
-                if (i33->ready == 0)
-                {
-                    boing_733_init(i33);
-                }
-                break;
-
-            case NVP_ACF_B738_EA:
+            case NVP_ACF_B737_EA:
                 x38 = &ctx->acfspec.x738;
                 if (x38->ready == 0)
                 {
@@ -1267,8 +1265,16 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 break;
 
+            case NVP_ACF_B737_XG:
+                i33 = &ctx->acfspec.i733;
+                if (i33->ready == 0)
+                {
+                    boing_733_init(i33);
+                }
+                break;
+
             case NVP_ACF_A320_JD:
-            case NVP_ACF_A332_JD:
+            case NVP_ACF_A330_JD:
                 speak = 0; // fall through
             default:
                 XPLMCommandOnce (ctx->spbrk.sret);
@@ -1339,7 +1345,7 @@ static int chandler_pt_up(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     refcon_eadt738   *x38 = NULL;
     switch (ctx->atyp)
     {
-        case NVP_ACF_B738_EA:
+        case NVP_ACF_B737_EA:
             x38 = &ctx->acfspec.x738;
             if (x38->ready == 0)
             {
@@ -1367,7 +1373,7 @@ static int chandler_pt_dn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     refcon_eadt738   *x38 = NULL;
     switch (ctx->atyp)
     {
-        case NVP_ACF_B738_EA:
+        case NVP_ACF_B737_EA:
             x38 = &ctx->acfspec.x738;
             if (x38->ready == 0)
             {
@@ -1556,17 +1562,20 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         switch (ctx->atyp)
         {
             case NVP_ACF_A320_QP:
-            case NVP_ACF_A333_RW:
+            case NVP_ACF_A330_RW:
             case NVP_ACF_A350_FF:
+            case NVP_ACF_A380_PH:
                 flap_callout_setst(_flap_names_AIB1, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
-            case NVP_ACF_B733_XG:
-            case NVP_ACF_B738_EA:
+//          case NVP_ACF_B727_FJ:
+            case NVP_ACF_B737_EA:
+            case NVP_ACF_B737_FJ:
+            case NVP_ACF_B737_XG:
                 flap_callout_setst(_flap_names_BNG1, lroundf(8.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
-            case NVP_ACF_B752_FF:
-            case NVP_ACF_B763_FF:
-            case NVP_ACF_B77L_FF:
+            case NVP_ACF_B757_FF:
+            case NVP_ACF_B767_FF:
+            case NVP_ACF_B777_FF:
                 flap_callout_setst(_flap_names_BNG2, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
             default:
@@ -1670,14 +1679,14 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(XPLMSetDataf,   0.4f, "1-sim/air/cabinSettingRotery");          // Air panel: cabin temp. (purser)
             break;
 
-        case NVP_ACF_B733_XG:
+        case NVP_ACF_B737_XG:
             _DO(XPLMSetDataf, 1.0f, "ixeg/733/bleedair/bleedair_recirc_fan_act");   // Bleed air recirc. fans (auto)
             _DO(XPLMSetDataf, 0.0f, "ixeg/733/aircond/aircond_cont_cabin_sel_act"); // Cont. cab. air temper. (normal)
             _DO(XPLMSetDataf, 0.0f, "ixeg/733/aircond/aircond_pass_cabin_sel_act"); // Pass. cab. air temper. (normal)
             _DO(XPLMSetDataf, 1.0f, "ixeg/733/lighting/position_lt_act");           // Exte. lighting: posit. (on)
             break;
 
-        case NVP_ACF_B763_FF:
+        case NVP_ACF_B767_FF:
             // the following two are special, the buttons auto-revert to zero;
             // thankfully they always work (even without any electrical power)
             if ((d_ref = XPLMFindDataRef("1-sim/vor1/isAuto")) &&
@@ -1714,7 +1723,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(XPLMSetDataf, 0.5f, "1-sim/cond/fltdkTempControl");             // Temp. control (f. deck) (auto)
             break;
 
-        case NVP_ACF_B77L_FF:
+        case NVP_ACF_B777_FF:
 //          _DO(XPLMSetDatai,    1, "anim/???/button"); // TODO: find dataref   // Terrain override switch (on)
 //          _DO(XPLMSetDataf, 1.0f, "anim/33/cover");                           // Terrain override switch (lift cover)
 //          _DO(XPLMSetDataf, 1.0f, "anim/14/cover");                           // Engine elec. contr. (L) (lift cover)
