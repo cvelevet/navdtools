@@ -1680,10 +1680,37 @@ static int first_fcall_do(chandler_context *ctx)
             break;
 
         case NVP_ACF_B737_XG:
-            _DO(XPLMSetDataf, 1.0f, "ixeg/733/bleedair/bleedair_recirc_fan_act");   // Bleed air recirc. fans (auto)
-            _DO(XPLMSetDataf, 0.0f, "ixeg/733/aircond/aircond_cont_cabin_sel_act"); // Cont. cab. air temper. (normal)
-            _DO(XPLMSetDataf, 0.0f, "ixeg/733/aircond/aircond_pass_cabin_sel_act"); // Pass. cab. air temper. (normal)
-            _DO(XPLMSetDataf, 1.0f, "ixeg/733/lighting/position_lt_act");           // Exte. lighting: posit. (on)
+            _DO(XPLMSetDataf,   0.0f, "ixeg/733/aircond/aircond_cont_cabin_sel_act"); // Cont. cab. air temper. (normal)
+            _DO(XPLMSetDataf,   0.0f, "ixeg/733/aircond/aircond_pass_cabin_sel_act"); // Pass. cab. air temper. (normal)
+            _DO(XPLMSetDataf,   1.0f, "ixeg/733/bleedair/bleedair_recirc_fan_act");   // Bleed air recirc. fans (auto)
+            _DO(XPLMSetDataf, -20.0f, "ixeg/733/ehsi/dh_pt_act");                     // ADI DH REF (cap. side) (reset)
+            _DO(XPLMSetDataf, -20.0f, "ixeg/733/ehsi/dh_cpt_act");                    // ADI DH REF (f/o. side) (reset)
+            _DO(XPLMSetDataf,   2.0f, "ixeg/733/ehsi/ehsi_mode_pt_act");              // HSI m.sel. (cap. side) (map)
+            _DO(XPLMSetDataf,   1.0f, "ixeg/733/ehsi/ehsi_mode_cpt_act");             // HSI m.sel. (f/o. side) (exp)
+            _DO(XPLMSetDataf,   0.0f, "ixeg/733/ehsi/ehsi_range_pt_act");             // HSI r.sel. (cap. side) (10)
+            _DO(XPLMSetDataf,   1.0f, "ixeg/733/ehsi/ehsi_range_cpt_act");            // HSI r.sel. (f/o. side) (20)
+            _DO(XPLMSetDataf,   1.0f, "ixeg/733/lighting/position_lt_act");           // Exte. lighting: posit. (on)
+            _DO(XPLMSetDataf,   0.0f, "ixeg/733/rheostats/light_breakers_act");       // Circuit breakers light (off)
+            _DO(XPLMSetDataf,   0.0f, "ixeg/733/rheostats/light_pedflood_act");       // Flood light (pedestal) (off)
+            _DO(XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_pedpanel_act");       // Panel light (pedestal) (daylight)
+            _DO(XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_overhead_act");       // Panel light (overhead) (daylight)
+            _DO(XPLMSetDataf,   0.2f, "ixeg/733/rheostats/light_afds_act");           // Flood light (A.F.D.S.) (daylight)
+            _DO(XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_fmc_pt_act");         // MCDU: lig. (cap. side) (daylight)
+            _DO(XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_fmc_cpt_act");        // MCDU: lig. (f/o. side) (daylight)
+            _DO(XPLMSetDataf,   0.0f, "ixeg/733/rheostats/light_mapbr_pt_act");       // Maps: lig. (cap. side) (off)
+            _DO(XPLMSetDataf,   0.0f, "ixeg/733/rheostats/light_mapbr_cpt_act");      // Maps: lig. (f/o. side) (off)
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/instrument_brightness_ratio")))
+            {
+                float instrument_brightness_ratio[16] =
+                {
+                    [0] = 0.8f, // Panel (cap. side): daylight
+                    [1] = 0.8f, // Panel (f/o. side): daylight
+                    [2] = 0.8f, // Panel (backgrnd.): neon off
+                };
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 0, 1);
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[1], 1, 1);
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 2, 1);
+            }
             break;
 
         case NVP_ACF_B767_FF:
