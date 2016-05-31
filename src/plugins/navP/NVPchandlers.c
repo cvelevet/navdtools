@@ -1683,8 +1683,8 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(XPLMSetDataf,   0.0f, "ixeg/733/aircond/aircond_cont_cabin_sel_act"); // Cont. cab. air temper. (normal)
             _DO(XPLMSetDataf,   0.0f, "ixeg/733/aircond/aircond_pass_cabin_sel_act"); // Pass. cab. air temper. (normal)
             _DO(XPLMSetDataf,   1.0f, "ixeg/733/bleedair/bleedair_recirc_fan_act");   // Bleed air recirc. fans (auto)
-            _DO(XPLMSetDataf, -20.0f, "ixeg/733/ehsi/dh_pt_act");                     // ADI DH REF (cap. side) (reset)
-            _DO(XPLMSetDataf, -20.0f, "ixeg/733/ehsi/dh_cpt_act");                    // ADI DH REF (f/o. side) (reset)
+            _DO(XPLMSetDataf, -20.0f, "ixeg/733/ehsi/dh_pt_act");                     // ADI DH REF (cap. side) (reset)     // note: only works when power is on
+            _DO(XPLMSetDataf, -20.0f, "ixeg/733/ehsi/dh_cpt_act");                    // ADI DH REF (f/o. side) (reset)     // note: only works when power is on
             _DO(XPLMSetDataf,   2.0f, "ixeg/733/ehsi/ehsi_mode_pt_act");              // HSI m.sel. (cap. side) (map)
             _DO(XPLMSetDataf,   1.0f, "ixeg/733/ehsi/ehsi_mode_cpt_act");             // HSI m.sel. (f/o. side) (exp)
             _DO(XPLMSetDataf,   0.0f, "ixeg/733/ehsi/ehsi_range_pt_act");             // HSI r.sel. (cap. side) (10)
