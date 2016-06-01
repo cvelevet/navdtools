@@ -1777,8 +1777,23 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(XPLMSetDataf, 0.5f, "anim/6/rotery");                           // Temp. control (all ca.) (auto)
             break;
 
+        case NVP_ACF_GENERIC:
+            // Carenado addons handled here (if dataref not found: no effect)
+            _DO(XPLMSetDatai,    1, "thranda/cockpit/actuators/HideYokeL");     // various addons
+            _DO(XPLMSetDatai,    1, "thranda/cockpit/actuators/HideYokeR");     // various addons
+            _DO(XPLMSetDataf, 0.2f, "thranda/cockpit/actuators/VisorL");        // TBM 850
+            _DO(XPLMSetDataf, 0.1f, "thranda/cockpit/actuators/VisorR");        // TBM 850
+            _DO(XPLMSetDataf, 0.0f, "thranda/cockpit/actuators/VisorSlideL");   // TBM 850
+            _DO(XPLMSetDataf, 0.0f, "thranda/cockpit/actuators/VisorSlideR");   // TBM 850
+            _DO(XPLMSetDataf, 0.0f, "thranda/cockpit/actuators/VisorSwingL");   // TBM 850
+            _DO(XPLMSetDataf, 0.0f, "thranda/cockpit/actuators/VisorSwingR");   // TBM 850
+            break;
+
         default:
             break;
+    }
+    {
+        XPLMCommandOnce(ctx->views.cbs[1].command); // because we can
     }
     if ((ctx->atyp & NVP_ACF_MASK_JDN) == 0)
     {
