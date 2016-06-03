@@ -30,6 +30,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flightplan, const char *r
 int ndt_fmt_dcded_flightplan_write    (ndt_flightplan *flightplan, FILE       *file );
 int ndt_fmt_dtest_flightplan_write    (ndt_flightplan *flightplan, FILE       *file );
 int ndt_fmt_icaor_flightplan_write    (ndt_flightplan *flightplan, FILE       *file );
+int ndt_fmt_icaox_flightplan_write    (ndt_flightplan *flightplan, FILE       *file );
 int ndt_fmt_irecp_flightplan_write    (ndt_flightplan *flightplan, FILE       *file );
 int ndt_fmt_sbrif_flightplan_write    (ndt_flightplan *flightplan, FILE       *file );
 int ndt_fmt_icaor_print_airportnfo    (ndt_navdatabase   *navdata, const char *icao);

@@ -749,6 +749,125 @@ end:
     return ret;
 }
 
+int ndt_fmt_icaox_flightplan_write(ndt_flightplan *flp, FILE *fd)
+{
+    int ret = 0;
+
+    if (!flp || !fd)
+    {
+        ret = ENOMEM;
+        goto end;
+    }
+
+    if (!flp->dep.apt || !flp->arr.apt)
+    {
+        ndt_log("[fmt_icaox]: departure or arrival airport not set\n");
+        ret = EINVAL;
+        goto end;
+    }
+
+    // departure airport
+    if ((ret = ndt_fprintf(fd, "%s SID", flp->dep.apt->info.idnt)))
+    {
+        goto end;
+    }
+
+    // applicable route elements
+    size_t num_route_legs = ndt_list_count(flp->rte);
+    ndt_waypoint *sid_dst = NULL;
+    if (flp->dep.sid.rsgt)
+    {
+        sid_dst = flp->dep.sid.rsgt->dst;
+    }
+    if (flp->dep.sid.enroute.rsgt)
+    {
+        sid_dst = flp->dep.sid.enroute.rsgt->dst;
+    }
+    ndt_waypoint *arr_src = NULL;
+    if (flp->arr.apch.transition.rsgt)
+    {
+        // final appraoches use "custom" fixes whose names aren't portable
+        // across navigation data providers (Aerosoft vs. Navigraph); however,
+        // approach transitions normally start at a regular/official named fix.
+        ndt_route_leg *leg = ndt_list_item(flp->arr.apch.transition.rsgt->legs, 0);
+        if (leg)
+        {
+            arr_src = leg->dst;
+        }
+    }
+    if (flp->arr.star.rsgt)
+    {
+        ndt_route_leg *leg = ndt_list_item(flp->arr.star.rsgt->legs, 0);
+        if (leg)
+        {
+            arr_src = leg->dst;
+        }
+    }
+    if (flp->arr.star.enroute.rsgt)
+    {
+        ndt_route_leg *leg = ndt_list_item(flp->arr.star.enroute.rsgt->legs, 0);
+        if (leg)
+        {
+            arr_src = leg->dst;
+        }
+    }
+
+    // validate and write the flightplan
+    if (num_route_legs == 0 && sid_dst == NULL && arr_src == NULL)
+    {
+        ndt_log("[fmt_icaox]: empty flightplan (unsupported)\n");
+        ret = EINVAL;
+        goto end;
+    }
+    if (sid_dst)
+    {
+        // SID endpoint, if it's a fix
+        if ((ret = ndt_fprintf(fd, " %s", sid_dst->info.idnt)))
+        {
+            goto end;
+        }
+    }
+    if (num_route_legs)
+    {
+        // mandatory "via" field except for first waypoint
+        if (sid_dst && (ret = ndt_fprintf(fd, "%s", " DCT")))
+        {
+            goto end;
+        }
+        // encoded route
+        if ((ret = ndt_fprintf(fd, "%s", " ")))
+        {
+            goto end;
+        }
+        if ((ret = icao_printrt(fd, flp->rte, NDT_FLTPFMT_ICAOX)))
+        {
+            goto end;
+        }
+    }
+    else if (arr_src)
+    {
+        // mandatory "via" field except for first waypoint
+        if ((sid_dst || num_route_legs) && (ret = ndt_fprintf(fd, "%s", " DCT")))
+        {
+            goto end;
+        }
+        // STAR or approach entry point, if it's an applicable fix
+        if ((ret = ndt_fprintf(fd, " %s", arr_src->info.idnt)))
+        {
+            goto end;
+        }
+    }
+
+    // arrival airport
+    if ((ret = ndt_fprintf(fd, " STAR %s\n", flp->arr.apt->info.idnt)))
+    {
+        goto end;
+    }
+
+end:
+    return ret;
+}
+
 static int fmt_irecp_print_leg(FILE *fd, ndt_route_leg *leg)
 {
     if (!fd || !leg)
@@ -1242,6 +1361,12 @@ static int icao_printrt(FILE *fd, ndt_list *rte, ndt_fltplanformat fmt)
             llcfmt = NDT_LLCFMT_ICAOR;
             break;
 
+        // some formats don't support latitude/longitude custom waypoints
+        // some databases, however, have named fixes for the 5-letter form
+        case NDT_FLTPFMT_ICAOX:
+            llcfmt = NDT_LLCFMT_DEFS5;
+            break;
+
         case NDT_FLTPFMT_SBRIF:
             llcfmt = NDT_LLCFMT_SBRIF;
             break;
@@ -1272,6 +1397,13 @@ static int icao_printrt(FILE *fd, ndt_list *rte, ndt_fltplanformat fmt)
                 break;
 
             case NDT_RSTYPE_DCT:
+                if (i && fmt == NDT_FLTPFMT_ICAOX)
+                {   // mandatory "via" field except for first waypoint
+                    if ((ret = ndt_fprintf(fd, "%s", "DCT ")))
+                    {
+                        goto end;
+                    }
+                }
                 ret = icao_printwp(fd, rsg->dst, llcfmt, fmt);
                 break;
 

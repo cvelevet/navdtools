@@ -690,6 +690,10 @@ int ndt_flightplan_write(ndt_flightplan *flp, FILE *file, ndt_fltplanformat fmt)
             err = ndt_fmt_icaor_flightplan_write(flp, file);
             break;
 
+        case NDT_FLTPFMT_ICAOX:
+            err = ndt_fmt_icaox_flightplan_write(flp, file);
+            break;
+
         case NDT_FLTPFMT_IRECP:
             err = ndt_fmt_irecp_flightplan_write(flp, file);
             break;

@@ -868,6 +868,22 @@ int ndt_position_sprintllc(ndt_position pos, ndt_llcfmt fmt, char *buf, size_t l
             break;
         }
 
+        case NDT_LLCFMT_DEFS5:
+            // short format: 5-letter form, e.g. 4650N
+            if ((int)(dlond + .5) >= 100)
+            {
+                ret = snprintf(buf, len, "%02d%c%02d",
+                               (int)(dlatd + .5), card[2],
+                               (int)(dlond + .5) % 100);
+            }
+            else
+            {
+                ret = snprintf(buf, len, "%02d%02d%c",
+                               (int)(dlatd + .5),
+                               (int)(dlond + .5), card[2]);
+            }
+            break;
+
         case NDT_LLCFMT_DEFLT:
         default:
             // default format: 7-letter form, e.g. N46E050

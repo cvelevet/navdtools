@@ -847,6 +847,11 @@ static int parse_options(int argc, char **argv)
                     format_out = NDT_FLTPFMT_ICAOR;
                     break;
                 }
+                if (!strcasecmp(optarg, "ixeg"))
+                {
+                    format_out = NDT_FLTPFMT_ICAOX;
+                    break;
+                }
                 if (!strcasecmp(optarg, "mcdu"))
                 {
                     format_out = NDT_FLTPFMT_XPCDU;
@@ -1328,6 +1333,8 @@ static int print_help(void)
             "                                        line, for use w/X-Plane FMS\n"
             "                            icao        ICAO flight plan route,    \n"
             "                                        without specific SID/STAR  \n"
+            "                            ixeg        ICAO flight plan, for use  \n"
+            "                                        as company route w/IXEG 733\n"
             "                            mcdu        Decoded route, one leg per \n"
             "                                        line, for use w/QPAC MCDU  \n"
             "                            recap       Generic route recap        \n"
