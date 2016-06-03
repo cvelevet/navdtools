@@ -34,7 +34,7 @@ typedef enum ndt_fltplanformat
     NDT_FLTPFMT_OTHER, // unknown or unsupported format
     NDT_FLTPFMT_AIBXT, // Airbus X Extended format
     NDT_FLTPFMT_DCDED, // decoded route legs, same line
-    NDT_FLTPFMT_DTSTG, // decoded route legs, same line, lat/lon only
+    NDT_FLTPFMT_DTEST, // decoded route legs, same line, lat/lon only
     NDT_FLTPFMT_ICAOR, // ICAO route with departure/arrival airports, no SID/STAR
     NDT_FLTPFMT_IRECP, // route recap, multiple lines per leg
     NDT_FLTPFMT_SBRIF, // ICAO route only, with FlightAware latitude/longitude

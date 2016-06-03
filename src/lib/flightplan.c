@@ -682,8 +682,8 @@ int ndt_flightplan_write(ndt_flightplan *flp, FILE *file, ndt_fltplanformat fmt)
             err = ndt_fmt_dcded_flightplan_write(flp, file);
             break;
 
-        case NDT_FLTPFMT_DTSTG:
-            err = ndt_fmt_dtstg_flightplan_write(flp, file);
+        case NDT_FLTPFMT_DTEST:
+            err = ndt_fmt_dtest_flightplan_write(flp, file);
             break;
 
         case NDT_FLTPFMT_ICAOR:

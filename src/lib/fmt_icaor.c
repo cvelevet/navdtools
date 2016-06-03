@@ -624,7 +624,7 @@ end:
     return ndt_fprintf(fd, "%s", "\n");
 }
 
-int ndt_fmt_dtstg_flightplan_write(ndt_flightplan *flp, FILE *fd)
+int ndt_fmt_dtest_flightplan_write(ndt_flightplan *flp, FILE *fd)
 {
     int ret = 0;
 
@@ -636,14 +636,14 @@ int ndt_fmt_dtstg_flightplan_write(ndt_flightplan *flp, FILE *fd)
 
     if (!flp->dep.apt || !flp->arr.apt)
     {
-        ndt_log("[fmt_dtstg]: departure or arrival airport not set\n");
+        ndt_log("[fmt_dtest]: departure or arrival airport not set\n");
         ret = EINVAL;
         goto end;
     }
 
     if (flp->dep.rwy)
     {
-        if ((ret = icao_printwp(fd, flp->dep.rwy->waypoint, NDT_LLCFMT_SVECT, NDT_FLTPFMT_DTSTG)) ||
+        if ((ret = icao_printwp(fd, flp->dep.rwy->waypoint, NDT_LLCFMT_SVECT, NDT_FLTPFMT_DTEST)) ||
             (ret = ndt_fprintf (fd, "%s", " ")))
         {
             goto end;
@@ -651,7 +651,7 @@ int ndt_fmt_dtstg_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
 
     // all flightplan legs
-    if ((ret = icao_printlg(fd, flp->legs, NDT_FLTPFMT_DTSTG)))
+    if ((ret = icao_printlg(fd, flp->legs, NDT_FLTPFMT_DTEST)))
     {
         goto end;
     }
@@ -659,7 +659,7 @@ int ndt_fmt_dtstg_flightplan_write(ndt_flightplan *flp, FILE *fd)
     if (flp->arr.rwy)
     {
         if ((ret = ndt_fprintf (fd, "%s", " ")) ||
-            (ret = icao_printwp(fd, flp->arr.rwy->waypoint, NDT_LLCFMT_SVECT, NDT_FLTPFMT_DTSTG)))
+            (ret = icao_printwp(fd, flp->arr.rwy->waypoint, NDT_LLCFMT_SVECT, NDT_FLTPFMT_DTEST)))
         {
             goto end;
         }
@@ -1299,7 +1299,7 @@ static int icao_printwp(FILE *fd, ndt_waypoint *dst, ndt_llcfmt llcfmt, ndt_fltp
     {
         return ENOMEM;
     }
-    if (fmt == NDT_FLTPFMT_DTSTG)
+    if (fmt == NDT_FLTPFMT_DTEST)
     {
         return ndt_position_fprintllc(dst->position, llcfmt, fd);
     }
@@ -1347,7 +1347,7 @@ static int icao_printlg(FILE *fd, ndt_list *lgs, ndt_fltplanformat fmt)
     switch (fmt)
     {
         case NDT_FLTPFMT_DCDED:
-        case NDT_FLTPFMT_DTSTG:
+        case NDT_FLTPFMT_DTEST:
             llcfmt = NDT_LLCFMT_SVECT;
             break;
 

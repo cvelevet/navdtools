@@ -834,7 +834,7 @@ static int parse_options(int argc, char **argv)
                 }
                 if (!strcasecmp(optarg, "test"))
                 {
-                    format_out = NDT_FLTPFMT_DTSTG; // purposefully undocumented
+                    format_out = NDT_FLTPFMT_DTEST; // purposefully undocumented
                     break;
                 }
                 if (!strcasecmp(optarg, "helper"))
