@@ -391,20 +391,50 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                     }
                 }
             }
-            else if (ndt_navdata_get_waypoint(flp->ndb, prefix, NULL))
-            {
-                dstidt = prefix;
-            }
-            else if (cuswpt == NULL && ((cuswpt = ndt_waypoint_llc(elem)) ||
-                                        (cuswpt = ndt_waypoint_llc(prefix))))
+            else if (cuswpt == NULL && (cuswpt = ndt_waypoint_llc(elem)))
             {
                 /*
                  * Valid latitude and longitude coordinates.
                  *
                  * Note: always check the full element first to avoid
-                 * a false match, e.g. e.g. '4600N' for '4600N/05000W'.
+                 * a false match, e.g. '4600N' for '4600N/05000W'.
                  */
-                ndt_list_add(flp->cws, cuswpt);
+                if (ndt_navdata_get_waypoint(flp->ndb, elem, NULL))
+                {
+                    /*
+                     * False match, e.g. '4600N' is both
+                     * a valid LLC but also a named fix.
+                     */
+                    dstidt = elem;
+                    ndt_waypoint_close(&cuswpt);
+                }
+                else
+                {
+                    ndt_list_add(flp->cws, cuswpt);
+                }
+            }
+            else if (cuswpt == NULL && (cuswpt = ndt_waypoint_llc(prefix)))
+            {
+                /*
+                 * Valid latitude and longitude coordinates.
+                 */
+                if (ndt_navdata_get_waypoint(flp->ndb, prefix, NULL))
+                {
+                    /*
+                     * False match, e.g. '4600N' is both
+                     * a valid LLC but also a named fix.
+                     */
+                    dstidt = prefix;
+                    ndt_waypoint_close(&cuswpt);
+                }
+                else
+                {
+                    ndt_list_add(flp->cws, cuswpt);
+                }
+            }
+            else if (ndt_navdata_get_waypoint(flp->ndb, prefix, NULL))
+            {
+                dstidt = prefix;
             }
             else
             {

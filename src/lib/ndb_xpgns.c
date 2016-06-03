@@ -819,20 +819,6 @@ static int parse_waypoints(char *src, ndt_navdatabase *ndb)
             *wpt->region = '\0';
         }
 
-        /*
-         * In addition to official fixes, the database may contain generic
-         * coordinates, e.g. "5040N" or "06S10". Since the list is incomplete
-         * and the format is easily handled at runtime, they are redundant.
-         *
-         * They can also give us a false match, e.g. '4600N' for '4600N/05000W'.
-         */
-        if (sscanf(wpt->info.idnt, "%*1d%*1d%*1d%1d%1[NEWS]", digit, letter) == 2 ||
-            sscanf(wpt->info.idnt, "%*1d%*1d%1[NEWS]%*1d%1d", letter, digit) == 2)
-        {
-            ndt_waypoint_close(&wpt);
-            continue;
-        }
-
         snprintf(wpt->info.desc, sizeof(wpt->info.desc), "Fix %5s, region: %.3s",
                  wpt->info.idnt, *wpt->region ? wpt->region : "N/A");
 
