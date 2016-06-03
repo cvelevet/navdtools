@@ -68,7 +68,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
     while ((elem = strsep(&rtenext, " \r\n\t")))
     {
         if (strnlen(elem,      1) &&
-            strcmp (elem,  "DCT") &&
+            strcmp (elem,  "DCT") && strcmp(elem, "DIRECT") &&
             strcmp (elem,  "SID") &&
             strcmp (elem, "STAR"))
         {
