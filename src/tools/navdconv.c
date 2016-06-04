@@ -3,7 +3,7 @@
  *
  * This file is part of the navdtools source code.
  *
- * (C) Copyright 2014 Timothy D. Walker and others.
+ * (C) Copyright 2014-2016 Timothy D. Walker and others.
  *
  * All rights reserved. This program and the accompanying materials are made
  * available under the terms of the GNU General Public License (GPL) version 2
@@ -1655,7 +1655,7 @@ static int print_examples(void)
 static int print_version(void)
 {
     fprintf(stderr,
-            "%s version %s, Copyright (c) 2014-2015 Timothy D. Walker           \n"
+            "%s version %s, Copyright (c) 2014-2016 Timothy D. Walker           \n"
             "                                                                   \n"
             "Syntax: %s [options] -i <file> [-o <file>]                         \n",
             NDCONV_EXE, NDT_VERSION, NDCONV_EXE);

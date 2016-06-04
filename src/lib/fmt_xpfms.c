@@ -3,7 +3,7 @@
  *
  * This file is part of the navdtools source code.
  *
- * (C) Copyright 2014 Timothy D. Walker and others.
+ * (C) Copyright 2014-2016 Timothy D. Walker and others.
  *
  * All rights reserved. This program and the accompanying materials are made
  * available under the terms of the GNU General Public License (GPL) version 2
