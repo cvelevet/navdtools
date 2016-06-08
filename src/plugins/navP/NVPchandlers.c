@@ -1779,6 +1779,8 @@ static int first_fcall_do(chandler_context *ctx)
 
         case NVP_ACF_GENERIC:
             // all Carenado addons handled here (dataref not found: no effect)
+            _DO(XPLMSetDatai,     0, "thranda/views/InstRefl");                 // various aircraft
+            _DO(XPLMSetDatai,     0, "thranda/views/WindowRefl");               // various aircraft
             _DO(XPLMSetDatai,     1, "thranda/cockpit/actuators/HideYokeL");    // various aircraft
             _DO(XPLMSetDatai,     1, "thranda/cockpit/actuators/HideYokeR");    // various aircraft
             _DO(XPLMSetDataf,  1.0f, "thranda/cockpit/actuators/VisorSwingL");  // TBM 850 & PC-12
