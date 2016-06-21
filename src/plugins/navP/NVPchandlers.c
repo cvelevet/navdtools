@@ -1105,12 +1105,12 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     switch (inPhase)
     {
         case xplm_CommandBegin:
-            XPLMSetDataf(rcb->l_b_rat, 0.9f);
-            XPLMSetDataf(rcb->r_b_rat, 0.9f);
+            XPLMSetDataf(rcb->l_b_rat, 0.8f);
+            XPLMSetDataf(rcb->r_b_rat, 0.8f);
             break;
         case xplm_CommandContinue:
-            XPLMSetDataf(rcb->l_b_rat, 0.9f);
-            XPLMSetDataf(rcb->r_b_rat, 0.9f);
+            XPLMSetDataf(rcb->l_b_rat, 0.8f);
+            XPLMSetDataf(rcb->r_b_rat, 0.8f);
             break;
         case xplm_CommandEnd:
         default:
@@ -1153,12 +1153,12 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     switch (inPhase)
     {
         case xplm_CommandBegin:
-            XPLMSetDataf(rcb->l_b_rat, 0.5f);
-            XPLMSetDataf(rcb->r_b_rat, 0.5f);
+            XPLMSetDataf(rcb->l_b_rat, 0.4f);
+            XPLMSetDataf(rcb->r_b_rat, 0.4f);
             break;
         case xplm_CommandContinue:
-            XPLMSetDataf(rcb->l_b_rat, 0.5f);
-            XPLMSetDataf(rcb->r_b_rat, 0.5f);
+            XPLMSetDataf(rcb->l_b_rat, 0.4f);
+            XPLMSetDataf(rcb->r_b_rat, 0.4f);
             break;
         case xplm_CommandEnd:
         default:
