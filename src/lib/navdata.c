@@ -434,16 +434,65 @@ static int compare_wpt(const void *p1, const void *p2)
     ndt_waypoint *wpt1 = *(ndt_waypoint**)p1;
     ndt_waypoint *wpt2 = *(ndt_waypoint**)p2;
 
-    // use type then latitude for determinism
+    // sort by name
     int cmp = strcmp(wpt1->info.idnt, wpt2->info.idnt);
     if (cmp)
     {
         return cmp;
     }
-    if (wpt1->type == NDT_WPTYPE_VOR || wpt1->type < wpt2->type)
+
+    // then by type, from highest to lowest priority
+    switch (wpt1->type)
     {
-        return -1; // VOR first, then everything else (e.g. NDB before st. DME)
+        case NDT_WPTYPE_FIX:
+            if (wpt2->type == NDT_WPTYPE_FIX)
+            {
+                goto latitude;
+            }
+            return -1;
+
+        case NDT_WPTYPE_APT:
+            if (wpt2->type == NDT_WPTYPE_APT)
+            {
+                goto latitude;
+            }
+            return -1;
+
+        case NDT_WPTYPE_VOR:
+            if (wpt2->type == NDT_WPTYPE_VOR)
+            {
+                goto latitude;
+            }
+            return -1;
+
+        case NDT_WPTYPE_NDB:
+            if (wpt2->type == NDT_WPTYPE_NDB)
+            {
+                goto latitude;
+            }
+            return -1;
+
+        case NDT_WPTYPE_DME:
+            if (wpt2->type == NDT_WPTYPE_DME)
+            {
+                goto latitude;
+            }
+            return -1;
+
+        default: // anything else
+            if (wpt2->type == wpt1->type)
+            {
+                goto latitude;
+            }
+            if (wpt2->type < wpt1->type)
+            {
+                return 1;
+            }
+            return -1;
     }
+
+latitude:
+    // same name and type: use latitude for determinism
     return (fabs(ndt_position_getlatitude(wpt1->position, NDT_ANGUNIT_DEG)) <
             fabs(ndt_position_getlatitude(wpt2->position, NDT_ANGUNIT_DEG)));
 }
