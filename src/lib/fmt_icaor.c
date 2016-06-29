@@ -470,7 +470,30 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                 else if (dstidt)
                 {
                     lastpos = src ? src->position : lastpl ? lastpl->position : flp->dep.apt->coordinates;
-                    dst     = ndt_navdata_get_wptnear2(flp->ndb, dstidt, NULL, lastpos);
+                    {
+                        // waypoints in the route should be either of: airport, standalone DME, fix, NDB or VOR
+                        // other waypoint types may exist in procedures but should not feature in the route, so
+                        // we exclude them and only check for them if we have no match w/a supported point type
+                        ndt_waypoint *nxt;
+                        int64_t dis, min = INT64_MAX;
+                        for (size_t i = 0; (nxt = ndt_navdata_get_waypoint(flp->ndb, dstidt, &i)); i++)
+                        {
+                            dis = ndt_distance_get(ndt_position_calcdistance(lastpos, nxt->position), NDT_ALTUNIT_NA);
+                            if (min > dis && (nxt->type == NDT_WPTYPE_APT ||
+                                              nxt->type == NDT_WPTYPE_DME ||
+                                              nxt->type == NDT_WPTYPE_FIX ||
+                                              nxt->type == NDT_WPTYPE_NDB ||
+                                              nxt->type == NDT_WPTYPE_VOR))
+                            {
+                                min = dis;
+                                dst = nxt;
+                            }
+                        }
+                    }
+                    if (dst == NULL)
+                    {
+                        dst = ndt_navdata_get_wptnear2(flp->ndb, dstidt, NULL, lastpos);
+                    }
 
                     /*
                      * If the last waypoint is an airport, save the matching
