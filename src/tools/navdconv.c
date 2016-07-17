@@ -737,10 +737,50 @@ end:
     return ret;
 }
 
+static void string_split4(char *arg, const char *delim, char **fields[6])
+{
+    if (!arg || !delim || !fields)
+    {
+        return;
+    }
+    char *dup = strdup(arg);
+    char *buf = dup;
+    if  (!buf)
+    {
+        return;
+    }
+    for (int i = 0; i < 6; i++)
+    {
+        char *elem = strsep(&buf, delim);
+        if  (!elem)
+        {
+            break;
+        }
+        if (strnlen(elem, 1) && fields[i])
+        {
+            char **ptr = fields[i];
+            char *prev = *ptr;
+            if   (prev)
+            {
+                free(prev);
+            }
+            if (strlen(elem) <= 4 && !strncasecmp("none", elem, strlen(elem)))
+            {
+                *ptr = NULL;
+            }
+            else
+            {
+                *ptr = strdup(elem);
+            }
+        }
+    }
+    free(dup);
+    return;
+}
+
 static int parse_options(int argc, char **argv)
 {
-    int opt;
-
+    int     opt;
     while ((opt = getopt_long_only(argc, argv, "", navdconv_opts, NULL)) >= 0)
     {
         switch (opt)
@@ -876,83 +916,73 @@ static int parse_options(int argc, char **argv)
                 return EINVAL;
 
             case OPT_DAPT:
-                free(dep_apt);
-                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
-                    dep_apt = NULL;
-                else
-                    dep_apt = strdup(optarg);
+                {
+                    char **fields[6] = { &dep_apt, &dep_rwy, &sid_name, &sid_trans, NULL, NULL, };
+                    string_split4(optarg, "/.", fields);
+                }
                 break;
 
             case OPT_DRWY:
-                free(dep_rwy);
-                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
-                    dep_rwy = NULL;
-                else
-                    dep_rwy = strdup(optarg);
+                {
+                    char **fields[6] = { &dep_rwy, &sid_name, &sid_trans, NULL, NULL, NULL, };
+                    string_split4(optarg, "/.", fields);
+                }
                 break;
 
             case OPT_DSID:
-                free(sid_name);
-                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
-                    sid_name = NULL;
-                else
-                    sid_name = strdup(optarg);
+                {
+                    char **fields[6] = { &sid_name, &sid_trans, NULL, NULL, NULL, NULL, };
+                    string_split4(optarg, "/.", fields);
+                }
                 break;
 
             case OPT_DSTR:
-                free(sid_trans);
-                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
-                    sid_trans = NULL;
-                else
-                    sid_trans = strdup(optarg);
+                {
+                    char **fields[6] = { &sid_trans, NULL, NULL, NULL, NULL, NULL, };
+                    string_split4(optarg, "/.", fields);
+                }
                 break;
 
             case OPT_AAPT:
-                free(arr_apt);
-                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
-                    arr_apt = NULL;
-                else
-                    arr_apt = strdup(optarg);
+                {
+                    char **fields[6] = { &arr_apt, &arr_rwy, &final_appr, &appr_trans, &star_name, &star_trans, };
+                    string_split4(optarg, "/.", fields);
+                }
                 break;
 
             case OPT_ARWY:
-                free(arr_rwy);
-                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
-                    arr_rwy = NULL;
-                else
-                    arr_rwy = strdup(optarg);
+                {
+                    char **fields[6] = { &arr_rwy, &final_appr, &appr_trans, &star_name, &star_trans, NULL, };
+                    string_split4(optarg, "/.", fields);
+                }
                 break;
 
             case OPT_ASTA:
-                free(star_name);
-                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
-                    star_name = NULL;
-                else
-                    star_name = strdup(optarg);
+                {
+                    char **fields[6] = { &star_name, &star_trans, NULL, NULL, NULL, NULL, };
+                    string_split4(optarg, "/.", fields);
+                }
                 break;
 
             case OPT_ASTR:
-                free(star_trans);
-                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
-                    star_trans = NULL;
-                else
-                    star_trans = strdup(optarg);
+                {
+                    char **fields[6] = { &star_trans, NULL, NULL, NULL, NULL, NULL, };
+                    string_split4(optarg, "/.", fields);
+                }
                 break;
 
             case OPT_ATRS:
-                free(appr_trans);
-                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
-                    appr_trans = NULL;
-                else
-                    appr_trans = strdup(optarg);
+                {
+                    char **fields[6] = { &appr_trans, NULL, NULL, NULL, NULL, NULL, };
+                    string_split4(optarg, "/.", fields);
+                }
                 break;
 
             case OPT_AFIN:
-                free(final_appr);
-                if (strnlen(optarg, 5) <= 4 && !strncasecmp("none", optarg, strlen(optarg)))
-                    final_appr = NULL;
-                else
-                    final_appr = strdup(optarg);
+                {
+                    char **fields[6] = { &final_appr, &appr_trans, NULL, NULL, NULL, NULL, };
+                    string_split4(optarg, "/.", fields);
+                }
                 break;
 
             case OPT_IRTE:
