@@ -54,6 +54,12 @@ typedef struct
     enum
     {
         MENUITEM_NOTHING_TODO,
+        MENUITEM_VOLUME_SM_IC,
+        MENUITEM_VOLUME_PRST0,
+        MENUITEM_VOLUME_PRST1,
+        MENUITEM_VOLUME_PRST2,
+        MENUITEM_VOLUME_PRST3,
+        MENUITEM_VOLUME_PRST4,
         MENUITEM_CALLOUTS_STS,
         MENUITEM_SPEEDBOOSTER,
         MENUITEM_CLOUD_KILLER,
@@ -69,6 +75,16 @@ typedef struct
 
     struct
     {
+        struct
+        {
+            XPLMMenuID      sm_id;
+            item_context    sm_ic;
+            item_context    prst0;
+            item_context    prst1;
+            item_context    prst2;
+            item_context    prst3;
+            item_context    prst4;
+        } volume;
         item_context callouts_sts;
         item_context speedbooster;
         item_context cloud_killer;
@@ -151,6 +167,17 @@ typedef struct
             XPLMDataRef dr_disrcam; // sim/private/controls/perf/disable_reflection_cam
             float       df_disrcam;
         } speedbooster;
+
+        struct
+        {
+            XPLMDataRef dr_vol_eng;
+            XPLMDataRef dr_vol_prs;
+            XPLMDataRef dr_vol_grt;
+            XPLMDataRef dr_vol_wer;
+            XPLMDataRef dr_vol_was;
+            XPLMDataRef dr_vol_coo;
+            XPLMDataRef dr_vol_avs;
+        } volume_prsts;
     } data;
 } menu_context;
 
@@ -175,7 +202,72 @@ void* nvp_menu_init(void)
         goto fail;
     }
 
-    /* add desired items */
+    /* volume sub-menu & its items */
+    ctx->items.volume.sm_ic.mivalue = MENUITEM_VOLUME_SM_IC;
+    if ((ctx->items.volume.sm_ic.id = XPLMAppendMenuItem( ctx->id, "Volume",
+                                                         &ctx->items.volume.sm_ic, 0)) < 0)
+    {
+        goto fail;
+    }
+    if ((ctx->items.volume.sm_id = XPLMCreateMenu("Volume",
+                                                  ctx->id,
+                                                  ctx->items.volume.sm_ic.id,
+                                                  &menu_handler, ctx)) == NULL)
+    {
+        goto fail;
+    }
+    else
+    {
+        XPLMAppendMenuSeparator(ctx->id);
+    }
+    ctx->items.volume.prst0.mivalue = MENUITEM_VOLUME_PRST0;
+    if ((ctx->items.volume.prst0.id = XPLMAppendMenuItem( ctx->items.volume.sm_id, "0 %",
+                                                         &ctx->items.volume.prst0, 0)) < 0)
+    {
+        goto fail;
+    }
+    ctx->items.volume.prst1.mivalue = MENUITEM_VOLUME_PRST1;
+    if ((ctx->items.volume.prst1.id = XPLMAppendMenuItem( ctx->items.volume.sm_id, "25 %",
+                                                         &ctx->items.volume.prst1, 0)) < 0)
+    {
+        goto fail;
+    }
+    ctx->items.volume.prst2.mivalue = MENUITEM_VOLUME_PRST2;
+    if ((ctx->items.volume.prst2.id = XPLMAppendMenuItem( ctx->items.volume.sm_id, "50 %",
+                                                         &ctx->items.volume.prst2, 0)) < 0)
+    {
+        goto fail;
+    }
+    ctx->items.volume.prst3.mivalue = MENUITEM_VOLUME_PRST3;
+    if ((ctx->items.volume.prst3.id = XPLMAppendMenuItem( ctx->items.volume.sm_id, "75 %",
+                                                         &ctx->items.volume.prst3, 0)) < 0)
+    {
+        goto fail;
+    }
+    ctx->items.volume.prst4.mivalue = MENUITEM_VOLUME_PRST4;
+    if ((ctx->items.volume.prst4.id = XPLMAppendMenuItem( ctx->items.volume.sm_id, "100 %",
+                                                         &ctx->items.volume.prst4, 0)) < 0)
+    {
+        goto fail;
+    }
+    ctx->data.volume_prsts.dr_vol_eng = XPLMFindDataRef("sim/operation/sound/engine_volume_ratio");
+    ctx->data.volume_prsts.dr_vol_prs = XPLMFindDataRef("sim/operation/sound/prop_volume_ratio");
+    ctx->data.volume_prsts.dr_vol_grt = XPLMFindDataRef("sim/operation/sound/ground_volume_ratio");
+    ctx->data.volume_prsts.dr_vol_wer = XPLMFindDataRef("sim/operation/sound/weather_volume_ratio");
+    ctx->data.volume_prsts.dr_vol_was = XPLMFindDataRef("sim/operation/sound/warning_volume_ratio");
+    ctx->data.volume_prsts.dr_vol_coo = XPLMFindDataRef("sim/operation/sound/radio_volume_ratio");
+    ctx->data.volume_prsts.dr_vol_avs = XPLMFindDataRef("sim/operation/sound/fan_volume_ratio");
+    if (!ctx->data.volume_prsts.dr_vol_eng ||
+        !ctx->data.volume_prsts.dr_vol_prs ||
+        !ctx->data.volume_prsts.dr_vol_grt ||
+        !ctx->data.volume_prsts.dr_vol_wer ||
+        !ctx->data.volume_prsts.dr_vol_was ||
+        !ctx->data.volume_prsts.dr_vol_coo ||
+        !ctx->data.volume_prsts.dr_vol_avs)
+    {
+        goto fail;
+    }
+
     /* toggle: callouts on/off */
     ctx->items.callouts_sts.mivalue = MENUITEM_CALLOUTS_STS;
     if ((ctx->items.callouts_sts.id = XPLMAppendMenuItem( ctx->id, "navP custom callouts",
@@ -791,6 +883,42 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
     }
 #undef SPEEDBOOSTER_DEFAULTV
 #undef SPEEDBOOSTER_SETVALUE
+
+    if (itx->mivalue >= MENUITEM_VOLUME_PRST0 &&
+        itx->mivalue <= MENUITEM_VOLUME_PRST4)
+    {
+        float   volume_ratio;
+        switch (itx->mivalue)
+        {
+            case MENUITEM_VOLUME_PRST0:
+                volume_ratio = 0.00f;
+                break;
+            case MENUITEM_VOLUME_PRST1:
+                volume_ratio = 0.25f;
+                break;
+            case MENUITEM_VOLUME_PRST2:
+                volume_ratio = 0.50f;
+                break;
+            case MENUITEM_VOLUME_PRST3:
+                volume_ratio = 0.75f;
+                break;
+            case MENUITEM_VOLUME_PRST4:
+                volume_ratio = 1.00f;
+                break;
+            default:
+                return;
+        }
+        // TODO: different ratios for e.g. radios vs. propellers vs. eng etc.
+        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume_ratio);
+        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume_ratio);
+        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume_ratio);
+        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume_ratio);
+        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume_ratio);
+        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_coo, volume_ratio);
+        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume_ratio);
+        XPLMSpeakString("Volume set");
+        return;
+    }
 }
 
 static char* string4speak(char *string, size_t alloc, int text_only)
