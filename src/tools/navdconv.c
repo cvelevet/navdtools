@@ -737,6 +737,7 @@ end:
     return ret;
 }
 
+/* See NOTE in parse_options(). */
 static void string_split4(char *arg, const char *delim, char **fields[6])
 {
     if (!arg || !delim || !fields)
@@ -915,6 +916,18 @@ static int parse_options(int argc, char **argv)
                 fprintf(stderr, "Unsupported output format: '%s'\n", optarg);
                 return EINVAL;
 
+            /*
+             * NOTE: undocumented feature.
+             *
+             * Basically, --dep and --arr accept more than one argument,
+             * separated by either of '/' or '.' -- so you can go with:
+             *
+             * --dep icao/runway/sid.sid_trans
+             * --arr icao/runway/final/appr_trans/star.star_trans
+             *
+             * Trailing items can be omitted, whereas intermediate items can be
+             * NULL-ified simply by specifying any of "n", "no", "non", "none".
+             */
             case OPT_DAPT:
                 {
                     char **fields[6] = { &dep_apt, &dep_rwy, &sid_name, &sid_trans, NULL, NULL, };
