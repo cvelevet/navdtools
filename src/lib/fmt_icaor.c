@@ -1073,6 +1073,7 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
 
     // departure airport/runway, SID, enroute, STAR, approach, arrival airport/runway
+    // note: procedure name alignment must account for 9 characters (e.g. "VORDME09L")
     d01 = ndt_distance_get(flp->dep.apt->coordinates.altitude, NDT_ALTUNIT_FT);
     d02 = ndt_distance_get(flp->dep.apt->tr_altitude,          NDT_ALTUNIT_FT);
     if (d02)
@@ -1122,13 +1123,13 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
     {
         if (flp->dep.sid.enroute.proc)
         {
-            ret = ndt_fprintf(fd, "SID:       %s with transition: %s\n",
+            ret = ndt_fprintf(fd, "SID:       %-9s with transition: %s\n",
                               flp->dep.sid.        proc->info.idnt,
                               flp->dep.sid.enroute.proc->info.misc);
         }
         else
         {
-            ret = ndt_fprintf(fd, "SID:       %s\n",
+            ret = ndt_fprintf(fd, "SID:       %-9s\n",
                               flp->dep.sid.proc->info.idnt);
         }
         if (ret)
@@ -1178,14 +1179,32 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
     {
         if (flp->arr.star.enroute.proc)
         {
-            ret = ndt_fprintf(fd, "STAR:      %s with transition: %s\n",
+            ret = ndt_fprintf(fd, "STAR:      %-9s with transition: %s\n",
                               flp->arr.star.        proc->info.idnt,
                               flp->arr.star.enroute.proc->info.misc);
         }
         else
         {
-            ret = ndt_fprintf(fd, "STAR:      %s\n",
+            ret = ndt_fprintf(fd, "STAR:      %-9s\n",
                               flp->arr.star.proc->info.idnt);
+        }
+        if (ret)
+        {
+            goto end;
+        }
+    }
+    if (flp->arr.apch.proc)
+    {
+        if (flp->arr.apch.transition.proc)
+        {
+            ret = ndt_fprintf(fd, "Approach:  %-9s with transition: %s\n",
+                              flp->arr.apch.           proc->info.idnt,
+                              flp->arr.apch.transition.proc->info.misc);
+        }
+        else
+        {
+            ret = ndt_fprintf(fd, "Approach:  %-9s\n",
+                              flp->arr.apch.proc->info.idnt);
         }
         if (ret)
         {
@@ -1231,24 +1250,6 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
                               flp->arr.rwy->info.idnt,
                               flp->arr.rwy->heading, d01, d02,
                               surfacetype_name(flp->arr.rwy));
-        }
-        if (ret)
-        {
-            goto end;
-        }
-    }
-    if (flp->arr.apch.proc)
-    {
-        if (flp->arr.apch.transition.proc)
-        {
-            ret = ndt_fprintf(fd, "Approach:  %s with transition: %s\n",
-                              flp->arr.apch.           proc->info.idnt,
-                              flp->arr.apch.transition.proc->info.misc);
-        }
-        else
-        {
-            ret = ndt_fprintf(fd, "Approach:  %s\n",
-                              flp->arr.apch.proc->info.idnt);
         }
         if (ret)
         {
