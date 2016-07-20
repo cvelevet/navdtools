@@ -1043,21 +1043,90 @@ static const char* navaid_type_name(ndt_runway *rwy)
         if ((rwy->ils.course >= rwy->heading && rwy->ils.course - rwy->heading <= 3) ||
             (rwy->heading >= rwy->ils.course && rwy->heading - rwy->ils.course <= 3))
         {
-            return rwy->ils.slope > 0. ? "ILS" : "LOC";
+            return rwy->ils.slope > .1 ? "ILS" : "LOC";
         }
         else
         {
-            return rwy->ils.slope > 0. ? "IGS" : "LDA";
+            return rwy->ils.slope > .1 ? "IGS" : "LDA";
         }
     }
     return NULL;
 }
 
+static int print_apt_info(FILE *fd, ndt_airport *apt, const char *prefix)
+{
+    if (!apt)
+    {
+        return ENOMEM;
+    }
+    size_t trlen;
+    char trbuf[12];
+    int apt_elev = ndt_distance_get(apt->coordinates.altitude, NDT_ALTUNIT_FT);
+    int tr_altit = ndt_distance_get(apt->tr_altitude,          NDT_ALTUNIT_FT);
+    int tr_level = ndt_distance_get(apt->trans_level,          NDT_ALTUNIT_FT);
+    if (tr_altit > 0)
+    {
+        snprintf(trbuf, 6, "%d", tr_altit);
+        trlen = strlen(trbuf);
+    }
+    else
+    {
+        snprintf(trbuf, 6, "%s", "ATC");
+        trlen = strlen(trbuf);
+    }
+    if (tr_level > 0)
+    {
+        snprintf(trbuf + trlen, sizeof(trbuf) - trlen, "/FL%d", tr_level / 100);
+    }
+    else if (tr_altit > 0)
+    {
+        snprintf(trbuf + trlen, sizeof(trbuf) - trlen, "/%s", "ATC");
+    }
+    return ndt_fprintf(fd,
+                       "%s%s (%s), elevation (ft): %d, transition (ft): %.*s\n",
+                       prefix ? prefix : "",
+                       apt->info.idnt, apt->info.misc,
+                       apt_elev, sizeof(trbuf) - 1, trbuf);
+}
+
+static int print_rwy_info(FILE *fd, ndt_runway *rwy, const char *prefix)
+{
+    if (!rwy)
+    {
+        return ENOMEM;
+    }
+    int rwy_len = ndt_distance_get(rwy->length, NDT_ALTUNIT_FT);
+    int rwy_wid = ndt_distance_get(rwy->width,  NDT_ALTUNIT_FT);
+    if (rwy->ils.avail)
+    {
+        return ndt_fprintf(fd,
+                           "%s%s (%d°), %d (%d) ft, surface: %s, %s: %.2lf (%d°, %.1lf°)\n",
+                           prefix ? prefix : "",
+                           rwy->info.idnt,
+                           rwy->heading,
+                           rwy_len, rwy_wid,
+                           surfacetype_name (rwy),
+                           navaid_type_name (rwy),
+                           ndt_frequency_get(rwy->ils.freq),
+                           rwy->ils.course, rwy->ils.slope);
+    }
+    else
+    {
+        return ndt_fprintf(fd,
+                           "%s%s (%d°), %d (%d) ft, surface: %s\n",
+                           prefix ? prefix : "",
+                           rwy->info.idnt,
+                           rwy->heading,
+                           rwy_len, rwy_wid,
+                           surfacetype_name(rwy));
+    }
+}
+
 int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
 {
     char sbrif[13], recap[24];
-    int ret = 0, d01, d02;
     double disnmile;
+    int ret = 0;
 
     if (!flp || !fd)
     {
@@ -1074,47 +1143,13 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
 
     // departure airport/runway, SID, enroute, STAR, approach, arrival airport/runway
     // note: procedure name alignment must account for 9 characters (e.g. "VORDME09L")
-    d01 = ndt_distance_get(flp->dep.apt->coordinates.altitude, NDT_ALTUNIT_FT);
-    d02 = ndt_distance_get(flp->dep.apt->tr_altitude,          NDT_ALTUNIT_FT);
-    if (d02)
-    {
-        ret = ndt_fprintf(fd, "Departure: %s (%s), elevation %d ft, transition altitude %d ft\n",
-                          flp->dep.apt->info.idnt,
-                          flp->dep.apt->info.misc, d01, d02);
-    }
-    else
-    {
-        ret = ndt_fprintf(fd, "Departure: %s (%s), elevation %d ft, transition altitude ATC\n",
-                          flp->dep.apt->info.idnt,
-                          flp->dep.apt->info.misc, d01);
-    }
-    if (ret)
+    if ((ret = print_apt_info(fd, flp->dep.apt, "Departure: ")))
     {
         goto end;
     }
     if (flp->dep.rwy)
     {
-        d01 = ndt_distance_get(flp->dep.rwy->length, NDT_ALTUNIT_FT);
-        d02 = ndt_distance_get(flp->dep.rwy->width,  NDT_ALTUNIT_FT);
-        if (flp->dep.rwy->ils.avail)
-        {
-            ret = ndt_fprintf(fd, "Runway:    %s (%d°), %d (%d) ft, surface: %s, %s: %.2lf (%d°, %.1lf°)\n",
-                              flp->dep.rwy->info.idnt,
-                              flp->dep.rwy->heading, d01, d02,
-                              surfacetype_name (flp->dep.rwy),
-                              navaid_type_name (flp->dep.rwy),
-                              ndt_frequency_get(flp->dep.rwy->ils.freq),
-                              flp->dep.rwy->ils.course,
-                              flp->dep.rwy->ils.slope);
-        }
-        else
-        {
-            ret = ndt_fprintf(fd, "Runway:    %s (%d°), %d (%d) ft, surface: %s\n",
-                              flp->dep.rwy->info.idnt,
-                              flp->dep.rwy->heading, d01, d02,
-                              surfacetype_name(flp->dep.rwy));
-        }
-        if (ret)
+        if ((ret = print_rwy_info(fd, flp->dep.rwy, "Runway:    ")))
         {
             goto end;
         }
@@ -1211,47 +1246,13 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
             goto end;
         }
     }
-    d01 = ndt_distance_get(flp->arr.apt->coordinates.altitude, NDT_ALTUNIT_FT);
-    d02 = ndt_distance_get(flp->arr.apt->trans_level,          NDT_ALTUNIT_FT);
-    if (d02)
-    {
-        ret = ndt_fprintf(fd, "Arrival:   %s (%s), elevation %d ft, transition level FL%d\n",
-                          flp->arr.apt->info.idnt,
-                          flp->arr.apt->info.misc, d01, d02 / 100);
-    }
-    else
-    {
-        ret = ndt_fprintf(fd, "Arrival:   %s (%s), elevation %d ft, transition level ATC\n",
-                          flp->arr.apt->info.idnt,
-                          flp->arr.apt->info.misc, d01);
-    }
-    if (ret)
+    if ((ret = print_apt_info(fd, flp->arr.apt, "Arrival:   ")))
     {
         goto end;
     }
     if (flp->arr.rwy)
     {
-        d01 = ndt_distance_get(flp->arr.rwy->length, NDT_ALTUNIT_FT);
-        d02 = ndt_distance_get(flp->arr.rwy->width,  NDT_ALTUNIT_FT);
-        if (flp->arr.rwy->ils.avail)
-        {
-            ret = ndt_fprintf(fd, "Runway:    %s (%d°), %d (%d) ft, surface: %s, %s: %.2lf (%d°, %.1lf°)\n",
-                              flp->arr.rwy->info.idnt,
-                              flp->arr.rwy->heading, d01, d02,
-                              surfacetype_name (flp->arr.rwy),
-                              navaid_type_name (flp->arr.rwy),
-                              ndt_frequency_get(flp->arr.rwy->ils.freq),
-                              flp->arr.rwy->ils.course,
-                              flp->arr.rwy->ils.slope);
-        }
-        else
-        {
-            ret = ndt_fprintf(fd, "Runway:    %s (%d°), %d (%d) ft, surface: %s\n",
-                              flp->arr.rwy->info.idnt,
-                              flp->arr.rwy->heading, d01, d02,
-                              surfacetype_name(flp->arr.rwy));
-        }
-        if (ret)
+        if ((ret = print_rwy_info(fd, flp->arr.rwy, "Runway:    ")))
         {
             goto end;
         }
