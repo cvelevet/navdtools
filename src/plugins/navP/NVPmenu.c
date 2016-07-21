@@ -1180,39 +1180,42 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
     }
     if (inMessage == xpMsg_PushButtonPressed)
     {
-        float temp; char descr_buf[9]; descr_buf[8] = '\0';
+        float temp1, temp2; char descr_buf[9]; descr_buf[8] = '\0';
         menu_context *ctx = (void*)XPGetWidgetProperty((void*)inParam1, xpProperty_Refcon, NULL);
-        XPHideWidget (ctx->data.refuel_dialg.dialog_id);
+        ctx->data.refuel_dialg.adjust_fuel = ctx->data.refuel_dialg.adjust_plod = 0;
+        XPHideWidget         (ctx->data.refuel_dialg.dialog_id);
         XPGetWidgetDescriptor(ctx->data.refuel_dialg.f_txtf_id, descr_buf, sizeof(descr_buf) - 1);
-        if (sscanf(descr_buf, "%f", &temp) != 1)
+        if (sscanf(descr_buf, "%f", &temp1) == 1)
         {
-            ctx->data.refuel_dialg.fuel_target_kg = ctx->data.refuel_dialg.min_fuel_total;
-        }
-        else if ((1000.0f * temp) < ctx->data.refuel_dialg.min_fuel_total)
-        {
-            ctx->data.refuel_dialg.fuel_target_kg = ctx->data.refuel_dialg.min_fuel_total;
-        }
-        else if ((1000.0f * temp) > ctx->data.refuel_dialg.max_fuel_total)
-        {
-            ctx->data.refuel_dialg.fuel_target_kg = ctx->data.refuel_dialg.max_fuel_total;
-        }
-        else
-        {
-            ctx->data.refuel_dialg.fuel_target_kg = 1000.0f * temp;
+            temp2 = XPLMGetDataf(ctx->data.refuel_dialg.fuel_tot);
+            ctx->data.refuel_dialg.fuel_target_kg = 1000.0f * temp1;
+            if (fabsf(temp2 - ctx->data.refuel_dialg.fuel_target_kg) > 50.0f)
+            {
+                ctx->data.refuel_dialg.adjust_fuel = 1;
+            }
+            if (ctx->data.refuel_dialg.fuel_target_kg < ctx->data.refuel_dialg.min_fuel_total)
+            {
+                ctx->data.refuel_dialg.fuel_target_kg = ctx->data.refuel_dialg.min_fuel_total;
+            }
+            if (ctx->data.refuel_dialg.fuel_target_kg > ctx->data.refuel_dialg.max_fuel_total)
+            {
+                ctx->data.refuel_dialg.fuel_target_kg = ctx->data.refuel_dialg.max_fuel_total;
+            }
         }
         XPGetWidgetDescriptor(ctx->data.refuel_dialg.p_txtf_id, descr_buf, sizeof(descr_buf) - 1);
-        if (sscanf(descr_buf, "%f", &temp) != 1 || temp < 0.2f)
+        if (sscanf(descr_buf, "%f", &temp1) == 1)
         {
-            ctx->data.refuel_dialg.plod_target_kg = 0.0f;
+            temp2 = XPLMGetDataf(ctx->data.refuel_dialg.pay_load);
+            ctx->data.refuel_dialg.plod_target_kg = 1000.0f * temp1;
+            if (fabsf(temp2 - ctx->data.refuel_dialg.plod_target_kg) > 50.0f)
+            {
+                ctx->data.refuel_dialg.adjust_plod = 1;
+            }
+            if (ctx->data.refuel_dialg.fuel_target_kg < 50.0f)
+            {
+                ctx->data.refuel_dialg.fuel_target_kg = 0.0f;
+            }
         }
-        else
-        {
-            ctx->data.refuel_dialg.plod_target_kg = 1000.0f * temp;
-        }
-        float fuel_tot = XPLMGetDataf(ctx->data.refuel_dialg.fuel_tot);
-        ctx->data.refuel_dialg.adjust_fuel = (fabsf(fuel_tot - ctx->data.refuel_dialg.fuel_target_kg) > 50.0f);
-        float pay_load = XPLMGetDataf(ctx->data.refuel_dialg.pay_load);
-        ctx->data.refuel_dialg.adjust_plod = (fabsf(pay_load - ctx->data.refuel_dialg.plod_target_kg) > 50.0f);
         if (ctx->data.refuel_dialg.rfc)
         {
             XPLMUnregisterFlightLoopCallback(ctx->data.refuel_dialg.rfc, ctx);
