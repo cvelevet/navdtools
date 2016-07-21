@@ -107,16 +107,17 @@ typedef struct
         NVP_ACF_B757_FF = 0x0001000,
         NVP_ACF_B767_FF = 0x0002000,
         NVP_ACF_B777_FF = 0x0004000,
-        NVP_ACF_EMBE_SS = 0x0010000,
-        NVP_ACF_EMBE_XC = 0x0020000,
-        NVP_ACF_ERJ1_4D = 0x0040000,
+        NVP_ACF_DH8D_FJ = 0x0010000,
+        NVP_ACF_EMBE_SS = 0x0020000,
+        NVP_ACF_EMBE_XC = 0x0040000,
+        NVP_ACF_ERJ1_4D = 0x0080000,
     } atyp;
 #define NVP_ACF_MASK_FFR  0x0007010 // all FlightFactor addons
-#define NVP_ACF_MASK_FJS  0x0000140 // all of FlyJSim's addons
+#define NVP_ACF_MASK_FJS  0x0010140 // all of FlyJSim's addons
 #define NVP_ACF_MASK_JDN  0x0000005 // all J.A.R.Design addons
 #define NVP_ACF_MASK_QPC  0x000002A // all QPAC-powered addons
-#define NVP_ACF_MASK_SSG  0x0010000 // all SSGroup/FJCC addons
-#define NVP_ACF_MASK_XCR  0x0020000 // all X-Crafts/S.W addons
+#define NVP_ACF_MASK_SSG  0x0020000 // all SSGroup/FJCC addons
+#define NVP_ACF_MASK_XCR  0x0040000 // all X-Crafts/S.W addons
 #define NVP_ACF_MASK_320  0x0000003 // all A320 series aircraft
 #define NVP_ACF_MASK_330  0x000000C // all A330 series aircraft
 #define NVP_ACF_MASK_350  0x0000010 // all A350 series aircraft
@@ -126,7 +127,7 @@ typedef struct
 #define NVP_ACF_MASK_757  0x0001000 // all B757 series aircraft
 #define NVP_ACF_MASK_767  0x0002000 // all B767 series aircraft
 #define NVP_ACF_MASK_777  0x0004000 // all B777 series aircraft
-#define NVP_ACF_MASK_EMB  0x0070000 // all EMB* series aircraft
+#define NVP_ACF_MASK_EMB  0x00E0000 // all EMB* series aircraft
     /*
      * Note to self: the QPAC plugin (at least A320) seems to overwrite radio
      * frequency datarefs with its own; I found the datarefs but they're not
@@ -333,6 +334,7 @@ static       char  _flap_callout_st[11];
 static const char* _flap_names_AIB1[10] = { "up",  "1",  "2",  "3", "full", NULL,   NULL, NULL, NULL, NULL, };
 static const char* _flap_names_BNG1[10] = { "up",  "1",  "2",  "5",   "10", "15",   "25", "30", "40", NULL, };
 static const char* _flap_names_BNG2[10] = { "up",  "1",  "5", "15",   "20", "25",   "30", NULL, NULL, NULL, };
+static const char* _flap_names_BOM1[10] = { "up",  "5", "10", "15",   "35", NULL,   NULL, NULL, NULL, NULL, };
 static const char* _flap_names_EMB1[10] = { "up",  "9",  "2", "18",   "22", "45",   NULL, NULL, NULL, NULL, };
 static const char* _flap_names_EMB2[10] = { "up",  "1",  "2",  "3",    "4",  "5", "full", NULL, NULL, NULL, };
 static       void   flap_callout_setst(const char *names[], int index)
@@ -880,8 +882,24 @@ int nvp_chandlers_update(void *inContext)
             ctx->atyp = NVP_ACF_EMBE_SS;
             break;
         }
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("DreamFoil.DreamEngine"))
+        {
+            if (!strcasecmp(xaircraft_icao_code, "B732"))
+            {
+                ndt_log("navP [info]: plane is FlyJSim Boeing 737-200 Advanced Twinjet\n");
+                ctx->atyp = NVP_ACF_B737_FJ;
+                break;
+            }
+            // fall through (no generic fallback, plugin not developer-specific)
+        }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim.sasl"))
         {
+            if (!strcasecmp(xaircraft_icao_code, "DH8D"))
+            {
+                ndt_log("navP [info]: plane is FlyJSim Bombardier Dash 8 Q400\n");
+                ctx->atyp = NVP_ACF_DH8D_FJ;
+                break;
+            }
             if (!strcasecmp(xaircraft_icao_code, "E135"))
             {
                 ndt_log("navP [info]: plane is Dan Klaue's ERJ-140 Regional Jet\n");
@@ -900,7 +918,7 @@ int nvp_chandlers_update(void *inContext)
                 ctx->atyp = NVP_ACF_EMBE_XC;
                 break;
             }
-            // fall through (no generic fallback, SASL found in almost any plane)
+            // fall through (no generic fallback, plugin not developer-specific)
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("gizmo.x-plugins.com"))
         {
@@ -1629,8 +1647,11 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             case NVP_ACF_B777_FF:
                 flap_callout_setst(_flap_names_BNG2, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
+            case NVP_ACF_DH8D_FJ:
+                flap_callout_setst(_flap_names_BOM1, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                break;
             case NVP_ACF_ERJ1_4D:
-                flap_callout_setst(_flap_names_EMB1, lroundf(5.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));//fixme
+                flap_callout_setst(_flap_names_EMB1, lroundf(5.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
             case NVP_ACF_EMBE_SS:
             case NVP_ACF_EMBE_XC:
