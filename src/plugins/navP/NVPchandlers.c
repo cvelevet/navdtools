@@ -107,11 +107,16 @@ typedef struct
         NVP_ACF_B757_FF = 0x0001000,
         NVP_ACF_B767_FF = 0x0002000,
         NVP_ACF_B777_FF = 0x0004000,
+        NVP_ACF_EMBE_SS = 0x0010000,
+        NVP_ACF_EMBE_XC = 0x0020000,
+        NVP_ACF_ERJ1_4D = 0x0040000,
     } atyp;
 #define NVP_ACF_MASK_FFR  0x0007010 // all FlightFactor addons
 #define NVP_ACF_MASK_FJS  0x0000140 // all of FlyJSim's addons
 #define NVP_ACF_MASK_JDN  0x0000005 // all J.A.R.Design addons
 #define NVP_ACF_MASK_QPC  0x000002A // all QPAC-powered addons
+#define NVP_ACF_MASK_SSG  0x0010000 // all SSGroup/FJCC addons
+#define NVP_ACF_MASK_XCR  0x0020000 // all X-Crafts/S.W addons
 #define NVP_ACF_MASK_320  0x0000003 // all A320 series aircraft
 #define NVP_ACF_MASK_330  0x000000C // all A330 series aircraft
 #define NVP_ACF_MASK_350  0x0000010 // all A350 series aircraft
@@ -121,6 +126,7 @@ typedef struct
 #define NVP_ACF_MASK_757  0x0001000 // all B757 series aircraft
 #define NVP_ACF_MASK_767  0x0002000 // all B767 series aircraft
 #define NVP_ACF_MASK_777  0x0004000 // all B777 series aircraft
+#define NVP_ACF_MASK_EMB  0x0070000 // all EMB* series aircraft
     /*
      * Note to self: the QPAC plugin (at least A320) seems to overwrite radio
      * frequency datarefs with its own; I found the datarefs but they're not
@@ -324,9 +330,11 @@ typedef struct
 
 /* Flap lever position name constants */
 static       char  _flap_callout_st[11];
-static const char* _flap_names_AIB1[10] = { "up",  "1",  "2",  "3", "full", NULL, NULL, NULL, NULL, NULL, };
-static const char* _flap_names_BNG1[10] = { "up",  "1",  "2",  "5",   "10", "15", "25", "30", "40", NULL, };
-static const char* _flap_names_BNG2[10] = { "up",  "1",  "5", "15",   "20", "25", "30", NULL, NULL, NULL, };
+static const char* _flap_names_AIB1[10] = { "up",  "1",  "2",  "3", "full", NULL,   NULL, NULL, NULL, NULL, };
+static const char* _flap_names_BNG1[10] = { "up",  "1",  "2",  "5",   "10", "15",   "25", "30", "40", NULL, };
+static const char* _flap_names_BNG2[10] = { "up",  "1",  "5", "15",   "20", "25",   "30", NULL, NULL, NULL, };
+static const char* _flap_names_EMB1[10] = { "up",  "9",  "2", "18",   "22", "45",   NULL, NULL, NULL, NULL, };
+static const char* _flap_names_EMB2[10] = { "up",  "1",  "2",  "3",    "4",  "5", "full", NULL, NULL, NULL, };
 static       void   flap_callout_setst(const char *names[], int index)
 {
     if (index < 0) index = 0; else if (index > 9) index = 9;
@@ -835,21 +843,6 @@ int nvp_chandlers_update(void *inContext)
             ndt_log("navP [warning]: no aircraft type match despite plugin (bs.x737.plugin)\n");
             break; // fall back to generic
         }
-        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("gizmo.x-plugins.com"))
-        {
-            if (!strcasecmp(xaircraft_icao_code, "B733"))
-            {
-                XPLMDataRef override_throttles =
-                XPLMFindDataRef("sim/operation/override/override_throttles");
-                if  (override_throttles && XPLMGetDatai(override_throttles))
-                {
-                    ndt_log("navP [info]: plane is IXEG Boeing 737-300 Classic\n");
-                    ctx->atyp = NVP_ACF_B737_XG;
-                    break;
-                }
-            }
-            // fall through (no generic fallback, Gizmo running for all planes)
-        }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("de-ru.philippmuenzel-den_rain.757avionics") ||
             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("ru.flightfactor-steptosky.757767avionics"))
         {
@@ -874,6 +867,55 @@ int nvp_chandlers_update(void *inContext)
             // TODO: other FlightFactor T7 addons
             ndt_log("navP [warning]: no aircraft type match despite plugin (t7avionics)\n");
             break; // fall back to generic
+        }
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("FJCC.SSGERJ"))
+        {
+            if (!strcasecmp(xaircraft_icao_code, "E170"))
+            {
+                ndt_log("navP [info]: plane is SSG Embraer E-Jet 170 Evolution\n");
+                ctx->atyp = NVP_ACF_EMBE_SS;
+                break;
+            }
+            ndt_log("navP [warning]: no aircraft type match despite plugin (SSGERJ)\n");
+            ctx->atyp = NVP_ACF_EMBE_SS;
+            break;
+        }
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim.sasl"))
+        {
+            if (!strcasecmp(xaircraft_icao_code, "E135"))
+            {
+                ndt_log("navP [info]: plane is Dan Klaue's ERJ-140 Regional Jet\n");
+                ctx->atyp = NVP_ACF_ERJ1_4D;
+                break;
+            }
+            if (!strcasecmp(xaircraft_icao_code, "E175"))
+            {
+                ndt_log("navP [info]: plane is X-Crafts Embraer E-Jet E175\n");
+                ctx->atyp = NVP_ACF_EMBE_XC;
+                break;
+            }
+            if (!strcasecmp(xaircraft_icao_code, "E195"))
+            {
+                ndt_log("navP [info]: plane is X-Crafts Embraer E-Jet E195LR\n");
+                ctx->atyp = NVP_ACF_EMBE_XC;
+                break;
+            }
+            // fall through (no generic fallback, SASL found in almost any plane)
+        }
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("gizmo.x-plugins.com"))
+        {
+            if (!strcasecmp(xaircraft_icao_code, "B733"))
+            {
+                XPLMDataRef override_throttles =
+                XPLMFindDataRef("sim/operation/override/override_throttles");
+                if  (override_throttles && XPLMGetDatai(override_throttles))
+                {
+                    ndt_log("navP [info]: plane is IXEG Boeing 737-300 Classic\n");
+                    ctx->atyp = NVP_ACF_B737_XG;
+                    break;
+                }
+            }
+            // fall through (no generic fallback, Gizmo running for all planes)
         }
     }
     while (0);
@@ -930,11 +972,20 @@ int nvp_chandlers_update(void *inContext)
             ctx->athr.toga.cc.name = "777/at_toga";
             break;
 
+        case NVP_ACF_EMBE_SS:
+            ctx->otto.disc.cc.name = "SSG/UFMC/AP_discon_Button";
+            ctx->athr.disc.cc.name = "SSG/UFMC/AP_ARM_AT_Switch";
+            ctx->athr.toga.cc.name = "SSG/UFMC/TOGA_Button";
+            break;
+
         case NVP_ACF_GENERIC:
         default:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-            ndt_log("navP [info]: plane is generic (ICAO: \"%s\")\n", xaircraft_icao_code);
+            if (ctx->atyp == NVP_ACF_GENERIC)
+            {
+                ndt_log("navP [info]: plane is generic (ICAO: \"%s\")\n", xaircraft_icao_code);
+            }
             break;
     }
     ndt_log("navP [info]: nvp_chandlers_update OK\n"); XPLMSpeakString("nav P configured"); return 0;
@@ -1578,6 +1629,13 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             case NVP_ACF_B777_FF:
                 flap_callout_setst(_flap_names_BNG2, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
+            case NVP_ACF_ERJ1_4D:
+                flap_callout_setst(_flap_names_EMB1, lroundf(5.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));//fixme
+                break;
+            case NVP_ACF_EMBE_SS:
+            case NVP_ACF_EMBE_XC:
+                flap_callout_setst(_flap_names_EMB2, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                break;
             default:
                 return 1;
         }
@@ -1782,6 +1840,14 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(XPLMSetDatai,    1, "anim/26/switch");                          // Cargo temp. cont. (blk) (low)
             _DO(XPLMSetDataf, 0.5f, "anim/5/rotery");                           // Temp. control (f. deck) (auto)
             _DO(XPLMSetDataf, 0.5f, "anim/6/rotery");                           // Temp. control (all ca.) (auto)
+            break;
+
+        case NVP_ACF_EMBE_SS:
+            _DO(XPLMSetDatai, 1, "SSG/EJET/LIGHTS/nav_lights_sw");              // Exter. lighting: navig. (on)
+            _DO(XPLMSetDatai, 1, "ssg/EJET/GND/rain_hide_sw");                  // Disable custom rain effects
+            _DO(XPLMSetDatai, 0, "ssg/EJET/GND/stair1_ON");                     // Hide passenger stairs
+            _DO(XPLMSetDatai, 0, "ssg/EJET/GND/seats_hide_sw");                 // Hide captain's seat
+            _DO(XPLMSetDatai, 0, "ssg/EJET/GND/yokes_hide_sw");                 // Hide both yokes
             break;
 
         case NVP_ACF_GENERIC:
