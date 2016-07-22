@@ -335,6 +335,7 @@ static       char  _flap_callout_st[11];
 static const char* _flap_names_2POS[10] = { "up",  "half",  "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_A10W[10] = { "up",    "15",    "30",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_AIB1[10] = { "up",     "1",     "2",    "3", "full",   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_B52G[10] = { "up",    "10",    "20",   "30",   "40",   "55",   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_BD5J[10] = { "up",    "10",    "20",   "30",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_BNG1[10] = { "up",     "1",     "2",    "5",   "10",   "15",   "25",   "30",   "40",   NULL, };
 static const char* _flap_names_BNG2[10] = { "up",     "1",     "5",   "15",   "20",   "25",   "30",   NULL,   NULL,   NULL, };
@@ -343,7 +344,7 @@ static const char* _flap_names_BOM2[10] = { "up",     "5",    "10",   "15",   "3
 static const char* _flap_names_C130[10] = { "up",     "1",     "2",    "3",    "4",    "5",    "6", "full",   NULL,   NULL, };
 static const char* _flap_names_C172[10] = { "up",    "10",    "20", "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_DC10[10] = { "up",     "5",    "15",   "25",   "30",   "35",   "40",   NULL,   NULL,   NULL, };
-static const char* _flap_names_EMB1[10] = { "up",     "9",     "2",   "18",   "22",   "45",   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_EMB1[10] = { "up",     "9",    "18",   "22",   "45",   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_EMB2[10] = { "up",     "1",     "2",    "3",    "4",    "5", "full",   NULL,   NULL,   NULL, };
 static const char* _flap_names_FA7X[10] = { "up",     "1",     "2", "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_PA32[10] = { "up",    "10",    "25",   "40",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
@@ -982,6 +983,11 @@ int nvp_chandlers_update(void *inContext)
                 if (!strcasecmp(acf_file, "avanti.acf"))
                 {
                     snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "P180");
+                    break;
+                }
+                if (!strcasecmp(acf_file, "B-52G NASA.acf"))
+                {
+                    snprintf(ctx->icao, sizeof(ctx->icao), "%.4s",  "B52");
                     break;
                 }
                 if (!strcasecmp(acf_file, "c4.acf"))
@@ -1734,7 +1740,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 flap_callout_setst(_flap_names_BOM2, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
             case NVP_ACF_ERJ1_4D:
-                flap_callout_setst(_flap_names_EMB1, lroundf(5.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                flap_callout_setst(_flap_names_EMB1, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
             case NVP_ACF_EMBE_SS:
             case NVP_ACF_EMBE_XC:
@@ -1760,9 +1766,9 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     flap_callout_setst(_flap_names_2POS, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
-                if (!strcasecmp(ctx->icao, "BD5J"))
+                if (!strcasecmp(ctx->icao, "B52"))
                 {
-                    flap_callout_setst(_flap_names_BD5J, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    flap_callout_setst(_flap_names_B52G, lroundf(5.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
                 if (!strcasecmp(ctx->icao, "B732") || // all Boeing 737 variants
@@ -1812,6 +1818,11 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     !strcasecmp(ctx->icao, "B789"))
                 {
                     flap_callout_setst(_flap_names_BNG2, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->icao, "BD5J"))
+                {
+                    flap_callout_setst(_flap_names_BD5J, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
                 if (!strcasecmp(ctx->icao, "C130"))
