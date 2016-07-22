@@ -847,6 +847,18 @@ int nvp_chandlers_update(void *inContext)
             ndt_log("navP [warning]: no aircraft type match despite plugin (QPAC.airbus.fbw)\n");
             break; // fall back to generic
         }
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.A380.airbus.fbw"))
+        {
+            if (!strcasecmp(xaircraft_icao_code, "A388"))
+            {
+                ndt_log("navP [info]: plane is Peter Hager's Airbus A380-800 QPAC\n");
+                ctx->atyp = NVP_ACF_A380_PH;
+                break;
+            }
+            ndt_log("navP [warning]: no aircraft type match despite plugin (QPAC.A380.airbus.fbw)\n");
+            ctx->atyp = NVP_ACF_A380_PH; // still an A380 variant
+            break;
+        }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("bs.x737.plugin"))
         {
             if (!strcasecmp(xaircraft_icao_code, "B737") ||
@@ -868,9 +880,9 @@ int nvp_chandlers_update(void *inContext)
                 ctx->atyp = NVP_ACF_B767_FF;
                 break;
             }
-            // TODO: future FlightFactor 757 and 767 addons
             ndt_log("navP [warning]: no aircraft type match despite plugin (757767avionics)\n");
-            break; // fall back to generic
+            ctx->atyp = NVP_ACF_B767_FF; // still a 75/76 variant
+            break;
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("de.philippmuenzel.t7avionics"))
         {
@@ -880,9 +892,9 @@ int nvp_chandlers_update(void *inContext)
                 ctx->atyp = NVP_ACF_B777_FF;
                 break;
             }
-            // TODO: other FlightFactor T7 addons
             ndt_log("navP [warning]: no aircraft type match despite plugin (t7avionics)\n");
-            break; // fall back to generic
+            ctx->atyp = NVP_ACF_B777_FF; // still a T7 variant
+            break;
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("FJCC.SSGERJ"))
         {
@@ -934,7 +946,7 @@ int nvp_chandlers_update(void *inContext)
             }
             if (!strcasecmp(xaircraft_icao_code, "SU95") || !strcasecmp(xaircraft_icao_code, "S95"))
             {
-                ndt_log("navP [info]: plane is Ramzzess Sukhoi Superjet 100-95\n");
+                ndt_log("navP [info]: plane is Ramzzess Sukhoi Superjet 100-95LR\n");
                 ctx->atyp = NVP_ACF_SSJ1_RZ;
                 break;
             }
@@ -1041,31 +1053,6 @@ int nvp_chandlers_update(void *inContext)
     /* all good */
     switch (ctx->atyp)
     {
-        case NVP_ACF_A320_JD:
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-            break;
-
-        case NVP_ACF_A320_QP:
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-            break;
-
-        case NVP_ACF_A330_JD:
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-            break;
-
-        case NVP_ACF_A330_RW:
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-            break;
-
-        case NVP_ACF_A350_FF:
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-            break;
-
         case NVP_ACF_B737_EA:
             ctx->otto.disc.cc.name = "x737/yoke/capt_AP_DISENG_BTN";
             ctx->athr.disc.cc.name = "x737/mcp/ATHR_ARM_TOGGLE";
@@ -1903,22 +1890,17 @@ static int first_fcall_do(chandler_context *ctx)
         case NVP_ACF_A320_QP:
             if ((d_ref = XPLMFindDataRef("AirbusFBW/DUBrightness")))
             {
-                float DUBrightness[8] =
+                float DUBrightness[1] = { 0.8f, };
+                for  (int i = 0; i < 8; i++)
                 {
-                    [0] = 0.9f, [1] = 0.9f, [2] = 0.9f, [3] = 0.9f,
-                    [4] = 0.9f, [5] = 0.9f, [6] = 0.9f, [7] = 0.9f,
-                };
-                XPLMSetDatavf(d_ref, &DUBrightness[0], 0, 8);
+                    XPLMSetDatavf(d_ref, &DUBrightness[0], i, 1);
+                }
             }
             if ((d_ref = XPLMFindDataRef("AirbusFBW/OHPLightSwitches")))
             {
-                int OHPLightSwitches[16] =
-                {
-                    [2] = 1, // nav&logo: system 1
-                    [7] = 1, // strobes: automatic
-                };
-                XPLMSetDatavi(d_ref, &OHPLightSwitches[2], 2, 1);
-                XPLMSetDatavi(d_ref, &OHPLightSwitches[7], 7, 1);
+                int OHPLightSwitches[1] = { 1, };
+                XPLMSetDatavi(d_ref, &OHPLightSwitches[0], 2, 1);               // nav&logo: system 1
+                XPLMSetDatavi(d_ref, &OHPLightSwitches[0], 7, 1);               // strobes: automatic
             }
             break;
 
@@ -1985,6 +1967,35 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(XPLMSetDataf,   0.4f, "1-sim/air/cabinSettingRotery");          // Air panel: cabin temp. (purser)
             break;
 
+        case NVP_ACF_A380_PH:
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/instrument_brightness_ratio")))
+            {
+                float instrument_brightness_ratio[3] = { 0.8f, 0.4f, 0.0f, };
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  0, 1);   // Backlighting: switches, FCU
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  1, 1);   // Controlled by plugin?
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  2, 1);   // Navigation display
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  3, 1);   // ECAM (upp. display)
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2],  4, 1);   // OIS (unus. display)
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  5, 1);   // Primary f. display
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  6, 1);   // Control dis. units
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  7, 1);   // ECAM (low. display)
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2],  8, 1);   // ???
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[1],  9, 1);   // LED lam. 4 displays
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 10, 1);   // ???
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 11, 1);   // ???
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 12, 1);   // ???
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 13, 1);   // ???
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 14, 1);   // ???
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 15, 1);   // R.M. Panel displays, instrument outline lighting
+            }
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/panel_brightness_ratio")))
+            {
+                float panel_brightness_ratio[1] = { 0.4f, };
+                XPLMSetDatavf(d_ref, &panel_brightness_ratio[0], 0, 1);         // Cockpit/flood lights
+            }
+            _DO(XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on");
+            break;
+
         case NVP_ACF_B737_XG:
             _DO(XPLMSetDataf,   0.0f, "ixeg/733/aircond/aircond_cont_cabin_sel_act"); // Cont. cab. air temper. (normal)
             _DO(XPLMSetDataf,   0.0f, "ixeg/733/aircond/aircond_pass_cabin_sel_act"); // Pass. cab. air temper. (normal)
@@ -2007,15 +2018,10 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(XPLMSetDataf,   0.0f, "ixeg/733/rheostats/light_mapbr_cpt_act");      // Maps: lig. (f/o. side) (off)
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/instrument_brightness_ratio")))
             {
-                float instrument_brightness_ratio[16] =
-                {
-                    [0] = 0.8f, // Panel (cap. side): daylight
-                    [1] = 0.8f, // Panel (f/o. side): daylight
-                    [2] = 0.8f, // Panel (backgrnd.): neon off
-                };
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 0, 1);
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[1], 1, 1);
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 2, 1);
+                float instrument_brightness_ratio[1] = { 0.8f, };
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 0, 1);    // Panel (cap. side): daylight
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 1, 1);    // Panel (f/o. side): daylight
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 2, 1);    // Panel (backgrnd.): neon off
             }
             break;
 
@@ -2206,11 +2212,17 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
                                                     &fbw->pkb_var, &fbw->pkb_var);
             if (!fbw->pkb_tmp) return -1;
         }
-        if ((fbw->pkb_ref = XPLMFindDataRef("AirbusFBW/ParkBrake"               )) &&
-            (fbw->h_b_max = XPLMFindCommand("sim/flight_controls/brakes_max"    )) &&
+        if ((fbw->h_b_max = XPLMFindCommand("sim/flight_controls/brakes_max"    )) &&
             (fbw->h_b_reg = XPLMFindCommand("sim/flight_controls/brakes_regular")))
         {
-            (fbw->ready = 1); return 0;
+            if ((fbw->pkb_ref = XPLMFindDataRef("AirbusFBW/ParkBrake")))
+            {
+                (fbw->ready = 1); return 0;
+            }
+            if ((fbw->pkb_ref = XPLMFindDataRef("com/petersaircraft/airbus/ParkBrake")))
+            {
+                (fbw->ready = 1); return 0;
+            }
         }
         return -1;
     }
