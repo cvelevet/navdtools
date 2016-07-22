@@ -183,6 +183,11 @@ typedef struct
         struct
         {
             chandler_callback cb;
+        } tur;
+
+        struct
+        {
+            chandler_callback cb;
         } prk;
 
         struct
@@ -424,6 +429,7 @@ static int          ref_ql_idx_val(void)
 }
 
 static int  dataref_read_string(XPLMDataRef dataref, char *string_buffer,  size_t buffer_size);
+static int  chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -503,6 +509,7 @@ void* nvp_chandlers_init(void)
     }
 
     /* Custom commands: braking */
+    ctx->bking.tur.cb.command = XPLMCreateCommand("navP/turnaround_set", "friendly cold & dark");
     ctx->bking.prk.cb.command = XPLMCreateCommand("navP/brakes/parking", "apply max. park brake");
     ctx->bking.off.cb.command = XPLMCreateCommand("navP/brakes/release", "release parking brake");
     ctx->bking.max.cb.command = XPLMCreateCommand("navP/brakes/maximum", "maximum braking action");
@@ -510,7 +517,8 @@ void* nvp_chandlers_init(void)
     ctx->bking.rc_brk.p_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/parking_brake_ratio");
     ctx->bking.rc_brk.l_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/left_brake_ratio");
     ctx->bking.rc_brk.r_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/right_brake_ratio");
-    if (!ctx->bking.prk.cb.command || !ctx->bking.off.cb.command                      ||
+    if (!ctx->bking.tur.cb.command ||
+        !ctx->bking.prk.cb.command || !ctx->bking.off.cb.command                      ||
         !ctx->bking.max.cb.command || !ctx->bking.reg.cb.command                      ||
         !ctx->bking.rc_brk.p_b_rat || !XPLMCanWriteDataRef(ctx->bking.rc_brk.l_b_rat) ||
         !ctx->bking.rc_brk.l_b_rat || !XPLMCanWriteDataRef(ctx->bking.rc_brk.l_b_rat) ||
@@ -520,6 +528,7 @@ void* nvp_chandlers_init(void)
     }
     else
     {
+        REGISTER_CHANDLER(ctx->bking.tur.cb, chandler_turna, 0, ctx);
         REGISTER_CHANDLER(ctx->bking.prk.cb, chandler_p_max, 0, ctx);
         REGISTER_CHANDLER(ctx->bking.off.cb, chandler_p_off, 0, ctx);
         REGISTER_CHANDLER(ctx->bking.max.cb, chandler_b_max, 0, ctx);
@@ -693,6 +702,7 @@ int nvp_chandlers_close(void **_chandler_context)
     }
 
     /* unregister all handlers… */
+    UNREGSTR_CHANDLER(ctx->bking.   tur.cb);
     UNREGSTR_CHANDLER(ctx->bking.   prk.cb);
     UNREGSTR_CHANDLER(ctx->bking.   off.cb);
     UNREGSTR_CHANDLER(ctx->bking.   max.cb);
@@ -1113,6 +1123,47 @@ static int dataref_read_string(XPLMDataRef dataref, char *string_buffer, size_t 
 }
 
 /*
+ * action: set an aircraft's turnaround state to a pilot-friendly cold & dark variant.
+ */
+static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    chandler_context *ctx = inRefcon;
+    int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
+    /*
+     * Do any additional aircraft-specific stuff that can't be done earlier.
+     */
+    if (ctx->atyp == NVP_ACF_A350_FF)
+    {
+        if (ctx->acfspec.a350.ready == 0)
+        {
+            aibus_350_init(&ctx->acfspec.a350);
+        }
+    }
+    if (ctx->atyp & NVP_ACF_MASK_QPC)
+    {
+        if (ctx->acfspec.qpac.ready == 0)
+        {
+            aibus_fbw_init(&ctx->acfspec.qpac);
+        }
+    }
+    if (ctx->first_fcall && inPhase == xplm_CommandEnd)
+    {
+        if (first_fcall_do(ctx) == 0 && ctx->first_fcall == 0)
+        {
+            if ((ctx->atyp & NVP_ACF_MASK_JDN) == 0)
+            {
+                XPLMSpeakString("turn around set");
+            }
+            XPLMCommandOnce(ctx->views.cbs[1].command);
+        }
+        if (speak) XPLMSetDatai(ctx->callouts.ref_park_brake, 0);
+        XPLMCommandOnce        (ctx->bking.prk.cb.      command);
+        if (speak) XPLMSetDatai(ctx->callouts.ref_park_brake, 1);
+    }
+    return 0;
+}
+
+/*
  * action: set or unset parking brake.
  *
  * rationale: X-Plane only has a toggle for this :(
@@ -1122,15 +1173,6 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     chandler_context *ctx = inRefcon;
     refcon_braking   *rcb = &ctx->bking.rc_brk;
     int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
-    /*
-     * XXX: this function is basically guaranteed to be called early, so here we
-     *      do any additional aircraft-specific stuff that can't be done earlier.
-     */
-    if (ctx->first_fcall && inPhase == xplm_CommandEnd)
-    {
-        first_fcall_do(ctx);
-        speak = 0;
-    }
 //  if (ctx->kill_daniel)
 //  {
 //      // TODO: implement
@@ -2172,13 +2214,6 @@ static int first_fcall_do(chandler_context *ctx)
 
         default:
             break;
-    }
-    {
-        XPLMCommandOnce(ctx->views.cbs[1].command); // because we can
-    }
-    if ((ctx->atyp & NVP_ACF_MASK_JDN) == 0)
-    {
-        XPLMSpeakString("nav P first call");
     }
     return (ctx->first_fcall = 0);
 }
