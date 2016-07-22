@@ -91,6 +91,7 @@ typedef struct
     int first_fcall;
     int kill_daniel;
 
+    char icao[5]; // addon's ICAO aircraft type designator
     enum
     {
         NVP_ACF_GENERIC = 0x0000000,
@@ -331,12 +332,23 @@ typedef struct
 
 /* Flap lever position name constants */
 static       char  _flap_callout_st[11];
-static const char* _flap_names_AIB1[10] = { "up",  "1",  "2",  "3", "full", NULL,   NULL, NULL, NULL, NULL, };
-static const char* _flap_names_BNG1[10] = { "up",  "1",  "2",  "5",   "10", "15",   "25", "30", "40", NULL, };
-static const char* _flap_names_BNG2[10] = { "up",  "1",  "5", "15",   "20", "25",   "30", NULL, NULL, NULL, };
-static const char* _flap_names_BOM1[10] = { "up",  "5", "10", "15",   "35", NULL,   NULL, NULL, NULL, NULL, };
-static const char* _flap_names_EMB1[10] = { "up",  "9",  "2", "18",   "22", "45",   NULL, NULL, NULL, NULL, };
-static const char* _flap_names_EMB2[10] = { "up",  "1",  "2",  "3",    "4",  "5", "full", NULL, NULL, NULL, };
+static const char* _flap_names_2POS[10] = { "up",  "half",  "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_A10W[10] = { "up",    "15",    "30",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_AIB1[10] = { "up",     "1",     "2",    "3", "full",   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_BD5J[10] = { "up",    "10",    "20",   "30",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_BNG1[10] = { "up",     "1",     "2",    "5",   "10",   "15",   "25",   "30",   "40",   NULL, };
+static const char* _flap_names_BNG2[10] = { "up",     "1",     "5",   "15",   "20",   "25",   "30",   NULL,   NULL,   NULL, };
+static const char* _flap_names_BOM1[10] = { "up",    "10",    "20",   "30",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_BOM2[10] = { "up",     "5",    "10",   "15",   "35",   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_C130[10] = { "up",     "1",     "2",    "3",    "4",    "5",    "6", "full",   NULL,   NULL, };
+static const char* _flap_names_C172[10] = { "up",    "10",    "20", "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_DC10[10] = { "up",     "5",    "15",   "25",   "30",   "35",   "40",   NULL,   NULL,   NULL, };
+static const char* _flap_names_EMB1[10] = { "up",     "9",     "2",   "18",   "22",   "45",   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_EMB2[10] = { "up",     "1",     "2",    "3",    "4",    "5", "full",   NULL,   NULL,   NULL, };
+static const char* _flap_names_FA7X[10] = { "up",     "1",     "2", "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_PA32[10] = { "up",    "10",    "25",   "40",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_PC12[10] = { "up",    "15",    "30",   "40",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_TBM8[10] = { NULL,   "up",  "half",  "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, }; // because: Carenado :-(
 static       void   flap_callout_setst(const char *names[], int index)
 {
     if (index < 0) index = 0; else if (index > 9) index = 9;
@@ -769,7 +781,7 @@ int nvp_chandlers_update(void *inContext)
 {
     XPLMDataRef xdref_acf_ICAO = NULL;
     char xaircraft_icao_code[41] = "";
-//  char acf_file[257], acf_path[513];
+    char acf_file[257], acf_path[513];
     chandler_context *ctx = inContext;
     if (!ctx)
     {
@@ -788,7 +800,7 @@ int nvp_chandlers_update(void *inContext)
     {
         dataref_read_string(xdref_acf_ICAO, xaircraft_icao_code, sizeof(xaircraft_icao_code));
     }
-//  XPLMGetNthAircraftModel(XPLM_USER_AIRCRAFT, acf_file, acf_path);
+    XPLMGetNthAircraftModel(XPLM_USER_AIRCRAFT, acf_file, acf_path);
 
     /* check enabled plugins to determine which plane we're flying */
     do // dummy loop we can break out of
@@ -937,6 +949,77 @@ int nvp_chandlers_update(void *inContext)
         }
     }
     while (0);
+
+    /* ICAO type designator (for use by e.g. some of the flap callouts) */
+    switch (ctx->atyp)
+    {
+        case NVP_ACF_A330_RW:
+            snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "A333");
+            break;
+
+        case NVP_ACF_A350_FF:
+            snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "A359");
+            break;
+
+        case NVP_ACF_GENERIC:
+            if (!strnlen(xaircraft_icao_code, 1)) // XXX
+            {
+                if (!strcasecmp(acf_file, "787.acf"))
+                {
+                    snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "B787");
+                    break;
+                }
+                if (!strcasecmp(acf_file, "A10.acf"))
+                {
+                    snprintf(ctx->icao, sizeof(ctx->icao), "%.4s",  "A10");
+                    break;
+                }
+                if (!strcasecmp(acf_file, "akoya.acf"))
+                {
+                    snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "AKOY");
+                    break;
+                }
+                if (!strcasecmp(acf_file, "avanti.acf"))
+                {
+                    snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "P180");
+                    break;
+                }
+                if (!strcasecmp(acf_file, "c4.acf"))
+                {
+                    snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "SF50");
+                    break;
+                }
+                if (!strcasecmp(acf_file, "Car_TBM850.acf"))
+                {
+                    snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "TBM8");
+                    break;
+                }
+                if (!strcasecmp(acf_file, "falcon7.acf"))
+                {
+                    snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "FA7X");
+                    break;
+                }
+                if (!strcasecmp(acf_file, "KC-10.acf"))
+                {
+                    snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "DC10");
+                    break;
+                }
+                if (!strcasecmp(acf_file, "KingAirC90B.acf"))
+                {
+                    snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "BE9L");
+                    break;
+                }
+            }
+            if (!strcasecmp(xaircraft_icao_code, "VIPJ"))  // Aerobask Epic Victory (bug)
+            {
+                snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "EVIC");
+                break;
+            }
+            // fall through
+        default:
+            snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", xaircraft_icao_code);
+            break;
+    }
 
     /* all good */
     switch (ctx->atyp)
@@ -1648,7 +1731,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 flap_callout_setst(_flap_names_BNG2, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
             case NVP_ACF_DH8D_FJ:
-                flap_callout_setst(_flap_names_BOM1, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                flap_callout_setst(_flap_names_BOM2, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
             case NVP_ACF_ERJ1_4D:
                 flap_callout_setst(_flap_names_EMB1, lroundf(5.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
@@ -1658,6 +1741,119 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 flap_callout_setst(_flap_names_EMB2, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
             default:
+                if (!strcasecmp(ctx->icao, "A10"))
+                {
+                    flap_callout_setst(_flap_names_A10W, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->icao, "AKOY") ||
+                    !strcasecmp(ctx->icao, "BE58") ||
+                    !strcasecmp(ctx->icao, "BE9L") ||
+                    !strcasecmp(ctx->icao, "COL4") ||
+                    !strcasecmp(ctx->icao, "EA50") ||
+                    !strcasecmp(ctx->icao, "EPIC") ||
+                    !strcasecmp(ctx->icao, "EVIC") ||
+                    !strcasecmp(ctx->icao, "LEG2") ||
+                    !strcasecmp(ctx->icao, "P180") ||
+                    !strcasecmp(ctx->icao, "SF50"))
+                {
+                    flap_callout_setst(_flap_names_2POS, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->icao, "BD5J"))
+                {
+                    flap_callout_setst(_flap_names_BD5J, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->icao, "B732") || // all Boeing 737 variants
+                    !strcasecmp(ctx->icao, "B733") ||
+                    !strcasecmp(ctx->icao, "B734") ||
+                    !strcasecmp(ctx->icao, "B735") ||
+                    !strcasecmp(ctx->icao, "B736") ||
+                    !strcasecmp(ctx->icao, "B737") ||
+                    !strcasecmp(ctx->icao, "B738") ||
+                    !strcasecmp(ctx->icao, "B739") ||
+                    !strcasecmp(ctx->icao, "E737") ||
+                    !strcasecmp(ctx->icao, "P8"))
+                {
+                    flap_callout_setst(_flap_names_BNG1, lroundf(8.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->icao, "BSCA") || // all Boeing 747 variants
+                    !strcasecmp(ctx->icao, "BLCF") ||
+                    !strcasecmp(ctx->icao, "B74D") ||
+                    !strcasecmp(ctx->icao, "B74F") ||
+                    !strcasecmp(ctx->icao, "B74R") ||
+                    !strcasecmp(ctx->icao, "B74S") ||
+                    !strcasecmp(ctx->icao, "B741") ||
+                    !strcasecmp(ctx->icao, "B742") ||
+                    !strcasecmp(ctx->icao, "B743") ||
+                    !strcasecmp(ctx->icao, "B744") ||
+                    !strcasecmp(ctx->icao, "B747") ||
+                    !strcasecmp(ctx->icao, "B748") ||
+                    !strcasecmp(ctx->icao, "B752") || // all Boeing 757 variants
+                    !strcasecmp(ctx->icao, "B753") ||
+                    !strcasecmp(ctx->icao, "B757") ||
+                    !strcasecmp(ctx->icao, "B762") || // all Boeing 767 variants
+                    !strcasecmp(ctx->icao, "B763") ||
+                    !strcasecmp(ctx->icao, "B764") ||
+                    !strcasecmp(ctx->icao, "B767") ||
+                    !strcasecmp(ctx->icao, "B77F") || // all Boeing 777 variants
+                    !strcasecmp(ctx->icao, "B77L") ||
+                    !strcasecmp(ctx->icao, "B77W") ||
+                    !strcasecmp(ctx->icao, "B772") ||
+                    !strcasecmp(ctx->icao, "B773") ||
+                    !strcasecmp(ctx->icao, "B777") ||
+                    !strcasecmp(ctx->icao, "B778") ||
+                    !strcasecmp(ctx->icao, "B779") ||
+                    !strcasecmp(ctx->icao, "B78X") || // all Boeing 787 variants
+                    !strcasecmp(ctx->icao, "B787") ||
+                    !strcasecmp(ctx->icao, "B788") ||
+                    !strcasecmp(ctx->icao, "B789"))
+                {
+                    flap_callout_setst(_flap_names_BNG2, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->icao, "C130"))
+                {
+                    flap_callout_setst(_flap_names_C130, lroundf(7.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->icao, "C172"))
+                {
+                    flap_callout_setst(_flap_names_C172, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->icao, "CL30"))
+                {
+                    flap_callout_setst(_flap_names_BOM1, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->icao, "DC10"))
+                {
+                    flap_callout_setst(_flap_names_DC10, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->icao, "FA7X"))
+                {
+                    flap_callout_setst(_flap_names_FA7X, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->icao, "PA32"))
+                {
+                    flap_callout_setst(_flap_names_PA32, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->icao, "PC12"))
+                {
+                    flap_callout_setst(_flap_names_PC12, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->icao, "TBM8"))
+                {
+                    flap_callout_setst(_flap_names_TBM8, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
                 return 1;
         }
         XPLMSetFlightLoopCallbackInterval(ctx->callouts.flc_flaps, 1.0f, 1, NULL);
