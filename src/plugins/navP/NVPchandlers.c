@@ -112,8 +112,9 @@ typedef struct
         NVP_ACF_EMBE_SS = 0x0020000,
         NVP_ACF_EMBE_XC = 0x0040000,
         NVP_ACF_ERJ1_4D = 0x0080000,
+        NVP_ACF_SSJ1_RZ = 0x0100000,
     } atyp;
-#define NVP_ACF_MASK_FFR  0x0007010 // all FlightFactor addons
+#define NVP_ACF_MASK_FFR  0x0107010 // all FlightFactor addons
 #define NVP_ACF_MASK_FJS  0x0010140 // all of FlyJSim's addons
 #define NVP_ACF_MASK_JDN  0x0000005 // all J.A.R.Design addons
 #define NVP_ACF_MASK_QPC  0x000002A // all QPAC-powered addons
@@ -931,6 +932,12 @@ int nvp_chandlers_update(void *inContext)
                 ctx->atyp = NVP_ACF_EMBE_XC;
                 break;
             }
+            if (!strcasecmp(xaircraft_icao_code, "SU95") || !strcasecmp(xaircraft_icao_code, "S95"))
+            {
+                ndt_log("navP [info]: plane is Ramzzess Sukhoi Superjet 100-95\n");
+                ctx->atyp = NVP_ACF_SSJ1_RZ;
+                break;
+            }
             // fall through (no generic fallback, plugin not developer-specific)
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("gizmo.x-plugins.com"))
@@ -962,7 +969,16 @@ int nvp_chandlers_update(void *inContext)
             snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "A359");
             break;
 
+        case NVP_ACF_SSJ1_RZ:
+            snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "SU95");
+            break;
+
         case NVP_ACF_GENERIC:
+            if (!strcasecmp(xaircraft_icao_code, "VIPJ"))  // Aerobask Epic Victory (bug)
+            {
+                snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "EVIC");
+                break;
+            }
             if (!strnlen(xaircraft_icao_code, 1)) // XXX
             {
                 if (!strcasecmp(acf_file, "787.acf"))
@@ -1015,11 +1031,6 @@ int nvp_chandlers_update(void *inContext)
                     snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "BE9L");
                     break;
                 }
-            }
-            if (!strcasecmp(xaircraft_icao_code, "VIPJ"))  // Aerobask Epic Victory (bug)
-            {
-                snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", "EVIC");
-                break;
             }
             // fall through
         default:
@@ -1723,6 +1734,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             case NVP_ACF_A330_RW:
             case NVP_ACF_A350_FF:
             case NVP_ACF_A380_PH:
+            case NVP_ACF_SSJ1_RZ:
                 flap_callout_setst(_flap_names_AIB1, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
 //          case NVP_ACF_B727_FJ:
@@ -1884,6 +1896,7 @@ static float flc_flap_func(float inElapsedSinceLastCall,
 #define _DO(_func, _val, _name) { if ((d_ref = XPLMFindDataRef(_name))) _func(d_ref, _val); }
 static int first_fcall_do(chandler_context *ctx)
 {
+    XPLMCommandRef cr;
     XPLMDataRef d_ref;
     switch (ctx->atyp)
     {
@@ -2077,6 +2090,65 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(XPLMSetDatai, 0, "ssg/EJET/GND/seats_hide_sw");                 // Hide captain's seat
             _DO(XPLMSetDatai, 0, "ssg/EJET/GND/yokes_hide_sw");                 // Hide both yokes
             break;
+
+        case NVP_ACF_SSJ1_RZ:
+        {
+            // check avionics state, enable and delay processing if required
+            XPLMDataRef av_pwr_on = XPLMFindDataRef("sim/cockpit2/switches/avionics_power_on");
+            if (NULL == av_pwr_on)
+            {
+                XPLMSpeakString("nav P first call failed");
+                return (ctx->first_fcall = 0) - 1;
+            }
+            if (ctx->first_fcall > +0 && !XPLMGetDatai(av_pwr_on))
+            {
+                ctx->first_fcall = -2; // pass 1, enable pass 2
+                XPLMSetDatai(av_pwr_on, 1); return 0;
+            }
+
+            // items that require avionics power to change state
+            _DO(XPLMSetDataf, 0.0f, "but/temp/airL");
+            _DO(XPLMSetDataf, 0.0f, "but/temp/airR");
+            _DO(XPLMSetDataf, 0.0f, "but/temp/heater");
+            _DO(XPLMSetDataf, 1.0f, "but/fuel/pumpLt");
+            _DO(XPLMSetDataf, 1.0f, "but/fuel/pumpRt");
+            _DO(XPLMSetDataf, 1.0f, "but/sim/cockpit2/fuel/fuel_tank_pump_on0");
+            _DO(XPLMSetDataf, 1.0f, "but/sim/cockpit2/fuel/fuel_tank_pump_on1");
+            _DO(XPLMSetDataf, 1.0f, "but/sim/cockpit2/fuel/fuel_tank_pump_on2");
+            _DO(XPLMSetDataf, 1.0f, "but/sim/cockpit2/fuel/fuel_tank_pump_on3");
+            _DO(XPLMSetDataf, 1.0f, "but/sim/cockpit2/fuel/fuel_tank_pump_on4");
+            if (ctx->first_fcall == -2)
+            {
+                ctx->first_fcall += -1; return 0; // pass 2, enable pass 3
+            }
+
+            // everything else
+            _DO(XPLMSetDataf, 1.0f, "door/lock");
+            _DO(XPLMSetDataf, 1.0f, "elec/cap1");
+            _DO(XPLMSetDataf, 1.0f, "elec/cap2");
+            _DO(XPLMSetDataf, 1.0f, "elec/cap3");
+            _DO(XPLMSetDataf, 1.0f, "elec/cap4");
+            _DO(XPLMSetDataf, 1.0f, "elec/cap8");
+            _DO(XPLMSetDataf, 0.0f, "prep/lock1");
+            _DO(XPLMSetDataf, 0.0f, "prep/lock2");
+            _DO(XPLMSetDataf, 0.0f, "prep/lock3");
+            _DO(XPLMSetDataf, 0.0f, "prep/lock4");
+            _DO(XPLMSetDataf, 0.0f, "prep/lock5");
+            _DO(XPLMSetDataf, 0.0f, "prep/lock6");
+            _DO(XPLMSetDataf, .75f, "lights/brt");
+            _DO(XPLMSetDataf, 0.5f, "lights/flood");
+            _DO(XPLMSetDataf, 0.5f, "but/lights/pilot");
+            _DO(XPLMSetDatai,    1, "sim/cockpit2/switches/navigation_lights_on");
+            if (ctx->first_fcall == -3)
+            {
+                XPLMSetDatai(av_pwr_on, 0); // pass 3, avionics back to off
+            }
+            if ((cr = XPLMFindCommand("shortcuts/hydraulic_system_auto_tgl")))
+            {
+                XPLMCommandOnce(cr);
+            }
+            break;
+        }
 
         case NVP_ACF_GENERIC:
             // all Carenado addons handled here (dataref not found: no effect)
