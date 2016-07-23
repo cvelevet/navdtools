@@ -765,7 +765,7 @@ static void string_split4(char *arg, const char *delim, char **fields[6])
             {
                 free(prev);
             }
-            if (strlen(elem) <= 4 && !strncasecmp("none", elem, strlen(elem)))
+            if (strnlen(elem, 5) <= 4 && !strncasecmp("none", elem, strlen(elem)))
             {
                 *ptr = NULL;
             }
