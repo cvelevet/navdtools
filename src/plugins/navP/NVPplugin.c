@@ -109,7 +109,11 @@ PLUGIN_API int XPluginEnable(void)
     }
 
     /* all good */
-    XPLMDebugString("navP [info]: XPluginEnable OK\n"); XPLMSpeakString("nav P OK"); return 1;
+    if (XPLMFindPluginBySignature("x-fmc.com") == XPLM_NO_PLUGIN_ID)
+    {
+        XPLMSpeakString("nav P OK");
+    }
+    XPLMDebugString("navP [info]: XPluginEnable OK\n"); return 1;
 }
 
 PLUGIN_API void XPluginDisable(void)
