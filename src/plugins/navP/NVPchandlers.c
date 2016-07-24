@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "XPLM/XPLMDataAccess.h"
+#include "XPLM/XPLMDisplay.h"
 #include "XPLM/XPLMPlanes.h"
 #include "XPLM/XPLMPlugin.h"
 #include "XPLM/XPLMProcessing.h"
@@ -84,6 +85,13 @@ typedef struct
     XPLMCommandRef pt_up;
     XPLMCommandRef pt_dn;
 } refcon_eadt738;
+
+typedef struct
+{
+    int            acftyp;
+    int            status;
+    XPLMCommandRef cmd[2];
+} refcon_cdu_pop;
 
 typedef struct
 {
@@ -329,6 +337,12 @@ typedef struct
             chandler_command  cc;
         } toga;
     } athr;
+
+    struct
+    {
+        chandler_callback cb;
+        refcon_cdu_pop    rc;
+    } mcdu;
 } chandler_context;
 
 /* Callout default values */
@@ -449,6 +463,7 @@ static int  chandler_sview(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, v
 static int  chandler_qlprv(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_flap_func(                                          float, float, int, void*);
 static int  first_fcall_do(                                             chandler_context *ctx);
 static int  aibus_350_init(                                               refcon_ff_a350 *ffa);
@@ -684,6 +699,17 @@ void* nvp_chandlers_init(void)
     }
     XPLMRegisterFlightLoopCallback((ctx->callouts.flc_flaps = &flc_flap_func), 0, NULL);
 
+    /* Custom command: pop-up Control Display Unit */
+    ctx->mcdu.cb.command = XPLMCreateCommand("navP/switches/cdu_toggle", "CDU pop-up/down");
+    if (!ctx->mcdu.cb.command)
+    {
+        goto fail;
+    }
+    else
+    {
+        REGISTER_CHANDLER(ctx->mcdu.cb, chandler_mcdup, 0, &ctx->mcdu.rc);
+    }
+
     /* all good */
     return ctx;
 
@@ -726,6 +752,7 @@ int nvp_chandlers_close(void **_chandler_context)
     }
     UNREGSTR_CHANDLER(ctx->callouts.cb_flapu);
     UNREGSTR_CHANDLER(ctx->callouts.cb_flapd);
+    UNREGSTR_CHANDLER(ctx->mcdu.          cb);
 
     /* …and all datarefs */
     if (ctx->acfspec.qpac.pkb_tmp)
@@ -1060,7 +1087,7 @@ int nvp_chandlers_update(void *inContext)
             break;
     }
 
-    /* all good */
+    /* plane-specific custom commands for automation disconnects, if any */
     switch (ctx->atyp)
     {
         case NVP_ACF_B737_EA:
@@ -1103,6 +1130,22 @@ int nvp_chandlers_update(void *inContext)
             }
             break;
     }
+
+    /*
+     * reset MCDU pop-up handler status.
+     *
+     * pre-emptively disable X-FMC for all aircraft; if
+     * required, it gets re-enabled later automatically.
+     */
+    XPLMPluginID xfmc = XPLMFindPluginBySignature("x-fmc.com");
+    if (xfmc != XPLM_NO_PLUGIN_ID && XPLMIsPluginEnabled(xfmc))
+    {
+        XPLMDisablePlugin(xfmc);
+    }
+    ctx->mcdu.rc.acftyp = ctx->atyp;
+    ctx->mcdu.rc.status = -1;
+
+    /* all good */
     ndt_log("navP [info]: nvp_chandlers_update OK\n"); XPLMSpeakString("nav P configured"); return 0;
 }
 
@@ -1911,6 +1954,74 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         XPLMSetFlightLoopCallbackInterval(ctx->callouts.flc_flaps, 1.0f, 1, NULL);
     }
     return 1;
+}
+
+static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    refcon_cdu_pop *cdu = inRefcon;
+    if (cdu->status == -2)
+    {
+        return 0;
+    }
+    if (inPhase == xplm_CommandEnd)
+    {
+        if (cdu->status == -1)
+        {
+            XPLMPluginID xfmc = XPLMFindPluginBySignature("x-fmc.com");
+            switch (cdu->acftyp)
+            {
+                case NVP_ACF_A320_JD:
+                case NVP_ACF_A330_JD:
+                case NVP_ACF_B737_XG:
+                case NVP_ACF_B757_FF:
+                case NVP_ACF_B767_FF:
+                case NVP_ACF_B777_FF:
+                    cdu->status = -2; return 0; // custom FMS, but no popup/command
+
+                case NVP_ACF_A320_QP:
+                case NVP_ACF_A330_RW:
+                case NVP_ACF_A350_FF:
+                    cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("AirbusFBW/UndockMCDU1");
+                    cdu->status = 0; break;
+
+                case NVP_ACF_EMBE_SS:
+                {
+                    for (int i = 0; i < XPLMCountHotKeys(); i++)
+                    {
+                        char outDescr[513];
+                        XPLMPluginID outPl;
+                        XPLMHotKeyID h_key = XPLMGetNthHotKey(i);
+                        XPLMGetHotKeyInfo(h_key, NULL, NULL, outDescr, &outPl);
+                        if (XPLMFindPluginBySignature("FJCC.SSGERJ") == outPl &&
+                            strncasecmp(outDescr, "F8", 2) == 0)
+                        {
+                            /* TODO: remove this awful hack */
+                            XPLMSetHotKeyCombination(h_key, XPLM_VK_X, xplm_DownFlag);
+                            break;
+                        }
+                    }
+                    cdu->status = -2; return 0;
+                }
+
+                default:
+                    // X-FMC may automatically pop-up when it's enabled,
+                    // no need to call the pop-up command right after init
+                    if (xfmc != XPLM_NO_PLUGIN_ID && !XPLMIsPluginEnabled(xfmc))
+                    {
+                        XPLMEnablePlugin(xfmc);
+                    }
+                    cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("xfmc/toggle");
+                    cdu->status = 0; return 0;
+            }
+        }
+        if (!cdu->cmd[0] || !cdu->cmd[1])
+        {
+            cdu->status = -2; return 0;
+        }
+        XPLMCommandOnce(cdu->cmd[!!cdu->status]);
+        cdu->status  = !cdu->status;
+    }
+    return 0;
 }
 
 static float flc_flap_func(float inElapsedSinceLastCall,
