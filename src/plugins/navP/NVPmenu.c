@@ -60,6 +60,14 @@ typedef struct
         MENUITEM_VOLUME_PRST2,
         MENUITEM_VOLUME_PRST3,
         MENUITEM_VOLUME_PRST4,
+        MENUITEM_FILDOV_SM_IC,
+        MENUITEM_FILDOV_45DEG,
+        MENUITEM_FILDOV_50DEG,
+        MENUITEM_FILDOV_55DEG,
+        MENUITEM_FILDOV_60DEG,
+        MENUITEM_FILDOV_65DEG,
+        MENUITEM_FILDOV_70DEG,
+        MENUITEM_FILDOV_75DEG,
         MENUITEM_CALLOUTS_STS,
         MENUITEM_SPEEDBOOSTER,
         MENUITEM_CLOUD_KILLER,
@@ -85,6 +93,18 @@ typedef struct
             item_context    prst3;
             item_context    prst4;
         } volume;
+        struct
+        {
+            XPLMMenuID      sm_id;
+            item_context    sm_ic;
+            item_context    deg45;
+            item_context    deg50;
+            item_context    deg55;
+            item_context    deg60;
+            item_context    deg65;
+            item_context    deg70;
+            item_context    deg75;
+        } fildov;
         item_context callouts_sts;
         item_context speedbooster;
         item_context cloud_killer;
@@ -178,6 +198,11 @@ typedef struct
             XPLMDataRef dr_vol_coo;
             XPLMDataRef dr_vol_avs;
         } volume_prsts;
+
+        struct
+        {
+            XPLMDataRef fildov_deg;
+        } fildov_prsts;
     } data;
 } menu_context;
 
@@ -187,6 +212,49 @@ static void  menu_handler(void *inMenuRef,                void *inItemRef);
 static char* string4speak(char *string,       size_t alloc, int text_only);
 static int   widget_hdlr1(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
 static float refuel_hdlr1(                       float, float, int, void*);
+
+static int create_menu(const char *name,
+                       void       *data,
+                       XPLMMenuID *_ptr,
+                       XPLMMenuHandler_f func,
+                       XPLMMenuID parent_menu,
+                       int        parent_item)
+{
+    if (!name || !_ptr || !func)
+    {
+        return -1;
+    }
+    XPLMMenuID  id = XPLMCreateMenu(name, parent_menu, parent_item, func, data);
+    if (id)
+    {
+        *_ptr = id; return 0;
+    }
+    return -1;
+}
+
+static int append_menu_item(const char *name, item_context *ctx, int mivalue, XPLMMenuID parent)
+{
+    if (!name || !ctx)
+    {
+        return -1;
+    }
+    ctx->mivalue = mivalue;
+    return ((ctx->id = XPLMAppendMenuItem(parent, name, ctx, 0)) < 0);
+}
+
+static int get_dataref(XPLMDataRef *_ptr, const char *name)
+{
+    if (!_ptr || !name)
+    {
+        return -1;
+    }
+    XPLMDataRef dref = XPLMFindDataRef(name);
+    if (dref)
+    {
+        *_ptr = dref; return 0;
+    }
+    return -1;
+}
 
 void* nvp_menu_init(void)
 {
@@ -264,6 +332,53 @@ void* nvp_menu_init(void)
         !ctx->data.volume_prsts.dr_vol_was ||
         !ctx->data.volume_prsts.dr_vol_coo ||
         !ctx->data.volume_prsts.dr_vol_avs)
+    {
+        goto fail;
+    }
+
+    /* field of view sub-menu & its items */
+    if (append_menu_item("Field of view", &ctx->items.fildov.sm_ic,
+                         MENUITEM_FILDOV_SM_IC, ctx->id))
+    {
+        goto fail;
+    }
+    if (create_menu("Field of view",  ctx, &ctx->items.fildov.sm_id,
+                    &menu_handler, ctx->id, ctx->items.fildov.sm_ic.id))
+    {
+        goto fail;
+    }
+    else
+    {
+        XPLMAppendMenuSeparator(ctx->id);
+    }
+    struct
+    {
+        const char *name;
+        int item_mivalue;
+        item_context *cx;
+    }
+    fildov_items[] =
+    {
+        { "45 degr.", MENUITEM_FILDOV_45DEG, &ctx->items.fildov.deg45, },
+        { "50 degr.", MENUITEM_FILDOV_50DEG, &ctx->items.fildov.deg50, },
+        { "55 degr.", MENUITEM_FILDOV_55DEG, &ctx->items.fildov.deg55, },
+        { "60 degr.", MENUITEM_FILDOV_60DEG, &ctx->items.fildov.deg60, },
+        { "65 degr.", MENUITEM_FILDOV_65DEG, &ctx->items.fildov.deg65, },
+        { "70 degr.", MENUITEM_FILDOV_70DEG, &ctx->items.fildov.deg70, },
+        { "75 degr.", MENUITEM_FILDOV_75DEG, &ctx->items.fildov.deg75, },
+        {       NULL,                     0,                     NULL, },
+    };
+    for (int i = 0; fildov_items[i].name; i++)
+    {
+        if (append_menu_item(fildov_items[i].name,
+                             fildov_items[i].cx,
+                             fildov_items[i].item_mivalue,
+                             ctx->items.fildov.sm_id))
+        {
+            goto fail;
+        }
+    }
+    if (get_dataref(&ctx->data.fildov_prsts.fildov_deg, "sim/graphics/view/field_of_view_deg"))
     {
         goto fail;
     }
@@ -917,6 +1032,41 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         XPLMSetDataf(ctx->data.volume_prsts.dr_vol_coo, volume_ratio);
         XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume_ratio);
         XPLMSpeakString("Volume set");
+        return;
+    }
+
+    if (itx->mivalue >= MENUITEM_FILDOV_45DEG &&
+        itx->mivalue <= MENUITEM_FILDOV_75DEG)
+    {
+        float  field_of_view;
+        switch (itx->mivalue)
+        {
+            case MENUITEM_FILDOV_45DEG:
+                field_of_view = 45.0f;
+                break;
+            case MENUITEM_FILDOV_50DEG:
+                field_of_view = 50.0f;
+                break;
+            case MENUITEM_FILDOV_55DEG:
+                field_of_view = 55.0f;
+                break;
+            case MENUITEM_FILDOV_60DEG:
+                field_of_view = 60.0f;
+                break;
+            case MENUITEM_FILDOV_65DEG:
+                field_of_view = 65.0f;
+                break;
+            case MENUITEM_FILDOV_70DEG:
+                field_of_view = 70.0f;
+                break;
+            case MENUITEM_FILDOV_75DEG:
+                field_of_view = 75.0f;
+                break;
+            default:
+                return;
+        }
+        XPLMSetDataf(ctx->data.fildov_prsts.fildov_deg, field_of_view);
+        XPLMSpeakString("F O V set");
         return;
     }
 }
