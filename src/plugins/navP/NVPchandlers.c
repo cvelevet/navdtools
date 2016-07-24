@@ -2321,6 +2321,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideR");  // TBM 850 & PC-12
             _DO(XPLMSetDataf, -0.5f, "thranda/cockpit/actuators/VisorL");       // TBM 850 & PC-12
             _DO(XPLMSetDataf, -0.5f, "thranda/cockpit/actuators/VisorR");       // TBM 850 & PC-12
+            _DO(XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on"); // various aircraft
             break;
 
         default:
