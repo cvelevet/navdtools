@@ -68,6 +68,9 @@ typedef struct
         MENUITEM_FILDOV_65DEG,
         MENUITEM_FILDOV_70DEG,
         MENUITEM_FILDOV_75DEG,
+        MENUITEM_XFMC01_SM_IC,
+        MENUITEM_XFMC01_NABLE,
+        MENUITEM_XFMC01_DSBLE,
         MENUITEM_CALLOUTS_STS,
         MENUITEM_SPEEDBOOSTER,
         MENUITEM_CLOUD_KILLER,
@@ -105,6 +108,13 @@ typedef struct
             item_context    deg70;
             item_context    deg75;
         } fildov;
+        struct
+        {
+            XPLMMenuID      sm_id;
+            item_context    sm_ic;
+            item_context    nable;
+            item_context    dsble;
+        } xfmc01;
         item_context callouts_sts;
         item_context speedbooster;
         item_context cloud_killer;
@@ -203,6 +213,11 @@ typedef struct
         {
             XPLMDataRef fildov_deg;
         } fildov_prsts;
+
+        struct
+        {
+            XPLMPluginID plugin_id;
+        } xfmc;
     } data;
 } menu_context;
 
@@ -366,6 +381,48 @@ void* nvp_menu_init(void)
     if (get_dataref(&ctx->data.fildov_prsts.fildov_deg, "sim/graphics/view/field_of_view_deg"))
     {
         goto fail;
+    }
+
+    /* X-FMC sub-menu & its items */
+    ctx->data.xfmc.plugin_id = XPLMFindPluginBySignature("x-fmc.com");
+    if (XPLM_NO_PLUGIN_ID != ctx->data.xfmc.plugin_id)
+    {
+        if (append_menu_item("X-FMC", &ctx->items.xfmc01.sm_ic,
+                             MENUITEM_XFMC01_SM_IC, ctx->id))
+        {
+            goto fail;
+        }
+        if (create_menu("X-FMC", ctx, &ctx->items.xfmc01.sm_id,
+                        &menu_handler, ctx->id, ctx->items.xfmc01.sm_ic.id))
+        {
+            goto fail;
+        }
+        else
+        {
+            XPLMAppendMenuSeparator(ctx->id);
+        }
+        struct
+        {
+            const char *name;
+            int item_mivalue;
+            item_context *cx;
+        }
+        xfmc01_items[] =
+        {
+            {  "Enable", MENUITEM_XFMC01_NABLE, &ctx->items.xfmc01.nable, },
+            { "Disable", MENUITEM_XFMC01_DSBLE, &ctx->items.xfmc01.dsble, },
+            {      NULL,                     0,                     NULL, },
+        };
+        for (int i = 0; xfmc01_items[i].name; i++)
+        {
+            if (append_menu_item(xfmc01_items[i].name,
+                                 xfmc01_items[i].cx,
+                                 xfmc01_items[i].item_mivalue,
+                                 ctx->items.xfmc01.sm_id))
+            {
+                goto fail;
+            }
+        }
     }
 
     /* toggle: callouts on/off */
@@ -1033,6 +1090,25 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         }
         XPLMSetDataf(ctx->data.fildov_prsts.fildov_deg, field_of_view);
         XPLMSpeakString("F O V set");
+        return;
+    }
+
+    if (itx->mivalue == MENUITEM_XFMC01_NABLE)
+    {
+        if (XPLMIsPluginEnabled(ctx->data.xfmc.plugin_id) == 0)
+        {
+            XPLMEnablePlugin   (ctx->data.xfmc.plugin_id);
+            XPLMSpeakString    ("X FMC enabled");
+        }
+        return;
+    }
+    if (itx->mivalue == MENUITEM_XFMC01_DSBLE)
+    {
+        if (XPLMIsPluginEnabled(ctx->data.xfmc.plugin_id) != 0)
+        {
+            XPLMDisablePlugin  (ctx->data.xfmc.plugin_id);
+            XPLMSpeakString    ("X FMC disabled");
+        }
         return;
     }
 }
