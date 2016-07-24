@@ -271,9 +271,8 @@ void* nvp_menu_init(void)
     }
 
     /* volume sub-menu & its items */
-    ctx->items.volume.sm_ic.mivalue = MENUITEM_VOLUME_SM_IC;
-    if ((ctx->items.volume.sm_ic.id = XPLMAppendMenuItem( ctx->id, "Volume",
-                                                         &ctx->items.volume.sm_ic, 0)) < 0)
+    if (append_menu_item("Volume", &ctx->items.volume.sm_ic,
+                         MENUITEM_VOLUME_SM_IC, ctx->id))
     {
         goto fail;
     }
@@ -286,35 +285,30 @@ void* nvp_menu_init(void)
     {
         goto fail;
     }
-    ctx->items.volume.prst0.mivalue = MENUITEM_VOLUME_PRST0;
-    if ((ctx->items.volume.prst0.id = XPLMAppendMenuItem( ctx->items.volume.sm_id, "0 %",
-                                                         &ctx->items.volume.prst0, 0)) < 0)
+    struct
     {
-        goto fail;
+        const char *name;
+        int item_mivalue;
+        item_context *cx;
     }
-    ctx->items.volume.prst1.mivalue = MENUITEM_VOLUME_PRST1;
-    if ((ctx->items.volume.prst1.id = XPLMAppendMenuItem( ctx->items.volume.sm_id, "25 %",
-                                                         &ctx->items.volume.prst1, 0)) < 0)
+    volume_items[] =
     {
-        goto fail;
-    }
-    ctx->items.volume.prst2.mivalue = MENUITEM_VOLUME_PRST2;
-    if ((ctx->items.volume.prst2.id = XPLMAppendMenuItem( ctx->items.volume.sm_id, "50 %",
-                                                         &ctx->items.volume.prst2, 0)) < 0)
+        { "  0 %", MENUITEM_VOLUME_PRST0, &ctx->items.volume.prst0, },
+        { " 25 %", MENUITEM_VOLUME_PRST1, &ctx->items.volume.prst1, },
+        { " 50 %", MENUITEM_VOLUME_PRST2, &ctx->items.volume.prst2, },
+        { " 75 %", MENUITEM_VOLUME_PRST3, &ctx->items.volume.prst3, },
+        { "100 %", MENUITEM_VOLUME_PRST4, &ctx->items.volume.prst4, },
+        {    NULL,                     0,                     NULL, },
+    };
+    for (int i = 0; volume_items[i].name; i++)
     {
-        goto fail;
-    }
-    ctx->items.volume.prst3.mivalue = MENUITEM_VOLUME_PRST3;
-    if ((ctx->items.volume.prst3.id = XPLMAppendMenuItem( ctx->items.volume.sm_id, "75 %",
-                                                         &ctx->items.volume.prst3, 0)) < 0)
-    {
-        goto fail;
-    }
-    ctx->items.volume.prst4.mivalue = MENUITEM_VOLUME_PRST4;
-    if ((ctx->items.volume.prst4.id = XPLMAppendMenuItem( ctx->items.volume.sm_id, "100 %",
-                                                         &ctx->items.volume.prst4, 0)) < 0)
-    {
-        goto fail;
+        if (append_menu_item(volume_items[i].name,
+                             volume_items[i].cx,
+                             volume_items[i].item_mivalue,
+                             ctx->items.volume.sm_id))
+        {
+            goto fail;
+        }
     }
     if (get_dataref(&ctx->data.volume_prsts.dr_vol_eng, "sim/operation/sound/engine_volume_ratio" ) ||
         get_dataref(&ctx->data.volume_prsts.dr_vol_prs, "sim/operation/sound/prop_volume_ratio"   ) ||
@@ -375,9 +369,8 @@ void* nvp_menu_init(void)
     }
 
     /* toggle: callouts on/off */
-    ctx->items.callouts_sts.mivalue = MENUITEM_CALLOUTS_STS;
-    if ((ctx->items.callouts_sts.id = XPLMAppendMenuItem( ctx->id, "navP custom callouts",
-                                                         &ctx->items.callouts_sts, 0)) < 0)
+    if (append_menu_item("navP custom callouts", &ctx->items.callouts_sts,
+                         MENUITEM_CALLOUTS_STS,   ctx->id))
     {
         goto fail;
     }
@@ -395,21 +388,18 @@ void* nvp_menu_init(void)
     }
 
     /* toggle: speed boost on/off */
-    ctx->items.speedbooster.mivalue = MENUITEM_SPEEDBOOSTER;
-    if ((ctx->items.speedbooster.id = XPLMAppendMenuItem( ctx->id, "Tachyon Enhancement",
-                                                         &ctx->items.speedbooster, 0)) < 0)
+    if (append_menu_item("Tachyon Enhancement", &ctx->items.speedbooster,
+                         MENUITEM_SPEEDBOOSTER,  ctx->id))
     {
         goto fail;
     }
-    ctx->items.cloud_killer.mivalue = MENUITEM_CLOUD_KILLER;
-    if ((ctx->items.cloud_killer.id = XPLMAppendMenuItem( ctx->id, "Inoperative clouds",
-                                                         &ctx->items.cloud_killer, 0)) < 0)
+    if (append_menu_item("Inoperative clouds", &ctx->items.cloud_killer,
+                         MENUITEM_CLOUD_KILLER, ctx->id))
     {
         goto fail;
     }
-    ctx->items.dummy_item_1.mivalue = MENUITEM_NOTHING_TODO;
-    if ((ctx->items.dummy_item_1.id = XPLMAppendMenuItem( ctx->id, "",
-                                                         &ctx->items.dummy_item_1, 0)) < 0)
+    if (append_menu_item("", &ctx->items.dummy_item_1,
+                         MENUITEM_NOTHING_TODO, ctx->id))
     {
         goto fail;
     }
@@ -419,9 +409,8 @@ void* nvp_menu_init(void)
     }
 
     /* show payload & fuel dialog */
-    ctx->items.refuel_dialg.mivalue = MENUITEM_REFUEL_DIALG;
-    if ((ctx->items.refuel_dialg.id = XPLMAppendMenuItem( ctx->id, "Fuel & Payload",
-                                                         &ctx->items.refuel_dialg, 0)) < 0)
+    if (append_menu_item("Fuel & Payload", &ctx->items.refuel_dialg,
+                         MENUITEM_REFUEL_DIALG, ctx->id))
     {
         goto fail;
     }
@@ -439,9 +428,8 @@ void* nvp_menu_init(void)
     }
 
     /* speak local weather */
-    ctx->items.speakweather.mivalue = MENUITEM_SPEAKWEATHER;
-    if ((ctx->items.speakweather.id = XPLMAppendMenuItem( ctx->id, "Speak weather",
-                                                         &ctx->items.speakweather, 0)) < 0)
+    if (append_menu_item("Speak weather", &ctx->items.speakweather,
+                         MENUITEM_SPEAKWEATHER, ctx->id))
     {
         goto fail;
     }
