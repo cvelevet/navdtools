@@ -265,7 +265,7 @@ void* nvp_menu_init(void)
     }
 
     /* create a submenu in the plugins menu */
-    if ((ctx->id = XPLMCreateMenu("navP", NULL, 0, &menu_handler, ctx)) == NULL)
+    if (create_menu("navP", ctx, &ctx->id, &menu_handler, NULL, 0))
     {
         goto fail;
     }
@@ -277,16 +277,14 @@ void* nvp_menu_init(void)
     {
         goto fail;
     }
-    if ((ctx->items.volume.sm_id = XPLMCreateMenu("Volume",
-                                                  ctx->id,
-                                                  ctx->items.volume.sm_ic.id,
-                                                  &menu_handler, ctx)) == NULL)
-    {
-        goto fail;
-    }
     else
     {
         XPLMAppendMenuSeparator(ctx->id);
+    }
+    if (create_menu("Volume",      ctx,    &ctx->items.volume.sm_id,
+                    &menu_handler, ctx->id, ctx->items.volume.sm_ic.id))
+    {
+        goto fail;
     }
     ctx->items.volume.prst0.mivalue = MENUITEM_VOLUME_PRST0;
     if ((ctx->items.volume.prst0.id = XPLMAppendMenuItem( ctx->items.volume.sm_id, "0 %",
@@ -318,20 +316,13 @@ void* nvp_menu_init(void)
     {
         goto fail;
     }
-    ctx->data.volume_prsts.dr_vol_eng = XPLMFindDataRef("sim/operation/sound/engine_volume_ratio");
-    ctx->data.volume_prsts.dr_vol_prs = XPLMFindDataRef("sim/operation/sound/prop_volume_ratio");
-    ctx->data.volume_prsts.dr_vol_grt = XPLMFindDataRef("sim/operation/sound/ground_volume_ratio");
-    ctx->data.volume_prsts.dr_vol_wer = XPLMFindDataRef("sim/operation/sound/weather_volume_ratio");
-    ctx->data.volume_prsts.dr_vol_was = XPLMFindDataRef("sim/operation/sound/warning_volume_ratio");
-    ctx->data.volume_prsts.dr_vol_coo = XPLMFindDataRef("sim/operation/sound/radio_volume_ratio");
-    ctx->data.volume_prsts.dr_vol_avs = XPLMFindDataRef("sim/operation/sound/fan_volume_ratio");
-    if (!ctx->data.volume_prsts.dr_vol_eng ||
-        !ctx->data.volume_prsts.dr_vol_prs ||
-        !ctx->data.volume_prsts.dr_vol_grt ||
-        !ctx->data.volume_prsts.dr_vol_wer ||
-        !ctx->data.volume_prsts.dr_vol_was ||
-        !ctx->data.volume_prsts.dr_vol_coo ||
-        !ctx->data.volume_prsts.dr_vol_avs)
+    if (get_dataref(&ctx->data.volume_prsts.dr_vol_eng, "sim/operation/sound/engine_volume_ratio" ) ||
+        get_dataref(&ctx->data.volume_prsts.dr_vol_prs, "sim/operation/sound/prop_volume_ratio"   ) ||
+        get_dataref(&ctx->data.volume_prsts.dr_vol_grt, "sim/operation/sound/ground_volume_ratio" ) ||
+        get_dataref(&ctx->data.volume_prsts.dr_vol_wer, "sim/operation/sound/weather_volume_ratio") ||
+        get_dataref(&ctx->data.volume_prsts.dr_vol_was, "sim/operation/sound/warning_volume_ratio") ||
+        get_dataref(&ctx->data.volume_prsts.dr_vol_coo, "sim/operation/sound/radio_volume_ratio"  ) ||
+        get_dataref(&ctx->data.volume_prsts.dr_vol_avs, "sim/operation/sound/fan_volume_ratio"    ))
     {
         goto fail;
     }
@@ -390,20 +381,17 @@ void* nvp_menu_init(void)
     {
         goto fail;
     }
-    ctx->data.callouts_sts.park_brake = XPLMFindDataRef("navP/callouts/park_brake");
-    ctx->data.callouts_sts.speedbrake = XPLMFindDataRef("navP/callouts/speedbrake");
-    ctx->data.callouts_sts.flap_lever = XPLMFindDataRef("navP/callouts/flap_lever");
-    if (!ctx->data.callouts_sts.park_brake ||
-        !ctx->data.callouts_sts.speedbrake ||
-        !ctx->data.callouts_sts.flap_lever)
-    {
-        goto fail;
-    }
     else
     {
-        // Note: XPLMSetDatai doesn't seem to work from XPluginEnable() either,
-        //       so the default dataref and checkbox values can't be set here.
         XPLMAppendMenuSeparator(ctx->id);
+    }
+    if (get_dataref(&ctx->data.callouts_sts.park_brake, "navP/callouts/park_brake") ||
+        get_dataref(&ctx->data.callouts_sts.speedbrake, "navP/callouts/speedbrake") ||
+        get_dataref(&ctx->data.callouts_sts.flap_lever, "navP/callouts/flap_lever"))
+    {
+        // Note: XPLMSetDatai doesn't work from XPluginEnable() either, so the
+        // default dataref/checkbox values can't be set here (no else clause).
+        goto fail;
     }
 
     /* toggle: speed boost on/off */
@@ -437,22 +425,17 @@ void* nvp_menu_init(void)
     {
         goto fail;
     }
-    ctx->data.refuel_dialg.fuel_max = XPLMFindDataRef("sim/aircraft/weight/acf_m_fuel_tot" );
-    ctx->data.refuel_dialg.fuel_rat = XPLMFindDataRef("sim/aircraft/overflow/acf_tank_rat" );
-    ctx->data.refuel_dialg.fuel_qty = XPLMFindDataRef("sim/flightmodel/weight/m_fuel"      );
-    ctx->data.refuel_dialg.fuel_tot = XPLMFindDataRef("sim/flightmodel/weight/m_fuel_total");
-    ctx->data.refuel_dialg.pay_load = XPLMFindDataRef("sim/flightmodel/weight/m_fixed"     );
-    if (!ctx->data.refuel_dialg.fuel_max ||
-        !ctx->data.refuel_dialg.fuel_rat ||
-        !ctx->data.refuel_dialg.fuel_qty ||
-        !ctx->data.refuel_dialg.fuel_tot ||
-        !ctx->data.refuel_dialg.pay_load)
-    {
-        goto fail;
-    }
     else
     {
         XPLMAppendMenuSeparator(ctx->id);
+    }
+    if (get_dataref(&ctx->data.refuel_dialg.fuel_max, "sim/aircraft/weight/acf_m_fuel_tot" ) ||
+        get_dataref(&ctx->data.refuel_dialg.fuel_rat, "sim/aircraft/overflow/acf_tank_rat" ) ||
+        get_dataref(&ctx->data.refuel_dialg.fuel_qty, "sim/flightmodel/weight/m_fuel"      ) ||
+        get_dataref(&ctx->data.refuel_dialg.fuel_tot, "sim/flightmodel/weight/m_fuel_total") ||
+        get_dataref(&ctx->data.refuel_dialg.pay_load, "sim/flightmodel/weight/m_fixed"     ))
+    {
+        goto fail;
     }
 
     /* speak local weather */
@@ -462,16 +445,11 @@ void* nvp_menu_init(void)
     {
         goto fail;
     }
-    ctx->data.speakweather.baro_sl = XPLMFindDataRef("sim/weather/barometer_sealevel_inhg");
-    ctx->data.speakweather.wind_dt = XPLMFindDataRef("sim/weather/wind_direction_degt[0]" );
-    ctx->data.speakweather.wind_sd = XPLMFindDataRef("sim/weather/wind_speed_kt[0]"       );
-    ctx->data.speakweather.temp_dc = XPLMFindDataRef("sim/weather/temperature_ambient_c"  );
-    ctx->data.speakweather.temp_dp = XPLMFindDataRef("sim/weather/dewpoi_sealevel_c"      );
-    if (!ctx->data.speakweather.baro_sl ||
-        !ctx->data.speakweather.wind_dt ||
-        !ctx->data.speakweather.wind_sd ||
-        !ctx->data.speakweather.temp_dc ||
-        !ctx->data.speakweather.temp_dp)
+    if (get_dataref(&ctx->data.speakweather.baro_sl, "sim/weather/barometer_sealevel_inhg") ||
+        get_dataref(&ctx->data.speakweather.wind_dt, "sim/weather/wind_direction_degt[0]" ) ||
+        get_dataref(&ctx->data.speakweather.wind_sd, "sim/weather/wind_speed_kt[0]"       ) ||
+        get_dataref(&ctx->data.speakweather.temp_dc, "sim/weather/temperature_ambient_c"  ) ||
+        get_dataref(&ctx->data.speakweather.temp_dp, "sim/weather/dewpoi_sealevel_c"      ))
     {
         goto fail;
     }
