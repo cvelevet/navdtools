@@ -2244,6 +2244,10 @@ static int first_fcall_do(chandler_context *ctx)
 
         case NVP_ACF_EMBE_SS:
             _DO(XPLMSetDatai, 1, "SSG/EJET/LIGHTS/nav_lights_sw");              // Exter. lighting: navig. (on)
+            _DO(XPLMSetDatai, 1, "SSG/EJET/ENG/eng_iginit1_sw");                // m3rm0z: real-world def. auto
+            _DO(XPLMSetDatai, 1, "SSG/EJET/ENG/eng_iginit2_sw");                // m3rm0z: real-world def. auto
+            _DO(XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys3a_sw");               // m3rm0z: real-world def. off
+            _DO(XPLMSetDatai, 0, "SSG/EJET/HYD/ptu_sys_sw");                    // else hyd. press. on battery (wrong)
             _DO(XPLMSetDatai, 1, "ssg/EJET/GND/rain_hide_sw");                  // Disable custom rain effects
             _DO(XPLMSetDatai, 0, "ssg/EJET/GND/stair1_ON");                     // Hide passenger stairs
             _DO(XPLMSetDatai, 0, "ssg/EJET/GND/seats_hide_sw");                 // Hide captain's seat
