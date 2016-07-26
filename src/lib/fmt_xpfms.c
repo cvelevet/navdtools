@@ -106,6 +106,10 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
             {
                 nwaypoints = -1; // don't trust it, read the whole file
             }
+            else
+            {
+                nwaypoints++;   // format doesn't account for waypoint 0
+            }
             header++;
             continue;
         }
@@ -352,6 +356,10 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
     {
         err = EIO;
         goto end;
+    }
+    else
+    {
+        err = 0; // we may break out with err > 0 (e.g. when nwaypoints reaches 0)
     }
 
     /* Arrival */
