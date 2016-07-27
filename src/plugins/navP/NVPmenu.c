@@ -527,6 +527,20 @@ int nvp_menu_setup(void *_menu_context)
         }
 
         /*
+         * Enable X-Plane real weather on startup (may be reset after a crash).
+         *
+         * TODO: detect "NOAA" plugin and adjust accordingly.
+         */
+        XPLMDataRef urw = XPLMFindDataRef("sim/weather/use_real_weather_bool");
+        XPLMDataRef drw = XPLMFindDataRef("sim/weather/download_real_weather");
+        if (urw && drw)
+        {
+            XPLMSetDatai(urw, 1); // enable
+            XPLMSetDatai(drw, 1); // download
+            ndt_log("navP [info]: enabling X-Plane real weather\n");
+        }
+
+        /*
          * Set defaults for dataref-backed variables,
          * since we can't do it in XPluginEnable().
          *
