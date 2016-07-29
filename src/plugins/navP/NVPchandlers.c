@@ -1183,15 +1183,23 @@ int nvp_chandlers_update(void *inContext)
     }
 
     /*
-     * reset MCDU pop-up handler status.
+     * Reset MCDU pop-up handler status.
      *
-     * pre-emptively disable X-FMC for all aircraft; if
-     * required, it gets re-enabled later automatically.
+     * Also pre-emptively disable X-FMC for all aircraft except
+     * x737; if required, it gets re-enabled later automatically.
      */
     XPLMPluginID xfmc = XPLMFindPluginBySignature("x-fmc.com");
-    if (xfmc != XPLM_NO_PLUGIN_ID && XPLMIsPluginEnabled(xfmc))
+    if (xfmc != XPLM_NO_PLUGIN_ID)
     {
-        XPLMDisablePlugin(xfmc);
+        // TODO: detect x737FMC and disable X-FMC in that case
+        if (ctx->atyp == NVP_ACF_B737_EA && !XPLMIsPluginEnabled(xfmc))
+        {
+            XPLMEnablePlugin(xfmc);
+        }
+        else if (XPLMIsPluginEnabled(xfmc))
+        {
+            XPLMDisablePlugin(xfmc);
+        }
     }
     ctx->mcdu.rc.acftyp = ctx->atyp;
     ctx->mcdu.rc.status = -1;
@@ -2066,6 +2074,9 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     cdu->status = -2; return 0;
                 }
 
+                case NVP_ACF_B737_EA:
+                    // TODO: detect x737FMC and disable X-FMC when present
+                    // but for now, simply fall through to the generic case
                 default:
                     if ((acft_author = XPLMFindDataRef("sim/aircraft/view/acf_author")))
                     {
@@ -2232,6 +2243,12 @@ static int first_fcall_do(chandler_context *ctx)
                 XPLMSetDatavf(d_ref, &panel_brightness_ratio[0], 0, 1);         // Cockpit/flood lights
             }
             _DO(XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on");
+            break;
+
+        case NVP_ACF_B737_EA:
+            _DO(XPLMSetDatai, 1, "x737/systems/exteriorLights/positionLightSwitch");
+            _DO(XPLMSetDatai, 0, "x737/cockpit/yoke/captYokeVisible");
+            _DO(XPLMSetDatai, 0, "x737/cockpit/yoke/foYokeVisible");
             break;
 
         case NVP_ACF_B737_XG:
