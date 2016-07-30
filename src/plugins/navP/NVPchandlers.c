@@ -2115,7 +2115,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             strncasecmp(outDescr, "F8", 2) == 0)
                         {
                             /* TODO: remove this awful hack */
-                            XPLMSetHotKeyCombination(h_key, XPLM_VK_X, xplm_DownFlag);
+                            XPLMSetHotKeyCombination(h_key, XPLM_VK_ESCAPE, xplm_DownFlag);
                             break;
                         }
                     }
