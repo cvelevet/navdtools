@@ -1185,20 +1185,66 @@ int nvp_chandlers_update(void *inContext)
     /*
      * Reset MCDU pop-up handler status.
      *
-     * Also pre-emptively disable X-FMC for all aircraft except
-     * x737; if required, it gets re-enabled later automatically.
+     * Also pre-emptively disable plugin FMSes for all aircraft except
+     * x737; if required, they will be re-enabled later automatically.
+     *
+     * Priority order for x737: x737FMC, then SimpleFMC, then X-FMC.
      */
+    XPLMPluginID sfmc = XPLMFindPluginBySignature("pikitanga.xplane10.SimpleFMC");
+    XPLMPluginID x737 = XPLMFindPluginBySignature("FJCC.x737FMC");
     XPLMPluginID xfmc = XPLMFindPluginBySignature("x-fmc.com");
+    if (x737 != XPLM_NO_PLUGIN_ID)
+    {
+        if (ctx->atyp == NVP_ACF_B737_EA)
+        {
+            if (XPLMIsPluginEnabled(x737) == 0)
+            {
+                XPLMEnablePlugin(x737);
+            }
+        }
+        else
+        {
+            if (XPLMIsPluginEnabled(x737))
+            {
+                XPLMDisablePlugin(x737);
+            }
+        }
+    }
+    if (sfmc != XPLM_NO_PLUGIN_ID)
+    {
+        if (ctx->atyp == NVP_ACF_B737_EA &&
+            x737      == XPLM_NO_PLUGIN_ID)
+        {
+            if (XPLMIsPluginEnabled(sfmc) == 0)
+            {
+                XPLMEnablePlugin(sfmc);
+            }
+        }
+        else
+        {
+            if (XPLMIsPluginEnabled(sfmc))
+            {
+                XPLMDisablePlugin(sfmc);
+            }
+        }
+    }
     if (xfmc != XPLM_NO_PLUGIN_ID)
     {
-        // TODO: detect x737FMC and disable X-FMC in that case
-        if (ctx->atyp == NVP_ACF_B737_EA && !XPLMIsPluginEnabled(xfmc))
+        if (ctx->atyp == NVP_ACF_B737_EA   &&
+            sfmc      == XPLM_NO_PLUGIN_ID &&
+            x737      == XPLM_NO_PLUGIN_ID)
         {
-            XPLMEnablePlugin(xfmc);
+            if (XPLMIsPluginEnabled(xfmc) == 0)
+            {
+                XPLMEnablePlugin(xfmc);
+            }
         }
-        else if (XPLMIsPluginEnabled(xfmc))
+        else
         {
-            XPLMDisablePlugin(xfmc);
+            if (XPLMIsPluginEnabled(xfmc))
+            {
+                XPLMDisablePlugin(xfmc);
+            }
         }
     }
     ctx->mcdu.rc.acftyp = ctx->atyp;
@@ -2038,6 +2084,8 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         if (cdu->status == -1)
         {
+            XPLMPluginID sfmc = XPLMFindPluginBySignature("pikitanga.xplane10.SimpleFMC");
+            XPLMPluginID x737 = XPLMFindPluginBySignature("FJCC.x737FMC");
             XPLMPluginID xfmc = XPLMFindPluginBySignature("x-fmc.com");
             switch (cdu->acftyp)
             {
@@ -2075,8 +2123,16 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
 
                 case NVP_ACF_B737_EA:
-                    // TODO: detect x737FMC and disable X-FMC when present
-                    // but for now, simply fall through to the generic case
+                    if (x737 != XPLM_NO_PLUGIN_ID)
+                    {
+                        if (XPLMIsPluginEnabled(x737) == 0)
+                        {
+                            XPLMEnablePlugin(x737);
+                        }
+                        cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("x737/UFMC/FMC_TOGGLE");
+                        cdu->status = 0; break;
+                    }
+                    // fall through
                 default:
                     if ((acft_author = XPLMFindDataRef("sim/aircraft/view/acf_author")))
                     {
@@ -2084,30 +2140,38 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         dataref_read_string(acft_author, author_name,  sizeof(author_name));
                         if (!STRN_CASECMP_AUTO(author_name, "Aerobask"))
                         {
-                            // Garmin GNS430, GNS530 or Dynon SkyView
                             cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("aerobask/skyview/toggle_left");
                             if (cdu->cmd[0])
                             {
-                                XPLMCommandOnce(cdu->cmd[0]);
-                                cdu->status = +1; return 0;
+                                cdu->status = 0; break; // Dynon SkyView
                             }
-                            cdu->status = -2; return 0;
+                            cdu->status = -2; return 0; // GNS430, GNS530
                         }
                         if (!STRN_CASECMP_AUTO(author_name, "Alabeo") ||
                             !STRN_CASECMP_AUTO(author_name, "Carenado"))
                         {
-                            // Garmin GNS430, GNS530 or G1000
-                            cdu->status = -2; return 0;
+                            cdu->status = -2; return 0; // GNS430, GNS530, G1000
                         }
                     }
-                    // X-FMC may automatically pop-up when it's enabled,
-                    // no need to call the pop-up command right after init
-                    if (xfmc != XPLM_NO_PLUGIN_ID && !XPLMIsPluginEnabled(xfmc))
+                    if (sfmc != XPLM_NO_PLUGIN_ID)
                     {
-                        XPLMEnablePlugin(xfmc);
+                        if (XPLMIsPluginEnabled(sfmc) == 0)
+                        {
+                            XPLMEnablePlugin(sfmc);
+                        }
+                        cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("pikitanga/SimpleFMC/ToggleSimpleFMC");
+                        cdu->status = 0; break;
                     }
-                    cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("xfmc/toggle");
-                    cdu->status = 0; return 0;
+                    if (xfmc != XPLM_NO_PLUGIN_ID)
+                    {
+                        if (XPLMIsPluginEnabled(xfmc) == 0)
+                        {
+                            XPLMEnablePlugin(xfmc);
+                        }
+                        cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("xfmc/toggle");
+                        cdu->status = 0; break;
+                    }
+                    cdu->status = -2; return 0; // no plugin FMS found
             }
         }
         if (!cdu->cmd[0] || !cdu->cmd[1])
