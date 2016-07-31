@@ -32,12 +32,14 @@
 
 #define YFS_MAINWINDOW_W 480
 #define YFS_MAINWINDOW_H 480
-#define YFS_SOFT_KEY_1_W 50 // 9 buttons in 480 pixels, 3 separators
-#define YFS_SOFT_KEY_1_H 38 // 6 buttons in 240 pixels, 1 separator
-#define YFS_SOFT_KEY_1_B 3  // ~8% height: 3px border x2, per button
-#define YFS_SOFT_KEY_2_W 43 // 7 buttons in ~300 pixels (6x soft_key_1_w)
-#define YFS_SOFT_KEY_2_H 38 // 6 buttons in 240 pixels
-#define YFS_SOFT_KEY_2_B 3  // ~8% height: 3px border x2, per button
+#define YFS_MAINSCREEN_W 360 // 24 chr. positions (15px each)
+#define YFS_MAINSCREEN_H 198 // 11 line positions (18px each)
+#define YFS_SOFT_KEY_1_W 50  // 9 buttons in 480 pixels, 3 separators
+#define YFS_SOFT_KEY_1_H 38  // 6 buttons in 240 pixels, 1 separator
+#define YFS_SOFT_KEY_1_B 3   // ~8% height: 3px border x2, per button
+#define YFS_SOFT_KEY_2_W 43  // 7 buttons in ~300 pixels (6x soft_key_1_w)
+#define YFS_SOFT_KEY_2_H 38  // 6 buttons in 240 pixels
+#define YFS_SOFT_KEY_2_B 3   // ~8% height: 3px border x2, per button
 
 typedef struct
 {
@@ -106,7 +108,23 @@ typedef struct
             XPWidgetID keyid_al_w;
             XPWidgetID keyid_al_v;
             XPWidgetID keyid_al_u;
-        } keys;
+        }
+        keys;
+
+        struct
+        {
+            XPWidgetID subw_id;
+            int        sw_inBM;
+            int        sw_inLT;
+            int        sw_inTP;
+            int        sw_inRT;
+            XPWidgetID line_id[11];
+            int        ln_inBM[11];
+            int        ln_inLT[11];
+            int        ln_inTP[11];
+            int        ln_inRT[11];
+        }
+        screen;
     }
     mwindow;
 }
@@ -184,10 +202,9 @@ static int create_main_window(yfms_context *yfms)
     int inLT = +0;
     int inTP = -1 + YFS_MAINWINDOW_H;
     int inRT = -1 + YFS_MAINWINDOW_W;
-    yfms->mwindow.id = XPCreateWidget(inLT, inTP, inRT, inBM, 0,
-                                      "YFMS", 1, NULL,
-                                      xpWidgetClass_MainWindow);
-    if (!yfms->mwindow.id)
+    if ((yfms->mwindow.id = XPCreateWidget(inLT, inTP, inRT, inBM,
+                                           0, "YFMS", 1, NULL,
+                                           xpWidgetClass_MainWindow)) == NULL)
     {
         ndt_log("YFMS [warning]: could not create main window\n");
         return -1;
@@ -605,6 +622,72 @@ static int create_main_window(yfms_context *yfms)
     {
         goto create_button_fail;
     }
+
+    /*
+     * Now the MCDU's screen sub-window and associated labels.
+     */
+    int align_scW = (YFS_MAINWINDOW_W - YFS_MAINSCREEN_W) / 2;
+    inTP =  keybordTP + separatrH - 1 + YFS_MAINSCREEN_H;   // top
+    inRT =  mainwinRT - align_scW + 1;                      // right
+    inLT =    inRT - YFS_MAINSCREEN_W;                      // left
+    for (int i = 0; i < 11; i++)
+    {
+        inBM = inTP - YFS_MAINSCREEN_H / 11; // set height for each line here
+        yfms->mwindow.screen.ln_inBM[i] = inBM;
+        yfms->mwindow.screen.ln_inLT[i] = inLT;
+        yfms->mwindow.screen.ln_inTP[i] = inTP;
+        yfms->mwindow.screen.ln_inRT[i] = inRT;
+        inTP                            = inBM; // next line starts below this
+#if 1//debug
+        ndt_log("navP [debug]: (%d, %d) -> (%d, %d) (width: %d, height: %d)\n",
+                yfms->mwindow.screen.ln_inBM[i],
+                yfms->mwindow.screen.ln_inLT[i],
+                yfms->mwindow.screen.ln_inTP[i],
+                yfms->mwindow.screen.ln_inRT[i],
+                yfms->mwindow.screen.ln_inRT[i] -
+                yfms->mwindow.screen.ln_inLT[i],
+                yfms->mwindow.screen.ln_inTP[i] -
+                yfms->mwindow.screen.ln_inBM[i]);
+#endif
+    }
+    if ((yfms->mwindow.screen.subw_id =
+         XPCreateWidget(yfms->mwindow.screen.sw_inLT = yfms->mwindow.screen.ln_inLT[ 0],
+                        yfms->mwindow.screen.sw_inTP = yfms->mwindow.screen.ln_inTP[ 0],
+                        yfms->mwindow.screen.sw_inRT = yfms->mwindow.screen.ln_inRT[ 0],
+                        yfms->mwindow.screen.sw_inBM = yfms->mwindow.screen.ln_inBM[10],
+                        1, "", 0, yfms->mwindow.id, xpWidgetClass_SubWindow)))
+    {
+        XPSetWidgetProperty(yfms->mwindow.screen.subw_id, xpProperty_SubWindowType, xpSubWindowStyle_Screen);
+    }
+    else
+    {
+        ndt_log("YFMS [warning]: could not create MCDU display sub-window\n");
+        return -1;
+    }
+    for (int i = 0; i < 11; i++)
+    {
+        if ((yfms->mwindow.screen.line_id[i] =
+             XPCreateWidget(yfms->mwindow.screen.ln_inLT[i] + 12,
+                            yfms->mwindow.screen.ln_inTP[i] -  1,
+                            yfms->mwindow.screen.ln_inRT[i] - 12,
+                            yfms->mwindow.screen.ln_inBM[i] +  1,
+                            1, "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+                            0, yfms->mwindow.id, xpWidgetClass_Caption)))
+        {
+            XPSetWidgetProperty(yfms->mwindow.screen.line_id[i], xpProperty_CaptionLit, 1);
+        }
+        else
+        {
+            ndt_log("YFMS [warning]: could not create MCDU display, line %d\n", i + 1);
+            return -1;
+        }
+//        if (0)
+//        {
+//            // TODO: also add line select keys where applicable
+//        }
+    }
+
+    // TODO: toggle
 
     /* all good */
     return 0;
