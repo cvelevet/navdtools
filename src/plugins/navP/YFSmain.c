@@ -53,6 +53,16 @@ typedef struct
             XPWidgetID keyid_vnav;
             XPWidgetID keyid__nav;
             XPWidgetID keyid_data;
+            // row 2, right-to-left
+            XPWidgetID keyid_num6;
+            XPWidgetID keyid_num5;
+            XPWidgetID keyid_num4;
+            XPWidgetID keyid_next;
+            XPWidgetID keyid_menu;
+            XPWidgetID keyid_tune;
+            XPWidgetID keyid_perf;
+            XPWidgetID keyid__fpl;
+            XPWidgetID keyid_fuel;
         } keys;
     }
     mwindow;
@@ -61,6 +71,9 @@ yfms_context;
 
 static int yfs_mwindowh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
 
+/*
+ * TODO: xpWidgetClass_Button limited to 15px height; use custom widget instead.
+ */
 typedef struct
 {
     XPWidgetID *_wid;
@@ -158,7 +171,7 @@ static int create_main_window(yfms_context *yfms)
     softkey.btBW = softkey.btBH = YFS_SOFT_KEY_1_B;
     softkey.inRT = keybordRT - separatrW;
     softkey.inTP = keybordTP;
-    // first row of buttons
+    // row 1
     softkey.desc = "3";
     softkey._wid = &yfms->mwindow.keys.keyid_num3;
     if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
@@ -212,6 +225,68 @@ static int create_main_window(yfms_context *yfms)
     }
     softkey.desc = "DATA";
     softkey._wid = &yfms->mwindow.keys.keyid_data;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    // row 2
+    {
+        softkey.inRT = keybordRT - separatrW;           // new row, back right
+        softkey.inTP = softkey.inTP - YFS_SOFT_KEY_1_H; // lose 1 row height
+    }
+    softkey.desc = "6";
+    softkey._wid = &yfms->mwindow.keys.keyid_num6;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "5";
+    softkey._wid = &yfms->mwindow.keys.keyid_num5;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "4";
+    softkey._wid = &yfms->mwindow.keys.keyid_num4;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    {
+        softkey.inRT -= separatrW; // horizontal separator
+    }
+    softkey.desc = "NEXT";
+    softkey._wid = &yfms->mwindow.keys.keyid_next;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "MENU";
+    softkey._wid = &yfms->mwindow.keys.keyid_menu;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "TUNE";
+    softkey._wid = &yfms->mwindow.keys.keyid_tune;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "PERF";
+    softkey._wid = &yfms->mwindow.keys.keyid_perf;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "FPL";
+    softkey._wid = &yfms->mwindow.keys.keyid__fpl;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "FUEL";
+    softkey._wid = &yfms->mwindow.keys.keyid_fuel;
     if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
     {
         goto create_button_fail;
