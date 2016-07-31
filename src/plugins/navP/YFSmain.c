@@ -50,6 +50,9 @@ typedef struct
         int win_state;
         struct
         {
+            // line select keys
+            XPWidgetID keyid_lsk[5];
+            XPWidgetID keyid_rsk[5];
             // row 1, right-to-left
             XPWidgetID keyid_num3;
             XPWidgetID keyid_num2;
@@ -715,10 +718,27 @@ static int create_main_window(yfms_context *yfms)
             ndt_log("YFMS [error]: could not create MCDU display, line %d\n", i + 1);
             return -1;
         }
-//        if (0)
-//        {
-//            // TODO: also add line select keys where applicable
-//        }
+        if (i >= 2 && i % 2 == 0) // line select keys here
+        {
+            softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B;
+            softkey.btnW                = YFS_SOFT_KEY_2_W;
+            softkey.btnH                = YFS_MAINSCREEN_H / 11 - 1;
+            softkey.inTP = yfms->mwindow.screen.ln_inTP[i]      - 1;
+            softkey.inRT = yfms->mwindow.screen.ln_inLT[i]      - 10;
+            softkey.inLT = softkey.inRT - softkey.btnW + 1;
+            softkey.desc = "-"; softkey._wid = &yfms->mwindow.keys.keyid_lsk[i/2-1];
+            if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+            {
+                goto create_button_fail;
+            }
+            softkey.inLT = yfms->mwindow.screen.ln_inRT[i] + 10;
+            softkey.inRT = softkey.inLT + softkey.btnW - 1;
+            softkey.desc = "-"; softkey._wid = &yfms->mwindow.keys.keyid_rsk[i/2-1];
+            if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+            {
+                goto create_button_fail;
+            }
+        }
     }
 
     /* easy to use X-Plane command to toggle YFMS window */
