@@ -36,6 +36,7 @@
 #include "common/common.h"
 
 #include "NVPmenu.h"
+#include "YFSmain.h"
 
 #define REFUEL_DIALG_CAPW 120
 #define REFUEL_DIALG_CAPH  24
@@ -76,6 +77,7 @@ typedef struct
         MENUITEM_CLOUD_KILLER,
         MENUITEM_REFUEL_DIALG,
         MENUITEM_SPEAKWEATHER,
+        MENUITEM_YFMS_MAINWIN,
     } mivalue;
 } item_context;
 
@@ -121,6 +123,7 @@ typedef struct
         item_context dummy_item_1;
         item_context refuel_dialg;
         item_context speakweather;
+        item_context yfms_mainwin;
     } items;
 
     struct
@@ -218,6 +221,11 @@ typedef struct
         {
             XPLMPluginID plugin_id;
         } xfmc;
+
+        struct
+        {
+            void *context;
+        } yfms;
     } data;
 } menu_context;
 
@@ -490,11 +498,26 @@ void* nvp_menu_init(void)
     {
         goto fail;
     }
+    else
+    {
+        XPLMAppendMenuSeparator(ctx->id);
+    }
     if (get_dataref(&ctx->data.speakweather.baro_sl, "sim/weather/barometer_sealevel_inhg") ||
         get_dataref(&ctx->data.speakweather.wind_dt, "sim/weather/wind_direction_degt[0]" ) ||
         get_dataref(&ctx->data.speakweather.wind_sd, "sim/weather/wind_speed_kt[0]"       ) ||
         get_dataref(&ctx->data.speakweather.temp_dc, "sim/weather/temperature_ambient_c"  ) ||
         get_dataref(&ctx->data.speakweather.temp_dp, "sim/weather/dewpoi_sealevel_c"      ))
+    {
+        goto fail;
+    }
+
+    /* YFMS main window */
+    if (append_menu_item("YFMS toggle", &ctx->items.yfms_mainwin,
+                         MENUITEM_YFMS_MAINWIN, ctx->id))
+    {
+        goto fail;
+    }
+    if ((ctx->data.yfms.context = yfs_main_init()) == NULL)
     {
         goto fail;
     }
@@ -816,6 +839,12 @@ int nvp_menu_close(void **_menu_context)
         XPLMUnregisterFlightLoopCallback(ctx->data.refuel_dialg.rfc, ctx);
     }
 
+    /* if we nuke the menu, we nuke YFMS too */
+    if (ctx->data.yfms.context)
+    {
+        yfs_main_close(&ctx->data.yfms.context);
+    }
+
     /* all good */
     free(ctx);
     return 0;
@@ -1123,6 +1152,12 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             XPLMDisablePlugin  (ctx->data.xfmc.plugin_id);
             XPLMSpeakString    ("X FMC disabled");
         }
+        return;
+    }
+
+    if (itx->mivalue == MENUITEM_YFMS_MAINWIN)
+    {
+        yfs_main_toggl(ctx->data.yfms.context);
         return;
     }
 }

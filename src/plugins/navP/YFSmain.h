@@ -22,6 +22,7 @@
 #define YFS_MAIN_H
 
 void* yfs_main_init (void                );
+void  yfs_main_toggl(void   *yfms_context);
 int   yfs_main_close(void **_yfms_context);
 
 #endif /* YFS_MAIN_H */
