@@ -23,6 +23,7 @@
 
 #include "Widgets/XPStandardWidgets.h"
 #include "Widgets/XPWidgets.h"
+#include "XPLM/XPLMDisplay.h"
 
 #include "common/common.h"
 
@@ -36,6 +37,11 @@ typedef struct
     struct
     {
         XPWidgetID id;
+        int win_state;
+        struct
+        {
+            //fixme
+        } keys;
     }
     mwindow;
 }
@@ -59,8 +65,8 @@ static int create_main_window(yfms_context *yfms)
     }
 
     /* Main window (root, container) */
-    int inLT = +0;
     int inBM = +0;
+    int inLT = +0;
     int inRT = -1 + YFS_MAINWINDOW_W;
     int inTP = -1 + YFS_MAINWINDOW_H;
     yfms->mwindow.id = XPCreateWidget(inLT, inTP, inRT, inBM, 0,
@@ -72,11 +78,37 @@ static int create_main_window(yfms_context *yfms)
         return -1;
     }
     XPSetWidgetProperty(yfms->mwindow.id, xpProperty_MainWindowHasCloseBoxes, 1);
-    XPSetWidgetProperty(yfms->mwindow.id, xpProperty_MainWindowType, xpMainWindowStyle_Translucent);
+    XPSetWidgetProperty(yfms->mwindow.id, xpProperty_MainWindowType, xpMainWindowStyle_MainWindow);
 //    XPAddWidgetCallback(yfms->mwindow.id, &widget_hdlr1);
 
     /* all good */
     return 0;
+}
+
+static void toggle_main_window(yfms_context *yfms)
+{
+    if (!yfms)
+    {
+        return;
+    }
+    if (yfms->mwindow.win_state == 0) // place window (for now, display center)
+    {
+        int scrw, scrh;
+        yfms->mwindow.win_state += 1;
+        XPLMGetScreenSize(&scrw, &scrh);
+        int inBM = (scrh - YFS_MAINWINDOW_H) / 2;
+        int inLT = (scrw - YFS_MAINWINDOW_W) / 2;
+        int inRT = (inLT + YFS_MAINWINDOW_W) - 1;
+        int inTP = (inRT + YFS_MAINWINDOW_H) - 1;
+        XPSetWidgetGeometry(yfms->mwindow.id, inLT, inTP, inRT, inBM);
+    }
+    if (XPIsWidgetVisible(yfms->mwindow.id))
+    {
+        XPHideWidget(yfms->mwindow.id);
+        return;
+    }
+    XPShowWidget(yfms->mwindow.id);
+    return;
 }
 
 void* yfs_main_init(void)
@@ -101,10 +133,10 @@ fail:
     return NULL;
 }
 
-int yfs_main_close(void **_yfms_context)
+int yfs_main_close(void **_yfms_ctx)
 {
-    yfms_context *yfms = *_yfms_context;
-    *_yfms_context = NULL;
+    yfms_context *yfms = *_yfms_ctx;
+    *_yfms_ctx = NULL;
     if (!yfms)
     {
         return -1;
@@ -119,4 +151,15 @@ int yfs_main_close(void **_yfms_context)
     /* all good */
     free(yfms);
     return 0;
+}
+
+void yfs_main_toggl(void *yfms_ctx)
+{
+    yfms_context  *yfms = yfms_ctx;
+    if (!yfms)
+    {
+        return;
+    }
+    toggle_main_window(yfms);
+    return;
 }
