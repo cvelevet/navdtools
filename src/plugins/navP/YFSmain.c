@@ -25,6 +25,7 @@
 #include "Widgets/XPStandardWidgets.h"
 #include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMDisplay.h"
+#include "XPLM/XPLMGraphics.h"
 #include "XPLM/XPLMUtilities.h"
 
 #include "common/common.h"
@@ -741,18 +742,6 @@ static int create_main_window(yfms_context *yfms)
         }
     }
 
-    /* easy to use X-Plane command to toggle YFMS window */
-    if ((yfms->mwindow.toggle.command =
-         XPLMCreateCommand("YFMS/toggle", "toggle YFMS window")) == NULL)
-    {
-        ndt_log("YFMS [error]: could not create X-Plane command for toggle\n");
-        return -1;
-    }
-    XPLMRegisterCommandHandler(yfms->mwindow.toggle.command,
-                               yfms->mwindow.toggle.handler = &chandler_tog,
-                               yfms->mwindow.toggle.before  = 0,
-                               yfms->mwindow.toggle.refcon  = yfms);
-
     /* all good */
     return 0;
 
@@ -802,6 +791,18 @@ void* yfs_main_init(void)
     {
         goto fail;
     }
+
+    /* easy to use X-Plane command to toggle YFMS window */
+    if ((yfms->mwindow.toggle.command =
+         XPLMCreateCommand("YFMS/toggle", "toggle YFMS window")) == NULL)
+    {
+        ndt_log("YFMS [error]: could not create X-Plane command for toggle\n");
+        goto fail;
+    }
+    XPLMRegisterCommandHandler(yfms->mwindow.toggle.command,
+                               yfms->mwindow.toggle.handler = &chandler_tog,
+                               yfms->mwindow.toggle.before  = 0,
+                               yfms->mwindow.toggle.refcon  = yfms);
 
     /* all good */
     return yfms;
