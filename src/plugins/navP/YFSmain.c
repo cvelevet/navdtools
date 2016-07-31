@@ -29,8 +29,8 @@
 
 #include "YFSmain.h"
 
-#define YFS_MAINWINDOW_W 100
-#define YFS_MAINWINDOW_H 100
+#define YFS_MAINWINDOW_W 460
+#define YFS_MAINWINDOW_H 460
 
 typedef struct
 {
@@ -67,8 +67,8 @@ static int create_main_window(yfms_context *yfms)
     /* Main window (root, container) */
     int inBM = +0;
     int inLT = +0;
-    int inRT = -1 + YFS_MAINWINDOW_W;
     int inTP = -1 + YFS_MAINWINDOW_H;
+    int inRT = -1 + YFS_MAINWINDOW_W;
     yfms->mwindow.id = XPCreateWidget(inLT, inTP, inRT, inBM, 0,
                                       "YFMS", 1, NULL,
                                       xpWidgetClass_MainWindow);
@@ -98,8 +98,8 @@ static void toggle_main_window(yfms_context *yfms)
         XPLMGetScreenSize(&scrw, &scrh);
         int inBM = (scrh - YFS_MAINWINDOW_H) / 2;
         int inLT = (scrw - YFS_MAINWINDOW_W) / 2;
+        int inTP = (inBM + YFS_MAINWINDOW_H) - 1;
         int inRT = (inLT + YFS_MAINWINDOW_W) - 1;
-        int inTP = (inRT + YFS_MAINWINDOW_H) - 1;
         XPSetWidgetGeometry(yfms->mwindow.id, inLT, inTP, inRT, inBM);
     }
     if (XPIsWidgetVisible(yfms->mwindow.id))
