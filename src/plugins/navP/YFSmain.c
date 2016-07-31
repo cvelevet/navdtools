@@ -549,6 +549,62 @@ static int create_main_window(yfms_context *yfms)
     {
         goto create_button_fail;
     }
+    // row 6
+    {
+        softkey.inRT = keybordRT    - separatrW - YFS_SOFT_KEY_1_W; // -1 key
+        softkey.inTP = softkey.inTP             - YFS_SOFT_KEY_1_H; // align h.
+        softkey.btnW           = 2 *  YFS_SOFT_KEY_1_W; // wider key width
+        softkey.btnH                = YFS_SOFT_KEY_1_H; // reset key height
+        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_1_B; // reset borders
+    }
+    softkey.desc = "ENTER";
+    softkey._wid = &yfms->mwindow.keys.keyid_entr;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    {
+        softkey.inRT = softkey.inRT - separatrW; // horizon. separator
+        softkey.btnW                = YFS_SOFT_KEY_2_W; // nar. key width
+        softkey.btnH                = YFS_SOFT_KEY_2_H; // same key height
+        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B; // same borders
+    }
+    softkey.desc = "Z";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_z;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "Y";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_y;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "X";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_x;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "W";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_w;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "V";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_v;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "U";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_u;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
 
     /* all good */
     return 0;
