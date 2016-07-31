@@ -29,8 +29,8 @@
 
 #include "YFSmain.h"
 
-#define YFS_MAINWINDOW_W 460
-#define YFS_MAINWINDOW_H 460
+#define YFS_MAINWINDOW_W 480
+#define YFS_MAINWINDOW_H 480
 
 typedef struct
 {
@@ -46,6 +46,8 @@ typedef struct
     mwindow;
 }
 yfms_context;
+
+static int yfs_mwindowh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
 
 /*
  * Create and place the main window and its contents.
@@ -79,7 +81,7 @@ static int create_main_window(yfms_context *yfms)
     }
     XPSetWidgetProperty(yfms->mwindow.id, xpProperty_MainWindowHasCloseBoxes, 1);
     XPSetWidgetProperty(yfms->mwindow.id, xpProperty_MainWindowType, xpMainWindowStyle_MainWindow);
-//    XPAddWidgetCallback(yfms->mwindow.id, &widget_hdlr1);
+    XPAddWidgetCallback(yfms->mwindow.id, &yfs_mwindowh);
 
     /* all good */
     return 0;
@@ -162,4 +164,17 @@ void yfs_main_toggl(void *yfms_ctx)
     }
     toggle_main_window(yfms);
     return;
+}
+
+static int yfs_mwindowh(XPWidgetMessage inMessage,
+                        XPWidgetID      inWidget,
+                        intptr_t        inParam1,
+                        intptr_t        inParam2)
+{
+    if (inMessage == xpMessage_CloseButtonPushed)
+    {
+        XPHideWidget(inWidget);
+        return 1;
+    }
+    return 0;
 }
