@@ -118,7 +118,7 @@ static int yfs_mwindowh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
  * TODO: xpWidgetClass_Button limited to 15px height; use custom widget instead.
  *
  * In the meantime, center the button vertically, and use an
- * other widget behind it to draw some sort of "background". // fixme
+ * other widget behind it to draw some sort of "background". // TODO still
  */
 typedef struct
 {
@@ -363,11 +363,11 @@ static int create_main_window(yfms_context *yfms)
         goto create_button_fail;
     }
     {
-        softkey.inRT -= separatrW; // horizontal separator
-        softkey.inTP -= separatrH; // vertical   separator
-        softkey.btnW = YFS_SOFT_KEY_2_W; // new key width
-        softkey.btnH = YFS_SOFT_KEY_2_H; // same key height
-        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B; // same border
+        softkey.inRT = softkey.inRT - separatrW; // horizon. separator
+        softkey.inTP = softkey.inTP - separatrH; // vertical separator
+        softkey.btnW                = YFS_SOFT_KEY_2_W; // nar. key width
+        softkey.btnH                = YFS_SOFT_KEY_2_H; // same key height
+        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B; // same borders
     }
     softkey.desc = "G";
     softkey._wid = &yfms->mwindow.keys.keyid_al_g;
@@ -411,6 +411,144 @@ static int create_main_window(yfms_context *yfms)
     {
         goto create_button_fail;
     }
+    // row 4
+    {
+        softkey.inRT = keybordRT    - separatrW; // new row, back right
+        softkey.inTP = softkey.inTP + separatrH - YFS_SOFT_KEY_1_H; // align h.
+        softkey.btnW                = YFS_SOFT_KEY_1_W; // reset key width
+        softkey.btnH                = YFS_SOFT_KEY_1_H; // reset key height
+        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_1_B; // reset borders
+    }
+    softkey.desc = "MSG";
+    softkey._wid = &yfms->mwindow.keys.keyid__msg;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "0";
+    softkey._wid = &yfms->mwindow.keys.keyid_num0;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "BACK";
+    softkey._wid = &yfms->mwindow.keys.keyid_back;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    {
+        softkey.inRT = softkey.inRT - separatrW; // horizon. separator
+        softkey.inTP = softkey.inTP - separatrH; // vertical separator
+        softkey.btnW                = YFS_SOFT_KEY_2_W; // nar. key width
+        softkey.btnH                = YFS_SOFT_KEY_2_H; // same key height
+        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B; // same borders
+    }
+    softkey.desc = "N";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_n;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "M";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_m;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "L";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_l;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "K";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_k;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "J";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_j;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "I";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_i;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "H";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_h;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    // row 5
+    {
+        softkey.inRT = keybordRT    - separatrW - YFS_SOFT_KEY_1_W; // -1 key
+        softkey.inTP = softkey.inTP + separatrH - YFS_SOFT_KEY_1_H; // align h.
+        softkey.btnW                = YFS_SOFT_KEY_1_W; // reset key width
+        softkey.btnH                = YFS_SOFT_KEY_1_H; // reset key height
+        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_1_B; // reset borders
+    }
+    softkey.desc = "+/-";
+    softkey._wid = &yfms->mwindow.keys.keyid_plus;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "DIM";
+    softkey._wid = &yfms->mwindow.keys.keyid_onof;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    {
+        softkey.inRT = softkey.inRT - separatrW; // horizon. separator
+        softkey.inTP = softkey.inTP - separatrH; // vertical separator
+        softkey.btnW                = YFS_SOFT_KEY_2_W; // nar. key width
+        softkey.btnH                = YFS_SOFT_KEY_2_H; // same key height
+        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B; // same borders
+    }
+    softkey.desc = "T";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_t;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "S";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_s;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "R";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_r;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "Q";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_q;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "P";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_p;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "O";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_o;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
 
     /* all good */
     return 0;
@@ -439,10 +577,12 @@ static void toggle_main_window(yfms_context *yfms)
     }
     if (XPIsWidgetVisible(yfms->mwindow.id))
     {
-        XPHideWidget(yfms->mwindow.id);
+        XPHideWidget       (yfms->mwindow.id);
+        XPLoseKeyboardFocus(yfms->mwindow.id);
         return;
     }
-    XPShowWidget(yfms->mwindow.id); // TODO: ensure it has focus
+    XPShowWidget      (yfms->mwindow.id);
+    XPSetKeyboardFocus(yfms->mwindow.id);
     return;
 }
 
@@ -506,7 +646,8 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
 {
     if (inMessage == xpMessage_CloseButtonPushed)
     {
-        XPHideWidget(inWidget);
+        XPHideWidget       (inWidget);
+        XPLoseKeyboardFocus(inWidget);
         return 1;
     }
     return 0;

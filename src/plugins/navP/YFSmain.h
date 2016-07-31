@@ -21,6 +21,8 @@
 #ifndef YFS_MAIN_H
 #define YFS_MAIN_H
 
+// TODO: when new aircraft loaded, reset YFMS automatically
+
 void* yfs_main_init (void                );
 void  yfs_main_toggl(void   *yfms_context);
 int   yfs_main_close(void **_yfms_context);
