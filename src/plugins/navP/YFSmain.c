@@ -31,6 +31,9 @@
 
 #define YFS_MAINWINDOW_W 480
 #define YFS_MAINWINDOW_H 480
+#define YFS_SOFT_KEY_1_W 50 // 9 buttons in 480 pixels, 3 separators
+#define YFS_SOFT_KEY_1_H 38 // 6 buttons in 240 pixels, 1 separator
+#define YFS_SOFT_KEY_1_B 3  // ~8% height: 3px border x2, per button
 
 typedef struct
 {
@@ -40,7 +43,16 @@ typedef struct
         int win_state;
         struct
         {
-            //fixme
+            // row 1, right-to-left
+            XPWidgetID keyid_num3;
+            XPWidgetID keyid_num2;
+            XPWidgetID keyid_num1;
+            XPWidgetID keyid_prev;
+            XPWidgetID keyid_list;
+            XPWidgetID keyid__dto;
+            XPWidgetID keyid_vnav;
+            XPWidgetID keyid__nav;
+            XPWidgetID keyid_data;
         } keys;
     }
     mwindow;
@@ -48,6 +60,46 @@ typedef struct
 yfms_context;
 
 static int yfs_mwindowh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
+
+typedef struct
+{
+    XPWidgetID *_wid;
+    const char *desc;
+    int         btnW;
+    int         btnH;
+    int         btBW;
+    int         btBH;
+    int         inBM;
+    int         inLT;
+    int         inTP;
+    int         inRT;
+} yfms_buttn_ctx;
+static int row_prepend_button(yfms_buttn_ctx *b, XPWidgetID container_id)
+{
+    if (!b || !b->_wid || !b->desc || !container_id)
+    {
+        return ENOMEM;
+    }
+    /*
+     * Draw within the designated area, top right to bottom left,
+     * using the provided dimensions: width, height, and borders.
+     */
+    int inTP = b->inTP - b->btBH;
+    int inRT = b->inRT - b->btBW;
+    int inBM = b->inTP + b->btBH - b->btnH;
+    int inLT = b->inRT + b->btBW - b->btnW;
+    XPWidgetID wid = XPCreateWidget(inLT, inTP, inRT, inBM, 1,
+                                    b->desc, 0, container_id,
+                                    xpWidgetClass_Button);
+    if (wid == NULL)
+    {
+        return EINVAL;
+    }
+    // update right coordinates as per the button width, border
+    // top coordinates remain unchanged (we're on the same row)
+    b->inRT = inLT - b->btBW;
+    *b->_wid = wid; return 0;
+}
 
 /*
  * Create and place the main window and its contents.
@@ -83,8 +135,94 @@ static int create_main_window(yfms_context *yfms)
     XPSetWidgetProperty(yfms->mwindow.id, xpProperty_MainWindowType, xpMainWindowStyle_MainWindow);
     XPAddWidgetCallback(yfms->mwindow.id, &yfs_mwindowh);
 
+    /*
+     * Add a bunch of not-so-pretty buttons.
+     *
+     * Width:  we have 9 keys across and 3 "separators".
+     * Height: we have 6 keys across and 1 "separator" in half the total height.
+     */
+    int separatrW = (YFS_MAINWINDOW_W / 1 - 9 * YFS_SOFT_KEY_1_W) / 3;
+    int separatrH = (YFS_MAINWINDOW_H / 2 - 6 * YFS_SOFT_KEY_1_H) / 1;
+    int keybordBM = (inBM / 1);
+    int keybordLT = (inLT / 1);
+    int keybordTP = (inTP / 2);
+    int keybordRT = (inRT / 1);
+    int mainwinBM = (inBM);
+    int mainwinLT = (inLT);
+    int mainwinTP = (inTP);
+    int mainwinRT = (inRT);
+    int            r_value;
+    yfms_buttn_ctx softkey;
+    // we start at the keyboard's top right, with a separator on the right-hand side
+    softkey.btnW = YFS_SOFT_KEY_1_W; softkey.btnH = YFS_SOFT_KEY_1_H;
+    softkey.btBW = softkey.btBH = YFS_SOFT_KEY_1_B;
+    softkey.inRT = keybordRT - separatrW;
+    softkey.inTP = keybordTP;
+    // first row of buttons
+    softkey.desc = "3";
+    softkey._wid = &yfms->mwindow.keys.keyid_num3;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "2";
+    softkey._wid = &yfms->mwindow.keys.keyid_num2;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "1";
+    softkey._wid = &yfms->mwindow.keys.keyid_num1;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    {
+        softkey.inRT -= separatrW; // horizontal separator
+    }
+    softkey.desc = "PREV";
+    softkey._wid = &yfms->mwindow.keys.keyid_prev;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "LIST";
+    softkey._wid = &yfms->mwindow.keys.keyid_list;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "DTO";
+    softkey._wid = &yfms->mwindow.keys.keyid__dto;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "VNAV";
+    softkey._wid = &yfms->mwindow.keys.keyid_vnav;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "NAV";
+    softkey._wid = &yfms->mwindow.keys.keyid__nav;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "DATA";
+    softkey._wid = &yfms->mwindow.keys.keyid_data;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+
     /* all good */
     return 0;
+
+create_button_fail:
+    ndt_log("YFMS [warning]: could not create button with description \"%s\"\n", softkey.desc);
+    return r_value;
 }
 
 static void toggle_main_window(yfms_context *yfms)
@@ -121,7 +259,7 @@ void* yfs_main_init(void)
         return NULL;
     }
 
-    /* */
+    /* create the main window */
     if (create_main_window(yfms))
     {
         goto fail;
