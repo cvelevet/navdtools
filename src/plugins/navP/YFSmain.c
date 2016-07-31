@@ -32,16 +32,18 @@
 
 #include "YFSmain.h"
 
-#define YFS_MAINWINDOW_W 480
-#define YFS_MAINWINDOW_H 480
-#define YFS_MAINSCREEN_W 360 // 24 chr. positions (15px each)
-#define YFS_MAINSCREEN_H 198 // 11 line positions (18px each)
-#define YFS_SOFT_KEY_1_W 50  // 9 buttons in 480 pixels, 3 separators
-#define YFS_SOFT_KEY_1_H 38  // 6 buttons in 240 pixels, 1 separator
-#define YFS_SOFT_KEY_1_B 3   // ~8% height: 3px border x2, per button
-#define YFS_SOFT_KEY_2_W 43  // 7 buttons in ~300 pixels (6x soft_key_1_w)
-#define YFS_SOFT_KEY_2_H 38  // 6 buttons in 240 pixels
-#define YFS_SOFT_KEY_2_B 3   // ~8% height: 3px border x2, per button
+static int YFS_FONT_BASIC_W =   8; // 2 + xplmFont_Basic width
+static int YFS_FONT_BASIC_H =  14; // 4 + xplmFont_Basic height
+static int YFS_MAINSCREEN_W = 208; // 2 + 24 characters per line
+static int YFS_MAINSCREEN_H = 154; // 11 lines x 24 usable characters
+static int YFS_MAINWINDOW_W = 420; // display + up to 10 buttons across
+static int YFS_MAINWINDOW_H = 420; // display + up to 6 rows in lower half
+static int YFS_SOFT_KEY_1_W =  42; // 9 buttons in 420 pixels, 3 separators
+static int YFS_SOFT_KEY_1_H =  32; // 6 buttons in 210 pixels, 1 separator
+static int YFS_SOFT_KEY_1_B =   2; // 2x 2 pixels of border between each button
+static int YFS_SOFT_KEY_2_W =  36; // 7 buttons in 252 pixels (6x soft_key_1_w)
+static int YFS_SOFT_KEY_2_H =  32; // 6 buttons in 210 pixels
+static int YFS_SOFT_KEY_2_B =   2; // 2x 2 pixels of border between each button
 
 typedef struct
 {
@@ -670,7 +672,7 @@ static int create_main_window(yfms_context *yfms)
     inLT =    inRT - YFS_MAINSCREEN_W;                      // left
     for (int i = 0; i < 11; i++)
     {
-        inBM = inTP - YFS_MAINSCREEN_H / 11; // set height for each line here
+        inBM = inTP - YFS_FONT_BASIC_H; // set height for each line here
         yfms->mwindow.screen.ln_inBM[i] = inBM;
         yfms->mwindow.screen.ln_inLT[i] = inLT;
         yfms->mwindow.screen.ln_inTP[i] = inTP;
@@ -692,7 +694,8 @@ static int create_main_window(yfms_context *yfms)
          XPCreateWidget(yfms->mwindow.screen.sw_inLT = yfms->mwindow.screen.ln_inLT[ 0],
                         yfms->mwindow.screen.sw_inTP = yfms->mwindow.screen.ln_inTP[ 0],
                         yfms->mwindow.screen.sw_inRT = yfms->mwindow.screen.ln_inRT[ 0],
-                        yfms->mwindow.screen.sw_inBM = yfms->mwindow.screen.ln_inBM[10],
+                        // xpSubWindowStyle_Screen has weird bottom "margin" where text isn't pretty
+                        yfms->mwindow.screen.sw_inBM = yfms->mwindow.screen.ln_inBM[10] - 4,
                         1, "", 0, yfms->mwindow.id, xpWidgetClass_SubWindow)))
     {
         XPSetWidgetProperty(yfms->mwindow.screen.subw_id, xpProperty_SubWindowType, xpSubWindowStyle_Screen);
@@ -705,10 +708,10 @@ static int create_main_window(yfms_context *yfms)
     for (int i = 0; i < 11; i++)
     {
         if ((yfms->mwindow.screen.line_id[i] =
-             XPCreateWidget(yfms->mwindow.screen.ln_inLT[i] + 12,
-                            yfms->mwindow.screen.ln_inTP[i] -  1,
-                            yfms->mwindow.screen.ln_inRT[i] - 12,
-                            yfms->mwindow.screen.ln_inBM[i] +  1,
+             XPCreateWidget(yfms->mwindow.screen.ln_inLT[i] + 1 + YFS_FONT_BASIC_W,
+                            yfms->mwindow.screen.ln_inTP[i] - 1,
+                            yfms->mwindow.screen.ln_inRT[i] - 1 - YFS_FONT_BASIC_W,
+                            yfms->mwindow.screen.ln_inBM[i] + 1,
                             1, "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
                             0, yfms->mwindow.id, xpWidgetClass_Caption)))
         {
@@ -723,16 +726,16 @@ static int create_main_window(yfms_context *yfms)
         {
             softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B;
             softkey.btnW                = YFS_SOFT_KEY_2_W;
-            softkey.btnH                = YFS_MAINSCREEN_H / 11 - 1;
-            softkey.inTP = yfms->mwindow.screen.ln_inTP[i]      - 1;
-            softkey.inRT = yfms->mwindow.screen.ln_inLT[i]      - 10;
+            softkey.btnH                = YFS_FONT_BASIC_H;
+            softkey.inTP = yfms->mwindow.screen.ln_inTP[i] - 3;
+            softkey.inRT = yfms->mwindow.screen.ln_inLT[i] - YFS_FONT_BASIC_W;
             softkey.inLT = softkey.inRT - softkey.btnW + 1;
             softkey.desc = "-"; softkey._wid = &yfms->mwindow.keys.keyid_lsk[i/2-1];
             if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
             {
                 goto create_button_fail;
             }
-            softkey.inLT = yfms->mwindow.screen.ln_inRT[i] + 10;
+            softkey.inLT = yfms->mwindow.screen.ln_inRT[i] + YFS_FONT_BASIC_W;
             softkey.inRT = softkey.inLT + softkey.btnW - 1;
             softkey.desc = "-"; softkey._wid = &yfms->mwindow.keys.keyid_rsk[i/2-1];
             if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
