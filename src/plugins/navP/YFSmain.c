@@ -18,6 +18,7 @@
  *     Timothy D. Walker
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 
@@ -34,6 +35,9 @@
 #define YFS_SOFT_KEY_1_W 50 // 9 buttons in 480 pixels, 3 separators
 #define YFS_SOFT_KEY_1_H 38 // 6 buttons in 240 pixels, 1 separator
 #define YFS_SOFT_KEY_1_B 3  // ~8% height: 3px border x2, per button
+#define YFS_SOFT_KEY_2_W 43 // 7 buttons in ~300 pixels (6x soft_key_1_w)
+#define YFS_SOFT_KEY_2_H 38 // 6 buttons in 240 pixels
+#define YFS_SOFT_KEY_2_B 3  // ~8% height: 3px border x2, per button
 
 typedef struct
 {
@@ -63,6 +67,45 @@ typedef struct
             XPWidgetID keyid_perf;
             XPWidgetID keyid__fpl;
             XPWidgetID keyid_fuel;
+            // row 3, right-to-left
+            XPWidgetID keyid_num9;
+            XPWidgetID keyid_num8;
+            XPWidgetID keyid_num7;
+            XPWidgetID keyid_al_g;
+            XPWidgetID keyid_al_f;
+            XPWidgetID keyid_al_e;
+            XPWidgetID keyid_al_d;
+            XPWidgetID keyid_al_c;
+            XPWidgetID keyid_al_b;
+            XPWidgetID keyid_al_a;
+            // row 4, right-to-left
+            XPWidgetID keyid__msg;
+            XPWidgetID keyid_num0;
+            XPWidgetID keyid_back;
+            XPWidgetID keyid_al_n;
+            XPWidgetID keyid_al_m;
+            XPWidgetID keyid_al_l;
+            XPWidgetID keyid_al_k;
+            XPWidgetID keyid_al_j;
+            XPWidgetID keyid_al_i;
+            XPWidgetID keyid_al_h;
+            // row 5, right-to-left
+            XPWidgetID keyid_plus;
+            XPWidgetID keyid_onof;
+            XPWidgetID keyid_al_t;
+            XPWidgetID keyid_al_s;
+            XPWidgetID keyid_al_r;
+            XPWidgetID keyid_al_q;
+            XPWidgetID keyid_al_p;
+            XPWidgetID keyid_al_o;
+            // row 6, right-to-left
+            XPWidgetID keyid_entr;
+            XPWidgetID keyid_al_z;
+            XPWidgetID keyid_al_y;
+            XPWidgetID keyid_al_x;
+            XPWidgetID keyid_al_w;
+            XPWidgetID keyid_al_v;
+            XPWidgetID keyid_al_u;
         } keys;
     }
     mwindow;
@@ -73,6 +116,9 @@ static int yfs_mwindowh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
 
 /*
  * TODO: xpWidgetClass_Button limited to 15px height; use custom widget instead.
+ *
+ * In the meantime, center the button vertically, and use an
+ * other widget behind it to draw some sort of "background". // fixme
  */
 typedef struct
 {
@@ -93,6 +139,8 @@ static int row_prepend_button(yfms_buttn_ctx *b, XPWidgetID container_id)
     {
         return ENOMEM;
     }
+    /* typo protection: don't assign new button to ID that's already set */
+    assert(*b->_wid == NULL);
     /*
      * Draw within the designated area, top right to bottom left,
      * using the provided dimensions: width, height, and borders.
@@ -151,8 +199,8 @@ static int create_main_window(yfms_context *yfms)
     /*
      * Add a bunch of not-so-pretty buttons.
      *
-     * Width:  we have 9 keys across and 3 "separators".
-     * Height: we have 6 keys across and 1 "separator" in half the total height.
+     * Width:  we have 9, or 10 keys across and 3 "separators".
+     * Height: we always have 6 keys across and 1 "separator" in half the total height.
      */
     int separatrW = (YFS_MAINWINDOW_W / 1 - 9 * YFS_SOFT_KEY_1_W) / 3;
     int separatrH = (YFS_MAINWINDOW_H / 2 - 6 * YFS_SOFT_KEY_1_H) / 1;
@@ -291,6 +339,78 @@ static int create_main_window(yfms_context *yfms)
     {
         goto create_button_fail;
     }
+    // row 3
+    {
+        softkey.inRT = keybordRT - separatrW;           // new row, back right
+        softkey.inTP = softkey.inTP - YFS_SOFT_KEY_1_H; // lose 1 row height
+    }
+    softkey.desc = "9";
+    softkey._wid = &yfms->mwindow.keys.keyid_num9;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "8";
+    softkey._wid = &yfms->mwindow.keys.keyid_num8;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "7";
+    softkey._wid = &yfms->mwindow.keys.keyid_num7;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    {
+        softkey.inRT -= separatrW; // horizontal separator
+        softkey.inTP -= separatrH; // vertical   separator
+        softkey.btnW = YFS_SOFT_KEY_2_W; // new key width
+        softkey.btnH = YFS_SOFT_KEY_2_H; // same key height
+        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B; // same border
+    }
+    softkey.desc = "G";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_g;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "F";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_f;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "E";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_e;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "D";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_d;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "C";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_c;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "B";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_b;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "A";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_a;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
 
     /* all good */
     return 0;
@@ -322,7 +442,7 @@ static void toggle_main_window(yfms_context *yfms)
         XPHideWidget(yfms->mwindow.id);
         return;
     }
-    XPShowWidget(yfms->mwindow.id);
+    XPShowWidget(yfms->mwindow.id); // TODO: ensure it has focus
     return;
 }
 
