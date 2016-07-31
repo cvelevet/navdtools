@@ -189,6 +189,9 @@ static int row_prepend_button(yfms_buttn_ctx *b, XPWidgetID container_id)
  *                                   0 -> (width  - 1)
  * We move the widgets just before showing them.
  * Thankfully the child widgets move with their parents :-)
+ *
+ * note1: we offset numerical keys (cf. real thing) in order to align them
+ *        with alphabetical keys, as it creates a more pleasing appearance.
  */
 static int create_main_window(yfms_context *yfms)
 {
@@ -237,6 +240,9 @@ static int create_main_window(yfms_context *yfms)
     softkey.inRT = keybordRT - separatrW;
     softkey.inTP = keybordTP;
     // row 1
+    {
+        softkey.inTP -= separatrH; // note1
+    }
     softkey.desc = "3";
     softkey._wid = &yfms->mwindow.keys.keyid_num3;
     if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
@@ -256,6 +262,7 @@ static int create_main_window(yfms_context *yfms)
         goto create_button_fail;
     }
     {
+        softkey.inTP += separatrH; // note1
         softkey.inRT -= separatrW; // horizontal separator
     }
     softkey.desc = "PREV";
@@ -296,6 +303,9 @@ static int create_main_window(yfms_context *yfms)
     }
     // row 2
     {
+        softkey.inTP -= separatrH; // note1
+    }
+    {
         softkey.inRT = keybordRT - separatrW;           // new row, back right
         softkey.inTP = softkey.inTP - YFS_SOFT_KEY_1_H; // lose 1 row height
     }
@@ -318,6 +328,7 @@ static int create_main_window(yfms_context *yfms)
         goto create_button_fail;
     }
     {
+        softkey.inTP += separatrH; // note1
         softkey.inRT -= separatrW; // horizontal separator
     }
     softkey.desc = "NEXT";
@@ -358,6 +369,9 @@ static int create_main_window(yfms_context *yfms)
     }
     // row 3
     {
+        softkey.inTP -= separatrH; // note1
+    }
+    {
         softkey.inRT = keybordRT - separatrW;           // new row, back right
         softkey.inTP = softkey.inTP - YFS_SOFT_KEY_1_H; // lose 1 row height
     }
@@ -380,8 +394,9 @@ static int create_main_window(yfms_context *yfms)
         goto create_button_fail;
     }
     {
-        softkey.inRT = softkey.inRT - separatrW; // horizon. separator
+        softkey.inTP = softkey.inTP + separatrH; // note1
         softkey.inTP = softkey.inTP - separatrH; // vertical separator
+        softkey.inRT = softkey.inRT - separatrW; // horizon. separator
         softkey.btnW                = YFS_SOFT_KEY_2_W; // nar. key width
         softkey.btnH                = YFS_SOFT_KEY_2_H; // same key height
         softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B; // same borders
@@ -430,6 +445,9 @@ static int create_main_window(yfms_context *yfms)
     }
     // row 4
     {
+        softkey.inTP -= separatrH; // note1
+    }
+    {
         softkey.inRT = keybordRT    - separatrW; // new row, back right
         softkey.inTP = softkey.inTP + separatrH - YFS_SOFT_KEY_1_H; // align h.
         softkey.btnW                = YFS_SOFT_KEY_1_W; // reset key width
@@ -455,8 +473,9 @@ static int create_main_window(yfms_context *yfms)
         goto create_button_fail;
     }
     {
-        softkey.inRT = softkey.inRT - separatrW; // horizon. separator
+        softkey.inTP = softkey.inTP + separatrH; // note1
         softkey.inTP = softkey.inTP - separatrH; // vertical separator
+        softkey.inRT = softkey.inRT - separatrW; // horizon. separator
         softkey.btnW                = YFS_SOFT_KEY_2_W; // nar. key width
         softkey.btnH                = YFS_SOFT_KEY_2_H; // same key height
         softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B; // same borders
@@ -505,6 +524,9 @@ static int create_main_window(yfms_context *yfms)
     }
     // row 5
     {
+        softkey.inTP -= separatrH; // note1
+    }
+    {
         softkey.inRT = keybordRT    - separatrW - YFS_SOFT_KEY_1_W; // -1 key
         softkey.inTP = softkey.inTP + separatrH - YFS_SOFT_KEY_1_H; // align h.
         softkey.btnW                = YFS_SOFT_KEY_1_W; // reset key width
@@ -524,8 +546,9 @@ static int create_main_window(yfms_context *yfms)
         goto create_button_fail;
     }
     {
-        softkey.inRT = softkey.inRT - separatrW; // horizon. separator
+        softkey.inTP = softkey.inTP + separatrH; // note1
         softkey.inTP = softkey.inTP - separatrH; // vertical separator
+        softkey.inRT = softkey.inRT - separatrW; // horizon. separator
         softkey.btnW                = YFS_SOFT_KEY_2_W; // nar. key width
         softkey.btnH                = YFS_SOFT_KEY_2_H; // same key height
         softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B; // same borders
