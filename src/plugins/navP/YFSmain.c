@@ -25,6 +25,7 @@
 #include "Widgets/XPStandardWidgets.h"
 #include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMDisplay.h"
+#include "XPLM/XPLMUtilities.h"
 
 #include "common/common.h"
 
@@ -125,12 +126,22 @@ typedef struct
             int        ln_inRT[11];
         }
         screen;
+
+        struct
+        {
+            int                    before;
+            void                  *refcon;
+            XPLMCommandRef        command;
+            XPLMCommandCallback_f handler;
+        }
+        toggle;
     }
     mwindow;
 }
 yfms_context;
 
 static int yfs_mwindowh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
+static int chandler_tog(XPLMCommandRef, XPLMCommandPhase, void*inRefcon);
 
 /*
  * TODO: xpWidgetClass_Button limited to 15px height; use custom widget instead.
@@ -209,7 +220,7 @@ static int create_main_window(yfms_context *yfms)
                                            0, "YFMS", 1, NULL,
                                            xpWidgetClass_MainWindow)) == NULL)
     {
-        ndt_log("YFMS [warning]: could not create main window\n");
+        ndt_log("YFMS [error]: could not create main window\n");
         return -1;
     }
     XPSetWidgetProperty(yfms->mwindow.id, xpProperty_MainWindowHasCloseBoxes, 1);
@@ -662,7 +673,7 @@ static int create_main_window(yfms_context *yfms)
         yfms->mwindow.screen.ln_inRT[i] = inRT;
         inTP                            = inBM; // next line starts below this
 #if 1//debug
-        ndt_log("navP [debug]: (%d, %d) -> (%d, %d) (width: %d, height: %d)\n",
+        ndt_log("YFMS [debug]: (%d, %d) -> (%d, %d) (width: %d, height: %d)\n",
                 yfms->mwindow.screen.ln_inBM[i],
                 yfms->mwindow.screen.ln_inLT[i],
                 yfms->mwindow.screen.ln_inTP[i],
@@ -684,7 +695,7 @@ static int create_main_window(yfms_context *yfms)
     }
     else
     {
-        ndt_log("YFMS [warning]: could not create MCDU display sub-window\n");
+        ndt_log("YFMS [error]: could not create MCDU display sub-window\n");
         return -1;
     }
     for (int i = 0; i < 11; i++)
@@ -701,7 +712,7 @@ static int create_main_window(yfms_context *yfms)
         }
         else
         {
-            ndt_log("YFMS [warning]: could not create MCDU display, line %d\n", i + 1);
+            ndt_log("YFMS [error]: could not create MCDU display, line %d\n", i + 1);
             return -1;
         }
 //        if (0)
@@ -710,13 +721,23 @@ static int create_main_window(yfms_context *yfms)
 //        }
     }
 
-    // TODO: toggle
+    /* easy to use X-Plane command to toggle YFMS window */
+    if ((yfms->mwindow.toggle.command =
+         XPLMCreateCommand("YFMS/toggle", "toggle YFMS window")) == NULL)
+    {
+        ndt_log("YFMS [error]: could not create X-Plane command for toggle\n");
+        return -1;
+    }
+    XPLMRegisterCommandHandler(yfms->mwindow.toggle.command,
+                               yfms->mwindow.toggle.handler = &chandler_tog,
+                               yfms->mwindow.toggle.before  = 0,
+                               yfms->mwindow.toggle.refcon  = yfms);
 
     /* all good */
     return 0;
 
 create_button_fail:
-    ndt_log("YFMS [warning]: could not create button with description \"%s\"\n", softkey.desc);
+    ndt_log("YFMS [error]: could not create button with description \"%s\"\n", softkey.desc);
     return r_value;
 }
 
@@ -779,10 +800,21 @@ int yfs_main_close(void **_yfms_ctx)
         return -1;
     }
 
-    /* Destroy the main window */
+    /* destroy the main window */
     if (yfms->mwindow.id)
     {
         XPDestroyWidget(yfms->mwindow.id, 1); // destroy children recursively
+    }
+
+    /* remove custom command(s) */
+    if (yfms->mwindow.toggle.command && yfms->mwindow.toggle.handler)
+    {
+        XPLMUnregisterCommandHandler(yfms->mwindow.toggle.command,
+                                     yfms->mwindow.toggle.handler,
+                                     yfms->mwindow.toggle.before,
+                                     yfms->mwindow.toggle.refcon);
+        yfms->mwindow.toggle.command = NULL;
+        yfms->mwindow.toggle.handler = NULL;
     }
 
     /* all good */
@@ -812,5 +844,12 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
         XPLoseKeyboardFocus(inWidget);
         return 1;
     }
+    return 0;
+}
+
+static int chandler_tog(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    yfms_context  *yfms = inRefcon;
+    yfs_main_toggl(yfms);
     return 0;
 }

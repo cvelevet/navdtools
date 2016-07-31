@@ -2134,6 +2134,10 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     }
                     // fall through
                 default:
+                    if ((cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("YFMS/toggle")))
+                    {
+                        (cdu->status = 0); break; // TODO: move after Aerobask/Alabeo/Carenado eventually
+                    }
                     if ((acft_author = XPLMFindDataRef("sim/aircraft/view/acf_author")))
                     {
                         char author_name[41];
