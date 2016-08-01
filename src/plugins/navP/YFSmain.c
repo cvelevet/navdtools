@@ -49,6 +49,14 @@ static float COLR_WHITE  [] = { 0.0f, 0.0f, 0.0f, };
 static float COLR_RED    [] = { 1.0f, 0.0f, 0.0f, };
 static float COLR_GREEN  [] = { 0.0f, 1.0f, 0.0f, };
 static float COLR_BLUE   [] = { 0.0f, 0.0f, 1.0f, };
+enum
+{
+    IDX_BLACK,
+    IDX_WHITE,
+    IDX_RED  ,
+    IDX_GREEN,
+    IDX_BLUE ,
+};
 
 typedef struct
 {
@@ -155,6 +163,7 @@ typedef struct
 yfms_context;
 
 static int yfs_mwindowh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
+static int yfs_mcdubgrh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
 static int yfs_mcdudish(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
 static int chandler_tog(XPLMCommandRef, XPLMCommandPhase, void*inRefcon);
 
@@ -238,8 +247,9 @@ static int create_main_window(yfms_context *yfms)
         ndt_log("YFMS [error]: could not create main window\n");
         return -1;
     }
-    XPSetWidgetProperty(yfms->mwindow.id, xpProperty_MainWindowHasCloseBoxes, 1);
     XPSetWidgetProperty(yfms->mwindow.id, xpProperty_MainWindowType, xpMainWindowStyle_MainWindow);
+    XPSetWidgetProperty(yfms->mwindow.id, xpProperty_MainWindowHasCloseBoxes, 1);
+    XPSetWidgetProperty(yfms->mwindow.id, xpProperty_Refcon, (intptr_t)yfms);
     XPAddWidgetCallback(yfms->mwindow.id, &yfs_mwindowh);
 
     /*
@@ -700,8 +710,8 @@ static int create_main_window(yfms_context *yfms)
 #endif
     }
     {
-        // xpSubWindowStyle_Screen has bottom "margin" where text isn't pretty
-        yfms->mwindow.screen.sw_inBM = yfms->mwindow.screen.ln_inBM[10] - 8;
+        // XPLMDrawString will write some pixels below bottom (e.g. underscores)
+        yfms->mwindow.screen.sw_inBM = yfms->mwindow.screen.ln_inBM[10] - 6;
         yfms->mwindow.screen.sw_inLT = yfms->mwindow.screen.ln_inLT[ 0];
         yfms->mwindow.screen.sw_inTP = yfms->mwindow.screen.ln_inTP[ 0];
         yfms->mwindow.screen.sw_inRT = yfms->mwindow.screen.ln_inRT[ 0];
@@ -715,9 +725,9 @@ static int create_main_window(yfms_context *yfms)
                         yfms->mwindow.screen.sw_inRT, yfms->mwindow.screen.sw_inBM,
                         1, "", 0, yfms->mwindow.id, xpWidgetClass_SubWindow)))
     {
-        XPSetWidgetProperty(yfms->mwindow.screen.bgrd_id, xpProperty_SubWindowType, xpSubWindowStyle_Screen); // black(-ish) background
         XPSetWidgetProperty(yfms->mwindow.screen.subw_id, xpProperty_Refcon, (intptr_t)yfms);
         XPAddWidgetCallback(yfms->mwindow.screen.subw_id, &yfs_mcdudish);
+        XPAddWidgetCallback(yfms->mwindow.screen.bgrd_id, &yfs_mcdubgrh);
     }
     else
     {
@@ -731,11 +741,7 @@ static int create_main_window(yfms_context *yfms)
                             yfms->mwindow.screen.ln_inTP[i] - 1,
                             yfms->mwindow.screen.ln_inRT[i] - 1 - YFS_FONT_BASIC_W,
                             yfms->mwindow.screen.ln_inBM[i] + 1,
-                            1, "", 0, yfms->mwindow.id, xpWidgetClass_Caption)))
-        {
-            XPSetWidgetProperty(yfms->mwindow.screen.line_id[i], xpProperty_CaptionLit, 1);
-        }
-        else
+                            1, "", 0, yfms->mwindow.id, xpWidgetClass_Caption)) == NULL)
         {
             ndt_log("YFMS [error]: could not create MCDU display, line %d\n", i + 1);
             return -1;
@@ -777,15 +783,13 @@ static void toggle_main_window(yfms_context *yfms)
     {
         return;
     }
-    if (yfms->mwindow.win_state == 0) // place window (for now, display center)
+    if (yfms->mwindow.win_state == 0) // place window near top left by default
     {
-        int scrw, scrh;
+        int windowTP, windowLT = 0;
         yfms->mwindow.win_state += 1;
-        XPLMGetScreenSize(&scrw, &scrh);
-        int inBM = (scrh - YFS_MAINWINDOW_H) / 2;
-        int inLT = (scrw - YFS_MAINWINDOW_W) / 2;
-        int inTP = (inBM + YFS_MAINWINDOW_H) - 1;
-        int inRT = (inLT + YFS_MAINWINDOW_W) - 1;
+        XPLMGetScreenSize(NULL, &windowTP);
+        int inTP = (windowTP - 100); int inBM = (inTP - YFS_MAINWINDOW_H) + 1;
+        int inLT = (windowLT +  50); int inRT = (inLT + YFS_MAINWINDOW_W) - 1;
         XPSetWidgetGeometry(yfms->mwindow.id, inLT, inTP, inRT, inBM);
     }
     if (XPIsWidgetVisible(yfms->mwindow.id))
@@ -886,6 +890,28 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
         XPLoseKeyboardFocus(inWidget);
         return 1;
     }
+    if (inMessage == xpMsg_PushButtonPressed)
+    {
+        return 0; // TODO: handle
+    }
+    return 0;
+}
+
+static int yfs_mcdubgrh(XPWidgetMessage inMessage,
+                        XPWidgetID      inWidget,
+                        intptr_t        inParam1,
+                        intptr_t        inParam2)
+{
+    if (inMessage == xpMsg_Draw)
+    {
+        if (XPIsWidgetVisible(inWidget))
+        {
+            int g[4];
+            XPGetWidgetGeometry(inWidget, &g[0], &g[1], &g[2], &g[3]);
+            XPLMDrawTranslucentDarkBox(    g[0],  g[1],  g[2],  g[3]);
+        }
+        return 1;
+    }
     return 0;
 }
 
@@ -894,21 +920,19 @@ static int yfs_mcdudish(XPWidgetMessage inMessage,
                         intptr_t        inParam1,
                         intptr_t        inParam2)
 {
-    if (XPIsWidgetVisible(inWidget) == 0)
-    {
-        return 0;
-    }
-    yfms_context *yfms = (yfms_context*)XPGetWidgetProperty(inWidget, xpProperty_Refcon, NULL);
-    if (yfms == NULL)
-    {
-        ndt_log("YFMS [debug]: no context for MCDU display!\n");
-        return 0;
-    }
     if (inMessage == xpMsg_Draw) // TODO: implement (properly, not inline)
     {
-        int x, y;
-        XPGetWidgetGeometry(yfms->mwindow.screen.line_id[10], &x, NULL, NULL, &y);
-        XPLMDrawString     (COLR_GREEN, x, y, "READY_", NULL, xplmFont_Basic);
+        if (XPIsWidgetVisible(inWidget))
+        {
+            int y, x; yfms_context *yfms = (yfms_context*)XPGetWidgetProperty(inWidget, xpProperty_Refcon, NULL);
+            if (yfms == NULL)
+            {
+                ndt_log("YFMS [debug]: no context for MCDU display!\n");
+                return 0;
+            }
+            XPGetWidgetGeometry(yfms->mwindow.screen.line_id[10], &x, NULL, NULL, &y);
+            XPLMDrawString     (COLR_GREEN, x, y, "READY_", NULL,     xplmFont_Basic);
+        }
         return 1;
     }
     return 0;
