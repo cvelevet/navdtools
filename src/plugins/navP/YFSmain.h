@@ -21,6 +21,8 @@
 #ifndef YFS_MAIN_H
 #define YFS_MAIN_H
 
+#include <stdint.h>
+
 #include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMMenus.h"
 #include "XPLM/XPLMUtilities.h"
@@ -30,8 +32,43 @@
 #define YFS_DISPLAY_NUMC 24 // number of positions per row
 #define YFS_DISPLAY_NUMR 14 // number of rows
 
+typedef int (* YFS_SPC_f)(void *yfms                             );
+typedef int (* YFS_LSK_f)(void *yfms, int key[2], intptr_t refcon);
+
 typedef struct
 {
+    // callbacks for each special key: ensure we can switch to page, then do it
+    struct
+    {
+        YFS_SPC_f cback_dirt;
+        YFS_SPC_f cback_prog;
+        YFS_SPC_f cback_perf;
+        YFS_SPC_f cback_init;
+        YFS_SPC_f cback_data;
+        YFS_SPC_f cback_fpln;
+        YFS_SPC_f cback_radn;
+        YFS_SPC_f cback_fuel;
+        YFS_SPC_f cback_sflp;
+        YFS_SPC_f cback_atcc;
+        YFS_SPC_f cback_menu;
+        YFS_SPC_f cback_arpt;
+        YFS_SPC_f cback_null;
+        YFS_SPC_f cback_left;
+        YFS_SPC_f cback_lnup;
+        YFS_SPC_f cback_rigt;
+        YFS_SPC_f cback_lndn;
+    }
+    spcs;
+
+    // callbacks for all line select keys (must be implemented by each page)
+    struct
+    {
+        YFS_LSK_f cback;
+        intptr_t refcon;
+        int key_indx[2];
+    }
+    lsks[2][6];
+
     struct
     {
         XPWidgetID id;
