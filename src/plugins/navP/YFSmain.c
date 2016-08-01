@@ -831,7 +831,7 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
     {
         yfms_context  *yfms = (yfms_context*)XPGetWidgetProperty(inWidget, xpProperty_Refcon, NULL);
         yfs_keypressed(yfms,  (XPWidgetID)inParam1);
-        return 0;
+        return 1;
     }
     return 0;
 }

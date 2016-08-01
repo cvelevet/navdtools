@@ -34,177 +34,170 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
     /* keys that write to the scratchpad */
     if (key == yfms->mwindow.keys.keyid_al_a)
     {
-        return;
+        yfs_spad_apndc(yfms, 'A', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_b)
     {
-        return;
+        yfs_spad_apndc(yfms, 'B', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_c)
     {
-        return;
+        yfs_spad_apndc(yfms, 'C', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_d)
     {
-        return;
+        yfs_spad_apndc(yfms, 'D', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_e)
     {
-        return;
+        yfs_spad_apndc(yfms, 'E', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_f)
     {
-        return;
+        yfs_spad_apndc(yfms, 'F', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_g)
     {
-        return;
+        yfs_spad_apndc(yfms, 'G', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_h)
     {
-        return;
+        yfs_spad_apndc(yfms, 'H', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_i)
     {
-        return;
+        yfs_spad_apndc(yfms, 'I', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_j)
     {
-        return;
+        yfs_spad_apndc(yfms, 'J', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_k)
     {
-        return;
+        yfs_spad_apndc(yfms, 'K', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_l)
     {
-        return;
+        yfs_spad_apndc(yfms, 'L', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_m)
     {
-        return;
+        yfs_spad_apndc(yfms, 'M', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_n)
     {
-        return;
+        yfs_spad_apndc(yfms, 'N', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_o)
     {
-        return;
+        yfs_spad_apndc(yfms, 'O', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_p)
     {
-        return;
+        yfs_spad_apndc(yfms, 'P', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_q)
     {
-        return;
+        yfs_spad_apndc(yfms, 'Q', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_r)
     {
-        return;
+        yfs_spad_apndc(yfms, 'R', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_s)
     {
-        return;
+        yfs_spad_apndc(yfms, 'S', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_t)
     {
-        return;
+        yfs_spad_apndc(yfms, 'T', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_u)
     {
-        return;
+        yfs_spad_apndc(yfms, 'U', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_v)
     {
-        return;
+        yfs_spad_apndc(yfms, 'V', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_w)
     {
-        return;
+        yfs_spad_apndc(yfms, 'W', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_x)
     {
-        return;
+        yfs_spad_apndc(yfms, 'X', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_y)
     {
-        return;
+        yfs_spad_apndc(yfms, 'Y', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_al_z)
     {
-        yfs_spad_apndc(yfms, 'Z', -1);
-        return;
+        yfs_spad_apndc(yfms, 'Z', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_slsh)
     {
-        yfs_spad_apndc(yfms, '/', -1);
-        return;
+        yfs_spad_apndc(yfms, '/', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_spce)
     {
-        yfs_spad_apndc(yfms, '_', -1); // cf. YFSmain.c, draw_display()
-        return;
+        yfs_spad_apndc(yfms, '_', -1); return; // cf. YFSmain.c, draw_display()
     }
     if (key == yfms->mwindow.keys.keyid_ovfy)
     {
-        yfs_spad_reset(yfms, "^", -1);
-        return;
+        yfs_spad_reset(yfms, "^", -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_clir)
     {
-        yfs_spad_remvc(yfms);
-        return;
+        yfs_spad_remvc(yfms); return;
     }
     if (key == yfms->mwindow.keys.keyid_num0)
     {
-        return;
+        yfs_spad_apndc(yfms, '0', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_num1)
     {
-        return;
+        yfs_spad_apndc(yfms, '1', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_num2)
     {
-        return;
+        yfs_spad_apndc(yfms, '2', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_num3)
     {
-        return;
+        yfs_spad_apndc(yfms, '3', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_num4)
     {
-        return;
+        yfs_spad_apndc(yfms, '4', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_num5)
     {
-        return;
+        yfs_spad_apndc(yfms, '5', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_num6)
     {
-        return;
+        yfs_spad_apndc(yfms, '6', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_num7)
     {
-        return;
+        yfs_spad_apndc(yfms, '7', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_num8)
     {
-        return;
+        yfs_spad_apndc(yfms, '8', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_num9)
     {
-        return;
+        yfs_spad_apndc(yfms, '9', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_pird)
     {
-        yfs_spad_apndc(yfms, '.', -1);
-        return;
+        yfs_spad_apndc(yfms, '.', -1); return;
     }
     if (key == yfms->mwindow.keys.keyid_plus)
     {
-        yfs_spad_apndc(yfms, '+', -1);
-        return;
+        yfs_spad_apndc(yfms, '-', -1); return;
     }
 }
