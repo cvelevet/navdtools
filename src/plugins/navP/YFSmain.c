@@ -52,6 +52,7 @@ static float COLR_RED    [] = { 1.0f, 0.0f, 0.0f, };
 static float COLR_GREEN  [] = { 0.0f, 1.0f, 0.0f, };
 static float COLR_BLUE   [] = { 0.0f, 0.0f, 1.0f, };
 static float COLR_MAGENTA[] = { 1.0f, 0.0f, 1.0f, };
+static float COLR_ORANGE [] = { 1.0f, .67f, 0.0f, };
 static float COLR_YELLOW [] = { 1.0f, 1.0f, 0.0f, };
 enum
 {
@@ -61,7 +62,8 @@ enum
     IDX_MAGENTA = 3,
     IDX_RED     = 4,
     IDX_WHITE   = 5,
-    IDX_YELLOW  = 6,
+    IDX_ORANGE  = 6,
+    IDX_YELLOW  = 7,
 };
 
 typedef struct
@@ -411,6 +413,81 @@ static int create_main_window(yfms_context *yfms)
     {
         goto create_button_fail;
     }
+    // switch to narrower button type 2
+    {
+        softkey.btnW = YFS_SOFT_KEY_2_W; softkey.btnH = YFS_SOFT_KEY_2_H;
+        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B;
+    }
+    // row 4, part 2
+    {
+        softkey.inRT = keybordRT - separat2W - softkey.btnW * 0; // all columns here
+        softkey.inTP = keybordTP             - softkey.btnH * 4; // set top position
+    }
+    softkey.desc = "E";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_e;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "D";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_d;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "C";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_c;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "B";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_b;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "A";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_a;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    // row 5, part 2
+    {
+        softkey.inRT = keybordRT - separat2W - softkey.btnW * 0; // all columns here
+        softkey.inTP = keybordTP             - softkey.btnH * 5; // set top position
+    }
+    softkey.desc = "J";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_j;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "I";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_i;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "H";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_h;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "G";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_g;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "F";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_f;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
     goto debug_skip;//debug
 
     /*
@@ -723,6 +800,9 @@ static void draw_display(yfms_context *yfms)
                     break;
                 case IDX_MAGENTA:
                     XPLMDrawString(COLR_MAGENTA, x, y, buf, NULL, xplmFont_Basic);
+                    break;
+                case IDX_ORANGE:
+                    XPLMDrawString(COLR_ORANGE,  x, y, buf, NULL, xplmFont_Basic);
                     break;
                 case IDX_RED:
                     XPLMDrawString(COLR_RED,     x, y, buf, NULL, xplmFont_Basic);
