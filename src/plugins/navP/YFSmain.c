@@ -40,12 +40,12 @@ static int YFS_MAINSCREEN_W = 208;  // 2 + YFS_DISPLAY_NUMC characters per line
 static int YFS_MAINSCREEN_H = 196;  // YFS_DISPLAY_NUMR rows * YFS_FONT_BASIC_H
 static int YFS_MAINWINDOW_W = 340;  // margins + up to 8 buttons across
 static int YFS_MAINWINDOW_H = 440;  // display + up to 9 lines below it
-static int YFS_SOFT_KEY_1_W =  49;  // 3x 15 pixels plus top & bottom borders
-static int YFS_SOFT_KEY_1_H =  19;  // 1x 15 pixels plus top & bottom borders
-static int YFS_SOFT_KEY_1_B =   2;  // 2x 2 pixels of border between each button
-static int YFS_SOFT_KEY_2_W =  34;  // 2x 15 pixels plus top & bottom borders
-static int YFS_SOFT_KEY_2_H =  19;  // 1x 15 pixels plus top & bottom borders
-static int YFS_SOFT_KEY_2_B =   2;  // 2x 2 pixels of border between each button
+static int YFS_SOFT_KEY_1_W =  51;  // 3x 15 pixels plus top & bottom borders
+static int YFS_SOFT_KEY_1_H =  21;  // 1x 15 pixels plus top & bottom borders
+static int YFS_SOFT_KEY_1_B =   3;  // 2x  3 pixels of border between each button
+static int YFS_SOFT_KEY_2_W =  36;  // 2x 15 pixels plus top & bottom borders
+static int YFS_SOFT_KEY_2_H =  21;  // 1x 15 pixels plus top & bottom borders
+static int YFS_SOFT_KEY_2_B =   3;  // 2x  3 pixels of border between each button
 static float COLR_BLACK  [] = { 1.0f, 1.0f, 1.0f, };
 static float COLR_WHITE  [] = { 0.0f, 0.0f, 0.0f, };
 static float COLR_RED    [] = { 1.0f, 0.0f, 0.0f, };
@@ -268,14 +268,11 @@ static int create_main_window(yfms_context *yfms)
     XPAddWidgetCallback(yfms->mwindow.id, &yfs_mwindowh);
 
     /*
-     * Add a bunch of not-so-pretty buttons.
-     *
-     * Width:  we have 9, or 10 keys across and 3 "separators".
-     * Height: we always have 6 keys across and 1 "separator" in half the total height.
+     * Add a bunch of not-so-pretty buttons (9 rows + 2 rows as margins).
      */
     int separat1W = (YFS_MAINWINDOW_W - 6 * YFS_SOFT_KEY_1_W) / 2;
     int separat2W = (YFS_MAINWINDOW_W - 8 * YFS_SOFT_KEY_2_W) / 2;
-    int keybordTP = (inTP - 50 - YFS_MAINSCREEN_H);
+    int keybordTP = (inBM + 11 * YFS_SOFT_KEY_1_H);
     int keybordBM = (inBM);
     int keybordLT = (inLT);
     int keybordRT = (inRT);
@@ -290,7 +287,7 @@ static int create_main_window(yfms_context *yfms)
     // row 1
     {
         softkey.inRT = keybordRT - separat1W - softkey.btnW * 1; // missing 1 column
-        softkey.inTP = keybordTP             - softkey.btnH * 0; // set top position
+        softkey.inTP = keybordTP             - softkey.btnH * 1; // set top position
     }
     softkey.desc = "DATA";
     softkey._wid = &yfms->mwindow.keys.keyid_data;
@@ -325,7 +322,7 @@ static int create_main_window(yfms_context *yfms)
     // row 2
     {
         softkey.inRT = keybordRT - separat1W - softkey.btnW * 0; // all columns here
-        softkey.inTP = keybordTP             - softkey.btnH * 1; // set top position
+        softkey.inTP = keybordTP             - softkey.btnH * 2; // set top position
     }
     softkey.desc = "MENU";
     softkey._wid = &yfms->mwindow.keys.keyid_menu;
@@ -366,7 +363,7 @@ static int create_main_window(yfms_context *yfms)
     // row 3
     {
         softkey.inRT = keybordRT - separat1W - softkey.btnW * 4; // missing 4 columns
-        softkey.inTP = keybordTP             - softkey.btnH * 2; // set top position
+        softkey.inTP = keybordTP             - softkey.btnH * 3; // set top position
     }
     softkey.desc = "";
     softkey._wid = &yfms->mwindow.keys.keyid_null;
@@ -380,15 +377,49 @@ static int create_main_window(yfms_context *yfms)
     {
         goto create_button_fail;
     }
+    // row 4
+    {
+        softkey.inRT = keybordRT - separat1W - softkey.btnW * 4; // missing 4 columns
+        softkey.inTP = keybordTP             - softkey.btnH * 4; // set top position
+    }
+    softkey.desc = "UP";
+    softkey._wid = &yfms->mwindow.keys.keyid_lnup;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "<-";
+    softkey._wid = &yfms->mwindow.keys.keyid_left;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    // row 5
+    {
+        softkey.inRT = keybordRT - separat1W - softkey.btnW * 4; // missing 4 columns
+        softkey.inTP = keybordTP             - softkey.btnH * 5; // set top position
+    }
+    softkey.desc = "DOWN";
+    softkey._wid = &yfms->mwindow.keys.keyid_lndn;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "->";
+    softkey._wid = &yfms->mwindow.keys.keyid_rigt;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
     goto debug_skip;//debug
 
     /*
      * Now the MCDU's screen sub-window and associated labels.
      */
     int align_scW = (YFS_MAINWINDOW_W - YFS_MAINSCREEN_W) / 2;
-    inTP =  keybordTP + separat1W - 1 + YFS_MAINSCREEN_H;   // top
-    inRT =  mainwinRT - align_scW + 1;                      // right
-    inLT =    inRT - YFS_MAINSCREEN_W;                      // left
+    inTP = keybordTP - 1 + YFS_MAINSCREEN_H + 6;    // top
+    inRT = mainwinRT + 1 - align_scW;               // right
+    inLT =   inRT - YFS_MAINSCREEN_W;               // left
     for (int i = 0; i < YFS_DISPLAY_NUMR; i++)
     {
         inBM = inTP - YFS_FONT_BASIC_H; // set height for each line here
@@ -452,14 +483,14 @@ static int create_main_window(yfms_context *yfms)
             softkey.btnW                = YFS_SOFT_KEY_2_W;
             softkey.btnH                = YFS_FONT_BASIC_H;
             softkey.inTP = yfms->mwindow.screen.ln_inTP[i] - 3;
-            softkey.inRT = yfms->mwindow.screen.ln_inLT[i] - YFS_FONT_BASIC_W;
+            softkey.inRT = yfms->mwindow.screen.ln_inLT[i] - 2 * YFS_SOFT_KEY_2_B;
             softkey.inLT = softkey.inRT - softkey.btnW + 1;
             softkey.desc = "-"; softkey._wid = &yfms->mwindow.keys.keyid_lsk[i/2-1];
             if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
             {
                 goto create_button_fail;
             }
-            softkey.inLT = yfms->mwindow.screen.ln_inRT[i] + YFS_FONT_BASIC_W;
+            softkey.inLT = yfms->mwindow.screen.ln_inRT[i] + 2 * YFS_SOFT_KEY_2_B;
             softkey.inRT = softkey.inLT + softkey.btnW - 1;
             softkey.desc = "-"; softkey._wid = &yfms->mwindow.keys.keyid_rsk[i/2-1];
             if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
