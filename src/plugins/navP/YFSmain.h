@@ -169,6 +169,9 @@ typedef struct
                 COLR_IDX_ORANGE  = 6,
                 COLR_IDX_YELLOW  = 7,
             };
+            int  spad_reset;
+            int  spad_backup;
+            char spad_bupbuf[YFS_DISPLAY_NUMC + 1];
         }
         screen;
     }
@@ -196,8 +199,9 @@ typedef struct
 }
 yfms_context;
 
-void* yfs_main_init (void                );
-void  yfs_main_toggl(void   *yfms_context);
-int   yfs_main_close(void **_yfms_context);
+void* yfs_main_init (void                   );
+void  yfs_main_toggl(yfms_context*          );
+void  yfs_main_rline(yfms_context*, int, int);
+int   yfs_main_close(yfms_context**         );
 
 #endif /* YFS_MAIN_H */

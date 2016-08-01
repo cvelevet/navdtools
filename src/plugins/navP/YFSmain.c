@@ -662,15 +662,12 @@ static int create_main_window(yfms_context *yfms)
     }
 
     /* reset the display, everything green by default */
+    /* TODO: move to yfms global reset function */
     for (int i = 0; i < YFS_DISPLAY_NUMR; i++)
     {
-        memset(yfms->mwindow.screen.text[i], 0, YFS_DISPLAY_NUMC + 1);
-        for   (int j = 0; j < YFS_DISPLAY_NUMC; j++)
-        {
-            yfms->mwindow.screen.colr[i][j] = COLR_IDX_GREEN;
-        }
-        yfs_spad_reset(yfms, "YFMS INITIALIZED", COLR_IDX_ORANGE);
+        yfs_main_rline(yfms, i, -1);
     }
+    yfs_spad_clear(yfms); yfs_spad_reset(yfms, "YFMS INITIALIZED", COLR_IDX_ORANGE);
 
     /* all good */
     return 0;
@@ -749,14 +746,26 @@ void* yfs_main_init(void)
     return yfms;
 
 fail:
-    yfs_main_close((void**)&yfms);
+    yfs_main_close(&yfms);
     return NULL;
 }
 
-int yfs_main_close(void **_yfms_ctx)
+void yfs_main_rline(yfms_context *yfms, int idx, int col)
 {
-    yfms_context *yfms = *_yfms_ctx;
-    *_yfms_ctx = NULL;
+    if  (yfms && idx < YFS_DISPLAY_NUMR)
+    {
+        for (int i = 0; i < YFS_DISPLAY_NUMC; i++)
+        {
+            yfms->mwindow.screen.colr[idx][i] = col >= 0 ? col : COLR_IDX_GREEN;
+        }
+        memset(yfms->mwindow.screen.text[idx], 0, YFS_DISPLAY_NUMC + 1);
+    }
+    return;
+}
+
+int yfs_main_close(yfms_context **_yfms)
+{
+    yfms_context *yfms = *_yfms; *_yfms = NULL;
     if (!yfms)
     {
         return -1;
@@ -790,9 +799,8 @@ int yfs_main_close(void **_yfms_ctx)
     return 0;
 }
 
-void yfs_main_toggl(void *yfms_ctx)
+void yfs_main_toggl(yfms_context *yfms)
 {
-    yfms_context  *yfms = yfms_ctx;
     if (!yfms)
     {
         return;

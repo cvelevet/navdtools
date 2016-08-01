@@ -37,9 +37,9 @@
 static int log_with_sdk(const char *format, va_list ap);
 
 /* Miscellaneous data */
-void *chandler_context = NULL;
-void *navpmenu_context = NULL;
-void *navpyfms_context = NULL;
+void         *chandler_context = NULL;
+void         *navpmenu_context = NULL;
+yfms_context *navpyfms_context = NULL;
 
 #define PLUGIN_NAME "navP"      // or "YFMS"
 #define INTRO_SPEAK "nav P OK"  // or "Y FMS OK"

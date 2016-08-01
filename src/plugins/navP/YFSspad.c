@@ -38,8 +38,7 @@ void yfs_spad_copy2(yfms_context *yfms, char buf[YFS_DISPLAY_NUMC + 1])
     {
         yfms->mwindow.screen.text[SPAD_IDX][--l] = 0;
     }
-    sprintf(buf, "%s", yfms->mwindow.screen.text[SPAD_IDX]);
-    return;
+    sprintf(buf, "%s", yfms->mwindow.screen.text[SPAD_IDX]); return;
 }
 
 void yfs_spad_clear(yfms_context *yfms)
@@ -51,14 +50,16 @@ void yfs_spad_clear(yfms_context *yfms)
     if (yfms->mwindow.screen.text[SPAD_IDX][0] == 0 ||
         yfms->mwindow.screen.text[SPAD_IDX][0] == ' ')
     {
-        yfs_spad_reset(yfms, "CLR", -1); return;
+        if (yfms->mwindow.screen.spad_reset == 0)
+        {
+            yfs_spad_reset(yfms, "CLR", -1); return;
+        }
     }
     for (int i = 0; i < YFS_DISPLAY_NUMC; i++)
     {
         yfms->mwindow.screen.colr[SPAD_IDX][i] = SPAD_COL;
     }
-    yfms->mwindow.screen.text[SPAD_IDX][0] = 0;
-    return;
+    yfms->mwindow.screen.text[SPAD_IDX][0] = 0; return;
 }
 
 void yfs_spad_remvc(yfms_context *yfms)
@@ -67,13 +68,23 @@ void yfs_spad_remvc(yfms_context *yfms)
     {
         return; // no error
     }
+    if (yfms->mwindow.screen.spad_reset)
+    {
+        {
+            yfs_spad_clear(yfms);
+        }
+        if (yfms->mwindow.screen.spad_backup)
+        {
+            sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s", yfms->mwindow.screen.spad_bupbuf);
+        }
+        yfms->mwindow.screen.spad_backup = yfms->mwindow.screen.spad_reset = 0; return;
+    }
     char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf); size_t l = strlen(buf);
     if (l <= 1)
     {
         yfs_spad_clear(yfms); return; // one or fewer character left
     }
-    buf[l - 1] = 0; sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s", buf);
-    return;
+    buf[l - 1] = 0; sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s", buf); return;
 }
 
 void yfs_spad_apndc(yfms_context *yfms, char c, int color)
@@ -81,6 +92,17 @@ void yfs_spad_apndc(yfms_context *yfms, char c, int color)
     if (!yfms)
     {
         return; // no error
+    }
+    if (yfms->mwindow.screen.spad_reset)
+    {
+        {
+            yfs_spad_clear(yfms);
+        }
+//      if (yfms->mwindow.screen.spad_backup)
+//      {
+//          sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s", yfms->mwindow.screen.spad_bupbuf);
+//      }
+        yfms->mwindow.screen.spad_backup = yfms->mwindow.screen.spad_reset = 0;
     }
     char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf); size_t l = strlen(buf);
     if (c == '+' || c == '-')
@@ -97,30 +119,20 @@ void yfs_spad_apndc(yfms_context *yfms, char c, int color)
         return; // scratchpad full
     }
     yfms->mwindow.screen.colr[SPAD_IDX][l] = color >= 0 ? color : SPAD_COL;
-    sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s%c", buf, c);
-    return;
+    sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s%c", buf, c); return;
 }
 
-/*
- * TODO: keep a backup before overwriting; e.g. when trying to line select a
- *       string into a field, and the format is wrong, we may simply write
- *       "FORMAT ERROR" to the scratchpad; in some circumstances, we may want
- *       to recover the previous scratchpad's contents (e.g. by pressing CLR
- *       after the error) (has_backup && clear -> recover, else see below).
- *
- *       Also, when pressing a key right after a reset, we may want to clear
- *       the scratchpad instead of appending (TODO: implement). We need a new
- *       variable (e.g. was_reset: 1 -> clear, else append) to keep track…
- */
 void yfs_spad_reset(yfms_context *yfms, char *s, int color)
 {
     if (!yfms)
     {
         return; // no error
     }
-    for (int i = 0; i < YFS_DISPLAY_NUMC; i++)
+    char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf); size_t l = strlen(buf);
+    if (l && yfms->mwindow.screen.spad_backup == 0)
     {
-        yfms->mwindow.screen.colr[SPAD_IDX][i] = color >= 0 ? color : SPAD_COL;
+        yfms->mwindow.screen.spad_backup = 1;
+        sprintf(yfms->mwindow.screen.spad_bupbuf, "%s", buf);
     }
     snprintf(yfms->mwindow.screen.text[SPAD_IDX], YFS_DISPLAY_NUMC + 1, "%s", s);
     for (int i = strlen(s) - 1; i >= 0; i--)
@@ -130,5 +142,9 @@ void yfs_spad_reset(yfms_context *yfms, char *s, int color)
             yfms->mwindow.screen.text[SPAD_IDX][i] = '_'; // cf. YFSmain.c, draw_display()
         }
     }
-    return;
+    for (int i = 0; i < YFS_DISPLAY_NUMC; i++)
+    {
+        yfms->mwindow.screen.colr[SPAD_IDX][i] = color >= 0 ? color : SPAD_COL;
+    }
+    yfms->mwindow.screen.spad_reset = 1; return;
 }
