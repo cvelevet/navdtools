@@ -45,5 +45,15 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfs_spad_reset(yfms, "YFMS INITIALIZED", COLR_IDX_ORANGE);
 
     /* all good */
-    return;
+    yfs_idnt_pageopen(yfms); return;
 }
+
+void yfs_idnt_pageopen(yfms_context *yfms)
+{
+    if (!yfms)
+    {
+        return; // no error
+    }
+
+    /* */
+}//fixme

@@ -52,13 +52,13 @@ static int YFS_SOFT_KEY_2_W =  36;  // 2x 15 pixels plus top & bottom borders
 static int YFS_SOFT_KEY_2_H =  21;  // 1x 15 pixels plus top & bottom borders
 static int YFS_SOFT_KEY_2_B =   3;  // 2x  3 pixels of border between each button
 static float COLR_BLACK  [] = { 0.0f, 0.0f, 0.0f, };
-static float COLR_WHITE  [] = { 1.0f, 1.0f, 1.0f, };
-static float COLR_RED    [] = { 1.0f, 0.0f, 0.0f, };
-static float COLR_GREEN  [] = { 0.0f, 1.0f, 0.0f, };
-static float COLR_BLUE   [] = { 0.0f, 0.0f, 1.0f, };
-static float COLR_MAGENTA[] = { 1.0f, 0.0f, 1.0f, };
-static float COLR_ORANGE [] = { 1.0f, .66f, 0.0f, };
-static float COLR_YELLOW [] = { 1.0f, 1.0f, 0.0f, };
+static float COLR_WHITE  [] = { 0.9f, 1.0f, 1.0f, };
+static float COLR_RED    [] = { 1.0f, 0.2f, 0.0f, };
+static float COLR_GREEN  [] = { 0.0f, 1.0f, 0.5f, };
+static float COLR_BLUE   [] = { 0.0f, .75f, 1.0f, };
+static float COLR_MAGENTA[] = { 0.9f, 0.0f, 0.9f, };
+static float COLR_ORANGE [] = { 1.0f, 0.6f, 0.0f, };
+static float COLR_YELLOW [] = { 1.0f, 0.9f, 0.0f, };
 
 static void menu_handler(void *inMenuRef,                void *inItemRef);
 static int  yfs_mwindowh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
@@ -794,7 +794,7 @@ void yfs_main_rline(yfms_context *yfms, int idx, int col)
     {
         for (int i = 0; i < YFS_DISPLAY_NUMC; i++)
         {
-            yfms->mwindow.screen.colr[idx][i] = col >= 0 ? col : COLR_IDX_GREEN;
+            yfms->mwindow.screen.colr[idx][i] = col >= 0 ? col : COLR_IDX_BLUE;
         }
         memset(yfms->mwindow.screen.text[idx], 0, YFS_DISPLAY_NUMC + 1);
     }
