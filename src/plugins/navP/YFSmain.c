@@ -44,6 +44,11 @@ static int YFS_SOFT_KEY_1_B =   2; // 2x 2 pixels of border between each button
 static int YFS_SOFT_KEY_2_W =  36; // 7 buttons in 252 pixels (6x soft_key_1_w)
 static int YFS_SOFT_KEY_2_H =  32; // 6 buttons in 210 pixels
 static int YFS_SOFT_KEY_2_B =   2; // 2x 2 pixels of border between each button
+static float COLR_BLACK  [] = { 1.0f, 1.0f, 1.0f, };
+static float COLR_WHITE  [] = { 0.0f, 0.0f, 0.0f, };
+static float COLR_RED    [] = { 1.0f, 0.0f, 0.0f, };
+static float COLR_GREEN  [] = { 0.0f, 1.0f, 0.0f, };
+static float COLR_BLUE   [] = { 0.0f, 0.0f, 1.0f, };
 
 typedef struct
 {
@@ -120,6 +125,9 @@ typedef struct
 
         struct
         {
+            int   colr[11][24];
+            char  text[11][25];
+            XPWidgetID bgrd_id;
             XPWidgetID subw_id;
             int        sw_inBM;
             int        sw_inLT;
@@ -147,6 +155,7 @@ typedef struct
 yfms_context;
 
 static int yfs_mwindowh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
+static int yfs_mcdudish(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
 static int chandler_tog(XPLMCommandRef, XPLMCommandPhase, void*inRefcon);
 
 /*
@@ -678,7 +687,7 @@ static int create_main_window(yfms_context *yfms)
         yfms->mwindow.screen.ln_inTP[i] = inTP;
         yfms->mwindow.screen.ln_inRT[i] = inRT;
         inTP                            = inBM; // next line starts below this
-#if 1//debug
+#if 0
         ndt_log("YFMS [debug]: (%d, %d) -> (%d, %d) (width: %d, height: %d)\n",
                 yfms->mwindow.screen.ln_inBM[i],
                 yfms->mwindow.screen.ln_inLT[i],
@@ -690,15 +699,25 @@ static int create_main_window(yfms_context *yfms)
                 yfms->mwindow.screen.ln_inBM[i]);
 #endif
     }
-    if ((yfms->mwindow.screen.subw_id =
-         XPCreateWidget(yfms->mwindow.screen.sw_inLT = yfms->mwindow.screen.ln_inLT[ 0],
-                        yfms->mwindow.screen.sw_inTP = yfms->mwindow.screen.ln_inTP[ 0],
-                        yfms->mwindow.screen.sw_inRT = yfms->mwindow.screen.ln_inRT[ 0],
-                        // xpSubWindowStyle_Screen has weird bottom "margin" where text isn't pretty
-                        yfms->mwindow.screen.sw_inBM = yfms->mwindow.screen.ln_inBM[10] - 4,
+    {
+        // xpSubWindowStyle_Screen has bottom "margin" where text isn't pretty
+        yfms->mwindow.screen.sw_inBM = yfms->mwindow.screen.ln_inBM[10] - 8;
+        yfms->mwindow.screen.sw_inLT = yfms->mwindow.screen.ln_inLT[ 0];
+        yfms->mwindow.screen.sw_inTP = yfms->mwindow.screen.ln_inTP[ 0];
+        yfms->mwindow.screen.sw_inRT = yfms->mwindow.screen.ln_inRT[ 0];
+    }
+    if ((yfms->mwindow.screen.bgrd_id = // add first, draw first
+         XPCreateWidget(yfms->mwindow.screen.sw_inLT, yfms->mwindow.screen.sw_inTP,
+                        yfms->mwindow.screen.sw_inRT, yfms->mwindow.screen.sw_inBM,
+                        1, "", 0, yfms->mwindow.id, xpWidgetClass_SubWindow)) &&
+        (yfms->mwindow.screen.subw_id = // draw after background
+         XPCreateWidget(yfms->mwindow.screen.sw_inLT, yfms->mwindow.screen.sw_inTP,
+                        yfms->mwindow.screen.sw_inRT, yfms->mwindow.screen.sw_inBM,
                         1, "", 0, yfms->mwindow.id, xpWidgetClass_SubWindow)))
     {
-        XPSetWidgetProperty(yfms->mwindow.screen.subw_id, xpProperty_SubWindowType, xpSubWindowStyle_Screen);
+        XPSetWidgetProperty(yfms->mwindow.screen.bgrd_id, xpProperty_SubWindowType, xpSubWindowStyle_Screen); // black(-ish) background
+        XPSetWidgetProperty(yfms->mwindow.screen.subw_id, xpProperty_Refcon, (intptr_t)yfms);
+        XPAddWidgetCallback(yfms->mwindow.screen.subw_id, &yfs_mcdudish);
     }
     else
     {
@@ -712,8 +731,7 @@ static int create_main_window(yfms_context *yfms)
                             yfms->mwindow.screen.ln_inTP[i] - 1,
                             yfms->mwindow.screen.ln_inRT[i] - 1 - YFS_FONT_BASIC_W,
                             yfms->mwindow.screen.ln_inBM[i] + 1,
-                            1, "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-                            0, yfms->mwindow.id, xpWidgetClass_Caption)))
+                            1, "", 0, yfms->mwindow.id, xpWidgetClass_Caption)))
         {
             XPSetWidgetProperty(yfms->mwindow.screen.line_id[i], xpProperty_CaptionLit, 1);
         }
@@ -866,6 +884,31 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
     {
         XPHideWidget       (inWidget);
         XPLoseKeyboardFocus(inWidget);
+        return 1;
+    }
+    return 0;
+}
+
+static int yfs_mcdudish(XPWidgetMessage inMessage,
+                        XPWidgetID      inWidget,
+                        intptr_t        inParam1,
+                        intptr_t        inParam2)
+{
+    if (XPIsWidgetVisible(inWidget) == 0)
+    {
+        return 0;
+    }
+    yfms_context *yfms = (yfms_context*)XPGetWidgetProperty(inWidget, xpProperty_Refcon, NULL);
+    if (yfms == NULL)
+    {
+        ndt_log("YFMS [debug]: no context for MCDU display!\n");
+        return 0;
+    }
+    if (inMessage == xpMsg_Draw) // TODO: implement (properly, not inline)
+    {
+        int x, y;
+        XPGetWidgetGeometry(yfms->mwindow.screen.line_id[10], &x, NULL, NULL, &y);
+        XPLMDrawString     (COLR_GREEN, x, y, "READY_", NULL, xplmFont_Basic);
         return 1;
     }
     return 0;
