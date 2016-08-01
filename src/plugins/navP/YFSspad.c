@@ -52,14 +52,16 @@ void yfs_spad_clear(yfms_context *yfms)
     {
         if (yfms->mwindow.screen.spad_reset == 0)
         {
-            yfs_spad_reset(yfms, "CLR", -1); return;
+            yfs_spad_reset(yfms, "CLR", -1);
         }
+        yfms->mwindow.screen.spad_backup = yfms->mwindow.screen.spad_reset = 0; return;
     }
     for (int i = 0; i < YFS_DISPLAY_NUMC; i++)
     {
         yfms->mwindow.screen.colr[SPAD_IDX][i] = SPAD_COL;
     }
-    yfms->mwindow.screen.text[SPAD_IDX][0] = 0; return;
+    yfms->mwindow.screen.text[SPAD_IDX][0] = 0;
+    yfms->mwindow.screen.spad_backup = yfms->mwindow.screen.spad_reset = 0; return;
 }
 
 void yfs_spad_remvc(yfms_context *yfms)

@@ -37,7 +37,11 @@ void yfs_menu_resetall(yfms_context *yfms)
     {
         yfs_main_rline(yfms, i, -1);
     }
-    yfs_spad_clear(yfms);
+    char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+    if  (strnlen(buf, 1))
+    {
+        yfs_spad_clear(yfms);
+    }
     yfs_spad_reset(yfms, "YFMS INITIALIZED", COLR_IDX_ORANGE);
 
     /* all good */

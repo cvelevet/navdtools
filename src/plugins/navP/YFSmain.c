@@ -663,7 +663,7 @@ static int create_main_window(yfms_context *yfms)
     }
 
     /* all good */
-    yfs_menu_resetall(yfms); return 0;
+    return 0;
 
 create_button_fail:
     ndt_log("YFMS [error]: could not create button with description \"%s\"\n", softkey.desc);
@@ -736,7 +736,7 @@ void* yfs_main_init(void)
     }
 
     /* all good */
-    return yfms;
+    yfs_menu_resetall(yfms); return yfms;
 
 fail:
     yfs_main_close(&yfms);
