@@ -23,7 +23,7 @@
 
 #include "YFSmain.h"
 
-void yfs_spad_dupto(yfms_context *yfms, char buf[YFS_DISPLAY_NUMC + 1]);
+void yfs_spad_copy2(yfms_context *yfms, char buf[YFS_DISPLAY_NUMC + 1]);
 void yfs_spad_clear(yfms_context *yfms                                );
 void yfs_spad_remvc(yfms_context *yfms                                );
 void yfs_spad_apndc(yfms_context *yfms, char c,              int color);

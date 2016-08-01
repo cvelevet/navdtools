@@ -27,13 +27,18 @@
 #define SPAD_IDX (YFS_DISPLAY_NUMR - 1)
 #define SPAD_COL (COLR_IDX_WHITE)
 
-void yfs_spad_dupto(yfms_context *yfms, char buf[YFS_DISPLAY_NUMC + 1])
+void yfs_spad_copy2(yfms_context *yfms, char buf[YFS_DISPLAY_NUMC + 1])
 {
     if (!yfms || !buf)
     {
         return; // no error
     }
-    snprintf(buf, YFS_DISPLAY_NUMC + 1, "%s", yfms->mwindow.screen.text[SPAD_IDX]);
+    size_t l = strnlen(yfms->mwindow.screen.text[SPAD_IDX], YFS_DISPLAY_NUMC);
+    while (l >= 1 &&   yfms->mwindow.screen.text[SPAD_IDX][l - 1] == ' ')
+    {
+        yfms->mwindow.screen.text[SPAD_IDX][--l] = 0;
+    }
+    sprintf(buf, "%s", yfms->mwindow.screen.text[SPAD_IDX]);
     return;
 }
 
@@ -47,7 +52,7 @@ void yfs_spad_clear(yfms_context *yfms)
     {
         yfms->mwindow.screen.colr[SPAD_IDX][i] = SPAD_COL;
     }
-    sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s", "");
+    yfms->mwindow.screen.text[SPAD_IDX][0] = 0;
     return;
 }
 
@@ -57,13 +62,12 @@ void yfs_spad_remvc(yfms_context *yfms)
     {
         return; // no error
     }
-    if (strnlen(yfms->mwindow.screen.text[SPAD_IDX], 2) <= 1)
+    char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf); size_t l = strlen(buf);
+    if (l <= 1)
     {
-        yfs_spad_clear(yfms);
-        return;
+        yfs_spad_clear(yfms); // only one character left
     }
-    size_t l = strnlen(yfms->mwindow.screen.text[SPAD_IDX], YFS_DISPLAY_NUMC);
-    yfms->mwindow.screen.text[SPAD_IDX][l - 1] = '\0';
+    buf[l - 1] = 0; sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s", buf);
     return;
 }
 
@@ -73,17 +77,25 @@ void yfs_spad_apndc(yfms_context *yfms, char c, int color)
     {
         return; // no error
     }
-    size_t l = strlen(yfms->mwindow.screen.text[SPAD_IDX]);
-    if (YFS_DISPLAY_NUMC - 1 < l)
+    char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf); size_t l = strlen(buf);
+    if (c == '+' || c == '-')
     {
-        l = YFS_DISPLAY_NUMC - 1; // TODO: shift text & colors by 1 left
+        if (buf[l - 1] == '+' || buf[l - 1] == '-')
+        {
+            buf[l - 1] = buf[l - 1] == '+' ? '-' : '+';
+            sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s", buf);
+            return;
+        }
+    }
+    if (l >= YFS_DISPLAY_NUMC)
+    {
+        return; // scratchpad full
     }
     if (color >= 0)
     {
         yfms->mwindow.screen.colr[SPAD_IDX][l] = color;
     }
-    yfms->mwindow.screen.colr[SPAD_IDX][l + 1] = '\0';
-    yfms->mwindow.screen.colr[SPAD_IDX][l] = c;
+    sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s%c", buf, c);
     return;
 }
 
@@ -100,5 +112,3 @@ void yfs_spad_reset(yfms_context *yfms, char *s, int color)
     snprintf(yfms->mwindow.screen.text[SPAD_IDX], YFS_DISPLAY_NUMC + 1, "%s", s);
     return;
 }
-
-//fixme

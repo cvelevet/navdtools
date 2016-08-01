@@ -134,14 +134,17 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
     }
     if (key == yfms->mwindow.keys.keyid_al_z)
     {
+        yfs_spad_apndc(yfms, 'Z', -1);
         return;
     }
     if (key == yfms->mwindow.keys.keyid_slsh)
     {
+        yfs_spad_apndc(yfms, '/', -1);
         return;
     }
     if (key == yfms->mwindow.keys.keyid_spce)
     {
+        yfs_spad_apndc(yfms, ' ', -1);
         return;
     }
     if (key == yfms->mwindow.keys.keyid_ovfy)
@@ -196,10 +199,12 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
     }
     if (key == yfms->mwindow.keys.keyid_pird)
     {
+        yfs_spad_apndc(yfms, '.', -1);
         return;
     }
     if (key == yfms->mwindow.keys.keyid_plus)
     {
+        yfs_spad_apndc(yfms, '+', -1);
         return;
     }
 }
