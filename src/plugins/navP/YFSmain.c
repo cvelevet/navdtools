@@ -139,7 +139,7 @@ typedef struct
             XPWidgetID keyid_fpln;
             XPWidgetID keyid_radn;
             XPWidgetID keyid_fuel;
-            XPWidgetID keyid_sfpn;
+            XPWidgetID keyid_sfpl;
             XPWidgetID keyid_atcc;
             XPWidgetID keyid_menu;
             XPWidgetID keyid_arpt;
@@ -285,14 +285,12 @@ static int create_main_window(yfms_context *yfms)
     int mainwinRT = (inRT);
     int            r_value;
     yfms_buttn_ctx softkey;
-    // we start at the keyboard's top right, with a separator on the right-hand side
     softkey.btnW = YFS_SOFT_KEY_1_W; softkey.btnH = YFS_SOFT_KEY_1_H;
     softkey.btBW = softkey.btBH = YFS_SOFT_KEY_1_B;
-    softkey.inRT = keybordRT - separat1W;
-    softkey.inTP = keybordTP;
     // row 1
     {
-        softkey.inRT -= softkey.btnW; // missing 1 column
+        softkey.inRT = keybordRT - separat1W - softkey.btnW * 1; // missing 1 column
+        softkey.inTP = keybordTP             - softkey.btnH * 0; // set top position
     }
     softkey.desc = "DATA";
     softkey._wid = &yfms->mwindow.keys.keyid_data;
@@ -320,6 +318,64 @@ static int create_main_window(yfms_context *yfms)
     }
     softkey.desc = "DIR";
     softkey._wid = &yfms->mwindow.keys.keyid_dirt;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    // row 2
+    {
+        softkey.inRT = keybordRT - separat1W - softkey.btnW * 0; // all columns here
+        softkey.inTP = keybordTP             - softkey.btnH * 1; // set top position
+    }
+    softkey.desc = "MENU";
+    softkey._wid = &yfms->mwindow.keys.keyid_menu;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "";
+    softkey._wid = &yfms->mwindow.keys.keyid_atcc;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "";
+    softkey._wid = &yfms->mwindow.keys.keyid_sfpl;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "FUEL";
+    softkey._wid = &yfms->mwindow.keys.keyid_fuel;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "RADIO";
+    softkey._wid = &yfms->mwindow.keys.keyid_radn;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "F-PLN";
+    softkey._wid = &yfms->mwindow.keys.keyid_fpln;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    // row 3
+    {
+        softkey.inRT = keybordRT - separat1W - softkey.btnW * 4; // missing 4 columns
+        softkey.inTP = keybordTP             - softkey.btnH * 2; // set top position
+    }
+    softkey.desc = "";
+    softkey._wid = &yfms->mwindow.keys.keyid_null;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "";
+    softkey._wid = &yfms->mwindow.keys.keyid_arpt;
     if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
     {
         goto create_button_fail;
