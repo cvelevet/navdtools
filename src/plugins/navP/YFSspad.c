@@ -1,5 +1,5 @@
 /*
- * YFSkeys.c
+ * YFSspad.c
  *
  * This file is part of the navdtools source code.
  *
