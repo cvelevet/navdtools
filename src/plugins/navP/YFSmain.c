@@ -912,7 +912,18 @@ void yfs_main_toggl(void *yfms_ctx)
 
 static void menu_handler(void *inMenuRef, void *inItemRef)
 {
-    //fixme
+    yfms_context *yfms = inMenuRef;
+    int *menu_item_ref = inItemRef;
+    if (!yfms || !menu_item_ref)
+    {
+        return;
+    }
+    if (*menu_item_ref == yfms->menu.items.toggle)
+    {
+        toggle_main_window(yfms);
+        return;
+    }
+    return;
 }
 
 static int yfs_mwindowh(XPWidgetMessage inMessage,
