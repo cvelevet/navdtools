@@ -26,6 +26,7 @@
 #include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMDisplay.h"
 #include "XPLM/XPLMGraphics.h"
+#include "XPLM/XPLMMenus.h"
 #include "XPLM/XPLMUtilities.h"
 
 #include "common/common.h"
@@ -60,6 +61,17 @@ enum
 
 typedef struct
 {
+    struct
+    {
+       XPLMMenuID id;
+        struct
+        {
+            int toggle;
+        }
+        items;
+    }
+    menu;
+
     struct
     {
         XPWidgetID id;
@@ -162,10 +174,11 @@ typedef struct
 }
 yfms_context;
 
-static int yfs_mwindowh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
-static int yfs_mcdubgrh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
-static int yfs_mcdudish(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
-static int chandler_tog(XPLMCommandRef, XPLMCommandPhase, void*inRefcon);
+static void menu_handler(void *inMenuRef,                void *inItemRef);
+static int  yfs_mwindowh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
+static int  yfs_mcdubgrh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
+static int  yfs_mcdudish(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
+static int  chandler_tog(XPLMCommandRef, XPLMCommandPhase, void*inRefcon);
 
 /*
  * TODO: xpWidgetClass_Button limited to 15px height; use custom widget instead.
@@ -829,6 +842,18 @@ void* yfs_main_init(void)
                                yfms->mwindow.toggle.before  = 0,
                                yfms->mwindow.toggle.refcon  = yfms);
 
+    /* also add a menu (with an additional toggle) */
+    if ((yfms->menu.id = XPLMCreateMenu("YFMS", NULL, 0, &menu_handler, yfms)) == NULL)
+    {
+        ndt_log("YFMS [error]: could not create menu\n");
+        goto fail;
+    }
+    if ((yfms->menu.items.toggle = XPLMAppendMenuItem(yfms->menu.id, "toggle", &yfms->menu.items.toggle, 0)) < 0)
+    {
+        ndt_log("YFMS [error]: could not create menu item for toggle\n");
+        goto fail;
+    }
+
     /* all good */
     return yfms;
 
@@ -863,6 +888,12 @@ int yfs_main_close(void **_yfms_ctx)
         yfms->mwindow.toggle.handler = NULL;
     }
 
+    /* and the menu */
+    if (yfms->menu.id)
+    {
+        XPLMDestroyMenu(yfms->menu.id);
+    }
+
     /* all good */
     free(yfms);
     return 0;
@@ -877,6 +908,11 @@ void yfs_main_toggl(void *yfms_ctx)
     }
     toggle_main_window(yfms);
     return;
+}
+
+static void menu_handler(void *inMenuRef, void *inItemRef)
+{
+    //fixme
 }
 
 static int yfs_mwindowh(XPWidgetMessage inMessage,

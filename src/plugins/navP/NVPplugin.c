@@ -31,6 +31,7 @@
 
 #include "NVPchandlers.h"
 #include "NVPmenu.h"
+#include "YFSmain.h"
 
 /* Logging callback */
 static int log_with_sdk(const char *format, va_list ap);
@@ -38,9 +39,10 @@ static int log_with_sdk(const char *format, va_list ap);
 /* Miscellaneous data */
 void *chandler_context = NULL;
 void *navpmenu_context = NULL;
+void *navpyfms_context = NULL;
 
-#define PLUGIN_NAME "navP"      // or "UFMS"
-#define INTRO_SPEAK "nav P OK"  // or "U FMS OK"
+#define PLUGIN_NAME "navP"      // or "YFMS"
+#define INTRO_SPEAK "nav P OK"  // or "Y FMS OK"
 
 #if IBM
 #include <windows.h>
@@ -111,6 +113,12 @@ PLUGIN_API int XPluginEnable(void)
         return 0; // menu creation failed :(
     }
 
+    /* and an FMS, too! */
+    if ((navpyfms_context = yfs_main_init()) == NULL)
+    {
+        return 0; // menu creation failed :(
+    }
+
     /* all good */
     if (XPLMFindPluginBySignature("x-fmc.com") == XPLM_NO_PLUGIN_ID)
     {
@@ -126,6 +134,9 @@ PLUGIN_API void XPluginDisable(void)
 
     /* kill the menu */
     if (navpmenu_context) nvp_menu_close(&navpmenu_context);
+
+    /* and the FMS */
+    if (navpyfms_context) yfs_main_close(&navpyfms_context);
 
     /* all good */
     XPLMDebugString(PLUGIN_NAME " [info]: XPluginDisable OK\n");
