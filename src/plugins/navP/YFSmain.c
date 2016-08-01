@@ -701,8 +701,9 @@ static void toggle_main_window(yfms_context *yfms)
         XPLoseKeyboardFocus(yfms->mwindow.id);
         return;
     }
-    XPShowWidget      (yfms->mwindow.id);
-    XPSetKeyboardFocus(yfms->mwindow.id);
+    XPShowWidget            (yfms->mwindow.id);
+    XPSetKeyboardFocus      (yfms->mwindow.id);
+    XPBringRootWidgetToFront(yfms->mwindow.id);
     return;
 }
 
