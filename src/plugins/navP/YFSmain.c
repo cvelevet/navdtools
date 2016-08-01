@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "Widgets/XPStandardWidgets.h"
 #include "Widgets/XPWidgets.h"
@@ -33,30 +34,34 @@
 
 #include "YFSmain.h"
 
-static int YFS_FONT_BASIC_W =   8; // 2 + xplmFont_Basic width
-static int YFS_FONT_BASIC_H =  14; // 4 + xplmFont_Basic height
-static int YFS_MAINSCREEN_W = 208; // 2 + 24 characters per line
-static int YFS_MAINSCREEN_H = 154; // 11 lines x 24 usable characters
-static int YFS_MAINWINDOW_W = 420; // display + up to 10 buttons across
-static int YFS_MAINWINDOW_H = 420; // display + up to 6 rows in lower half
-static int YFS_SOFT_KEY_1_W =  42; // 9 buttons in 420 pixels, 3 separators
-static int YFS_SOFT_KEY_1_H =  32; // 6 buttons in 210 pixels, 1 separator
-static int YFS_SOFT_KEY_1_B =   2; // 2x 2 pixels of border between each button
-static int YFS_SOFT_KEY_2_W =  36; // 7 buttons in 252 pixels (6x soft_key_1_w)
-static int YFS_SOFT_KEY_2_H =  32; // 6 buttons in 210 pixels
-static int YFS_SOFT_KEY_2_B =   2; // 2x 2 pixels of border between each button
+static int YFS_FONT_BASIC_W =   8;  // 2 + xplmFont_Basic width
+static int YFS_FONT_BASIC_H =  14;  // 4 + xplmFont_Basic height
+static int YFS_MAINSCREEN_W = 208;  // 2 + YFS_DISPLAY_NUMC characters per line
+static int YFS_MAINSCREEN_H = 154;  // YFS_DISPLAY_NUMR rows * YFS_FONT_BASIC_H
+static int YFS_MAINWINDOW_W = 420;  // display + up to 10 buttons across
+static int YFS_MAINWINDOW_H = 420;  // display + up to 6 rows in lower half
+static int YFS_SOFT_KEY_1_W =  42;  // 9 buttons in 420 pixels, 3 separators
+static int YFS_SOFT_KEY_1_H =  32;  // 6 buttons in 210 pixels, 1 separator
+static int YFS_SOFT_KEY_1_B =   2;  // 2x 2 pixels of border between each button
+static int YFS_SOFT_KEY_2_W =  36;  // 7 buttons in 252 pixels (6x soft_key_1_w)
+static int YFS_SOFT_KEY_2_H =  32;  // 6 buttons in 210 pixels
+static int YFS_SOFT_KEY_2_B =   2;  // 2x 2 pixels of border between each button
 static float COLR_BLACK  [] = { 1.0f, 1.0f, 1.0f, };
 static float COLR_WHITE  [] = { 0.0f, 0.0f, 0.0f, };
 static float COLR_RED    [] = { 1.0f, 0.0f, 0.0f, };
 static float COLR_GREEN  [] = { 0.0f, 1.0f, 0.0f, };
 static float COLR_BLUE   [] = { 0.0f, 0.0f, 1.0f, };
+static float COLR_MAGENTA[] = { 1.0f, 0.0f, 1.0f, };
+static float COLR_YELLOW [] = { 1.0f, 1.0f, 0.0f, };
 enum
 {
-    IDX_BLACK,
-    IDX_WHITE,
-    IDX_RED  ,
-    IDX_GREEN,
-    IDX_BLUE ,
+    IDX_BLACK   = 0,
+    IDX_BLUE    = 1,
+    IDX_GREEN   = 2,
+    IDX_MAGENTA = 3,
+    IDX_RED     = 4,
+    IDX_WHITE   = 5,
+    IDX_YELLOW  = 6,
 };
 
 typedef struct
@@ -145,19 +150,19 @@ typedef struct
 
         struct
         {
-            int   colr[11][24];
-            char  text[11][25];
             XPWidgetID bgrd_id;
             XPWidgetID subw_id;
             int        sw_inBM;
             int        sw_inLT;
             int        sw_inTP;
             int        sw_inRT;
-            XPWidgetID line_id[11];
-            int        ln_inBM[11];
-            int        ln_inLT[11];
-            int        ln_inTP[11];
-            int        ln_inRT[11];
+            XPWidgetID line_id[YFS_DISPLAY_NUMR];
+            int        ln_inBM[YFS_DISPLAY_NUMR];
+            int        ln_inLT[YFS_DISPLAY_NUMR];
+            int        ln_inTP[YFS_DISPLAY_NUMR];
+            int        ln_inRT[YFS_DISPLAY_NUMR];
+            int           colr[YFS_DISPLAY_NUMR][YFS_DISPLAY_NUMC];
+            char          text[YFS_DISPLAY_NUMR][YFS_DISPLAY_NUMC + 1];
         }
         screen;
 
@@ -702,7 +707,7 @@ static int create_main_window(yfms_context *yfms)
     inTP =  keybordTP + separatrH - 1 + YFS_MAINSCREEN_H;   // top
     inRT =  mainwinRT - align_scW + 1;                      // right
     inLT =    inRT - YFS_MAINSCREEN_W;                      // left
-    for (int i = 0; i < 11; i++)
+    for (int i = 0; i < YFS_DISPLAY_NUMR; i++)
     {
         inBM = inTP - YFS_FONT_BASIC_H; // set height for each line here
         yfms->mwindow.screen.ln_inBM[i] = inBM;
@@ -747,7 +752,7 @@ static int create_main_window(yfms_context *yfms)
         ndt_log("YFMS [error]: could not create MCDU display sub-window\n");
         return -1;
     }
-    for (int i = 0; i < 11; i++)
+    for (int i = 0; i < YFS_DISPLAY_NUMR; i++)
     {
         if ((yfms->mwindow.screen.line_id[i] =
              XPCreateWidget(yfms->mwindow.screen.ln_inLT[i] + 1 + YFS_FONT_BASIC_W,
@@ -779,6 +784,25 @@ static int create_main_window(yfms_context *yfms)
             {
                 goto create_button_fail;
             }
+        }
+    }
+
+    /* reset the display, everything green by default */
+    for (int i = 0; i < YFS_DISPLAY_NUMR; i++)
+    {
+        memset(yfms->mwindow.screen.text[i], 0, YFS_DISPLAY_NUMC + 1);
+        for   (int j = 0; j < YFS_DISPLAY_NUMC; j++)
+        {
+            yfms->mwindow.screen.colr[i][j] = IDX_GREEN;
+        }
+        if (i == 0) // first line, dummy text to show upon initialization
+        {
+            for (int j = 0; j < YFS_DISPLAY_NUMC; j++)
+            {
+                yfms->mwindow.screen.colr[i][j] = IDX_YELLOW;
+            }
+            yfms->mwindow.screen.colr   [i][10] = IDX_MAGENTA; // 'Y'
+            sprintf(yfms->mwindow.screen.text[i], "%s", "          YFMS");
         }
     }
 
@@ -962,12 +986,55 @@ static int yfs_mcdubgrh(XPWidgetMessage inMessage,
     return 0;
 }
 
+static void draw_display(yfms_context *yfms)
+{
+    char buf[2]; int x, y;
+    for (int i = 0; i < YFS_DISPLAY_NUMR; i++)
+    {
+        XPGetWidgetGeometry(yfms->mwindow.screen.line_id[i], &x, NULL, NULL, &y);
+        for (int j = strlen(yfms->mwindow.screen.text[i]); j < YFS_DISPLAY_NUMC; j++)
+        {
+            yfms->mwindow.screen.text[i][j] = ' ';
+        }
+        for (int j = 0; j < YFS_DISPLAY_NUMC; j++)
+        {
+            snprintf(buf, sizeof(buf), "%c", yfms->mwindow.screen.text[i][j]);
+            switch  (yfms->mwindow.screen.colr[i][j])
+            {
+                case IDX_BLACK:
+                    XPLMDrawString(COLR_BLACK,   x, y, buf, NULL, xplmFont_Basic);
+                    break;
+                case IDX_BLUE:
+                    XPLMDrawString(COLR_BLUE,    x, y, buf, NULL, xplmFont_Basic);
+                    break;
+                case IDX_MAGENTA:
+                    XPLMDrawString(COLR_MAGENTA, x, y, buf, NULL, xplmFont_Basic);
+                    break;
+                case IDX_RED:
+                    XPLMDrawString(COLR_RED,     x, y, buf, NULL, xplmFont_Basic);
+                    break;
+                case IDX_WHITE:
+                    XPLMDrawString(COLR_WHITE,   x, y, buf, NULL, xplmFont_Basic);
+                    break;
+                case IDX_YELLOW:
+                    XPLMDrawString(COLR_YELLOW,  x, y, buf, NULL, xplmFont_Basic);
+                    break;
+                case IDX_GREEN:
+                default:
+                    XPLMDrawString(COLR_GREEN,   x, y, buf, NULL, xplmFont_Basic);
+                    break;
+            }
+            x += YFS_FONT_BASIC_W; // move position for next character
+        }
+    }
+}
+
 static int yfs_mcdudish(XPWidgetMessage inMessage,
                         XPWidgetID      inWidget,
                         intptr_t        inParam1,
                         intptr_t        inParam2)
 {
-    if (inMessage == xpMsg_Draw) // TODO: implement (properly, not inline)
+    if (inMessage == xpMsg_Draw)
     {
         if (XPIsWidgetVisible(inWidget))
         {
@@ -977,8 +1044,7 @@ static int yfs_mcdudish(XPWidgetMessage inMessage,
                 ndt_log("YFMS [debug]: no context for MCDU display!\n");
                 return 0;
             }
-            XPGetWidgetGeometry(yfms->mwindow.screen.line_id[10], &x, NULL, NULL, &y);
-            XPLMDrawString     (COLR_GREEN, x, y, "READY_", NULL,     xplmFont_Basic);
+            draw_display(yfms);
         }
         return 1;
     }

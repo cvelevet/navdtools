@@ -23,6 +23,9 @@
 
 // TODO: when new aircraft loaded, reset YFMS automatically
 
+#define YFS_DISPLAY_NUMC 24 // number of positions per row
+#define YFS_DISPLAY_NUMR 11 // number of rows
+
 void* yfs_main_init (void                );
 void  yfs_main_toggl(void   *yfms_context);
 int   yfs_main_close(void **_yfms_context);
