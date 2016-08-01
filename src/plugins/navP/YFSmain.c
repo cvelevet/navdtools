@@ -37,14 +37,14 @@
 static int YFS_FONT_BASIC_W =   8;  // 2 + xplmFont_Basic width
 static int YFS_FONT_BASIC_H =  14;  // 4 + xplmFont_Basic height
 static int YFS_MAINSCREEN_W = 208;  // 2 + YFS_DISPLAY_NUMC characters per line
-static int YFS_MAINSCREEN_H = 154;  // YFS_DISPLAY_NUMR rows * YFS_FONT_BASIC_H
-static int YFS_MAINWINDOW_W = 420;  // display + up to 10 buttons across
-static int YFS_MAINWINDOW_H = 420;  // display + up to 6 rows in lower half
-static int YFS_SOFT_KEY_1_W =  42;  // 9 buttons in 420 pixels, 3 separators
-static int YFS_SOFT_KEY_1_H =  32;  // 6 buttons in 210 pixels, 1 separator
+static int YFS_MAINSCREEN_H = 196;  // YFS_DISPLAY_NUMR rows * YFS_FONT_BASIC_H
+static int YFS_MAINWINDOW_W = 340;  // margins + up to 8 buttons across
+static int YFS_MAINWINDOW_H = 440;  // display + up to 9 lines below it
+static int YFS_SOFT_KEY_1_W =  49;  // 3x 15 pixels plus top & bottom borders
+static int YFS_SOFT_KEY_1_H =  19;  // 1x 15 pixels plus top & bottom borders
 static int YFS_SOFT_KEY_1_B =   2;  // 2x 2 pixels of border between each button
-static int YFS_SOFT_KEY_2_W =  36;  // 7 buttons in 252 pixels (6x soft_key_1_w)
-static int YFS_SOFT_KEY_2_H =  32;  // 6 buttons in 210 pixels
+static int YFS_SOFT_KEY_2_W =  34;  // 2x 15 pixels plus top & bottom borders
+static int YFS_SOFT_KEY_2_H =  19;  // 1x 15 pixels plus top & bottom borders
 static int YFS_SOFT_KEY_2_B =   2;  // 2x 2 pixels of border between each button
 static float COLR_BLACK  [] = { 1.0f, 1.0f, 1.0f, };
 static float COLR_WHITE  [] = { 0.0f, 0.0f, 0.0f, };
@@ -84,67 +84,70 @@ typedef struct
         struct
         {
             // line select keys
-            XPWidgetID keyid_lsk[5];
-            XPWidgetID keyid_rsk[5];
-            // row 1, right-to-left
-            XPWidgetID keyid_num3;
-            XPWidgetID keyid_num2;
-            XPWidgetID keyid_num1;
-            XPWidgetID keyid_prev;
-            XPWidgetID keyid_list;
-            XPWidgetID keyid__dto;
-            XPWidgetID keyid_vnav;
-            XPWidgetID keyid__nav;
-            XPWidgetID keyid_data;
-            // row 2, right-to-left
-            XPWidgetID keyid_num6;
-            XPWidgetID keyid_num5;
-            XPWidgetID keyid_num4;
-            XPWidgetID keyid_next;
-            XPWidgetID keyid_menu;
-            XPWidgetID keyid_tune;
-            XPWidgetID keyid_perf;
-            XPWidgetID keyid__fpl;
-            XPWidgetID keyid_fuel;
-            // row 3, right-to-left
-            XPWidgetID keyid_num9;
-            XPWidgetID keyid_num8;
-            XPWidgetID keyid_num7;
-            XPWidgetID keyid_al_g;
-            XPWidgetID keyid_al_f;
-            XPWidgetID keyid_al_e;
-            XPWidgetID keyid_al_d;
-            XPWidgetID keyid_al_c;
-            XPWidgetID keyid_al_b;
-            XPWidgetID keyid_al_a;
-            // row 4, right-to-left
-            XPWidgetID keyid__msg;
+            XPWidgetID keyid_lsk[6];
+            XPWidgetID keyid_rsk[6];
+            // alphanumeric keys
             XPWidgetID keyid_num0;
-            XPWidgetID keyid_back;
-            XPWidgetID keyid_al_n;
-            XPWidgetID keyid_al_m;
-            XPWidgetID keyid_al_l;
-            XPWidgetID keyid_al_k;
-            XPWidgetID keyid_al_j;
-            XPWidgetID keyid_al_i;
+            XPWidgetID keyid_num1;
+            XPWidgetID keyid_num2;
+            XPWidgetID keyid_num3;
+            XPWidgetID keyid_num4;
+            XPWidgetID keyid_num5;
+            XPWidgetID keyid_num6;
+            XPWidgetID keyid_num7;
+            XPWidgetID keyid_num8;
+            XPWidgetID keyid_num9;
+            XPWidgetID keyid_al_a;
+            XPWidgetID keyid_al_b;
+            XPWidgetID keyid_al_c;
+            XPWidgetID keyid_al_d;
+            XPWidgetID keyid_al_e;
+            XPWidgetID keyid_al_f;
+            XPWidgetID keyid_al_g;
             XPWidgetID keyid_al_h;
-            // row 5, right-to-left
-            XPWidgetID keyid_plus;
-            XPWidgetID keyid_onof;
-            XPWidgetID keyid_al_t;
-            XPWidgetID keyid_al_s;
-            XPWidgetID keyid_al_r;
-            XPWidgetID keyid_al_q;
-            XPWidgetID keyid_al_p;
+            XPWidgetID keyid_al_i;
+            XPWidgetID keyid_al_j;
+            XPWidgetID keyid_al_k;
+            XPWidgetID keyid_al_l;
+            XPWidgetID keyid_al_m;
+            XPWidgetID keyid_al_n;
             XPWidgetID keyid_al_o;
-            // row 6, right-to-left
-            XPWidgetID keyid_entr;
-            XPWidgetID keyid_al_z;
-            XPWidgetID keyid_al_y;
-            XPWidgetID keyid_al_x;
-            XPWidgetID keyid_al_w;
-            XPWidgetID keyid_al_v;
+            XPWidgetID keyid_al_p;
+            XPWidgetID keyid_al_q;
+            XPWidgetID keyid_al_r;
+            XPWidgetID keyid_al_s;
+            XPWidgetID keyid_al_t;
             XPWidgetID keyid_al_u;
+            XPWidgetID keyid_al_v;
+            XPWidgetID keyid_al_w;
+            XPWidgetID keyid_al_x;
+            XPWidgetID keyid_al_y;
+            XPWidgetID keyid_al_z;
+            // special keys
+            XPWidgetID keyid_clir;
+            XPWidgetID keyid_ovfy;
+            XPWidgetID keyid_plus;
+            XPWidgetID keyid_pird;
+            XPWidgetID keyid_spce;
+            XPWidgetID keyid_slsh;
+            // FMS pages
+            XPWidgetID keyid_dirt;
+            XPWidgetID keyid_prog;
+            XPWidgetID keyid_perf;
+            XPWidgetID keyid_init;
+            XPWidgetID keyid_data;
+            XPWidgetID keyid_fpln;
+            XPWidgetID keyid_radn;
+            XPWidgetID keyid_fuel;
+            XPWidgetID keyid_sfpn;
+            XPWidgetID keyid_atcc;
+            XPWidgetID keyid_menu;
+            XPWidgetID keyid_arpt;
+            XPWidgetID keyid_null;
+            XPWidgetID keyid_left;
+            XPWidgetID keyid_rigt;
+            XPWidgetID keyid_lnup;
+            XPWidgetID keyid_lndn;
         }
         keys;
 
@@ -185,12 +188,6 @@ static int  yfs_mcdubgrh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
 static int  yfs_mcdudish(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
 static int  chandler_tog(XPLMCommandRef, XPLMCommandPhase, void*inRefcon);
 
-/*
- * TODO: xpWidgetClass_Button limited to 15px height; use custom widget instead.
- *
- * In the meantime, center the button vertically, and use an
- * other widget behind it to draw some sort of "background". // TODO still
- */
 typedef struct
 {
     XPWidgetID *_wid;
@@ -276,12 +273,12 @@ static int create_main_window(yfms_context *yfms)
      * Width:  we have 9, or 10 keys across and 3 "separators".
      * Height: we always have 6 keys across and 1 "separator" in half the total height.
      */
-    int separatrW = (YFS_MAINWINDOW_W / 1 - 9 * YFS_SOFT_KEY_1_W) / 3;
-    int separatrH = (YFS_MAINWINDOW_H / 2 - 6 * YFS_SOFT_KEY_1_H) / 1;
-    int keybordBM = (inBM / 1);
-    int keybordLT = (inLT / 1);
-    int keybordTP = (inTP / 2);
-    int keybordRT = (inRT / 1);
+    int separat1W = (YFS_MAINWINDOW_W - 6 * YFS_SOFT_KEY_1_W) / 2;
+    int separat2W = (YFS_MAINWINDOW_W - 8 * YFS_SOFT_KEY_2_W) / 2;
+    int keybordTP = (inTP - 50 - YFS_MAINSCREEN_H);
+    int keybordBM = (inBM);
+    int keybordLT = (inLT);
+    int keybordRT = (inRT);
     int mainwinBM = (inBM);
     int mainwinLT = (inLT);
     int mainwinTP = (inTP);
@@ -291,63 +288,11 @@ static int create_main_window(yfms_context *yfms)
     // we start at the keyboard's top right, with a separator on the right-hand side
     softkey.btnW = YFS_SOFT_KEY_1_W; softkey.btnH = YFS_SOFT_KEY_1_H;
     softkey.btBW = softkey.btBH = YFS_SOFT_KEY_1_B;
-    softkey.inRT = keybordRT - separatrW;
+    softkey.inRT = keybordRT - separat1W;
     softkey.inTP = keybordTP;
     // row 1
     {
-        softkey.inTP -= separatrH; // note1
-    }
-    softkey.desc = "3";
-    softkey._wid = &yfms->mwindow.keys.keyid_num3;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "2";
-    softkey._wid = &yfms->mwindow.keys.keyid_num2;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "1";
-    softkey._wid = &yfms->mwindow.keys.keyid_num1;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    {
-        softkey.inTP += separatrH; // note1
-        softkey.inRT -= separatrW; // horizontal separator
-    }
-    softkey.desc = "PREV";
-    softkey._wid = &yfms->mwindow.keys.keyid_prev;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "LIST";
-    softkey._wid = &yfms->mwindow.keys.keyid_list;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "DTO";
-    softkey._wid = &yfms->mwindow.keys.keyid__dto;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "VNAV";
-    softkey._wid = &yfms->mwindow.keys.keyid_vnav;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "NAV";
-    softkey._wid = &yfms->mwindow.keys.keyid__nav;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
+        softkey.inRT -= softkey.btnW; // missing 1 column
     }
     softkey.desc = "DATA";
     softkey._wid = &yfms->mwindow.keys.keyid_data;
@@ -355,50 +300,8 @@ static int create_main_window(yfms_context *yfms)
     {
         goto create_button_fail;
     }
-    // row 2
-    {
-        softkey.inTP -= separatrH; // note1
-    }
-    {
-        softkey.inRT = keybordRT - separatrW;           // new row, back right
-        softkey.inTP = softkey.inTP - YFS_SOFT_KEY_1_H; // lose 1 row height
-    }
-    softkey.desc = "6";
-    softkey._wid = &yfms->mwindow.keys.keyid_num6;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "5";
-    softkey._wid = &yfms->mwindow.keys.keyid_num5;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "4";
-    softkey._wid = &yfms->mwindow.keys.keyid_num4;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    {
-        softkey.inTP += separatrH; // note1
-        softkey.inRT -= separatrW; // horizontal separator
-    }
-    softkey.desc = "NEXT";
-    softkey._wid = &yfms->mwindow.keys.keyid_next;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "MENU";
-    softkey._wid = &yfms->mwindow.keys.keyid_menu;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "TUNE";
-    softkey._wid = &yfms->mwindow.keys.keyid_tune;
+    softkey.desc = "INIT";
+    softkey._wid = &yfms->mwindow.keys.keyid_init;
     if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
     {
         goto create_button_fail;
@@ -409,302 +312,25 @@ static int create_main_window(yfms_context *yfms)
     {
         goto create_button_fail;
     }
-    softkey.desc = "FPL";
-    softkey._wid = &yfms->mwindow.keys.keyid__fpl;
+    softkey.desc = "PROG";
+    softkey._wid = &yfms->mwindow.keys.keyid_prog;
     if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
     {
         goto create_button_fail;
     }
-    softkey.desc = "FUEL";
-    softkey._wid = &yfms->mwindow.keys.keyid_fuel;
+    softkey.desc = "DIR";
+    softkey._wid = &yfms->mwindow.keys.keyid_dirt;
     if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
     {
         goto create_button_fail;
     }
-    // row 3
-    {
-        softkey.inTP -= separatrH; // note1
-    }
-    {
-        softkey.inRT = keybordRT - separatrW;           // new row, back right
-        softkey.inTP = softkey.inTP - YFS_SOFT_KEY_1_H; // lose 1 row height
-    }
-    softkey.desc = "9";
-    softkey._wid = &yfms->mwindow.keys.keyid_num9;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "8";
-    softkey._wid = &yfms->mwindow.keys.keyid_num8;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "7";
-    softkey._wid = &yfms->mwindow.keys.keyid_num7;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    {
-        softkey.inTP = softkey.inTP + separatrH; // note1
-        softkey.inTP = softkey.inTP - separatrH; // vertical separator
-        softkey.inRT = softkey.inRT - separatrW; // horizon. separator
-        softkey.btnW                = YFS_SOFT_KEY_2_W; // nar. key width
-        softkey.btnH                = YFS_SOFT_KEY_2_H; // same key height
-        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B; // same borders
-    }
-    softkey.desc = "G";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_g;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "F";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_f;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "E";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_e;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "D";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_d;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "C";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_c;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "B";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_b;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "A";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_a;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    // row 4
-    {
-        softkey.inTP -= separatrH; // note1
-    }
-    {
-        softkey.inRT = keybordRT    - separatrW; // new row, back right
-        softkey.inTP = softkey.inTP + separatrH - YFS_SOFT_KEY_1_H; // align h.
-        softkey.btnW                = YFS_SOFT_KEY_1_W; // reset key width
-        softkey.btnH                = YFS_SOFT_KEY_1_H; // reset key height
-        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_1_B; // reset borders
-    }
-    softkey.desc = "MSG";
-    softkey._wid = &yfms->mwindow.keys.keyid__msg;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "0";
-    softkey._wid = &yfms->mwindow.keys.keyid_num0;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "BACK";
-    softkey._wid = &yfms->mwindow.keys.keyid_back;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    {
-        softkey.inTP = softkey.inTP + separatrH; // note1
-        softkey.inTP = softkey.inTP - separatrH; // vertical separator
-        softkey.inRT = softkey.inRT - separatrW; // horizon. separator
-        softkey.btnW                = YFS_SOFT_KEY_2_W; // nar. key width
-        softkey.btnH                = YFS_SOFT_KEY_2_H; // same key height
-        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B; // same borders
-    }
-    softkey.desc = "N";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_n;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "M";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_m;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "L";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_l;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "K";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_k;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "J";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_j;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "I";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_i;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "H";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_h;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    // row 5
-    {
-        softkey.inTP -= separatrH; // note1
-    }
-    {
-        softkey.inRT = keybordRT    - separatrW - YFS_SOFT_KEY_1_W; // -1 key
-        softkey.inTP = softkey.inTP + separatrH - YFS_SOFT_KEY_1_H; // align h.
-        softkey.btnW                = YFS_SOFT_KEY_1_W; // reset key width
-        softkey.btnH                = YFS_SOFT_KEY_1_H; // reset key height
-        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_1_B; // reset borders
-    }
-    softkey.desc = "+/-";
-    softkey._wid = &yfms->mwindow.keys.keyid_plus;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "DIM";
-    softkey._wid = &yfms->mwindow.keys.keyid_onof;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    {
-        softkey.inTP = softkey.inTP + separatrH; // note1
-        softkey.inTP = softkey.inTP - separatrH; // vertical separator
-        softkey.inRT = softkey.inRT - separatrW; // horizon. separator
-        softkey.btnW                = YFS_SOFT_KEY_2_W; // nar. key width
-        softkey.btnH                = YFS_SOFT_KEY_2_H; // same key height
-        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B; // same borders
-    }
-    softkey.desc = "T";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_t;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "S";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_s;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "R";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_r;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "Q";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_q;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "P";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_p;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "O";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_o;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    // row 6
-    {
-        softkey.inRT = keybordRT    - separatrW - YFS_SOFT_KEY_1_W; // -1 key
-        softkey.inTP = softkey.inTP             - YFS_SOFT_KEY_1_H; // align h.
-        softkey.btnW           = 2 *  YFS_SOFT_KEY_1_W; // wider key width
-        softkey.btnH                = YFS_SOFT_KEY_1_H; // reset key height
-        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_1_B; // reset borders
-    }
-    softkey.desc = "ENTER";
-    softkey._wid = &yfms->mwindow.keys.keyid_entr;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    {
-        softkey.inRT = softkey.inRT - separatrW; // horizon. separator
-        softkey.btnW                = YFS_SOFT_KEY_2_W; // nar. key width
-        softkey.btnH                = YFS_SOFT_KEY_2_H; // same key height
-        softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B; // same borders
-    }
-    softkey.desc = "Z";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_z;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "Y";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_y;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "X";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_x;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "W";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_w;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "V";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_v;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "U";
-    softkey._wid = &yfms->mwindow.keys.keyid_al_u;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
+    goto debug_skip;//debug
 
     /*
      * Now the MCDU's screen sub-window and associated labels.
      */
     int align_scW = (YFS_MAINWINDOW_W - YFS_MAINSCREEN_W) / 2;
-    inTP =  keybordTP + separatrH - 1 + YFS_MAINSCREEN_H;   // top
+    inTP =  keybordTP + separat1W - 1 + YFS_MAINSCREEN_H;   // top
     inRT =  mainwinRT - align_scW + 1;                      // right
     inLT =    inRT - YFS_MAINSCREEN_W;                      // left
     for (int i = 0; i < YFS_DISPLAY_NUMR; i++)
@@ -806,6 +432,7 @@ static int create_main_window(yfms_context *yfms)
         }
     }
 
+debug_skip://debug
     /* all good */
     return 0;
 
