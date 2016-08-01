@@ -54,135 +54,6 @@ static float COLR_BLUE   [] = { 0.0f, 0.0f, 1.0f, };
 static float COLR_MAGENTA[] = { 1.0f, 0.0f, 1.0f, };
 static float COLR_ORANGE [] = { 1.0f, .66f, 0.0f, };
 static float COLR_YELLOW [] = { 1.0f, 1.0f, 0.0f, };
-enum
-{
-    IDX_BLACK   = 0,
-    IDX_BLUE    = 1,
-    IDX_GREEN   = 2,
-    IDX_MAGENTA = 3,
-    IDX_RED     = 4,
-    IDX_WHITE   = 5,
-    IDX_ORANGE  = 6,
-    IDX_YELLOW  = 7,
-};
-
-typedef struct
-{
-    struct
-    {
-       XPLMMenuID id;
-        struct
-        {
-            int toggle;
-        }
-        items;
-    }
-    menu;
-
-    struct
-    {
-        XPWidgetID id;
-        int win_state;
-        struct
-        {
-            // line select keys
-            XPWidgetID keyid_lsk[6];
-            XPWidgetID keyid_rsk[6];
-            // alphanumeric keys
-            XPWidgetID keyid_num0;
-            XPWidgetID keyid_num1;
-            XPWidgetID keyid_num2;
-            XPWidgetID keyid_num3;
-            XPWidgetID keyid_num4;
-            XPWidgetID keyid_num5;
-            XPWidgetID keyid_num6;
-            XPWidgetID keyid_num7;
-            XPWidgetID keyid_num8;
-            XPWidgetID keyid_num9;
-            XPWidgetID keyid_al_a;
-            XPWidgetID keyid_al_b;
-            XPWidgetID keyid_al_c;
-            XPWidgetID keyid_al_d;
-            XPWidgetID keyid_al_e;
-            XPWidgetID keyid_al_f;
-            XPWidgetID keyid_al_g;
-            XPWidgetID keyid_al_h;
-            XPWidgetID keyid_al_i;
-            XPWidgetID keyid_al_j;
-            XPWidgetID keyid_al_k;
-            XPWidgetID keyid_al_l;
-            XPWidgetID keyid_al_m;
-            XPWidgetID keyid_al_n;
-            XPWidgetID keyid_al_o;
-            XPWidgetID keyid_al_p;
-            XPWidgetID keyid_al_q;
-            XPWidgetID keyid_al_r;
-            XPWidgetID keyid_al_s;
-            XPWidgetID keyid_al_t;
-            XPWidgetID keyid_al_u;
-            XPWidgetID keyid_al_v;
-            XPWidgetID keyid_al_w;
-            XPWidgetID keyid_al_x;
-            XPWidgetID keyid_al_y;
-            XPWidgetID keyid_al_z;
-            // special keys
-            XPWidgetID keyid_clir;
-            XPWidgetID keyid_ovfy;
-            XPWidgetID keyid_plus;
-            XPWidgetID keyid_pird;
-            XPWidgetID keyid_spce;
-            XPWidgetID keyid_slsh;
-            // FMS pages
-            XPWidgetID keyid_dirt;
-            XPWidgetID keyid_prog;
-            XPWidgetID keyid_perf;
-            XPWidgetID keyid_init;
-            XPWidgetID keyid_data;
-            XPWidgetID keyid_fpln;
-            XPWidgetID keyid_radn;
-            XPWidgetID keyid_fuel;
-            XPWidgetID keyid_sfpl;
-            XPWidgetID keyid_atcc;
-            XPWidgetID keyid_menu;
-            XPWidgetID keyid_arpt;
-            XPWidgetID keyid_null;
-            XPWidgetID keyid_left;
-            XPWidgetID keyid_rigt;
-            XPWidgetID keyid_lnup;
-            XPWidgetID keyid_lndn;
-        }
-        keys;
-
-        struct
-        {
-            XPWidgetID bgrd_id;
-            XPWidgetID subw_id;
-            int        sw_inBM;
-            int        sw_inLT;
-            int        sw_inTP;
-            int        sw_inRT;
-            XPWidgetID line_id[YFS_DISPLAY_NUMR];
-            int        ln_inBM[YFS_DISPLAY_NUMR];
-            int        ln_inLT[YFS_DISPLAY_NUMR];
-            int        ln_inTP[YFS_DISPLAY_NUMR];
-            int        ln_inRT[YFS_DISPLAY_NUMR];
-            int           colr[YFS_DISPLAY_NUMR][YFS_DISPLAY_NUMC];
-            char          text[YFS_DISPLAY_NUMR][YFS_DISPLAY_NUMC + 1];
-        }
-        screen;
-
-        struct
-        {
-            int                    before;
-            void                  *refcon;
-            XPLMCommandRef        command;
-            XPLMCommandCallback_f handler;
-        }
-        toggle;
-    }
-    mwindow;
-}
-yfms_context;
 
 static void menu_handler(void *inMenuRef,                void *inItemRef);
 static int  yfs_mwindowh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
@@ -203,7 +74,7 @@ typedef struct
     int         inTP;
     int         inRT;
 } yfms_buttn_ctx;
-static int row_prepend_button(yfms_buttn_ctx *b, XPWidgetID container_id)
+static int row_prepend_button(yfms_buttn_ctx *b, XPWidgetID container_id, intptr_t refcon)
 {
     if (!b || !b->_wid || !b->desc || !container_id)
     {
@@ -226,6 +97,7 @@ static int row_prepend_button(yfms_buttn_ctx *b, XPWidgetID container_id)
     {
         return EINVAL;
     }
+    XPSetWidgetProperty(wid, xpProperty_Refcon, refcon);
     // update right coordinates as per the button width, border
     // top coordinates remain unchanged (we're on the same row)
     b->inRT = inLT - b->btBW;
@@ -293,31 +165,31 @@ static int create_main_window(yfms_context *yfms)
     }
     softkey.desc = "DATA";
     softkey._wid = &yfms->mwindow.keys.keyid_data;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "INIT";
     softkey._wid = &yfms->mwindow.keys.keyid_init;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "PERF";
     softkey._wid = &yfms->mwindow.keys.keyid_perf;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "PROG";
     softkey._wid = &yfms->mwindow.keys.keyid_prog;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "DIR";
     softkey._wid = &yfms->mwindow.keys.keyid_dirt;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
@@ -328,37 +200,37 @@ static int create_main_window(yfms_context *yfms)
     }
     softkey.desc = "MENU";
     softkey._wid = &yfms->mwindow.keys.keyid_menu;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "";
     softkey._wid = &yfms->mwindow.keys.keyid_atcc;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "";
     softkey._wid = &yfms->mwindow.keys.keyid_sfpl;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "FUEL";
     softkey._wid = &yfms->mwindow.keys.keyid_fuel;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "RADIO";
     softkey._wid = &yfms->mwindow.keys.keyid_radn;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "F-PLN";
     softkey._wid = &yfms->mwindow.keys.keyid_fpln;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
@@ -369,13 +241,13 @@ static int create_main_window(yfms_context *yfms)
     }
     softkey.desc = "";
     softkey._wid = &yfms->mwindow.keys.keyid_null;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "";
     softkey._wid = &yfms->mwindow.keys.keyid_arpt;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
@@ -386,13 +258,13 @@ static int create_main_window(yfms_context *yfms)
     }
     softkey.desc = "UP";
     softkey._wid = &yfms->mwindow.keys.keyid_lnup;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "<-";
     softkey._wid = &yfms->mwindow.keys.keyid_left;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
@@ -403,13 +275,13 @@ static int create_main_window(yfms_context *yfms)
     }
     softkey.desc = "DOWN";
     softkey._wid = &yfms->mwindow.keys.keyid_lndn;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "->";
     softkey._wid = &yfms->mwindow.keys.keyid_rigt;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
@@ -425,31 +297,31 @@ static int create_main_window(yfms_context *yfms)
     }
     softkey.desc = "E";
     softkey._wid = &yfms->mwindow.keys.keyid_al_e;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "D";
     softkey._wid = &yfms->mwindow.keys.keyid_al_d;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "C";
     softkey._wid = &yfms->mwindow.keys.keyid_al_c;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "B";
     softkey._wid = &yfms->mwindow.keys.keyid_al_b;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "A";
     softkey._wid = &yfms->mwindow.keys.keyid_al_a;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
@@ -460,31 +332,31 @@ static int create_main_window(yfms_context *yfms)
     }
     softkey.desc = "J";
     softkey._wid = &yfms->mwindow.keys.keyid_al_j;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "I";
     softkey._wid = &yfms->mwindow.keys.keyid_al_i;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "H";
     softkey._wid = &yfms->mwindow.keys.keyid_al_h;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "G";
     softkey._wid = &yfms->mwindow.keys.keyid_al_g;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "F";
     softkey._wid = &yfms->mwindow.keys.keyid_al_f;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
@@ -495,49 +367,49 @@ static int create_main_window(yfms_context *yfms)
     }
     softkey.desc = "O";
     softkey._wid = &yfms->mwindow.keys.keyid_al_o;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "N";
     softkey._wid = &yfms->mwindow.keys.keyid_al_n;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "M";
     softkey._wid = &yfms->mwindow.keys.keyid_al_m;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "L";
     softkey._wid = &yfms->mwindow.keys.keyid_al_l;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "K";
     softkey._wid = &yfms->mwindow.keys.keyid_al_k;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "3";
     softkey._wid = &yfms->mwindow.keys.keyid_num3;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "2";
     softkey._wid = &yfms->mwindow.keys.keyid_num2;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "1";
     softkey._wid = &yfms->mwindow.keys.keyid_num1;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
@@ -548,49 +420,49 @@ static int create_main_window(yfms_context *yfms)
     }
     softkey.desc = "T";
     softkey._wid = &yfms->mwindow.keys.keyid_al_t;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "S";
     softkey._wid = &yfms->mwindow.keys.keyid_al_s;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "R";
     softkey._wid = &yfms->mwindow.keys.keyid_al_r;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "Q";
     softkey._wid = &yfms->mwindow.keys.keyid_al_q;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "P";
     softkey._wid = &yfms->mwindow.keys.keyid_al_p;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "6";
     softkey._wid = &yfms->mwindow.keys.keyid_num6;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "5";
     softkey._wid = &yfms->mwindow.keys.keyid_num5;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "4";
     softkey._wid = &yfms->mwindow.keys.keyid_num4;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
@@ -601,49 +473,49 @@ static int create_main_window(yfms_context *yfms)
     }
     softkey.desc = "Y";
     softkey._wid = &yfms->mwindow.keys.keyid_al_y;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "X";
     softkey._wid = &yfms->mwindow.keys.keyid_al_x;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "X";
     softkey._wid = &yfms->mwindow.keys.keyid_al_w;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "V";
     softkey._wid = &yfms->mwindow.keys.keyid_al_v;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "U";
     softkey._wid = &yfms->mwindow.keys.keyid_al_u;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "9";
     softkey._wid = &yfms->mwindow.keys.keyid_num9;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "8";
     softkey._wid = &yfms->mwindow.keys.keyid_num8;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "7";
     softkey._wid = &yfms->mwindow.keys.keyid_num7;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
@@ -654,49 +526,49 @@ static int create_main_window(yfms_context *yfms)
     }
     softkey.desc = "CLR";
     softkey._wid = &yfms->mwindow.keys.keyid_clir;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "OVFY";
     softkey._wid = &yfms->mwindow.keys.keyid_ovfy;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "SP";
     softkey._wid = &yfms->mwindow.keys.keyid_spce;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "/";
     softkey._wid = &yfms->mwindow.keys.keyid_slsh;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "Z";
     softkey._wid = &yfms->mwindow.keys.keyid_al_z;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "+/-";
     softkey._wid = &yfms->mwindow.keys.keyid_plus;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = "0";
     softkey._wid = &yfms->mwindow.keys.keyid_num0;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
     softkey.desc = ".";
     softkey._wid = &yfms->mwindow.keys.keyid_pird;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
     {
         goto create_button_fail;
     }
@@ -774,14 +646,14 @@ static int create_main_window(yfms_context *yfms)
             softkey.inRT = yfms->mwindow.screen.ln_inLT[i] - YFS_SOFT_KEY_2_B;
             softkey.inLT = softkey.inRT - softkey.btnW + 1;
             softkey.desc = "-"; softkey._wid = &yfms->mwindow.keys.keyid_lsk[i/2-1];
-            if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+            if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
             {
                 goto create_button_fail;
             }
             softkey.inLT = yfms->mwindow.screen.ln_inRT[i] + 2 * YFS_SOFT_KEY_2_B;
             softkey.inRT = softkey.inLT + softkey.btnW - 1;
             softkey.desc = "-"; softkey._wid = &yfms->mwindow.keys.keyid_rsk[i/2-1];
-            if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+            if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id, (intptr_t)yfms)))
             {
                 goto create_button_fail;
             }
@@ -794,15 +666,15 @@ static int create_main_window(yfms_context *yfms)
         memset(yfms->mwindow.screen.text[i], 0, YFS_DISPLAY_NUMC + 1);
         for   (int j = 0; j < YFS_DISPLAY_NUMC; j++)
         {
-            yfms->mwindow.screen.colr[i][j] = IDX_GREEN;
+            yfms->mwindow.screen.colr[i][j] = COLR_IDX_GREEN;
         }
         if (i == 0) // first line, dummy text to show upon initialization
         {
             for (int j = 0; j < YFS_DISPLAY_NUMC; j++)
             {
-                yfms->mwindow.screen.colr[i][j] = IDX_YELLOW;
+                yfms->mwindow.screen.colr[i][j] = COLR_IDX_YELLOW;
             }
-            yfms->mwindow.screen.colr   [i][10] = IDX_MAGENTA; // 'Y'
+            yfms->mwindow.screen.colr   [i][10] = COLR_IDX_MAGENTA; // 'Y'
             sprintf(yfms->mwindow.screen.text[i], "%s", "          YFMS");
         }
     }
@@ -856,16 +728,16 @@ void* yfs_main_init(void)
     }
 
     /* easy to use X-Plane command to toggle YFMS window */
-    if ((yfms->mwindow.toggle.command =
+    if ((yfms->toggle.command =
          XPLMCreateCommand("YFMS/toggle", "toggle YFMS window")) == NULL)
     {
         ndt_log("YFMS [error]: could not create X-Plane command for toggle\n");
         goto fail;
     }
-    XPLMRegisterCommandHandler(yfms->mwindow.toggle.command,
-                               yfms->mwindow.toggle.handler = &chandler_tog,
-                               yfms->mwindow.toggle.before  = 0,
-                               yfms->mwindow.toggle.refcon  = yfms);
+    XPLMRegisterCommandHandler(yfms->toggle.command,
+                               yfms->toggle.handler = &chandler_tog,
+                               yfms->toggle.before  = 0,
+                               yfms->toggle.refcon  = yfms);
 
     /* also add a menu (with an additional toggle) */
     if ((yfms->menu.id = XPLMCreateMenu("YFMS", NULL, 0, &menu_handler, yfms)) == NULL)
@@ -903,14 +775,14 @@ int yfs_main_close(void **_yfms_ctx)
     }
 
     /* remove custom command(s) */
-    if (yfms->mwindow.toggle.command && yfms->mwindow.toggle.handler)
+    if (yfms->toggle.command && yfms->toggle.handler)
     {
-        XPLMUnregisterCommandHandler(yfms->mwindow.toggle.command,
-                                     yfms->mwindow.toggle.handler,
-                                     yfms->mwindow.toggle.before,
-                                     yfms->mwindow.toggle.refcon);
-        yfms->mwindow.toggle.command = NULL;
-        yfms->mwindow.toggle.handler = NULL;
+        XPLMUnregisterCommandHandler(yfms->toggle.command,
+                                     yfms->toggle.handler,
+                                     yfms->toggle.before,
+                                     yfms->toggle.refcon);
+        yfms->toggle.command = NULL;
+        yfms->toggle.handler = NULL;
     }
 
     /* and the menu */
@@ -1002,28 +874,28 @@ static void draw_display(yfms_context *yfms)
             snprintf(buf, sizeof(buf), "%c", yfms->mwindow.screen.text[i][j]);
             switch  (yfms->mwindow.screen.colr[i][j])
             {
-                case IDX_BLACK:
+                case COLR_IDX_BLACK:
                     XPLMDrawString(COLR_BLACK,   x, y, buf, NULL, xplmFont_Basic);
                     break;
-                case IDX_BLUE:
+                case COLR_IDX_BLUE:
                     XPLMDrawString(COLR_BLUE,    x, y, buf, NULL, xplmFont_Basic);
                     break;
-                case IDX_MAGENTA:
+                case COLR_IDX_MAGENTA:
                     XPLMDrawString(COLR_MAGENTA, x, y, buf, NULL, xplmFont_Basic);
                     break;
-                case IDX_ORANGE:
+                case COLR_IDX_ORANGE:
                     XPLMDrawString(COLR_ORANGE,  x, y, buf, NULL, xplmFont_Basic);
                     break;
-                case IDX_RED:
+                case COLR_IDX_RED:
                     XPLMDrawString(COLR_RED,     x, y, buf, NULL, xplmFont_Basic);
                     break;
-                case IDX_WHITE:
+                case COLR_IDX_WHITE:
                     XPLMDrawString(COLR_WHITE,   x, y, buf, NULL, xplmFont_Basic);
                     break;
-                case IDX_YELLOW:
+                case COLR_IDX_YELLOW:
                     XPLMDrawString(COLR_YELLOW,  x, y, buf, NULL, xplmFont_Basic);
                     break;
-                case IDX_GREEN:
+                case COLR_IDX_GREEN:
                 default:
                     XPLMDrawString(COLR_GREEN,   x, y, buf, NULL, xplmFont_Basic);
                     break;
