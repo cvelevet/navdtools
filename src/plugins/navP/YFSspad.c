@@ -51,7 +51,7 @@ void yfs_spad_clear(yfms_context *yfms)
     if (yfms->mwindow.screen.text[SPAD_IDX][0] == 0 ||
         yfms->mwindow.screen.text[SPAD_IDX][0] == ' ')
     {
-        yfs_spad_reset(yfms, "CLR", -1);
+        yfs_spad_reset(yfms, "CLR", -1); return;
     }
     for (int i = 0; i < YFS_DISPLAY_NUMC; i++)
     {
@@ -70,7 +70,7 @@ void yfs_spad_remvc(yfms_context *yfms)
     char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf); size_t l = strlen(buf);
     if (l <= 1)
     {
-        yfs_spad_clear(yfms); // only one character left
+        yfs_spad_clear(yfms); return; // one or fewer character left
     }
     buf[l - 1] = 0; sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s", buf);
     return;
@@ -96,14 +96,22 @@ void yfs_spad_apndc(yfms_context *yfms, char c, int color)
     {
         return; // scratchpad full
     }
-    if (color >= 0)
-    {
-        yfms->mwindow.screen.colr[SPAD_IDX][l] = color;
-    }
+    yfms->mwindow.screen.colr[SPAD_IDX][l] = color >= 0 ? color : SPAD_COL;
     sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s%c", buf, c);
     return;
 }
 
+/*
+ * TODO: keep a backup before overwriting; e.g. when trying to line select a
+ *       string into a field, and the format is wrong, we may simply write
+ *       "FORMAT ERROR" to the scratchpad; in some circumstances, we may want
+ *       to recover the previous scratchpad's contents (e.g. by pressing CLR
+ *       after the error) (has_backup && clear -> recover, else see below).
+ *
+ *       Also, when pressing a key right after a reset, we may want to clear
+ *       the scratchpad instead of appending (TODO: implement). We need a new
+ *       variable (e.g. was_reset: 1 -> clear, else append) to keep track…
+ */
 void yfs_spad_reset(yfms_context *yfms, char *s, int color)
 {
     if (!yfms)
