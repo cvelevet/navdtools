@@ -767,12 +767,11 @@ static int create_main_window(yfms_context *yfms)
         }
         if (i >= 2 && i % 2 == 0) // line select keys here
         {
-            continue;//debug
             softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B;
             softkey.btnW                = YFS_SOFT_KEY_2_W;
             softkey.btnH                = YFS_FONT_BASIC_H;
             softkey.inTP = yfms->mwindow.screen.ln_inTP[i] - 3;
-            softkey.inRT = yfms->mwindow.screen.ln_inLT[i] - 2 * YFS_SOFT_KEY_2_B;
+            softkey.inRT = yfms->mwindow.screen.ln_inLT[i] - YFS_SOFT_KEY_2_B;
             softkey.inLT = softkey.inRT - softkey.btnW + 1;
             softkey.desc = "-"; softkey._wid = &yfms->mwindow.keys.keyid_lsk[i/2-1];
             if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
