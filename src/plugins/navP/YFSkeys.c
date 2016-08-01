@@ -144,7 +144,7 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
     }
     if (key == yfms->mwindow.keys.keyid_spce)
     {
-        yfs_spad_apndc(yfms, ' ', -1);
+        yfs_spad_apndc(yfms, '_', -1); // cf. YFSmain.c, draw_display()
         return;
     }
     if (key == yfms->mwindow.keys.keyid_ovfy)

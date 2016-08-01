@@ -48,6 +48,11 @@ void yfs_spad_clear(yfms_context *yfms)
     {
         return; // no error
     }
+    if (yfms->mwindow.screen.text[SPAD_IDX][0] == 0 ||
+        yfms->mwindow.screen.text[SPAD_IDX][0] == ' ')
+    {
+        yfs_spad_reset(yfms, "CLR", -1);
+    }
     for (int i = 0; i < YFS_DISPLAY_NUMC; i++)
     {
         yfms->mwindow.screen.colr[SPAD_IDX][i] = SPAD_COL;
@@ -110,5 +115,12 @@ void yfs_spad_reset(yfms_context *yfms, char *s, int color)
         yfms->mwindow.screen.colr[SPAD_IDX][i] = color >= 0 ? color : SPAD_COL;
     }
     snprintf(yfms->mwindow.screen.text[SPAD_IDX], YFS_DISPLAY_NUMC + 1, "%s", s);
+    for (int i = strlen(s) - 1; i >= 0; i--)
+    {
+        if (YFS_DISPLAY_NUMC >= i && s[i] == ' ')
+        {
+            yfms->mwindow.screen.text[SPAD_IDX][i] = '_'; // cf. YFSmain.c, draw_display()
+        }
+    }
     return;
 }

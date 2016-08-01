@@ -867,6 +867,11 @@ static void draw_display(yfms_context *yfms)
         for (int j = 0; j < YFS_DISPLAY_NUMC; j++)
         {
             snprintf(buf, sizeof(buf), "%c", yfms->mwindow.screen.text[i][j]);
+            if (i == YFS_DISPLAY_NUMR - 1 && *buf == '_')
+            {
+                 // scratchpad parser strips trailing spaces, we use underscores instead
+                *buf = ' '; // display the intended character, not the stored workaround
+            }
             switch  (yfms->mwindow.screen.colr[i][j])
             {
                 case COLR_IDX_BLACK:
