@@ -24,6 +24,7 @@
 #include <stdint.h>
 
 #include "Widgets/XPWidgets.h"
+#include "XPLM/XPLMDataAccess.h"
 #include "XPLM/XPLMMenus.h"
 #include "XPLM/XPLMUtilities.h"
 
@@ -176,6 +177,13 @@ typedef struct
             char spad_bupbuf[YFS_DISPLAY_NUMC + 1];
         }
         screen;
+
+        enum
+        {
+            PAGE0     = 0,
+            PAGE_IDNT = 1,
+        }
+        current_page;
     }
     mwindow;
 
@@ -205,6 +213,14 @@ typedef struct
         ndt_navdatabase  *ndb;
     }
     ndt;
+
+    struct
+    {
+        XPLMDataRef acf_ICAO;
+        XPLMDataRef acf_en_type;
+        XPLMDataRef acf_num_engines;
+    }
+    xpl;
 }
 yfms_context;
 

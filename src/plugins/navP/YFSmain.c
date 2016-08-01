@@ -53,12 +53,12 @@ static int YFS_SOFT_KEY_2_H =  21;  // 1x 15 pixels plus top & bottom borders
 static int YFS_SOFT_KEY_2_B =   3;  // 2x  3 pixels of border between each button
 static float COLR_BLACK  [] = { 0.0f, 0.0f, 0.0f, };
 static float COLR_WHITE  [] = { 0.9f, 1.0f, 1.0f, };
-static float COLR_RED    [] = { 1.0f, 0.2f, 0.0f, };
+static float COLR_RED    [] = { 1.0f, 0.1f, 0.1f, };
 static float COLR_GREEN  [] = { 0.0f, 1.0f, 0.5f, };
-static float COLR_BLUE   [] = { 0.0f, .75f, 1.0f, };
+static float COLR_BLUE   [] = { 0.0f, 1.0f, 1.0f, };
 static float COLR_MAGENTA[] = { 0.9f, 0.0f, 0.9f, };
-static float COLR_ORANGE [] = { 1.0f, 0.6f, 0.0f, };
-static float COLR_YELLOW [] = { 1.0f, 0.9f, 0.0f, };
+static float COLR_ORANGE [] = { 1.0f, 0.5f, 0.0f, };
+static float COLR_YELLOW [] = { 0.9f, 0.9f, 0.0f, };
 
 static void menu_handler(void *inMenuRef,                void *inItemRef);
 static int  yfs_mwindowh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
@@ -778,6 +778,15 @@ void* yfs_main_init(void)
             free(path); goto fail;
         }
         while (0);
+    }
+
+    /* aicraft specific X-Plane data */
+    if ((yfms->xpl.acf_ICAO        = XPLMFindDataRef("sim/aircraft/view/acf_ICAO")) == NULL ||
+        (yfms->xpl.acf_en_type     = XPLMFindDataRef("sim/aircraft/prop/acf_en_type")) == NULL ||
+        (yfms->xpl.acf_num_engines = XPLMFindDataRef("sim/aircraft/engine/acf_num_engines")) == NULL)
+    {
+        ndt_log("YFMS [error]: could not load aircraft-specific datarefs\n");
+        goto fail;
     }
 
     /* all good */
