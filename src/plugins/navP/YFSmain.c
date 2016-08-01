@@ -38,8 +38,8 @@ static int YFS_FONT_BASIC_W =   8;  // 2 + xplmFont_Basic width
 static int YFS_FONT_BASIC_H =  14;  // 4 + xplmFont_Basic height
 static int YFS_MAINSCREEN_W = 208;  // 2 + YFS_DISPLAY_NUMC characters per line
 static int YFS_MAINSCREEN_H = 196;  // YFS_DISPLAY_NUMR rows * YFS_FONT_BASIC_H
-static int YFS_MAINWINDOW_W = 340;  // margins + up to 8 buttons across
-static int YFS_MAINWINDOW_H = 440;  // display + up to 10 rows below it
+static int YFS_MAINWINDOW_W = 336;  // margins + up to 8 buttons across (1.5 b. margin)
+static int YFS_MAINWINDOW_H = 470;  // display + up to 10 rows below it (3 rows margin)
 static int YFS_SOFT_KEY_1_W =  51;  // 3x 15 pixels plus top & bottom borders
 static int YFS_SOFT_KEY_1_H =  21;  // 1x 15 pixels plus top & bottom borders
 static int YFS_SOFT_KEY_1_B =   3;  // 2x  3 pixels of border between each button
@@ -52,7 +52,7 @@ static float COLR_RED    [] = { 1.0f, 0.0f, 0.0f, };
 static float COLR_GREEN  [] = { 0.0f, 1.0f, 0.0f, };
 static float COLR_BLUE   [] = { 0.0f, 0.0f, 1.0f, };
 static float COLR_MAGENTA[] = { 1.0f, 0.0f, 1.0f, };
-static float COLR_ORANGE [] = { 1.0f, .67f, 0.0f, };
+static float COLR_ORANGE [] = { 1.0f, .66f, 0.0f, };
 static float COLR_YELLOW [] = { 1.0f, 1.0f, 0.0f, };
 enum
 {
@@ -700,15 +700,14 @@ static int create_main_window(yfms_context *yfms)
     {
         goto create_button_fail;
     }
-    goto debug_skip;//debug
 
     /*
      * Now the MCDU's screen sub-window and associated labels.
      */
     int align_scW = (YFS_MAINWINDOW_W - YFS_MAINSCREEN_W) / 2;
-    inTP = keybordTP - 1 + YFS_MAINSCREEN_H + 6;    // top
-    inRT = mainwinRT + 1 - align_scW;               // right
-    inLT =   inRT - YFS_MAINSCREEN_W;               // left
+    inTP = keybordTP - 1 + YFS_MAINSCREEN_H;    // top
+    inRT = mainwinRT + 1 - align_scW;           // right
+    inLT =   inRT - YFS_MAINSCREEN_W;           // left
     for (int i = 0; i < YFS_DISPLAY_NUMR; i++)
     {
         inBM = inTP - YFS_FONT_BASIC_H; // set height for each line here
@@ -731,10 +730,10 @@ static int create_main_window(yfms_context *yfms)
     }
     {
         // XPLMDrawString will write some pixels below bottom (e.g. underscores)
-        yfms->mwindow.screen.sw_inBM = yfms->mwindow.screen.ln_inBM[10] - 6;
-        yfms->mwindow.screen.sw_inLT = yfms->mwindow.screen.ln_inLT[ 0];
-        yfms->mwindow.screen.sw_inTP = yfms->mwindow.screen.ln_inTP[ 0];
-        yfms->mwindow.screen.sw_inRT = yfms->mwindow.screen.ln_inRT[ 0];
+        yfms->mwindow.screen.sw_inBM = yfms->mwindow.screen.ln_inBM[YFS_DISPLAY_NUMR - 1] - 6;
+        yfms->mwindow.screen.sw_inLT = yfms->mwindow.screen.ln_inLT[0];
+        yfms->mwindow.screen.sw_inTP = yfms->mwindow.screen.ln_inTP[0];
+        yfms->mwindow.screen.sw_inRT = yfms->mwindow.screen.ln_inRT[0];
     }
     if ((yfms->mwindow.screen.bgrd_id = // add first, draw first
          XPCreateWidget(yfms->mwindow.screen.sw_inLT, yfms->mwindow.screen.sw_inTP,
@@ -768,6 +767,7 @@ static int create_main_window(yfms_context *yfms)
         }
         if (i >= 2 && i % 2 == 0) // line select keys here
         {
+            continue;//debug
             softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B;
             softkey.btnW                = YFS_SOFT_KEY_2_W;
             softkey.btnH                = YFS_FONT_BASIC_H;
@@ -808,7 +808,6 @@ static int create_main_window(yfms_context *yfms)
         }
     }
 
-debug_skip://debug
     /* all good */
     return 0;
 
