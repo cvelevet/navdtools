@@ -34,6 +34,7 @@
 
 #include "YFSkeys.h"
 #include "YFSmain.h"
+#include "YFSmenu.h"
 #include "YFSspad.h"
 
 static int YFS_FONT_BASIC_W =   8;  // 2 + xplmFont_Basic width
@@ -661,16 +662,8 @@ static int create_main_window(yfms_context *yfms)
         }
     }
 
-    /* reset the display, everything green by default */
-    /* TODO: move to yfms global reset function */
-    for (int i = 0; i < YFS_DISPLAY_NUMR; i++)
-    {
-        yfs_main_rline(yfms, i, -1);
-    }
-    yfs_spad_clear(yfms); yfs_spad_reset(yfms, "YFMS INITIALIZED", COLR_IDX_ORANGE);
-
     /* all good */
-    return 0;
+    yfs_menu_resetall(yfms); return 0;
 
 create_button_fail:
     ndt_log("YFMS [error]: could not create button with description \"%s\"\n", softkey.desc);

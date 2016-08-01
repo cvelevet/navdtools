@@ -25,4 +25,21 @@
 #include "YFSmenu.h"
 #include "YFSspad.h"
 
-//fixme
+void yfs_menu_resetall(yfms_context *yfms)
+{
+    if (!yfms)
+    {
+        return; // no error
+    }
+
+    /* scratchpad */
+    for (int i = 0; i < YFS_DISPLAY_NUMR; i++)
+    {
+        yfs_main_rline(yfms, i, -1);
+    }
+    yfs_spad_clear(yfms);
+    yfs_spad_reset(yfms, "YFMS INITIALIZED", COLR_IDX_ORANGE);
+
+    /* all good */
+    return;
+}

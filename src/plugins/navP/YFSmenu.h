@@ -23,6 +23,7 @@
 
 #include "YFSmain.h"
 
-//fixme
+//void yfs_menu_pageopen(yfms_context *yfms);
+void yfs_menu_resetall(yfms_context *yfms);
 
 #endif /* YFS_MENU_H */
