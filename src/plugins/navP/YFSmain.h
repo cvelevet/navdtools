@@ -27,6 +27,8 @@
 #include "XPLM/XPLMMenus.h"
 #include "XPLM/XPLMUtilities.h"
 
+#include "lib/navdata.h"
+
 // TODO: when new aircraft loaded, reset YFMS automatically
 
 #define YFS_DISPLAY_NUMC 24 // number of positions per row
@@ -196,6 +198,13 @@ typedef struct
         items;
     }
     menu;
+
+    struct
+    {
+        char xsystem_pth[513];
+        ndt_navdatabase  *ndb;
+    }
+    ndt;
 }
 yfms_context;
 

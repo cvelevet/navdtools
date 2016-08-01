@@ -22,6 +22,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include "Widgets/XPStandardWidgets.h"
 #include "Widgets/XPWidgets.h"
@@ -31,6 +32,7 @@
 #include "XPLM/XPLMUtilities.h"
 
 #include "common/common.h"
+#include "lib/navdata.h"
 
 #include "YFSkeys.h"
 #include "YFSmain.h"
@@ -697,6 +699,11 @@ static void toggle_main_window(yfms_context *yfms)
     return;
 }
 
+/*
+ * Note: yfs_main_init/close() are called from XPluginEnable/Disable(), so we
+ *       can actually reload navigation data by disabling and re-enabling the
+ *       plugin, without having to relaunch X-Plane itself :D
+ */
 void* yfs_main_init(void)
 {
     yfms_context *yfms = calloc(1, sizeof(yfms_context));
@@ -733,6 +740,44 @@ void* yfs_main_init(void)
     {
         ndt_log("YFMS [error]: could not create menu item for toggle\n");
         goto fail;
+    }
+
+    /* the navigation database remains valid for the whole YFMS session */
+    XPLMGetSystemPath(yfms->ndt.xsystem_pth);
+    {
+        struct stat stats;
+        int    pathlen, ret = 0;
+        char  *path         = NULL;
+        do
+        {
+            if (0 == (ret = ndt_file_getpath(yfms->ndt.xsystem_pth, "Custom Data/GNS430/navdata/ATS.txt", &path, &pathlen)) &&
+                0 == (ret = ndt_file_getpath(yfms->ndt.xsystem_pth, "Custom Data/GNS430/navdata",         &path, &pathlen)) &&
+                0 == stat(path, &stats) && S_ISDIR(stats.st_mode))
+            {
+                if ((yfms->ndt.ndb = ndt_navdatabase_init(path, NDT_NAVDFMT_XPGNS)) == NULL)
+                {
+                    ndt_log("YFMS [error]: could not load navigation database at \"%s\"\n", path);
+                    free(path); goto fail;
+                }
+                ndt_log("YFMS [info]: loaded navigation database from \"%s\"\n", path);
+                free(path); break;
+            }
+            if (0 == (ret = ndt_file_getpath(yfms->ndt.xsystem_pth, "Resources/GNS430/navdata/ATS.txt", &path, &pathlen)) &&
+                0 == (ret = ndt_file_getpath(yfms->ndt.xsystem_pth, "Resources/GNS430/navdata",         &path, &pathlen)) &&
+                0 == stat(path, &stats) && S_ISDIR(stats.st_mode))
+            {
+                if ((yfms->ndt.ndb = ndt_navdatabase_init(path, NDT_NAVDFMT_XPGNS)) == NULL)
+                {
+                    ndt_log("YFMS [error]: could not load navigation database at \"%s\"\n", path);
+                    free(path); goto fail;
+                }
+                ndt_log("YFMS [info]: loaded navigation database from \"%s\"\n", path);
+                free(path); break;
+            }
+            ndt_log("YFMS [error]: could not load navigation database for \"%s\"\n", yfms->ndt.xsystem_pth);
+            free(path); goto fail;
+        }
+        while (0);
     }
 
     /* all good */
@@ -785,6 +830,12 @@ int yfs_main_close(yfms_context **_yfms)
     if (yfms->menu.id)
     {
         XPLMDestroyMenu(yfms->menu.id);
+    }
+
+    /* navigation */
+    if (yfms->ndt.ndb)
+    {
+        ndt_navdatabase_close(&yfms->ndt.ndb);
     }
 
     /* all good */
