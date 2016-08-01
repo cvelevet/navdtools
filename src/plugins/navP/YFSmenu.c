@@ -83,7 +83,7 @@ void yfs_idnt_pageupdt(yfms_context *yfms)
 
     /* line 0: aircraft ICAO identifier (white, centered) */
     yfs_main_rline(yfms, 0, COLR_IDX_WHITE);
-    len = XPLMGetDatab(yfms->xpl.acf_ICAO, buf, 0, sizeof(buf) - 1); buf[len] = 0;
+    len = XPLMGetDatab(yfms->xpl.acf_ICAO, buf, 0, sizeof(buf) - 1); buf[len] = 0; len = strlen(buf);
     sprintf(yfms->mwindow.screen.text[0], "%*s", (1 + YFS_DISPLAY_NUMC + len) / 2, buf);
 
     /* line 1: header (white, offset 1 right) */
