@@ -39,7 +39,7 @@ static int YFS_FONT_BASIC_H =  14;  // 4 + xplmFont_Basic height
 static int YFS_MAINSCREEN_W = 208;  // 2 + YFS_DISPLAY_NUMC characters per line
 static int YFS_MAINSCREEN_H = 196;  // YFS_DISPLAY_NUMR rows * YFS_FONT_BASIC_H
 static int YFS_MAINWINDOW_W = 340;  // margins + up to 8 buttons across
-static int YFS_MAINWINDOW_H = 440;  // display + up to 9 lines below it
+static int YFS_MAINWINDOW_H = 440;  // display + up to 10 rows below it
 static int YFS_SOFT_KEY_1_W =  51;  // 3x 15 pixels plus top & bottom borders
 static int YFS_SOFT_KEY_1_H =  21;  // 1x 15 pixels plus top & bottom borders
 static int YFS_SOFT_KEY_1_B =   3;  // 2x  3 pixels of border between each button
@@ -270,11 +270,11 @@ static int create_main_window(yfms_context *yfms)
     XPAddWidgetCallback(yfms->mwindow.id, &yfs_mwindowh);
 
     /*
-     * Add a bunch of not-so-pretty buttons (9 rows + 2 rows as margins).
+     * Add a bunch of not-so-pretty buttons (10 rows + 2 rows as margins).
      */
     int separat1W = (YFS_MAINWINDOW_W - 6 * YFS_SOFT_KEY_1_W) / 2;
     int separat2W = (YFS_MAINWINDOW_W - 8 * YFS_SOFT_KEY_2_W) / 2;
-    int keybordTP = (inBM + 11 * YFS_SOFT_KEY_1_H);
+    int keybordTP = (inBM + 12 * YFS_SOFT_KEY_1_H - 2 * YFS_SOFT_KEY_1_B);
     int keybordBM = (inBM);
     int keybordLT = (inLT);
     int keybordRT = (inRT);
@@ -418,10 +418,10 @@ static int create_main_window(yfms_context *yfms)
         softkey.btnW = YFS_SOFT_KEY_2_W; softkey.btnH = YFS_SOFT_KEY_2_H;
         softkey.btBW = softkey.btBH = YFS_SOFT_KEY_2_B;
     }
-    // row 4, part 2
+    // row 5, part 2
     {
         softkey.inRT = keybordRT - separat2W - softkey.btnW * 0; // all columns here
-        softkey.inTP = keybordTP             - softkey.btnH * 4; // set top position
+        softkey.inTP = keybordTP             - softkey.btnH * 5; // set top position
     }
     softkey.desc = "E";
     softkey._wid = &yfms->mwindow.keys.keyid_al_e;
@@ -453,10 +453,10 @@ static int create_main_window(yfms_context *yfms)
     {
         goto create_button_fail;
     }
-    // row 5, part 2
+    // row 6
     {
         softkey.inRT = keybordRT - separat2W - softkey.btnW * 0; // all columns here
-        softkey.inTP = keybordTP             - softkey.btnH * 5; // set top position
+        softkey.inTP = keybordTP             - softkey.btnH * 6; // set top position
     }
     softkey.desc = "J";
     softkey._wid = &yfms->mwindow.keys.keyid_al_j;
@@ -484,6 +484,218 @@ static int create_main_window(yfms_context *yfms)
     }
     softkey.desc = "F";
     softkey._wid = &yfms->mwindow.keys.keyid_al_f;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    // row 7
+    {
+        softkey.inRT = keybordRT - separat2W - softkey.btnW * 0; // all columns here
+        softkey.inTP = keybordTP             - softkey.btnH * 7; // set top position
+    }
+    softkey.desc = "O";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_o;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "N";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_n;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "M";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_m;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "L";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_l;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "K";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_k;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "3";
+    softkey._wid = &yfms->mwindow.keys.keyid_num3;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "2";
+    softkey._wid = &yfms->mwindow.keys.keyid_num2;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "1";
+    softkey._wid = &yfms->mwindow.keys.keyid_num1;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    // row 8
+    {
+        softkey.inRT = keybordRT - separat2W - softkey.btnW * 0; // all columns here
+        softkey.inTP = keybordTP             - softkey.btnH * 8; // set top position
+    }
+    softkey.desc = "T";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_t;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "S";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_s;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "R";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_r;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "Q";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_q;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "P";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_p;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "6";
+    softkey._wid = &yfms->mwindow.keys.keyid_num6;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "5";
+    softkey._wid = &yfms->mwindow.keys.keyid_num5;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "4";
+    softkey._wid = &yfms->mwindow.keys.keyid_num4;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    // row 9
+    {
+        softkey.inRT = keybordRT - separat2W - softkey.btnW * 0; // all columns here
+        softkey.inTP = keybordTP             - softkey.btnH * 9; // set top position
+    }
+    softkey.desc = "Y";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_y;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "X";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_x;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "X";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_w;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "V";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_v;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "U";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_u;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "9";
+    softkey._wid = &yfms->mwindow.keys.keyid_num9;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "8";
+    softkey._wid = &yfms->mwindow.keys.keyid_num8;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "7";
+    softkey._wid = &yfms->mwindow.keys.keyid_num7;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    // row 10
+    {
+        softkey.inRT = keybordRT - separat2W - softkey.btnW *  0; // all columns here
+        softkey.inTP = keybordTP             - softkey.btnH * 10; // set top position
+    }
+    softkey.desc = "CLR";
+    softkey._wid = &yfms->mwindow.keys.keyid_clir;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "OVFY";
+    softkey._wid = &yfms->mwindow.keys.keyid_ovfy;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "SP";
+    softkey._wid = &yfms->mwindow.keys.keyid_spce;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "/";
+    softkey._wid = &yfms->mwindow.keys.keyid_slsh;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "Z";
+    softkey._wid = &yfms->mwindow.keys.keyid_al_z;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "+/-";
+    softkey._wid = &yfms->mwindow.keys.keyid_plus;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = "0";
+    softkey._wid = &yfms->mwindow.keys.keyid_num0;
+    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+    {
+        goto create_button_fail;
+    }
+    softkey.desc = ".";
+    softkey._wid = &yfms->mwindow.keys.keyid_pird;
     if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
     {
         goto create_button_fail;
