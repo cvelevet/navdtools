@@ -23,6 +23,7 @@
 
 #include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMMenus.h"
+#include "XPLM/XPLMUtilities.h"
 
 // TODO: when new aircraft loaded, reset YFMS automatically
 

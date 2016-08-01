@@ -32,6 +32,7 @@
 
 #include "common/common.h"
 
+#include "YFSkeys.h"
 #include "YFSmain.h"
 
 static int YFS_FONT_BASIC_W =   8;  // 2 + xplmFont_Basic width
@@ -836,7 +837,9 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
     }
     if (inMessage == xpMsg_PushButtonPressed)
     {
-        return 0; // TODO: handle
+        yfms_context  *yfms = (yfms_context*)XPGetWidgetProperty(inWidget, xpProperty_Refcon, NULL);
+        yfs_keypressed(yfms, inWidget);
+        return 0;
     }
     return 0;
 }
