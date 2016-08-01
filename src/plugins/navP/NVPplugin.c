@@ -32,6 +32,7 @@
 #include "NVPchandlers.h"
 #include "NVPmenu.h"
 #include "YFSmain.h"
+#include "YFSmenu.h"
 
 /* Logging callback */
 static int log_with_sdk(const char *format, va_list ap);
@@ -179,8 +180,10 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
         case XPLM_MSG_LIVERY_LOADED:
             if (inParam == XPLM_USER_AIRCRAFT) // custom plugins loaded
             {
-                nvp_menu_setup      (navpmenu_context);
+                // chandlers_update sets datarefs used by pageupdt, run it first
                 nvp_chandlers_update(chandler_context);
+                yfs_idnt_pageupdt   (navpyfms_context);
+                nvp_menu_setup      (navpmenu_context);
             }
             break;
 

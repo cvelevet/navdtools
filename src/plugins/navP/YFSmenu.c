@@ -56,10 +56,18 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfs_idnt_pageopen (yfms); return;
 }
 
-//fixme page needs to be updated after each aircraft (livery?) load
 void yfs_idnt_pageopen(yfms_context *yfms)
 {
     if (!yfms)
+    {
+        return; // no error
+    }
+    yfms->mwindow.current_page = PAGE_IDNT; yfs_idnt_pageupdt(yfms); return;
+}
+
+void yfs_idnt_pageupdt(yfms_context *yfms)
+{
+    if (!yfms || yfms->mwindow.current_page != PAGE_IDNT)
     {
         return; // no error
     }
@@ -72,7 +80,6 @@ void yfs_idnt_pageopen(yfms_context *yfms)
     {
         yfs_main_rline(yfms, i, -1);
     }
-    yfms->mwindow.current_page = PAGE_IDNT;
 
     /* line 0: aircraft ICAO identifier (white, centered) */
     yfs_main_rline(yfms, 0, COLR_IDX_WHITE);
