@@ -22,6 +22,7 @@
 
 #include "YFSkeys.h"
 #include "YFSmain.h"
+#include "YFSspad.h"
 
 void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
 {
@@ -145,10 +146,12 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
     }
     if (key == yfms->mwindow.keys.keyid_ovfy)
     {
+        yfs_spad_reset(yfms, "^", -1);
         return;
     }
     if (key == yfms->mwindow.keys.keyid_clir)
     {
+        yfs_spad_remvc(yfms);
         return;
     }
     if (key == yfms->mwindow.keys.keyid_num0)

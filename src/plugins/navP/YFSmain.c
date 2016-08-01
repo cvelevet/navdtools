@@ -34,6 +34,7 @@
 
 #include "YFSkeys.h"
 #include "YFSmain.h"
+#include "YFSspad.h"
 
 static int YFS_FONT_BASIC_W =   8;  // 2 + xplmFont_Basic width
 static int YFS_FONT_BASIC_H =  14;  // 4 + xplmFont_Basic height
@@ -669,15 +670,7 @@ static int create_main_window(yfms_context *yfms)
         {
             yfms->mwindow.screen.colr[i][j] = COLR_IDX_GREEN;
         }
-        if (i == 0) // first line, dummy text to show upon initialization
-        {
-            for (int j = 0; j < YFS_DISPLAY_NUMC; j++)
-            {
-                yfms->mwindow.screen.colr[i][j] = COLR_IDX_YELLOW;
-            }
-            yfms->mwindow.screen.colr   [i][10] = COLR_IDX_MAGENTA; // 'Y'
-            sprintf(yfms->mwindow.screen.text[i], "%s", "          YFMS");
-        }
+        yfs_spad_reset(yfms, "YFMS INITIALIZED", COLR_IDX_ORANGE);
     }
 
     /* all good */
