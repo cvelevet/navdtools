@@ -39,6 +39,9 @@ static int log_with_sdk(const char *format, va_list ap);
 void *chandler_context = NULL;
 void *navpmenu_context = NULL;
 
+#define PLUGIN_NAME "navP"      // or "UFMS"
+#define INTRO_SPEAK "nav P OK"  // or "U FMS OK"
+
 #if IBM
 #include <windows.h>
 BOOL APIENTRY DllMain(HANDLE hModule,
@@ -61,9 +64,9 @@ PLUGIN_API int XPluginStart(char *outName,
                             char *outSig,
                             char *outDesc)
 {
-    strncpy(outName, "navP",                 255);
-    strncpy(outSig,  "Rodeo314.navP",        255);
-    strncpy(outDesc, "Miscellaneous stuff.", 255);
+    strncpy(outName, PLUGIN_NAME,            255);
+    strncpy(outSig,  "Rodeo314."PLUGIN_NAME, 255);
+    strncpy(outDesc, "Yet Another X-Plugin", 255);
 
     /* set ndt_log callback so we write everything to the X-Plane log */
     ndt_log_set_callback(&log_with_sdk);
@@ -81,11 +84,11 @@ PLUGIN_API int XPluginStart(char *outName,
 
     /* all good */
 #ifdef NDT_VERSION
-    XPLMDebugString("navP [info]: version " NDT_VERSION "\n");
+    XPLMDebugString(PLUGIN_NAME " [info]: version " NDT_VERSION "\n");
 #else
-    XPLMDebugString("navP [info]: unknown version :-(\n");
+    XPLMDebugString(PLUGIN_NAME " [info]: unknown version :-(\n");
 #endif
-    XPLMDebugString("navP [info]: XPluginStart OK\n"); return 1;
+    XPLMDebugString(PLUGIN_NAME " [info]: XPluginStart OK\n"); return 1;
 }
 
 PLUGIN_API void XPluginStop(void)
@@ -111,9 +114,9 @@ PLUGIN_API int XPluginEnable(void)
     /* all good */
     if (XPLMFindPluginBySignature("x-fmc.com") == XPLM_NO_PLUGIN_ID)
     {
-        XPLMSpeakString("nav P OK");
+        XPLMSpeakString(INTRO_SPEAK);
     }
-    XPLMDebugString("navP [info]: XPluginEnable OK\n"); return 1;
+    XPLMDebugString(PLUGIN_NAME " [info]: XPluginEnable OK\n"); return 1;
 }
 
 PLUGIN_API void XPluginDisable(void)
@@ -125,7 +128,7 @@ PLUGIN_API void XPluginDisable(void)
     if (navpmenu_context) nvp_menu_close(&navpmenu_context);
 
     /* all good */
-    XPLMDebugString("navP [info]: XPluginDisable OK\n");
+    XPLMDebugString(PLUGIN_NAME " [info]: XPluginDisable OK\n");
 }
 
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
