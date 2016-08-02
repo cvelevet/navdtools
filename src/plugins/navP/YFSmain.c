@@ -654,7 +654,7 @@ static int create_main_window(yfms_context *yfms)
             {
                 goto create_button_fail;
             }
-            softkey.inLT = yfms->mwindow.screen.ln_inRT[i] + 2 * YFS_SOFT_KEY_2_B;
+            softkey.inLT = yfms->mwindow.screen.ln_inRT[i] + YFS_SOFT_KEY_2_B;
             softkey.inRT = softkey.inLT + softkey.btnW - 1;
             softkey.desc = "-"; softkey._wid = &yfms->mwindow.keys.keyid_rsk[i/2-1];
             if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
