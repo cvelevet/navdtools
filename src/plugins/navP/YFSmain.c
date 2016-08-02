@@ -865,7 +865,6 @@ int yfs_main_close(yfms_context **_yfms)
     if (yfms->xpl.fl_callback)
     {
         XPLMUnregisterFlightLoopCallback(yfms->xpl.fl_callback, yfms);
-        yfms->xpl.fl_callback = NULL;
     }
 
     /* all good */
