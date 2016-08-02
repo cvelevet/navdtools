@@ -183,6 +183,7 @@ typedef struct
         {
             PAGE0     = 0,
             PAGE_IDNT = 1,
+            PAGE_MENU = 2,
         }
         current_page;
     }

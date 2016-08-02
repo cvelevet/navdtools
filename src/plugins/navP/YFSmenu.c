@@ -56,6 +56,45 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfs_idnt_pageopen (yfms); return;
 }
 
+void yfs_menu_pageopen(yfms_context *yfms)
+{
+    if (!yfms)
+    {
+        return; // no error
+    }
+    //fixme lsk1 and rsk1 callbacks
+    yfms->mwindow.current_page = PAGE_MENU; yfs_menu_pageupdt(yfms); return;
+}
+
+void yfs_menu_pageupdt(yfms_context *yfms)
+{
+    if (!yfms || yfms->mwindow.current_page != PAGE_MENU)
+    {
+        return; // no error
+    }
+
+    /* reset lines before drawing */
+    for (int i = 0; i < YFS_DISPLAY_NUMR - 1; i++)
+    {
+        yfs_main_rline(yfms, i, -1);
+    }
+
+    /* line 0: main header (white, centered) */
+    yfs_main_rline(yfms, 0, COLR_IDX_WHITE); int len = strlen("MCDU MENU");
+    sprintf(yfms->mwindow.screen.text[0], "%*s", (1 + YFS_DISPLAY_NUMC + len) / 2, "MCDU MENU");
+
+    /* line 2 left: ident page (green) */
+    // fixme: we want to print from the left, but not set the nul character so
+    //        as to not erase anything beyond what we write; we want to do the
+    //        same for the reset button, but from the right; plus our custom
+    //        printing function must take care of setting the color for us
+    sprintf(yfms->mwindow.screen.text[1], "%s", "<FMGC");
+    /* line 2 right: reset (white) */
+    sprintf(yfms->mwindow.screen.text[1], "%s", "RESET>");
+
+    return;
+}
+
 void yfs_idnt_pageopen(yfms_context *yfms)
 {
     if (!yfms)

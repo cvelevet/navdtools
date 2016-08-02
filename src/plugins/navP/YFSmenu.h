@@ -24,8 +24,8 @@
 #include "YFSmain.h"
 
 void yfs_menu_resetall(yfms_context *yfms);
-//void yfs_menu_pageopen(yfms_context *yfms);
-//void yfs_menu_pageupdt(yfms_context *yfms);
+void yfs_menu_pageopen(yfms_context *yfms);
+void yfs_menu_pageupdt(yfms_context *yfms);
 void yfs_idnt_pageopen(yfms_context *yfms);
 void yfs_idnt_pageupdt(yfms_context *yfms);
 

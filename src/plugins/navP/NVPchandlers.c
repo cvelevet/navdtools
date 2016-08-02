@@ -2100,6 +2100,10 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 case NVP_ACF_A320_QP:
                 case NVP_ACF_A330_RW:
                 case NVP_ACF_A350_FF:
+                    if ((cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("YFMS/toggle")))
+                    {
+                        (cdu->status = 0); break; // TODO: remove eventually????
+                    }
                     cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("AirbusFBW/UndockMCDU1");
                     cdu->status = 0; break;
 
