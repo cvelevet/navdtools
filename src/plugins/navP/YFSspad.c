@@ -136,7 +136,8 @@ void yfs_spad_reset(yfms_context *yfms, char *s, int color)
         yfms->mwindow.screen.spad_backup = 1;
         sprintf(yfms->mwindow.screen.spad_bupbuf, "%s", buf);
     }
-    snprintf(yfms->mwindow.screen.text[SPAD_IDX], YFS_DISPLAY_NUMC + 1, "%s", s);
+    memset  (yfms->mwindow.screen.text[SPAD_IDX], 0, YFS_DISPLAY_NUMC + 1);
+    snprintf(yfms->mwindow.screen.text[SPAD_IDX],    YFS_DISPLAY_NUMC + 1, "%s", s);
     for (int i = strlen(s) - 1; i >= 0; i--)
     {
         if (YFS_DISPLAY_NUMC >= i && s[i] == ' ')
