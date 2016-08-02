@@ -789,6 +789,12 @@ void* yfs_main_init(void)
         goto fail;
     }
 
+    /* we have a very useful key sniffer */
+    if ((yfms->mwindow.ks_rgstrd = XPLMRegisterKeySniffer(&yfs_keysniffer, 1, yfms)) == 0)
+    {
+        ndt_log("YFMS [warning]: failed to register key sniffer\n");
+    }
+
     /* all good */
     yfs_menu_resetall(yfms); return yfms;
 
@@ -845,6 +851,12 @@ int yfs_main_close(yfms_context **_yfms)
     if (yfms->ndt.ndb)
     {
         ndt_navdatabase_close(&yfms->ndt.ndb);
+    }
+
+    /* key sniffer */
+    if (yfms->mwindow.ks_rgstrd)
+    {
+        yfms->mwindow.ks_rgstrd = XPLMUnregisterKeySniffer(&yfs_keysniffer, 1, yfms);
     }
 
     /* all good */

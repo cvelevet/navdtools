@@ -76,6 +76,7 @@ typedef struct
     {
         XPWidgetID id;
         int win_state;
+        int ks_rgstrd;
         struct
         {
             // line select keys

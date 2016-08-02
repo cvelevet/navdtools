@@ -22,9 +22,11 @@
 #define YFS_KEYS_H
 
 #include "Widgets/XPWidgets.h"
+#include "XPLM/XPLMDefs.h"
 
 #include "YFSmain.h"
 
 void yfs_keypressed(yfms_context *yfms, XPWidgetID key);
+int  yfs_keysniffer(char, XPLMKeyFlags, char,    void*);
 
 #endif /* YFS_KEYS_H */

@@ -18,7 +18,11 @@
  *     Timothy D. Walker
  */
 
+#include <ctype.h>
+
 #include "Widgets/XPWidgets.h"
+#include "XPLM/XPLMDefs.h"
+#include "XPLM/XPLMDisplay.h"
 
 #include "YFSkeys.h"
 #include "YFSmain.h"
@@ -199,5 +203,116 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
     if (key == yfms->mwindow.keys.keyid_plus)
     {
         yfs_spad_apndc(yfms, '-', -1); return;
+    }
+}
+
+int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *inRefcon)
+{
+    yfms_context *yfms = inRefcon; int x, xmin, xmax, y, ymin, ymax;
+    if (!yfms)
+    {
+        return 1; // pass through
+    }
+    if ((inFlags & (xplm_ShiftFlag|xplm_OptionAltFlag|xplm_ControlFlag)) != 0)
+    {
+        return 1; // pass through
+    }
+    if ((inFlags & (xplm_DownFlag)) == 0)
+    {
+        return 1; // pass through
+    }
+    if (XPIsWidgetVisible(yfms->mwindow.id) == 0)
+    {
+        return 1; // pass through
+    }
+    XPGetWidgetGeometry (yfms->mwindow.id, &xmin, &ymax, &xmax, &ymin);
+    XPLMGetMouseLocation(&x, &y);
+    if (x < xmin || x > xmax || y < ymin || y > ymax)
+    {
+        return 1; // pass through
+    }
+    switch ((unsigned char)inVirtualKey)
+    {
+        case XPLM_VK_ADD:
+            yfs_spad_apndc(yfms, '+', -1);
+            return 0;
+        case XPLM_VK_MINUS:
+        case XPLM_VK_SUBTRACT:
+            yfs_spad_apndc(yfms, '-', -1);
+            return 0;
+        case XPLM_VK_BACK:
+            yfs_spad_remvc(yfms);
+            return 0;
+        case XPLM_VK_DECIMAL:
+        case XPLM_VK_PERIOD:
+            yfs_spad_apndc(yfms, '.', -1);
+            return 0;
+        case XPLM_VK_DELETE:
+            yfs_spad_clear(yfms);
+            return 0;
+        case XPLM_VK_SLASH:
+        case XPLM_VK_DIVIDE:
+            yfs_spad_apndc(yfms, '/', -1);
+            return 0;
+        case XPLM_VK_SPACE:
+            yfs_spad_apndc(yfms, ' ', -1);
+            return 0;
+        case XPLM_VK_UP:
+        case XPLM_VK_DOWN:
+        case XPLM_VK_LEFT:
+        case XPLM_VK_RIGHT:
+            return 1; // TODO (lnup, lndn, left, rigt)
+        case XPLM_VK_0:
+        case XPLM_VK_1:
+        case XPLM_VK_2:
+        case XPLM_VK_3:
+        case XPLM_VK_4:
+        case XPLM_VK_5:
+        case XPLM_VK_6:
+        case XPLM_VK_7:
+        case XPLM_VK_8:
+        case XPLM_VK_9:
+        case XPLM_VK_NUMPAD0:
+        case XPLM_VK_NUMPAD1:
+        case XPLM_VK_NUMPAD2:
+        case XPLM_VK_NUMPAD3:
+        case XPLM_VK_NUMPAD4:
+        case XPLM_VK_NUMPAD5:
+        case XPLM_VK_NUMPAD6:
+        case XPLM_VK_NUMPAD7:
+        case XPLM_VK_NUMPAD8:
+        case XPLM_VK_NUMPAD9:
+            yfs_spad_apndc(yfms, inChar, -1);
+            return 0;
+        case XPLM_VK_A:
+        case XPLM_VK_B:
+        case XPLM_VK_C:
+        case XPLM_VK_D:
+        case XPLM_VK_E:
+        case XPLM_VK_F:
+        case XPLM_VK_G:
+        case XPLM_VK_H:
+        case XPLM_VK_I:
+        case XPLM_VK_J:
+        case XPLM_VK_K:
+        case XPLM_VK_L:
+        case XPLM_VK_M:
+        case XPLM_VK_N:
+        case XPLM_VK_O:
+        case XPLM_VK_P:
+        case XPLM_VK_Q:
+        case XPLM_VK_R:
+        case XPLM_VK_S:
+        case XPLM_VK_T:
+        case XPLM_VK_U:
+        case XPLM_VK_V:
+        case XPLM_VK_W:
+        case XPLM_VK_X:
+        case XPLM_VK_Y:
+        case XPLM_VK_Z:
+            yfs_spad_apndc(yfms, toupper(inChar), -1);
+            return 0;
+        default:
+            return 1; // pass through
     }
 }
