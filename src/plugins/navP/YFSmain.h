@@ -68,7 +68,6 @@ typedef struct
     {
         YFS_LSK_f cback;
         intptr_t refcon;
-        int key_indx[2];
     }
     lsks[2][6];
 

@@ -18,6 +18,7 @@
  *     Timothy D. Walker
  */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -30,6 +31,7 @@
 #include "YFSspad.h"
 
 static void yfs_key_callback_menu(void *yfms);
+static void yfs_lsk_callback_menu(void *yfms, int key[2], intptr_t refcon);
 
 void yfs_menu_resetall(yfms_context *yfms)
 {
@@ -67,7 +69,7 @@ void yfs_menu_pageopen(yfms_context *yfms)
     {
         return; // no error
     }
-    //fixme lsk1 and rsk1 callbacks
+    yfms->lsks[0][0].cback = yfms->lsks[1][0].cback = &yfs_lsk_callback_menu;
     yfms->mwindow.current_page = PAGE_MENU; yfs_menu_pageupdt(yfms); return;
 }
 
@@ -182,4 +184,26 @@ void yfs_idnt_pageupdt(yfms_context *yfms)
 static void yfs_key_callback_menu(void *yfms)
 {
     yfs_menu_pageopen(yfms); return;
+}
+
+static void yfs_lsk_callback_menu(void *context, int key[2], intptr_t refcon)
+{
+    yfms_context *yfms = context;
+    if   (NULL == yfms || yfms->mwindow.current_page != PAGE_MENU)
+    {
+        return; // callback not applicable to current page
+    }
+    if (key && key[0] == 0 && key[1] == 0) // lsk1
+    {
+        yfs_idnt_pageopen(yfms); return;
+    }
+    if (key && key[0] == 1 && key[1] == 0) // rsk1
+    {
+        yfs_menu_resetall(yfms);
+        if (XPIsWidgetVisible(yfms->mwindow.id) == 0)
+        {
+            yfs_main_toggl(yfms);
+        }
+        return;
+    }
 }

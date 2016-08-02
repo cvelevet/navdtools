@@ -205,6 +205,23 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
         yfs_spad_apndc(yfms, '-', -1); return;
     }
 
+    /* line select keys */
+    for (int i = 0; i < (YFS_DISPLAY_NUMR - 1) / 2; i++)
+    {
+        int idx0[2] = { 0, i, };
+        int idx1[2] = { 1, i, };
+        if (yfms->mwindow.keys.keyid_lsk[i] == key &&
+            yfms->lsks[0][i].cback)
+        {
+            yfms->lsks[0][i].cback(yfms, idx0, yfms->lsks[0][i].refcon);
+        }
+        if (yfms->mwindow.keys.keyid_rsk[i] == key &&
+            yfms->lsks[1][i].cback)
+        {
+            yfms->lsks[1][i].cback(yfms, idx1, yfms->lsks[1][i].refcon);
+        }
+    }
+
     /* keys meant to open a specific page */
     if (yfms->mwindow.keys.keyid_menu == key &&
         yfms->spcs.cback_menu)
