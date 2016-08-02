@@ -875,6 +875,58 @@ void yfs_main_toggl(yfms_context *yfms)
     return;
 }
 
+void yfs_printf_lft(void *context, int index, int offset, int color, char *string)
+{
+    yfms_context *yfms = context;
+    if (!yfms || !string)
+    {
+        return;
+    }
+    if (index > YFS_DISPLAY_NUMR - 2)
+    {
+        return; // scratchpad or beyond
+    }
+    if (offset < 0 || offset >= YFS_DISPLAY_NUMC)
+    {
+        return; // out of room
+    }
+    int  len = strnlen(string, YFS_DISPLAY_NUMC - offset);
+    for (int i = 0; i < len; i++)
+    {
+        if (color >= 0)
+        {
+            yfms->mwindow.screen.colr[index][i + offset] = color;
+        }
+        yfms->mwindow.screen.text[index][i + offset] = string[i];
+    }
+}
+
+void yfs_printf_rgt(void *context, int index, int offset, int color, char *string)
+{
+    yfms_context *yfms = context;
+    if (!yfms || !string)
+    {
+        return;
+    }
+    if (index > YFS_DISPLAY_NUMR - 2)
+    {
+        return; // scratchpad or beyond
+    }
+    if (offset < 0 || offset >= YFS_DISPLAY_NUMC)
+    {
+        return; // out of room
+    }
+    int  len = strnlen(string, YFS_DISPLAY_NUMC - offset);
+    for (int i = len - 1,  j = YFS_DISPLAY_NUMC - 1; i >= 0; i--, j--)
+    {
+        if (color >= 0)
+        {
+            yfms->mwindow.screen.colr[index][j - offset] = color;
+        }
+        yfms->mwindow.screen.text[index][j - offset] = string[i];
+    }
+}
+
 static void menu_handler(void *inMenuRef, void *inItemRef)
 {
     yfms_context *yfms = inMenuRef;
@@ -937,7 +989,10 @@ static void draw_display(yfms_context *yfms)
         XPGetWidgetGeometry(yfms->mwindow.screen.line_id[i], &x, NULL, NULL, &y);
         for (int j = strlen(yfms->mwindow.screen.text[i]); j < YFS_DISPLAY_NUMC; j++)
         {
-            yfms->mwindow.screen.text[i][j] = ' ';
+            if (yfms->mwindow.screen.text[i][j] == 0)
+            {
+                yfms->mwindow.screen.text[i][j] = ' ';
+            }
         }
         for (int j = 0; j < YFS_DISPLAY_NUMC; j++)
         {

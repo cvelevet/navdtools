@@ -89,14 +89,12 @@ void yfs_menu_pageupdt(yfms_context *yfms)
     sprintf(yfms->mwindow.screen.text[0], "%*s", (1 + YFS_DISPLAY_NUMC + len) / 2, "MCDU MENU");
 
     /* line 2 left: ident page (green) */
-    // fixme: we want to print from the left, but not set the nul character so
-    //        as to not erase anything beyond what we write; we want to do the
-    //        same for the reset button, but from the right; plus our custom
-    //        printing function must take care of setting the color for us
-    sprintf(yfms->mwindow.screen.text[1], "%s", "<FMGC");
-    /* line 2 right: reset (white) */
-    sprintf(yfms->mwindow.screen.text[1], "%s", "RESET>");
+    yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "<FMGC");
 
+    /* line 2 right: reset (white) */
+    yfs_printf_rgt(yfms, 2, 0, COLR_IDX_WHITE, "RESET>");
+
+    /* all good */
     return;
 }
 

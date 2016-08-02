@@ -60,7 +60,7 @@ void yfs_spad_clear(yfms_context *yfms)
     {
         yfms->mwindow.screen.colr[SPAD_IDX][i] = SPAD_COL;
     }
-    yfms->mwindow.screen.text[SPAD_IDX][0] = 0;
+    memset(yfms->mwindow.screen.text[SPAD_IDX], 0, YFS_DISPLAY_NUMC + 1);
     yfms->mwindow.screen.spad_backup = yfms->mwindow.screen.spad_reset = 0; return;
 }
 
