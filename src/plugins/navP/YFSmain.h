@@ -26,6 +26,7 @@
 #include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMDataAccess.h"
 #include "XPLM/XPLMMenus.h"
+#include "XPLM/XPLMProcessing.h"
 #include "XPLM/XPLMUtilities.h"
 
 #include "lib/navdata.h"
@@ -220,6 +221,7 @@ typedef struct
         XPLMDataRef acf_ICAO;
         XPLMDataRef acf_en_type;
         XPLMDataRef acf_num_engines;
+        XPLMFlightLoop_f fl_callback;
     }
     xpl;
 }

@@ -25,13 +25,15 @@
 
 #include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMDataAccess.h"
+#include "XPLM/XPLMProcessing.h"
 
 #include "YFSmain.h"
 #include "YFSmenu.h"
 #include "YFSspad.h"
 
-static void yfs_key_callback_menu(void *yfms);
-static void yfs_lsk_callback_menu(void *yfms, int key[2], intptr_t refcon);
+static void  yfs_key_callback_menu(void *yfms);
+static void  yfs_lsk_callback_menu(void *yfms, int key[2], intptr_t refcon);
+static float yfs_flight_loop_cback(float, float, int, void*);
 
 void yfs_menu_resetall(yfms_context *yfms)
 {
@@ -51,6 +53,15 @@ void yfs_menu_resetall(yfms_context *yfms)
         yfs_spad_clear(yfms);
     }
     yfs_spad_reset(yfms, "YFMS INITIALIZED", COLR_IDX_ORANGE);
+
+    /* flight loop callback to monitor dataref changes and update pages as required */
+    if (yfms->xpl.fl_callback)
+    {
+        XPLMUnregisterFlightLoopCallback(yfms->xpl.fl_callback, yfms);
+    }
+    {
+        XPLMRegisterFlightLoopCallback(yfms->xpl.fl_callback = &yfs_flight_loop_cback, -1, yfms);
+    }
 
     /* callbacks for page-specific keys */
     yfms->spcs.cback_menu = &yfs_key_callback_menu;
@@ -206,4 +217,19 @@ static void yfs_lsk_callback_menu(void *context, int key[2], intptr_t refcon)
         }
         return;
     }
+}
+
+// TODO: monitor radio frequencies, etc.
+static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
+                                   float inElapsedTimeSinceLastFlightLoop,
+                                   int   inCounter,
+                                   void *inRefcon)
+{
+    yfms_context *yfms = inRefcon;
+    if (!yfms)
+    {
+        ndt_log("YFMS [warning]: no context in flight loop callback!\n");
+        return 0; // we're screwed
+    }
+    return 0.5f; // half a second should do fine
 }

@@ -29,6 +29,7 @@
 #include "XPLM/XPLMDisplay.h"
 #include "XPLM/XPLMGraphics.h"
 #include "XPLM/XPLMMenus.h"
+#include "XPLM/XPLMProcessing.h"
 #include "XPLM/XPLMUtilities.h"
 
 #include "common/common.h"
@@ -858,6 +859,13 @@ int yfs_main_close(yfms_context **_yfms)
     if (yfms->mwindow.ks_rgstrd)
     {
         yfms->mwindow.ks_rgstrd = XPLMUnregisterKeySniffer(&yfs_keysniffer, 1, yfms);
+    }
+
+    /* flight loop callback */
+    if (yfms->xpl.fl_callback)
+    {
+        XPLMUnregisterFlightLoopCallback(yfms->xpl.fl_callback, yfms);
+        yfms->xpl.fl_callback = NULL;
     }
 
     /* all good */
