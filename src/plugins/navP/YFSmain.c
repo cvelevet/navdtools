@@ -779,6 +779,7 @@ void* yfs_main_init(void)
         }
         while (0);
     }
+    ndt_log("YFMS [info]: %s\n", yfms->ndt.ndb->info.desc);
 
     /* aicraft specific X-Plane data */
     if ((yfms->xpl.acf_ICAO        = XPLMFindDataRef("sim/aircraft/view/acf_ICAO")) == NULL ||
