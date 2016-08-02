@@ -156,6 +156,7 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
             if (inParam == XPLM_USER_AIRCRAFT) // user's plane changed
             {
                 nvp_menu_reset     (navpmenu_context);
+                yfs_menu_resetall  (navpyfms_context);
                 nvp_chandlers_reset(chandler_context);
             }
             break;
