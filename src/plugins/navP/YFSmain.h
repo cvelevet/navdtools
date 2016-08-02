@@ -35,8 +35,8 @@
 #define YFS_DISPLAY_NUMC 24 // number of positions per row
 #define YFS_DISPLAY_NUMR 14 // number of rows
 
-typedef int (*YFS_SPC_f)(void *yfms                             );
-typedef int (*YFS_LSK_f)(void *yfms, int key[2], intptr_t refcon);
+typedef void (*YFS_SPC_f)(void *yfms                             );
+typedef void (*YFS_LSK_f)(void *yfms, int key[2], intptr_t refcon);
 
 typedef struct
 {

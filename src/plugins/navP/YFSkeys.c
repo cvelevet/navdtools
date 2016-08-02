@@ -204,6 +204,13 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
     {
         yfs_spad_apndc(yfms, '-', -1); return;
     }
+
+    /* keys meant to open a specific page */
+    if (yfms->mwindow.keys.keyid_menu == key &&
+        yfms->spcs.cback_menu)
+    {
+        yfms->spcs.cback_menu(yfms);
+    }
 }
 
 int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *inRefcon)

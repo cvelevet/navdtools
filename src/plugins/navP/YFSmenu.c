@@ -29,6 +29,8 @@
 #include "YFSmenu.h"
 #include "YFSspad.h"
 
+static void yfs_key_callback_menu(void *yfms);
+
 void yfs_menu_resetall(yfms_context *yfms)
 {
     if (!yfms)
@@ -47,6 +49,9 @@ void yfs_menu_resetall(yfms_context *yfms)
         yfs_spad_clear(yfms);
     }
     yfs_spad_reset(yfms, "YFMS INITIALIZED", COLR_IDX_ORANGE);
+
+    /* callbacks for page-specific keys */
+    yfms->spcs.cback_menu = &yfs_key_callback_menu;
 
     /* all good */
     if (XPIsWidgetVisible(yfms->mwindow.id))
@@ -174,4 +179,9 @@ void yfs_idnt_pageupdt(yfms_context *yfms)
 
     /* all good */
     return;
+}
+
+static void yfs_key_callback_menu(void *yfms)
+{
+    yfs_menu_pageopen(yfms); return;
 }
