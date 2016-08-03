@@ -27,6 +27,8 @@
 #include "XPLM/XPLMDataAccess.h"
 #include "XPLM/XPLMProcessing.h"
 
+#include "lib/flightplan.h"
+
 #include "YFSmain.h"
 #include "YFSmenu.h"
 #include "YFSspad.h"
@@ -65,6 +67,28 @@ void yfs_menu_resetall(yfms_context *yfms)
 
     /* callbacks for page-specific keys */
     yfms->spcs.cback_menu = &yfs_key_callback_menu;
+
+    /* navigation backend */
+    if (yfms->ndt.flp.arr)
+    {
+        ndt_flightplan_close(&yfms->ndt.flp.arr);
+    }
+    if (yfms->ndt.flp.dep)
+    {
+        ndt_flightplan_close(&yfms->ndt.flp.dep);
+    }
+    if (yfms->ndt.flp.iac)
+    {
+        ndt_flightplan_close(&yfms->ndt.flp.iac);
+    }
+    if (yfms->ndt.flp.rte)
+    {
+        ndt_flightplan_close(&yfms->ndt.flp.rte);
+    }
+    yfms->ndt.flp.arr = ndt_flightplan_init(yfms->ndt.ndb);
+    yfms->ndt.flp.dep = ndt_flightplan_init(yfms->ndt.ndb);
+    yfms->ndt.flp.iac = ndt_flightplan_init(yfms->ndt.ndb);
+    yfms->ndt.flp.rte = ndt_flightplan_init(yfms->ndt.ndb);
 
     /* all good */
     if (XPIsWidgetVisible(yfms->mwindow.id))

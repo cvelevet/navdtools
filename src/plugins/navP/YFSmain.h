@@ -29,6 +29,7 @@
 #include "XPLM/XPLMProcessing.h"
 #include "XPLM/XPLMUtilities.h"
 
+#include "lib/flightplan.h"
 #include "lib/navdata.h"
 
 // TODO: when new aircraft loaded, reset YFMS automatically
@@ -213,6 +214,13 @@ typedef struct
     {
         char xsystem_pth[513];
         ndt_navdatabase  *ndb;
+        struct
+        {
+            ndt_flightplan *arr;
+            ndt_flightplan *dep;
+            ndt_flightplan *iac;
+            ndt_flightplan *rte;
+        } flp;
     }
     ndt;
 

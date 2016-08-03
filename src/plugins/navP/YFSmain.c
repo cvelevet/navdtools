@@ -33,6 +33,7 @@
 #include "XPLM/XPLMUtilities.h"
 
 #include "common/common.h"
+#include "lib/flightplan.h"
 #include "lib/navdata.h"
 
 #include "YFSkeys.h"
@@ -853,6 +854,22 @@ int yfs_main_close(yfms_context **_yfms)
     if (yfms->ndt.ndb)
     {
         ndt_navdatabase_close(&yfms->ndt.ndb);
+    }
+    if (yfms->ndt.flp.arr)
+    {
+        ndt_flightplan_close(&yfms->ndt.flp.arr);
+    }
+    if (yfms->ndt.flp.dep)
+    {
+        ndt_flightplan_close(&yfms->ndt.flp.dep);
+    }
+    if (yfms->ndt.flp.iac)
+    {
+        ndt_flightplan_close(&yfms->ndt.flp.iac);
+    }
+    if (yfms->ndt.flp.rte)
+    {
+        ndt_flightplan_close(&yfms->ndt.flp.rte);
     }
 
     /* key sniffer */
