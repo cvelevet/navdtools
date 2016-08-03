@@ -24,9 +24,11 @@
 #include "common/common.h"
 
 #include "airport.h"
+#include "flightplan.h"
 #include "navdata.h"
 
-int          ndt_ndb_xpgns_navdatabase_init    (ndt_navdatabase *ndb                  );
-ndt_airport* ndt_ndb_xpgns_navdata_init_airport(ndt_navdatabase *ndb, ndt_airport *apt);
+int            ndt_ndb_xpgns_navdatabase_init    (ndt_navdatabase *ndb                    );
+ndt_airport*   ndt_ndb_xpgns_navdata_init_airport(ndt_navdatabase *ndb, ndt_airport   *apt);
+ndt_procedure* ndt_ndb_xpgns_navdata_open_procdre(ndt_navdatabase *ndb, ndt_procedure *prc);
 
 #endif /* NDT_NDB_XPGNS_H */

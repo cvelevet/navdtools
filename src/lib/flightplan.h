@@ -120,6 +120,10 @@ typedef struct ndt_procedure
     ndt_list *mapplegs;                 // legs (missed approach)
     ndt_list *custwpts;                 // procedure-specific custom waypoints
     ndt_list  *runways;                 // applicable runways for this procedure (NULL for SID/STAR enroute transitions)
+    ndt_airport   *apt;                 // procedure's airport
+
+    int         opened;                 // legs available
+    char     *raw_data;                 // raw procedure (navdata format-specific)
 
     struct
     {
@@ -182,6 +186,7 @@ typedef struct ndt_procedure
 } ndt_procedure;
 
 ndt_procedure* ndt_procedure_init (                              enum ndt_procedure_type  type);
+ndt_procedure* ndt_procedure_open (ndt_navdatabase *ndb,              ndt_procedure    *proced);
 void           ndt_procedure_close(                                   ndt_procedure **_pointer);
 ndt_procedure* ndt_procedure_get  (ndt_list *procedures,  const char *name, ndt_runway *runway);
 ndt_procedure* ndt_procedure_gettr(ndt_list *transitions, const char *name                    );

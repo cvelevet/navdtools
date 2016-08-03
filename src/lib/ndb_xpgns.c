@@ -35,6 +35,7 @@
 #include "airway.h"
 #include "flightplan.h"
 #include "navdata.h"
+#include "ndb_xpgns.h"
 #include "waypoint.h"
 
 // check whether first decimal digit is odd
@@ -48,6 +49,7 @@ static int parse_waypoints (char *src, ndt_navdatabase *ndb                  );
 static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt);
 static int place_procedures(           ndt_navdatabase *ndb, ndt_airport *apt);
 static int rename_finalappr(                                 ndt_airport *apt);
+static int open_a_procedure(           ndt_navdatabase *ndb, ndt_procedure *p);
 
 int ndt_ndb_xpgns_navdatabase_init(ndt_navdatabase *ndb)
 {
@@ -920,6 +922,29 @@ end:
     return ret;
 }
 
+ndt_procedure* ndt_ndb_xpgns_navdata_open_procdre(ndt_navdatabase *ndb, ndt_procedure *proc)
+{
+    if (proc == NULL)
+    {
+        return  NULL;
+    }
+    if (proc->opened)
+    {
+        return proc;
+    }
+    if (open_a_procedure(ndb, proc))
+    {
+        return NULL;
+    }
+    if (proc->raw_data)
+    {
+        free(proc->raw_data);
+        proc->raw_data = NULL;
+    }
+    proc->opened = 1;
+    return proc;
+}
+
 static void handle_altitude_constraints(ndt_restriction *constraints, int altcst, int altone, int alttwo)
 {
     if (constraints)
@@ -1193,15 +1218,11 @@ static int procedure_appendleg(ndt_procedure *proc, ndt_route_leg *leg1, int spc
 
 static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
 {
-    char          *pos  = src;
-    char          *line = NULL;
+    char *pos = src;
+    char *line = NULL;
     int i, linecap, ret = 0;
-    ndt_restriction constraints;
     ndt_procedure *proc = NULL;
-    ndt_waypoint  *wpt1, *wpt2, *wpt3;
-    ndt_route_leg *leg1;
-    ndt_position   posn;
-    ndt_distance   dist;
+    size_t raw_len, src_len = strlen(src);
 
     while ((ret = ndt_file_getline(&line, &linecap, &pos)) > 0)
     {
@@ -1215,19 +1236,19 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
         }
         line[i] = '\0'; // make line printable as a string
 
-        char   procid[11], wpt_id[6], nav_id[6], rwy_id[6], apptyp[2];
-        int    altcst, altone, alttwo, spdcst, spdone, spdtwo;
-        int    segtyp, anythg, turndr, spcial, ovrfly, mapfix;
-        double wptlat, wptlon, navbrg, navdis, navrad, magcrs;
-        double legdis, dmedis, stradl, radius, intcrs;
+        int  anythg, segtyp;
+        char procid[11], rwy_id[6], wpt_id[6], apptyp[2];
 
         if (!strncmp(line, "SID,", 4))
         {
             if (proc)
             {
+                if (proc->raw_data)
+                {
+                    proc->raw_data = realloc(proc->raw_data, strlen(proc->raw_data) + 1);
+                }
                 proc = NULL;
             }
-            wpt1 = NULL;
 
             /*
              * Format: CSV
@@ -1285,7 +1306,7 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
             snprintf(proc->info.idnt, sizeof(proc->info.idnt), "%s", procid);
             snprintf(proc->info.misc, sizeof(proc->info.misc), "%s", rwy_id);
             snprintf(proc->info.desc, sizeof(proc->info.desc), "%s", line);
-            ndt_list_add(apt->allprocs, proc);
+            ndt_list_add(apt->allprocs, proc); proc->apt = apt;
             continue; // procedure ready
         }
 
@@ -1293,9 +1314,12 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
         {
             if (proc)
             {
+                if (proc->raw_data)
+                {
+                    proc->raw_data = realloc(proc->raw_data, strlen(proc->raw_data) + 1);
+                }
                 proc = NULL;
             }
-            wpt1 = NULL;
 
             /*
              * Format: CSV
@@ -1362,7 +1386,7 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
             snprintf(proc->info.idnt, sizeof(proc->info.idnt), "%s", procid);
             snprintf(proc->info.misc, sizeof(proc->info.misc), "%s", rwy_id);
             snprintf(proc->info.desc, sizeof(proc->info.desc), "%s", line);
-            ndt_list_add(apt->allprocs, proc);
+            ndt_list_add(apt->allprocs, proc); proc->apt = apt;
             continue; // procedure ready
         }
 
@@ -1370,9 +1394,12 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
         {
             if (proc)
             {
+                if (proc->raw_data)
+                {
+                    proc->raw_data = realloc(proc->raw_data, strlen(proc->raw_data) + 1);
+                }
                 proc = NULL;
             }
-            wpt1 = NULL;
 
             /*
              * Format: CSV
@@ -1398,7 +1425,7 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
             snprintf(proc->info.idnt, sizeof(proc->info.idnt), "%s", procid);
             snprintf(proc->info.misc, sizeof(proc->info.misc), "%s", wpt_id);
             snprintf(proc->info.desc, sizeof(proc->info.desc), "%s", line);
-            ndt_list_add(apt->allprocs, proc);
+            ndt_list_add(apt->allprocs, proc); proc->apt = apt;
             continue; // procedure ready
         }
 
@@ -1406,9 +1433,12 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
         {
             if (proc)
             {
+                if (proc->raw_data)
+                {
+                    proc->raw_data = realloc(proc->raw_data, strlen(proc->raw_data) + 1);
+                }
                 proc = NULL;
             }
-            wpt1 = NULL;
 
             /*
              * Format: CSV
@@ -1521,9 +1551,593 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
             snprintf(proc->          info.idnt, sizeof(proc->          info.idnt), "%s", procid);
             snprintf(proc->          info.misc, sizeof(proc->          info.misc), "%s", rwy_id);
             snprintf(proc->          info.desc, sizeof(proc->          info.desc), "%s", line);
-            ndt_list_add(apt->allprocs, proc);
+            ndt_list_add(apt->allprocs, proc); proc->apt = apt;
             continue; // procedure ready
         }
+
+        if (proc == NULL)
+        {
+            ret = EINVAL;
+            goto end;
+        }
+
+        // add line to procedure's raw data for later parsing
+        if (proc->raw_data == NULL)
+        {
+            if ((proc->raw_data = malloc(src_len)) == NULL) // shrink it later
+            {
+                ret = ENOMEM;
+                goto end;
+            }
+            proc->raw_data[0] = 0; // stringify
+        }
+        raw_len = strlen(proc->raw_data);
+        snprintf(proc->raw_data + raw_len, src_len - raw_len, "%s\n", line);
+    }
+
+end:
+    if (ret)
+    {
+        char *errstr = NULL;
+        char  errbuf[64];
+#ifdef _GNU_SOURCE
+        // GNU-specific strerror_r() variant
+        errstr = strerror_r(ret, errbuf, sizeof(errbuf));
+#else
+        int errcode = strerror_r(ret, errbuf, sizeof(errbuf));
+        if (errcode != 0 && errcode != EINVAL)
+        {
+            goto linefree;
+        }
+#endif
+        switch (ret)
+        {
+            case EINVAL:
+                ndt_log("[ndb_xpgns] parse_procedures: failed to parse \"%s\"\n", line);
+                break;
+
+            default:
+                ndt_log("[ndb_xpgns] parse_procedures: '%.63s'\n", errstr ? errstr : errbuf);
+                break;
+        }
+    }
+linefree:
+    free(line);
+    return ret;
+}
+
+static int check_unprocessed(ndt_list *list, ndt_procedure *proc)
+{
+    for (size_t i = 0; i < ndt_list_count(list); i++)
+    {
+        ndt_procedure *item = ndt_list_item(list, i);
+        if (item == proc)
+        {
+            return EINVAL;
+        }
+    }
+    return 0;
+}
+
+static int place_procedures(ndt_navdatabase *ndb, ndt_airport *apt)
+{
+    ndt_procedure *proc1, *proc2;
+    ndt_runway *rwy;
+    int ret = 0;
+
+    ndt_list *allprocs = ndt_list_init();
+    if (!allprocs)
+    {
+        ret = ENOMEM;
+        goto end;
+    }
+
+    /*
+     * Store unprocessed procedures in a new
+     * list so we can check for orphans later.
+     */
+    for (size_t i = 0; i < ndt_list_count(apt->allprocs); i++)
+    {
+        if (!(proc1 = ndt_list_item(apt->allprocs, i)))
+        {
+            ret = ENOMEM;
+            goto end;
+        }
+        if (proc1->type != NDT_PROCTYPE_STAR7 &&
+            proc1->type != NDT_PROCTYPE_STAR8 &&
+            proc1->type != NDT_PROCTYPE_STAR9)
+        {
+            ndt_list_add(allprocs, proc1); // supported procedure
+        }
+        else
+        {
+            ndt_log("[ndb_xpgns] place_procedures: %s: unsupported procedure \"%s\"\n",
+                    apt->info.idnt, proc1->info.desc); // warning
+        }
+    }
+
+    /*
+     * Runway specific SID segments plug into the corresponding runway's list.
+     */
+    for (size_t i = 0; i < ndt_list_count(allprocs);)
+    {
+        if (!(proc1 = ndt_list_item(allprocs, i)))
+        {
+            ret = ENOMEM;
+            goto end;
+        }
+        if (proc1->type != NDT_PROCTYPE_SID_1 && proc1->type != NDT_PROCTYPE_SID_4)
+        {
+            i++; continue; // not runway-specific SID segment
+        }
+        if (!(rwy = ndt_runway_get(apt->runways, proc1->info.misc)))
+        {
+            // Aerosoft/1405/OIFP: runway 08/26 only, but procedures coded for 08L/26R
+            ndt_list_rem(allprocs, proc1); continue; // skip
+        }
+        ndt_list_add(proc1->runways, rwy);
+        ndt_list_add(rwy->sids,    proc1);
+        ndt_list_add(apt->sids,    proc1);
+        ndt_list_rem(allprocs,     proc1);
+    }
+
+    /*
+     * Runway-agnostic SID segments plug into the corresponding runway-specific
+     * segment's transition (if applicable), else plug into all runways' lists.
+     */
+    for (size_t i = 0; i < ndt_list_count(allprocs);)
+    {
+        if (!(proc1 = ndt_list_item(allprocs, i)))
+        {
+            ret = ENOMEM;
+            goto end;
+        }
+        if (proc1->type != NDT_PROCTYPE_SID_2 && proc1->type != NDT_PROCTYPE_SID_5)
+        {
+            i++; continue; // not runway-agnostic SID segment
+        }
+        if ((proc2 = ndt_procedure_get(apt->sids, proc1->info.idnt, NULL)))
+        {
+            // this SID segment continues one or more runway-specific segments
+            for (size_t j = 0; j < ndt_list_count(apt->runways); j++)
+            {
+                if (!(rwy = ndt_list_item(apt->runways, j)))
+                {
+                    ret = ENOMEM;
+                    goto end;
+                }
+                if ((proc2 = ndt_procedure_get(rwy->sids, proc1->info.idnt, rwy)))
+                {
+                    (proc2->transition.sid) = proc1;
+                }
+            }
+            ndt_list_rem(allprocs, proc1);
+        }
+        else
+        {
+            // this SID segment is standalone and thus applies to all runways
+            for (size_t j = 0; j < ndt_list_count(apt->runways); j++)
+            {
+                if (!(rwy = ndt_list_item(apt->runways, j)))
+                {
+                    ret = ENOMEM;
+                    goto end;
+                }
+                ndt_list_add(proc1->runways, rwy);
+                ndt_list_add(rwy->sids,    proc1);
+            }
+            // add once to airport's list
+            ndt_list_add(apt->sids, proc1);
+            ndt_list_rem(allprocs,  proc1);
+        }
+    }
+
+    /*
+     * SID enroute transitions plug into all matching SID segments.
+     */
+    for (size_t i = 0; i < ndt_list_count(allprocs);)
+    {
+        if (!(proc1 = ndt_list_item(allprocs, i)))
+        {
+            ret = ENOMEM;
+            goto end;
+        }
+        if (proc1->type != NDT_PROCTYPE_SID_3 && proc1->type != NDT_PROCTYPE_SID_6)
+        {
+            i++; continue; // not SID enroute transition
+        }
+        for (size_t j = 0; j < ndt_list_count(apt->runways); j++)
+        {
+            if (!(rwy = ndt_list_item(apt->runways, j)))
+            {
+                ret = ENOMEM;
+                goto end;
+            }
+            if ((proc2 = ndt_procedure_get(rwy->sids, proc1->info.idnt, rwy)))
+            {
+                // note: the same procedure may be stored in multiple runways'
+                //       lists, so we have to make sure we don't add it twice
+                if (!ndt_procedure_gettr(proc2->transition.enroute,
+                                         proc1->info.misc))
+                {
+                    ndt_list_add(proc2->transition.enroute, proc1);
+                }
+                if ((proc2 = proc2->transition.sid))
+                {
+                    // add it to runway-agnostic segment too (ease of access)
+                    if (!ndt_procedure_gettr(proc2->transition.enroute,
+                                             proc1->info.misc))
+                    {
+                        ndt_list_add(proc2->transition.enroute, proc1);
+                    }
+                }
+                // Aerosoft/1405/KRNO: PVINE1 (SID) transitions duplicated
+                // just drop the duplicate set of transitions to the floor
+                ndt_list_rem(allprocs, proc1);
+            }
+        }
+        if ((ret = check_unprocessed(allprocs, proc1)))
+        {
+            goto unprocessed;
+        }
+    }
+
+    /*
+     * Runway specific STAR segments plug into the corresponding runway's list.
+     */
+    for (size_t i = 0; i < ndt_list_count(allprocs);)
+    {
+        if (!(proc1 = ndt_list_item(allprocs, i)))
+        {
+            ret = ENOMEM;
+            goto end;
+        }
+        if (proc1->type != NDT_PROCTYPE_STAR3 && proc1->type != NDT_PROCTYPE_STAR6)
+        {
+            i++; continue; // not runway-specific STAR segment
+        }
+        if (!(rwy = ndt_runway_get(apt->runways, proc1->info.misc)))
+        {
+            // Navigraph/1510/WSSS: runway 02R/20L closed, but procedures coded
+            ndt_list_rem(allprocs, proc1); continue; // skip
+        }
+        ndt_list_add(proc1->runways, rwy);
+        ndt_list_add(rwy->stars,   proc1);
+        ndt_list_add(apt->stars,   proc1);
+        ndt_list_rem(allprocs,     proc1);
+    }
+
+    /*
+     * Runway-agnostic STAR segment plugs into the corresponding runway-specific
+     * segment's transition (if applicable), else plugs into all runways' lists.
+     */
+    for (size_t i = 0; i < ndt_list_count(allprocs);)
+    {
+        if (!(proc1 = ndt_list_item(allprocs, i)))
+        {
+            ret = ENOMEM;
+            goto end;
+        }
+        if (proc1->type != NDT_PROCTYPE_STAR2 && proc1->type != NDT_PROCTYPE_STAR5)
+        {
+            i++; continue; // not runway-agnostic STAR segment
+        }
+        if ((proc2 = ndt_procedure_get(apt->stars, proc1->info.idnt, NULL)))
+        {
+            // this STAR segment continues one or more runway-specific segments
+            for (size_t j = 0; j < ndt_list_count(apt->runways); j++)
+            {
+                if (!(rwy = ndt_list_item(apt->runways, j)))
+                {
+                    ret = ENOMEM;
+                    goto end;
+                }
+                if ((proc2 = ndt_procedure_get(rwy->stars, proc1->info.idnt, rwy)))
+                {
+                    (proc2->transition.star) = proc1;
+                }
+            }
+            ndt_list_rem(allprocs, proc1);
+        }
+        else
+        {
+            // this STAR segment is standalone and thus applies to all runways
+            for (size_t j = 0; j < ndt_list_count(apt->runways); j++)
+            {
+                if (!(rwy = ndt_list_item(apt->runways, j)))
+                {
+                    ret = ENOMEM;
+                    goto end;
+                }
+                ndt_list_add(proc1->runways, rwy);
+                ndt_list_add(rwy->stars,   proc1);
+            }
+            // add once to airport's list
+            ndt_list_add(apt->stars, proc1);
+            ndt_list_rem(allprocs,   proc1);
+        }
+    }
+
+    /*
+     * STAR enroute transitions plug into all matching STAR segments.
+     */
+    for (size_t i = 0; i < ndt_list_count(allprocs);)
+    {
+        if (!(proc1 = ndt_list_item(allprocs, i)))
+        {
+            ret = ENOMEM;
+            goto end;
+        }
+        if (proc1->type != NDT_PROCTYPE_STAR1 && proc1->type != NDT_PROCTYPE_STAR4)
+        {
+            i++; continue; // not STAR enroute transition
+        }
+        for (size_t j = 0; j < ndt_list_count(apt->runways); j++)
+        {
+            if (!(rwy = ndt_list_item(apt->runways, j)))
+            {
+                ret = ENOMEM;
+                goto end;
+            }
+            if ((proc2 = ndt_procedure_get(rwy->stars, proc1->info.idnt, rwy)))
+            {
+                // note: the same procedure may be stored in multiple runways'
+                //       lists, so we have to make sure we don't add it twice
+                if (!ndt_procedure_gettr(proc2->transition.enroute,
+                                         proc1->info.misc))
+                {
+                    ndt_list_add(proc2->transition.enroute, proc1);
+                }
+                if ((proc2 = proc2->transition.star))
+                {
+                    // add it to runway-agnostic segment too (ease of access)
+                    if (!ndt_procedure_gettr(proc2->transition.enroute,
+                                             proc1->info.misc))
+                    {
+                        ndt_list_add(proc2->transition.enroute, proc1);
+                    }
+                }
+                // Aerosoft/1405/KRNO: PVINE1 (SID) transitions duplicated
+                // just drop the duplicate set of transitions to the floor
+                ndt_list_rem(allprocs, proc1);
+            }
+        }
+        if ((ret = check_unprocessed(allprocs, proc1)))
+        {
+            goto unprocessed;
+        }
+    }
+
+    /*
+     * Final approach procedures plug into the corresponding runway's list.
+     */
+    for (size_t i = 0; i < ndt_list_count(allprocs);)
+    {
+        if (!(proc1 = ndt_list_item(allprocs, i)))
+        {
+            ret = ENOMEM;
+            goto end;
+        }
+        if (proc1->type != NDT_PROCTYPE_FINAL)
+        {
+            i++; continue; // not final approach
+        }
+        if (!(rwy = ndt_runway_get(apt->runways, proc1->info.misc)))
+        {
+            // Navigraph/1510/LOAV: runway 28 non-existent, but approaches coded
+            ndt_list_rem(allprocs, proc1); continue; // skip
+        }
+        ndt_list_add(proc1->runways,    rwy);
+        ndt_list_add(rwy->approaches, proc1);
+        ndt_list_rem(allprocs,        proc1);
+    }
+
+    /*
+     * Approach transitions plug into the corresponding final approach's list.
+     */
+    for (size_t i = 0; i < ndt_list_count(allprocs);)
+    {
+        if (!(proc1 = ndt_list_item(allprocs, i)))
+        {
+            ret = ENOMEM;
+            goto end;
+        }
+        if (proc1->type != NDT_PROCTYPE_APPTR)
+        {
+            i++; continue; // not approach transition
+        }
+        for (size_t j = 0; j < ndt_list_count(apt->runways); j++)
+        {
+            if (!(rwy = ndt_list_item(apt->runways, j)))
+            {
+                ret = ENOMEM;
+                goto end;
+            }
+            if ((proc2 = ndt_procedure_get(rwy->approaches, proc1->info.idnt, rwy)))
+            {
+                // the transition's approach type is the same as its parent
+                proc1->approach.type   =   proc2->approach.type;
+                ndt_list_add(proc1->runways,               rwy);
+                ndt_list_add(proc2->transition.approach, proc1);
+                ndt_list_rem(allprocs,                   proc1);
+            }
+        }
+        if ((ret = check_unprocessed(allprocs, proc1)))
+        {
+            goto unprocessed;
+        }
+    }
+
+    /*
+     * All procedures should be assigned now, check for orphans;
+     * this can be our bug or a navdata bug (never seen so far).
+     */
+    for (size_t i = 0; i < ndt_list_count(allprocs); i++)
+    {
+        if (!(proc1 = ndt_list_item(allprocs, i)))
+        {
+            ret = ENOMEM;
+            goto end;
+        }
+        ret = EINVAL;
+        goto unprocessed;
+    }
+
+end:
+    ndt_list_close(&allprocs);
+    return ret;
+
+unprocessed:
+    ndt_log("[ndb_xpgns] place_procedures: %s: unprocessed procedure \"%s\"\n",
+            apt->info.idnt, proc1->info.desc);
+    goto end;
+}
+
+static int rename_finalappr(ndt_airport *apt)
+{
+    ndt_runway    *rwy;
+    ndt_procedure *final, *apptr;
+    char temp[sizeof(final->info.idnt)];
+    // now that all procedures are sorted, we can update final
+    // approach procedure names to something more descriptive
+    for (size_t i = 0; i < ndt_list_count(apt->runways); i++)
+    {
+        if ((rwy = ndt_list_item(apt->runways, i)))
+        {
+            for (size_t j = 0; j < ndt_list_count(rwy->approaches); j++)
+            {
+                if ((final = ndt_list_item(rwy->approaches, j)) &&
+                    (final->type == NDT_PROCTYPE_FINAL))
+                {
+                    const char *prefix = NULL;
+                    switch (final->approach.type)
+                    {
+                        case NDT_APPRTYPE_LDA:
+                            prefix = "LDA";
+                            break;
+                        case NDT_APPRTYPE_GLS:
+                            prefix = "GLS";
+                            break;
+                        case NDT_APPRTYPE_IGS:
+                            prefix = "IGS";
+                            break;
+                        case NDT_APPRTYPE_ILS:
+                            prefix = "ILS";
+                            break;
+                        case NDT_APPRTYPE_LOC:
+                            prefix = "LOC";
+                            break;
+                        case NDT_APPRTYPE_LOCB:
+                            prefix = "LOCBC";
+                            break;
+                        case NDT_APPRTYPE_NDB:
+                            prefix = "NDB";
+                            break;
+                        case NDT_APPRTYPE_NDBD:
+                            prefix = "NDBDME";
+                            break;
+                        case NDT_APPRTYPE_RNAV:
+                            prefix = "RNAV";
+                            break;
+                        case NDT_APPRTYPE_CTL:
+                            prefix = "CTL";
+                            break;
+                        case NDT_APPRTYPE_VOR:
+                            prefix = "VOR";
+                            break;
+                        case NDT_APPRTYPE_VORD:
+                            prefix = "VORDME";
+                            break;
+                        case NDT_APPRTYPE_VORT:
+                            prefix = "VORTAC";
+                            break;
+                        default:
+                            break;
+                    }
+                    if (prefix && strlen(final->info.idnt) > strlen(rwy->info.idnt))
+                    {
+                        /*
+                         * Max. 8 characters:
+                         * D28R      VORDME
+                         * D28RY     VORDME-Y
+                         * D28R-Y    VORDME-Y
+                         */
+                        snprintf(final->approach.short_name,
+                                 sizeof(final->approach.short_name), "%s%s%s", prefix,
+                                 strlen(final->info.idnt) ==
+                                 strlen(rwy  ->info.idnt) + 2 ? "-" : "",
+                                 final->info.idnt + strlen(rwy->info.idnt) + 1);
+                        /*
+                         * Max. 11 characters:
+                         * D28R      VORDME28R
+                         * D28RY     VORDME28R-Y
+                         * D28R-Y    VORDME28R-Y
+                         */
+                        snprintf(temp, sizeof(temp), "%s%s%s%s", prefix, rwy->info.idnt,
+                                 strlen(final->info.idnt) ==
+                                 strlen(rwy  ->info.idnt) + 2 ? "-" : "",
+                                 final->info.idnt + strlen(rwy->info.idnt) + 1);
+                        /*
+                         * Update IDs for final approach and its transitions.
+                         */
+                        for (size_t k = 0; k < ndt_list_count(final->transition.approach); k++)
+                        {
+                            if ((apptr = ndt_list_item(final->transition.approach, k)) &&
+                                (apptr->type == NDT_PROCTYPE_APPTR))
+                            {
+                                snprintf(apptr->info.idnt, sizeof(apptr->info.idnt), "%s", temp);
+                            }
+                        }
+                        snprintf(final->info.idnt, sizeof(final->info.idnt), "%s", temp);
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+static int open_a_procedure(ndt_navdatabase *ndb, ndt_procedure *proc)
+{
+    if (!ndb || !proc)
+    {
+        return -1;
+    }
+    if (proc->opened)
+    {
+        return 0;
+    }
+    if (proc->raw_data == NULL)
+    {
+        return -1;
+    }
+
+    char *line = NULL;
+    ndt_position posn;
+    ndt_distance dist;
+    ndt_route_leg *leg1;
+    int linecap, i, ret = 0;
+    char *pos  = proc->raw_data;
+    ndt_restriction constraints;
+    ndt_waypoint  *wpt1 = NULL, *wpt2, *wpt3;
+
+    while ((ret = ndt_file_getline(&line, &linecap, &pos)) > 0)
+    {
+        if (*line == '\r' || *line == '\n')
+        {
+            continue; // skip blank lines
+        }
+        for (i = 0; line[i] != '\r' && line[i] != '\n'; i++)
+        {
+            continue;
+        }
+        line[i] = '\0'; // make line printable as a string
+
+        int    altcst, altone, alttwo, spdcst, spdone, spdtwo;
+        int    anythg, segtyp, turndr, spcial, ovrfly, mapfix;
+        double wptlat, wptlon, navbrg, navdis, navrad, magcrs;
+        double legdis, dmedis, stradl, radius, intcrs;
+        char   wpt_id[6], nav_id[6];
 
         if (!strncmp(line, "AF,", 3))
         {
@@ -1695,7 +2309,7 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
             }
 
             dist = ndt_distance_init(dmedis * 1852. / .3048, NDT_ALTUNIT_FT);
-            if (!(wpt3 = ndt_navdata_get_wptnear2(ndb, nav_id, NULL, wpt1 ? wpt1->position : apt->coordinates)))
+            if (!(wpt3 = ndt_navdata_get_wptnear2(ndb, nav_id, NULL, wpt1 ? wpt1->position : proc->apt->coordinates)))
             {
                 ret = ENOMEM;
                 goto end;
@@ -1890,7 +2504,7 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
                 goto end;
             }
 
-            if (!(wpt3 = ndt_navdata_get_wptnear2(ndb, nav_id, NULL, wpt1 ? wpt1->position : apt->coordinates)))
+            if (!(wpt3 = ndt_navdata_get_wptnear2(ndb, nav_id, NULL, wpt1 ? wpt1->position : proc->apt->coordinates)))
             {
                 ret = ENOMEM;
                 goto end;
@@ -2670,7 +3284,7 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
             }
 
             dist = ndt_distance_init(dmedis * 1852. / .3048, NDT_ALTUNIT_FT);
-            if (!(wpt3 = ndt_navdata_get_wptnear2(ndb, nav_id, NULL, wpt1 ? wpt1->position : apt->coordinates)))
+            if (!(wpt3 = ndt_navdata_get_wptnear2(ndb, nav_id, NULL, wpt1 ? wpt1->position : proc->apt->coordinates)))
             {
                 ret = ENOMEM;
                 goto end;
@@ -2850,7 +3464,7 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
                 goto end;
             }
 
-            if (!(wpt3 = ndt_navdata_get_wptnear2(ndb, nav_id, NULL, wpt1 ? wpt1->position : apt->coordinates)))
+            if (!(wpt3 = ndt_navdata_get_wptnear2(ndb, nav_id, NULL, wpt1 ? wpt1->position : proc->apt->coordinates)))
             {
                 ret = ENOMEM;
                 goto end;
@@ -3148,6 +3762,87 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
         goto end;
     }
 
+    // now that we have all legs, set transition waypoint if applicable
+    if (proc->type == NDT_PROCTYPE_SID_3 || proc->type == NDT_PROCTYPE_SID_6)
+    {
+        ndt_route_leg *leg = ndt_list_item(proc->proclegs, -1);
+        if (!leg)
+        {
+            ndt_log("[ndb_xpgns] open_a_procedure: %s: no leg(s) for %s.%s\n",
+                    proc->apt->info.idnt, proc->info.idnt, proc->info.misc);
+            ret = ENOMEM;
+            goto end;
+        }
+        if (!leg->dst)
+        {
+            ndt_log("[ndb_xpgns] open_a_procedure: %s: no endpoint for %s.%s\n",
+                    proc->apt->info.idnt, proc->info.idnt, proc->info.misc);
+            ret = EINVAL;
+            goto end;
+        }
+        proc->transition.wpt = leg->dst;
+    }
+    if (proc->type == NDT_PROCTYPE_STAR1 || proc->type == NDT_PROCTYPE_STAR4)
+    {
+        ndt_route_leg *leg = ndt_list_item(proc->proclegs, 0);
+        if (!leg)
+        {
+            ndt_log("[ndb_xpgns] open_a_procedure: %s: no leg(s) for %s.%s\n",
+                    proc->apt->info.idnt, proc->info.idnt, proc->info.misc);
+            ret = ENOMEM;
+            goto end;
+        }
+        if (leg->type == NDT_LEGTYPE_IF)
+        {
+            proc->transition.wpt = leg->dst;
+        }
+        else
+        {
+            if (!leg->src)
+            {
+                ndt_log("[ndb_xpgns] open_a_procedure: %s: no startpoint for %s.%s\n",
+                        proc->apt->info.idnt, proc->info.idnt, proc->info.misc);
+                ret = EINVAL;
+                goto end;
+            }
+            proc->transition.wpt = leg->src;
+        }
+    }
+    if (proc->type == NDT_PROCTYPE_APPTR)
+    {
+        ndt_route_leg *leg = ndt_list_item(proc->proclegs, 0);
+        if (!leg)
+        {
+            ndt_log("[ndb_xpgns] open_a_procedure: %s: no leg(s) for %s.%s\n",
+                    proc->apt->info.idnt, proc->info.idnt, proc->info.misc);
+            ret = ENOMEM;
+            goto end;
+        }
+        if (leg->type == NDT_LEGTYPE_IF)
+        {
+            proc->transition.wpt = leg->dst;
+        }
+        else
+        {
+            if (!leg->src)
+            {
+                ndt_log("[ndb_xpgns] open_a_procedure: %s: no startpoint for %s.%s\n",
+                        proc->apt->info.idnt, proc->info.idnt, proc->info.misc);
+                ret = EINVAL;
+                goto end;
+            }
+            proc->transition.wpt = leg->src;
+        }
+    }
+
+    // we're done here
+    if (proc->raw_data)
+    {
+        free(proc->raw_data);
+        proc->raw_data = NULL;
+    }
+    proc->opened = 1;
+
 end:
     if (ret)
     {
@@ -3166,580 +3861,15 @@ end:
         switch (ret)
         {
             case EINVAL:
-                ndt_log("[ndb_xpgns] parse_procedures: failed to parse \"%s\"\n", line);
+                ndt_log("[ndb_xpgns] open_a_procedure: failed to parse \"%s\"\n", line);
                 break;
 
             default:
-                ndt_log("[ndb_xpgns] parse_procedures: '%.63s'\n", errstr ? errstr : errbuf);
+                ndt_log("[ndb_xpgns] open_a_procedure: '%.63s'\n", errstr ? errstr : errbuf);
                 break;
         }
     }
 linefree:
     free(line);
     return ret;
-}
-
-static int check_unprocessed(ndt_list *list, ndt_procedure *proc)
-{
-    for (size_t i = 0; i < ndt_list_count(list); i++)
-    {
-        ndt_procedure *item = ndt_list_item(list, i);
-        if (item == proc)
-        {
-            return EINVAL;
-        }
-    }
-    return 0;
-}
-
-static int place_procedures(ndt_navdatabase *ndb, ndt_airport *apt)
-{
-    ndt_procedure *proc1, *proc2;
-    ndt_runway *rwy;
-    int ret = 0;
-
-    ndt_list *allprocs = ndt_list_init();
-    if (!allprocs)
-    {
-        ret = ENOMEM;
-        goto end;
-    }
-
-    /*
-     * Store unprocessed procedures in a new
-     * list so we can check for orphans later.
-     */
-    for (size_t i = 0; i < ndt_list_count(apt->allprocs); i++)
-    {
-        if (!(proc1 = ndt_list_item(apt->allprocs, i)))
-        {
-            ret = ENOMEM;
-            goto end;
-        }
-        if (proc1->type != NDT_PROCTYPE_STAR7 &&
-            proc1->type != NDT_PROCTYPE_STAR8 &&
-            proc1->type != NDT_PROCTYPE_STAR9)
-        {
-            ndt_list_add(allprocs, proc1); // supported procedure
-        }
-        else
-        {
-            ndt_log("[ndb_xpgns] place_procedures: %s: unsupported procedure \"%s\"\n",
-                    apt->info.idnt, proc1->info.desc); // warning
-        }
-    }
-
-    /*
-     * Runway specific SID segments plug into the corresponding runway's list.
-     */
-    for (size_t i = 0; i < ndt_list_count(allprocs);)
-    {
-        if (!(proc1 = ndt_list_item(allprocs, i)))
-        {
-            ret = ENOMEM;
-            goto end;
-        }
-        if (proc1->type != NDT_PROCTYPE_SID_1 && proc1->type != NDT_PROCTYPE_SID_4)
-        {
-            i++; continue; // not runway-specific SID segment
-        }
-        if (!(rwy = ndt_runway_get(apt->runways, proc1->info.misc)))
-        {
-            // Aerosoft/1405/OIFP: runway 08/26 only, but procedures coded for 08L/26R
-            ndt_list_rem(allprocs, proc1); continue; // skip
-        }
-        ndt_list_add(proc1->runways, rwy);
-        ndt_list_add(rwy->sids,    proc1);
-        ndt_list_add(apt->sids,    proc1);
-        ndt_list_rem(allprocs,     proc1);
-    }
-
-    /*
-     * Runway-agnostic SID segments plug into the corresponding runway-specific
-     * segment's transition (if applicable), else plug into all runways' lists.
-     */
-    for (size_t i = 0; i < ndt_list_count(allprocs);)
-    {
-        if (!(proc1 = ndt_list_item(allprocs, i)))
-        {
-            ret = ENOMEM;
-            goto end;
-        }
-        if (proc1->type != NDT_PROCTYPE_SID_2 && proc1->type != NDT_PROCTYPE_SID_5)
-        {
-            i++; continue; // not runway-agnostic SID segment
-        }
-        if ((proc2 = ndt_procedure_get(apt->sids, proc1->info.idnt, NULL)))
-        {
-            // this SID segment continues one or more runway-specific segments
-            for (size_t j = 0; j < ndt_list_count(apt->runways); j++)
-            {
-                if (!(rwy = ndt_list_item(apt->runways, j)))
-                {
-                    ret = ENOMEM;
-                    goto end;
-                }
-                if ((proc2 = ndt_procedure_get(rwy->sids, proc1->info.idnt, rwy)))
-                {
-                    (proc2->transition.sid) = proc1;
-                }
-            }
-            ndt_list_rem(allprocs, proc1);
-        }
-        else
-        {
-            // this SID segment is standalone and thus applies to all runways
-            for (size_t j = 0; j < ndt_list_count(apt->runways); j++)
-            {
-                if (!(rwy = ndt_list_item(apt->runways, j)))
-                {
-                    ret = ENOMEM;
-                    goto end;
-                }
-                ndt_list_add(proc1->runways, rwy);
-                ndt_list_add(rwy->sids,    proc1);
-            }
-            // add once to airport's list
-            ndt_list_add(apt->sids, proc1);
-            ndt_list_rem(allprocs,  proc1);
-        }
-    }
-
-    /*
-     * SID enroute transitions plug into all matching SID segments.
-     */
-    for (size_t i = 0; i < ndt_list_count(allprocs);)
-    {
-        if (!(proc1 = ndt_list_item(allprocs, i)))
-        {
-            ret = ENOMEM;
-            goto end;
-        }
-        if (proc1->type != NDT_PROCTYPE_SID_3 && proc1->type != NDT_PROCTYPE_SID_6)
-        {
-            i++; continue; // not SID enroute transition
-        }
-        else
-        {
-            // now that we have all legs, set waypoint for enroute transition
-            ndt_route_leg *leg = ndt_list_item(proc1->proclegs, -1);
-            if (!leg)
-            {
-                ndt_log("[ndb_xpgns] place_procedures: %s: no leg(s) for %s.%s\n",
-                        apt->info.idnt, proc1->info.idnt, proc1->info.misc);
-                ret = ENOMEM;
-                goto end;
-            }
-            if (!leg->dst)
-            {
-                ndt_log("[ndb_xpgns] place_procedures: %s: no endpoint for %s.%s\n",
-                        apt->info.idnt, proc1->info.idnt, proc1->info.misc);
-                ret = EINVAL;
-                goto end;
-            }
-            proc1->transition.wpt = leg->dst;
-        }
-        for (size_t j = 0; j < ndt_list_count(apt->runways); j++)
-        {
-            if (!(rwy = ndt_list_item(apt->runways, j)))
-            {
-                ret = ENOMEM;
-                goto end;
-            }
-            if ((proc2 = ndt_procedure_get(rwy->sids, proc1->info.idnt, rwy)))
-            {
-                // note: the same procedure may be stored in multiple runways'
-                //       lists, so we have to make sure we don't add it twice
-                if (!ndt_procedure_gettr(proc2->transition.enroute,
-                                         proc1->info.misc))
-                {
-                    ndt_list_add(proc2->transition.enroute, proc1);
-                }
-                if ((proc2 = proc2->transition.sid))
-                {
-                    // add it to runway-agnostic segment too (ease of access)
-                    if (!ndt_procedure_gettr(proc2->transition.enroute,
-                                             proc1->info.misc))
-                    {
-                        ndt_list_add(proc2->transition.enroute, proc1);
-                    }
-                }
-                // Aerosoft/1405/KRNO: PVINE1 (SID) transitions duplicated
-                // just drop the duplicate set of transitions to the floor
-                ndt_list_rem(allprocs, proc1);
-            }
-        }
-        if ((ret = check_unprocessed(allprocs, proc1)))
-        {
-            goto unprocessed;
-        }
-    }
-
-    /*
-     * Runway specific STAR segments plug into the corresponding runway's list.
-     */
-    for (size_t i = 0; i < ndt_list_count(allprocs);)
-    {
-        if (!(proc1 = ndt_list_item(allprocs, i)))
-        {
-            ret = ENOMEM;
-            goto end;
-        }
-        if (proc1->type != NDT_PROCTYPE_STAR3 && proc1->type != NDT_PROCTYPE_STAR6)
-        {
-            i++; continue; // not runway-specific STAR segment
-        }
-        if (!(rwy = ndt_runway_get(apt->runways, proc1->info.misc)))
-        {
-            // Navigraph/1510/WSSS: runway 02R/20L closed, but procedures coded
-            ndt_list_rem(allprocs, proc1); continue; // skip
-        }
-        ndt_list_add(proc1->runways, rwy);
-        ndt_list_add(rwy->stars,   proc1);
-        ndt_list_add(apt->stars,   proc1);
-        ndt_list_rem(allprocs,     proc1);
-    }
-
-    /*
-     * Runway-agnostic STAR segment plugs into the corresponding runway-specific
-     * segment's transition (if applicable), else plugs into all runways' lists.
-     */
-    for (size_t i = 0; i < ndt_list_count(allprocs);)
-    {
-        if (!(proc1 = ndt_list_item(allprocs, i)))
-        {
-            ret = ENOMEM;
-            goto end;
-        }
-        if (proc1->type != NDT_PROCTYPE_STAR2 && proc1->type != NDT_PROCTYPE_STAR5)
-        {
-            i++; continue; // not runway-agnostic STAR segment
-        }
-        if ((proc2 = ndt_procedure_get(apt->stars, proc1->info.idnt, NULL)))
-        {
-            // this STAR segment continues one or more runway-specific segments
-            for (size_t j = 0; j < ndt_list_count(apt->runways); j++)
-            {
-                if (!(rwy = ndt_list_item(apt->runways, j)))
-                {
-                    ret = ENOMEM;
-                    goto end;
-                }
-                if ((proc2 = ndt_procedure_get(rwy->stars, proc1->info.idnt, rwy)))
-                {
-                    (proc2->transition.star) = proc1;
-                }
-            }
-            ndt_list_rem(allprocs, proc1);
-        }
-        else
-        {
-            // this STAR segment is standalone and thus applies to all runways
-            for (size_t j = 0; j < ndt_list_count(apt->runways); j++)
-            {
-                if (!(rwy = ndt_list_item(apt->runways, j)))
-                {
-                    ret = ENOMEM;
-                    goto end;
-                }
-                ndt_list_add(proc1->runways, rwy);
-                ndt_list_add(rwy->stars,   proc1);
-            }
-            // add once to airport's list
-            ndt_list_add(apt->stars, proc1);
-            ndt_list_rem(allprocs,   proc1);
-        }
-    }
-
-    /*
-     * STAR enroute transitions plug into all matching STAR segments.
-     */
-    for (size_t i = 0; i < ndt_list_count(allprocs);)
-    {
-        if (!(proc1 = ndt_list_item(allprocs, i)))
-        {
-            ret = ENOMEM;
-            goto end;
-        }
-        if (proc1->type != NDT_PROCTYPE_STAR1 && proc1->type != NDT_PROCTYPE_STAR4)
-        {
-            i++; continue; // not STAR enroute transition
-        }
-        else
-        {
-            // now that we have all legs, set waypoint for enroute transition
-            ndt_route_leg *leg = ndt_list_item(proc1->proclegs, 0);
-            if (!leg)
-            {
-                ndt_log("[ndb_xpgns] place_procedures: %s: no leg(s) for %s.%s\n",
-                        apt->info.idnt, proc1->info.idnt, proc1->info.misc);
-                ret = ENOMEM;
-                goto end;
-            }
-            if (leg->type == NDT_LEGTYPE_IF)
-            {
-                proc1->transition.wpt = leg->dst;
-            }
-            else
-            {
-                if (!leg->src)
-                {
-                    ndt_log("[ndb_xpgns] place_procedures: %s: no startpoint for %s.%s\n",
-                            apt->info.idnt, proc1->info.idnt, proc1->info.misc);
-                    ret = EINVAL;
-                    goto end;
-                }
-                proc1->transition.wpt = leg->src;
-            }
-        }
-        for (size_t j = 0; j < ndt_list_count(apt->runways); j++)
-        {
-            if (!(rwy = ndt_list_item(apt->runways, j)))
-            {
-                ret = ENOMEM;
-                goto end;
-            }
-            if ((proc2 = ndt_procedure_get(rwy->stars, proc1->info.idnt, rwy)))
-            {
-                // note: the same procedure may be stored in multiple runways'
-                //       lists, so we have to make sure we don't add it twice
-                if (!ndt_procedure_gettr(proc2->transition.enroute,
-                                         proc1->info.misc))
-                {
-                    ndt_list_add(proc2->transition.enroute, proc1);
-                }
-                if ((proc2 = proc2->transition.star))
-                {
-                    // add it to runway-agnostic segment too (ease of access)
-                    if (!ndt_procedure_gettr(proc2->transition.enroute,
-                                             proc1->info.misc))
-                    {
-                        ndt_list_add(proc2->transition.enroute, proc1);
-                    }
-                }
-                // Aerosoft/1405/KRNO: PVINE1 (SID) transitions duplicated
-                // just drop the duplicate set of transitions to the floor
-                ndt_list_rem(allprocs, proc1);
-            }
-        }
-        if ((ret = check_unprocessed(allprocs, proc1)))
-        {
-            goto unprocessed;
-        }
-    }
-
-    /*
-     * Final approach procedures plug into the corresponding runway's list.
-     */
-    for (size_t i = 0; i < ndt_list_count(allprocs);)
-    {
-        if (!(proc1 = ndt_list_item(allprocs, i)))
-        {
-            ret = ENOMEM;
-            goto end;
-        }
-        if (proc1->type != NDT_PROCTYPE_FINAL)
-        {
-            i++; continue; // not final approach
-        }
-        if (!(rwy = ndt_runway_get(apt->runways, proc1->info.misc)))
-        {
-            // Navigraph/1510/LOAV: runway 28 non-existent, but approaches coded
-            ndt_list_rem(allprocs, proc1); continue; // skip
-        }
-        ndt_list_add(proc1->runways,    rwy);
-        ndt_list_add(rwy->approaches, proc1);
-        ndt_list_rem(allprocs,        proc1);
-    }
-
-    /*
-     * Approach transitions plug into the corresponding final approach's list.
-     */
-    for (size_t i = 0; i < ndt_list_count(allprocs);)
-    {
-        if (!(proc1 = ndt_list_item(allprocs, i)))
-        {
-            ret = ENOMEM;
-            goto end;
-        }
-        if (proc1->type != NDT_PROCTYPE_APPTR)
-        {
-            i++; continue; // not approach transition
-        }
-        else
-        {
-            // now that we have all legs, set waypoint for approach transition
-            ndt_route_leg *leg = ndt_list_item(proc1->proclegs, 0);
-            if (!leg)
-            {
-                ndt_log("[ndb_xpgns] place_procedures: %s: no leg(s) for %s.%s\n",
-                        apt->info.idnt, proc1->info.idnt, proc1->info.misc);
-                ret = ENOMEM;
-                goto end;
-            }
-            if (leg->type == NDT_LEGTYPE_IF)
-            {
-                proc1->transition.wpt = leg->dst;
-            }
-            else
-            {
-                if (!leg->src)
-                {
-                    ndt_log("[ndb_xpgns] place_procedures: %s: no startpoint for %s.%s\n",
-                            apt->info.idnt, proc1->info.idnt, proc1->info.misc);
-                    ret = EINVAL;
-                    goto end;
-                }
-                proc1->transition.wpt = leg->src;
-            }
-        }
-        for (size_t j = 0; j < ndt_list_count(apt->runways); j++)
-        {
-            if (!(rwy = ndt_list_item(apt->runways, j)))
-            {
-                ret = ENOMEM;
-                goto end;
-            }
-            if ((proc2 = ndt_procedure_get(rwy->approaches, proc1->info.idnt, rwy)))
-            {
-                // the transition's approach type is the same as its parent
-                proc1->approach.type   =   proc2->approach.type;
-                ndt_list_add(proc1->runways,               rwy);
-                ndt_list_add(proc2->transition.approach, proc1);
-                ndt_list_rem(allprocs,                   proc1);
-            }
-        }
-        if ((ret = check_unprocessed(allprocs, proc1)))
-        {
-            goto unprocessed;
-        }
-    }
-
-    /*
-     * All procedures should be assigned now, check for orphans;
-     * this can be our bug or a navdata bug (never seen so far).
-     */
-    for (size_t i = 0; i < ndt_list_count(allprocs); i++)
-    {
-        if (!(proc1 = ndt_list_item(allprocs, i)))
-        {
-            ret = ENOMEM;
-            goto end;
-        }
-        ret = EINVAL;
-        goto unprocessed;
-    }
-
-end:
-    ndt_list_close(&allprocs);
-    return ret;
-
-unprocessed:
-    ndt_log("[ndb_xpgns] place_procedures: %s: unprocessed procedure \"%s\"\n",
-            apt->info.idnt, proc1->info.desc);
-    goto end;
-}
-
-static int rename_finalappr(ndt_airport *apt)
-{
-    ndt_runway    *rwy;
-    ndt_procedure *final, *apptr;
-    char temp[sizeof(final->info.idnt)];
-    // now that all procedures are sorted, we can update final
-    // approach procedure names to something more descriptive
-    for (size_t i = 0; i < ndt_list_count(apt->runways); i++)
-    {
-        if ((rwy = ndt_list_item(apt->runways, i)))
-        {
-            for (size_t j = 0; j < ndt_list_count(rwy->approaches); j++)
-            {
-                if ((final = ndt_list_item(rwy->approaches, j)) &&
-                    (final->type == NDT_PROCTYPE_FINAL))
-                {
-                    const char *prefix = NULL;
-                    switch (final->approach.type)
-                    {
-                        case NDT_APPRTYPE_LDA:
-                            prefix = "LDA";
-                            break;
-                        case NDT_APPRTYPE_GLS:
-                            prefix = "GLS";
-                            break;
-                        case NDT_APPRTYPE_IGS:
-                            prefix = "IGS";
-                            break;
-                        case NDT_APPRTYPE_ILS:
-                            prefix = "ILS";
-                            break;
-                        case NDT_APPRTYPE_LOC:
-                            prefix = "LOC";
-                            break;
-                        case NDT_APPRTYPE_LOCB:
-                            prefix = "LOCBC";
-                            break;
-                        case NDT_APPRTYPE_NDB:
-                            prefix = "NDB";
-                            break;
-                        case NDT_APPRTYPE_NDBD:
-                            prefix = "NDBDME";
-                            break;
-                        case NDT_APPRTYPE_RNAV:
-                            prefix = "RNAV";
-                            break;
-                        case NDT_APPRTYPE_CTL:
-                            prefix = "CTL";
-                            break;
-                        case NDT_APPRTYPE_VOR:
-                            prefix = "VOR";
-                            break;
-                        case NDT_APPRTYPE_VORD:
-                            prefix = "VORDME";
-                            break;
-                        case NDT_APPRTYPE_VORT:
-                            prefix = "VORTAC";
-                            break;
-                        default:
-                            break;
-                    }
-                    if (prefix && strlen(final->info.idnt) > strlen(rwy->info.idnt))
-                    {
-                        /*
-                         * Max. 8 characters:
-                         * D28R      VORDME
-                         * D28RY     VORDME-Y
-                         * D28R-Y    VORDME-Y
-                         */
-                        snprintf(final->approach.short_name,
-                                 sizeof(final->approach.short_name), "%s%s%s", prefix,
-                                 strlen(final->info.idnt) ==
-                                 strlen(rwy  ->info.idnt) + 2 ? "-" : "",
-                                 final->info.idnt + strlen(rwy->info.idnt) + 1);
-                        /*
-                         * Max. 11 characters:
-                         * D28R      VORDME28R
-                         * D28RY     VORDME28R-Y
-                         * D28R-Y    VORDME28R-Y
-                         */
-                        snprintf(temp, sizeof(temp), "%s%s%s%s", prefix, rwy->info.idnt,
-                                 strlen(final->info.idnt) ==
-                                 strlen(rwy  ->info.idnt) + 2 ? "-" : "",
-                                 final->info.idnt + strlen(rwy->info.idnt) + 1);
-                        /*
-                         * Update IDs for final approach and its transitions.
-                         */
-                        for (size_t k = 0; k < ndt_list_count(final->transition.approach); k++)
-                        {
-                            if ((apptr = ndt_list_item(final->transition.approach, k)) &&
-                                (apptr->type == NDT_PROCTYPE_APPTR))
-                            {
-                                snprintf(apptr->info.idnt, sizeof(apptr->info.idnt), "%s", temp);
-                            }
-                        }
-                        snprintf(final->info.idnt, sizeof(final->info.idnt), "%s", temp);
-                    }
-                }
-            }
-        }
-    }
-    return 0;
 }

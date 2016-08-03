@@ -37,6 +37,7 @@
 #include "fmt_aibxt.h"
 #include "fmt_icaor.h"
 #include "fmt_xpfms.h"
+#include "ndb_xpgns.h"
 #include "waypoint.h"
 
 static int route_leg_update(ndt_flightplan *flp                                                        );
@@ -297,6 +298,22 @@ int ndt_flightplan_set_departsid(ndt_flightplan *flp, const char *name, const ch
         goto end;
     }
 
+    // we only open a procedure right before we need it, for performance reasons
+    if (!proc->opened && !ndt_procedure_open(flp->ndb, proc))
+    {
+        ndt_log("flightplan: %s: failed to open SID '%s'\n",
+                flp->dep.apt->info.idnt, name);
+        err = EINVAL;
+        goto end;
+    }
+    if (nrte && !nrte->opened && !ndt_procedure_open(flp->ndb, nrte))
+    {
+        ndt_log("flightplan: %s: failed to open transition '%s' for SID '%s'\n",
+                flp->dep.apt->info.idnt, trans, name);
+        err = EINVAL;
+        goto end;
+    }
+
     // if the departure runway is not set, we set src to NULL, so
     // ndt_route_segment_proced will insert a discontinuity for us
     ndt_waypoint *src = flp->dep.rwy ? flp->dep.rwy->waypoint : NULL;
@@ -454,6 +471,22 @@ int ndt_flightplan_set_arrivstar(ndt_flightplan *flp, const char *name, const ch
         goto end;
     }
 
+    // we only open a procedure right before we need it, for performance reasons
+    if (!proc->opened && !ndt_procedure_open(flp->ndb, proc))
+    {
+        ndt_log("flightplan: %s: failed to open STAR '%s'\n",
+                flp->arr.apt->info.idnt, name);
+        err = EINVAL;
+        goto end;
+    }
+    if (nrte && !nrte->opened && !ndt_procedure_open(flp->ndb, nrte))
+    {
+        ndt_log("flightplan: %s: failed to open transition '%s' for STAR '%s'\n",
+                flp->arr.apt->info.idnt, trans, name);
+        err = EINVAL;
+        goto end;
+    }
+
     // src is the last flightplan leg's waypoint, the runway threshold or departure airport
     ndt_route_leg *leg = flp->dep.sid.rsgt ? ndt_list_item(flp->dep.sid.rsgt->legs, -1) : NULL;
     if (flp->dep.sid.enroute.rsgt)
@@ -548,6 +581,22 @@ int ndt_flightplan_set_arrivapch(ndt_flightplan *flp, const char *name, const ch
     if (trans && !(aptr = ndt_procedure_gettr(proc->transition.approach, trans)))
     {
         ndt_log("flightplan: %s: invalid transition '%s' for %s (approach)\n",
+                flp->arr.apt->info.idnt, trans, name);
+        err = EINVAL;
+        goto end;
+    }
+
+    // we only open a procedure right before we need it, for performance reasons
+    if (!proc->opened && !ndt_procedure_open(flp->ndb, proc))
+    {
+        ndt_log("flightplan: %s: failed to open approach '%s'\n",
+                flp->arr.apt->info.idnt, name);
+        err = EINVAL;
+        goto end;
+    }
+    if (aptr && !aptr->opened && !ndt_procedure_open(flp->ndb, aptr))
+    {
+        ndt_log("flightplan: %s: failed to open transition '%s' for approach '%s'\n",
                 flp->arr.apt->info.idnt, trans, name);
         err = EINVAL;
         goto end;
@@ -781,6 +830,27 @@ ndt_procedure* ndt_procedure_init(enum ndt_procedure_type typ)
 fail:
     ndt_procedure_close(&proc);
     return NULL;
+}
+
+ndt_procedure* ndt_procedure_open(ndt_navdatabase *ndb, ndt_procedure *proc)
+{
+    if (proc == NULL || !ndb)
+    {
+        return  NULL;
+    }
+    if (proc->opened)
+    {
+        return proc;
+    }
+    switch (ndb->fmt)
+    {
+        case NDT_NAVDFMT_XPGNS:
+            return ndt_ndb_xpgns_navdata_open_procdre(ndb, proc);
+
+        case NDT_NAVDFMT_OTHER:
+        default:
+            return NULL;
+    }
 }
 
 void ndt_procedure_close(ndt_procedure **ptr)
