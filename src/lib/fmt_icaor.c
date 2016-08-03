@@ -1703,6 +1703,11 @@ int ndt_fmt_icaor_print_airportnfo(ndt_navdatabase *ndb, const char *icao)
             {
                 if ((pr1 = ndt_list_item(rwy->approaches, j)))
                 {
+                    if (!pr1->opened)
+                    {
+                        // open procedure only when needed (for performance)
+                        ndt_procedure_open(ndb, pr1);
+                    }
                     leg = ndt_list_item(pr1->proclegs, 0);
                     fprintf(stdout, "        approach: %-11s from: %-5s",
                             pr1->info.idnt,
@@ -1752,6 +1757,11 @@ int ndt_fmt_icaor_print_airportnfo(ndt_navdatabase *ndb, const char *icao)
             if (pr1)
             {
                 pr2 = pr1->transition.sid ? pr1->transition.sid : pr1;
+                if  (!pr2->opened)
+                {
+                    // open procedure only when needed (for performance)
+                    ndt_procedure_open(ndb, pr2);
+                }
                 if ((leg = ndt_list_item(pr2->proclegs, -1)) && leg->dst)
                 {
                     fprintf(stdout, "    procedure's final fix: %s\n", leg->dst->info.idnt);
@@ -1792,6 +1802,11 @@ int ndt_fmt_icaor_print_airportnfo(ndt_navdatabase *ndb, const char *icao)
             if (pr1)
             {
                 pr2 = pr1->transition.star ? pr1->transition.star : pr1;
+                if  (!pr2->opened)
+                {
+                    // open procedure only when needed (for performance)
+                    ndt_procedure_open(ndb, pr2);
+                }
                 if ((leg = ndt_list_item(pr2->proclegs, 0)) &&
                     (leg->src || leg->type == NDT_LEGTYPE_IF))
                 {
