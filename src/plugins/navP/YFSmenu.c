@@ -145,18 +145,26 @@ void yfs_idnt_pageupdt(yfms_context *yfms)
     yfs_main_rline(yfms,  1, COLR_IDX_WHITE); sprintf(yfms->mwindow.screen.text[ 1], "%s", " ENG");
 
     /* line 2: engine count & type (green) */
-    yfs_main_rline(yfms,  2, COLR_IDX_GREEN);
-    XPLMGetDatavi (yfms->xpl.acf_en_type, &len, 0, 1);
-    switch (len)
+    yfs_main_rline(yfms, 2, COLR_IDX_GREEN);
+    int engc   = XPLMGetDatai (yfms->xpl.acf_num_engines);
+    int engt[8]; XPLMGetDatavi(yfms->xpl.acf_en_type, engt, 0, 8);
+    for (int i = 1; i < engc && i < 8; i++)
+    {
+        if (engt[i] != engt[0])
+        {
+            engc = i; break; // dummy engines, used by e.g. Carenado
+        }
+    }
+    switch (engt[0])
     {
         case 2:
-            sprintf(yfms->mwindow.screen.text[2], "%d TURBOPROP", XPLMGetDatai(yfms->xpl.acf_num_engines));
+            sprintf(yfms->mwindow.screen.text[2], "%d TURBOPROP", engc);
             break;
         case 5:
-            sprintf(yfms->mwindow.screen.text[2], "%d TURBOFAN",  XPLMGetDatai(yfms->xpl.acf_num_engines));
+            sprintf(yfms->mwindow.screen.text[2], "%d TURBOFAN",  engc);
             break;
         default:
-            sprintf(yfms->mwindow.screen.text[2], "%d OTHER",     XPLMGetDatai(yfms->xpl.acf_num_engines));
+            sprintf(yfms->mwindow.screen.text[2], "%d OTHER",     engc);
             break;
     }
 
