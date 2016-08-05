@@ -252,6 +252,11 @@ typedef struct
         XPLMCommandRef com1_standy_flip;
         XPLMCommandRef com2_standy_flip;
         XPLMFlightLoop_f fl_callback;
+        struct
+        {
+            XPLMDataRef xpdr_mode_act;
+            XPLMDataRef xpdr_stby_act;
+        } ixeg;
     }
     xpl;
 }

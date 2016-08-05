@@ -58,6 +58,8 @@ void yfs_rdio_pageopen(yfms_context *yfms)
         yfms->lsks[0][3].cback = yfms->lsks[1][3].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
         yfms->lsks[0][4].cback = yfms->lsks[1][4].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
         yfms->lsks[0][5].cback = yfms->lsks[1][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
+        yfms->xpl.ixeg.xpdr_mode_act = XPLMFindDataRef("ixeg/733/xpdr/xpdr_mode_act");
+        yfms->xpl.ixeg.xpdr_stby_act = XPLMFindDataRef("ixeg/733/xpdr/xpdr_stby_act");
     }
     yfs_rdio_pageupdt(yfms);
 }
@@ -121,7 +123,33 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     yfs_printf_rgt(yfms,  7, 0, COLR_IDX_WHITE, "MODE");
 
     /* line 8: XPDR information */
-    switch (XPLMGetDatai(yfms->xpl.transponder_mode))
+    if (yfms->xpl.ixeg.xpdr_stby_act)
+    {
+        if ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_mode_act)) == 0)
+        {
+            yfs_printf_lft(yfms,  8, 0, COLR_IDX_WHITE,  "----");
+            yfs_printf_rgt(yfms,  8, 0, COLR_IDX_WHITE,   "OFF");
+        }
+        else switch ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_stby_act)))
+        {
+            case 0:
+                snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
+                yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,      buf);
+                yfs_printf_rgt(yfms,  8, 0, COLR_IDX_BLUE,   "STBY");
+                break;
+            case 2:
+                snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
+                yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,      buf);
+                yfs_printf_rgt(yfms,  8, 0, COLR_IDX_BLUE,  "TA/RA");
+                break;
+            default:
+                snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
+                yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,      buf);
+                yfs_printf_rgt(yfms,  8, 0, COLR_IDX_BLUE,   "AUTO");
+                break;
+        }
+    }
+    else switch (XPLMGetDatai(yfms->xpl.transponder_mode))
     {
         case 0:
             yfs_printf_lft(yfms,  8, 0, COLR_IDX_WHITE,  "----");
@@ -301,24 +329,68 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         {
             if (!strcmp(buf, "OFF"))
             {
+                if (yfms->xpl.ixeg.xpdr_stby_act)
+                {
+                    XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 0.0f);
+                    XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 1.0f);
+                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                }
                 XPLMSetDatai(yfms->xpl.transponder_mode, 0);
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
             if (!strcmp(buf, "STBY"))
             {
+                if (yfms->xpl.ixeg.xpdr_stby_act)
+                {
+                    XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);
+                    XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 0.0f);
+                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                }
+                XPLMSetDatai(yfms->xpl.transponder_mode, 1);
+                yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+            }
+            if (!strcmp(buf, "AUTO"))
+            {
+                if (yfms->xpl.ixeg.xpdr_stby_act)
+                {
+                    XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);
+                    XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 1.0f);
+                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                }
                 XPLMSetDatai(yfms->xpl.transponder_mode, 1);
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
             if (!strcmp(buf, "TA/RA"))
             {
-                XPLMSetDatai(yfms->xpl.transponder_mode, 2);
+                if (yfms->xpl.ixeg.xpdr_stby_act)
+                {
+                    XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);
+                    XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 2.0f);
+                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                }
+                XPLMSetDatai(yfms->xpl.transponder_mode, 3);
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
+        else if (yfms->xpl.ixeg.xpdr_stby_act)
+        {
+            if ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_mode_act)) == 0 ||
+                (int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_stby_act)) != 1)
+            {
+                XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);
+                XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 1.0f); // standby
+            }
+            else
+            {
+                XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);
+                XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 2.0f); // TA/RA
+            }
+            yfs_rad1_pageupdt(yfms); return;
+        }
         else if (XPLMGetDatai(yfms->xpl.transponder_mode) == 1)
         {
-            XPLMSetDatai(yfms->xpl.transponder_mode, 2);
+            XPLMSetDatai(yfms->xpl.transponder_mode, 3);
             yfs_rad1_pageupdt(yfms); return;
         }
         else
