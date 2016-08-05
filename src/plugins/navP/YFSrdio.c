@@ -303,11 +303,11 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         {
             if (!strcasecmp(buf, "InHg"))
             {
-                yfms->ndt.alt.unit = 0; yfs_rad1_pageupdt(yfms); return;
+                yfms->ndt.alt.unit = 0; yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
             if (!strcasecmp(buf, "HPa"))
             {
-                yfms->ndt.alt.unit = 1; yfs_rad1_pageupdt(yfms); return;
+                yfms->ndt.alt.unit = 1; yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
