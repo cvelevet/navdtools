@@ -233,6 +233,10 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
+        if (mhz < 118 || mhz > 136)
+        {
+            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+        }
         if (6 + dot - len >= 1)
         {
             if (6 + dot - len >= 2)
@@ -244,11 +248,13 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 khz *= 10; // 123.45 -> 123.450, 12345 -> 123450
             }
         }
-        if (mhz < 118 || mhz > 136)
+        // 8.33 kHz spacing
         {
-            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+            // 0.6 is the minimum to adjust .520 (62.4) -> .525 (63.0)
+            // we then round to the nearest mod5 khz value for display
+            double ticks_833 = floor(((double)khz / 8.33) + 0.6);
+            khz = (((int)round(ticks_833 * 8.34 + 2.5)) / 5 * 5);
         }
-        //fixme sanitize khz
         if (key[0] == 0)
         {
             XPLMSetDatai(yfms->xpl.com1_standby_frequency_Mhz, mhz);
