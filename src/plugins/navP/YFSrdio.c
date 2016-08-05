@@ -281,7 +281,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             // 0.6 is the minimum to adjust .520 (62.4) -> .525 (63.0)
             // we then round to the nearest mod5 khz value for display
             double ticks_833 = floor(((double)khz / 8.33) + 0.6);
-            khz = (((int)round(ticks_833 * 8.34 + 2.5)) / 5 * 5);
+            khz = (((int)floor(ticks_833 * 8.34 + 2.5)) / 5 * 5);
         }
         if (key[0] == 0)
         {
