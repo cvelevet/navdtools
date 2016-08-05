@@ -95,8 +95,8 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     yfs_printf_rgt(yfms,  0, 0, COLR_IDX_WHITE, "<-> ");
 
     /* line 1: headers (white) */
-    yfs_printf_lft(yfms,  1, 1, COLR_IDX_WHITE, "COM 1");
-    yfs_printf_rgt(yfms,  1, 2, COLR_IDX_WHITE, "COM 2");
+    yfs_printf_lft(yfms,  1, 0, COLR_IDX_WHITE, "COM 1");
+    yfs_printf_rgt(yfms,  1, 0, COLR_IDX_WHITE, "COM 2");
 
     /* line 2: active frequencies (green) */
     snprintf(buf, sizeof(buf), "%03d.%03d", XPLMGetDatai(yfms->xpl.com1_frequency_Mhz),         XPLMGetDatai(yfms->xpl.com1_frequency_khz));
