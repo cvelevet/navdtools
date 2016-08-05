@@ -185,6 +185,8 @@ typedef struct
             PAGE0     = 0,
             PAGE_IDNT = 1,
             PAGE_MENU = 2,
+            PAGE_RAD1 = 3,
+            PAGE_RAD2 = 4,
         }
         current_page;
     }
@@ -221,6 +223,10 @@ typedef struct
             ndt_flightplan *iac;
             ndt_flightplan *rte;
         } flp;
+        struct
+        {
+            int unit;
+        } alt;
     }
     ndt;
 
@@ -229,6 +235,22 @@ typedef struct
         XPLMDataRef acf_ICAO;
         XPLMDataRef acf_en_type;
         XPLMDataRef acf_num_engines;
+        XPLMDataRef transponder_id;
+        XPLMDataRef transponder_mode;
+        XPLMDataRef transponder_code;
+        XPLMDataRef com1_frequency_Mhz;
+        XPLMDataRef com1_standby_frequency_Mhz;
+        XPLMDataRef com1_frequency_khz;
+        XPLMDataRef com1_standby_frequency_khz;
+        XPLMDataRef com2_frequency_Mhz;
+        XPLMDataRef com2_standby_frequency_Mhz;
+        XPLMDataRef com2_frequency_khz;
+        XPLMDataRef com2_standby_frequency_khz;
+        XPLMDataRef barometer_setting_in_hg_pilot;
+        XPLMDataRef barometer_setting_in_hg_copilot;
+        XPLMCommandRef transponder_ident;
+        XPLMCommandRef com1_standy_flip;
+        XPLMCommandRef com2_standy_flip;
         XPLMFlightLoop_f fl_callback;
     }
     xpl;

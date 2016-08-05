@@ -130,8 +130,8 @@ void yfs_spad_reset(yfms_context *yfms, char *s, int color)
     {
         return; // no error
     }
-    char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf); size_t l = strlen(buf);
-    if (l && yfms->mwindow.screen.spad_backup == 0)
+    char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+    if  (strnlen(buf, 1))
     {
         yfms->mwindow.screen.spad_backup = 1;
         sprintf(yfms->mwindow.screen.spad_bupbuf, "%s", buf);

@@ -784,11 +784,27 @@ void* yfs_main_init(void)
     ndt_log("YFMS [info]: %s\n", yfms->ndt.ndb->info.desc);
 
     /* aicraft specific X-Plane data */
-    if ((yfms->xpl.acf_ICAO        = XPLMFindDataRef("sim/aircraft/view/acf_ICAO")) == NULL ||
-        (yfms->xpl.acf_en_type     = XPLMFindDataRef("sim/aircraft/prop/acf_en_type")) == NULL ||
-        (yfms->xpl.acf_num_engines = XPLMFindDataRef("sim/aircraft/engine/acf_num_engines")) == NULL)
+    if ((yfms->xpl.acf_ICAO                        = XPLMFindDataRef("sim/aircraft/view/acf_ICAO"                                   )) == NULL ||
+        (yfms->xpl.acf_en_type                     = XPLMFindDataRef("sim/aircraft/prop/acf_en_type"                                )) == NULL ||
+        (yfms->xpl.acf_num_engines                 = XPLMFindDataRef("sim/aircraft/engine/acf_num_engines"                          )) == NULL ||
+        (yfms->xpl.transponder_id                  = XPLMFindDataRef("sim/cockpit2/radios/indicators/transponder_id"                )) == NULL ||
+        (yfms->xpl.transponder_mode                = XPLMFindDataRef("sim/cockpit2/radios/actuators/transponder_mode"               )) == NULL ||
+        (yfms->xpl.transponder_code                = XPLMFindDataRef("sim/cockpit2/radios/actuators/transponder_code"               )) == NULL ||
+        (yfms->xpl.com1_frequency_Mhz              = XPLMFindDataRef("sim/cockpit2/radios/actuators/com1_frequency_Mhz"             )) == NULL ||
+        (yfms->xpl.com1_standby_frequency_Mhz      = XPLMFindDataRef("sim/cockpit2/radios/actuators/com1_standby_frequency_Mhz"     )) == NULL ||
+        (yfms->xpl.com1_frequency_khz              = XPLMFindDataRef("sim/cockpit2/radios/actuators/com1_frequency_khz"             )) == NULL ||
+        (yfms->xpl.com1_standby_frequency_khz      = XPLMFindDataRef("sim/cockpit2/radios/actuators/com1_standby_frequency_khz"     )) == NULL ||
+        (yfms->xpl.com2_frequency_Mhz              = XPLMFindDataRef("sim/cockpit2/radios/actuators/com2_frequency_Mhz"             )) == NULL ||
+        (yfms->xpl.com2_standby_frequency_Mhz      = XPLMFindDataRef("sim/cockpit2/radios/actuators/com2_standby_frequency_Mhz"     )) == NULL ||
+        (yfms->xpl.com2_frequency_khz              = XPLMFindDataRef("sim/cockpit2/radios/actuators/com2_frequency_khz"             )) == NULL ||
+        (yfms->xpl.com2_standby_frequency_khz      = XPLMFindDataRef("sim/cockpit2/radios/actuators/com2_standby_frequency_khz"     )) == NULL ||
+        (yfms->xpl.barometer_setting_in_hg_pilot   = XPLMFindDataRef("sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot"  )) == NULL ||
+        (yfms->xpl.barometer_setting_in_hg_copilot = XPLMFindDataRef("sim/cockpit2/gauges/actuators/barometer_setting_in_hg_copilot")) == NULL ||
+        (yfms->xpl.transponder_ident               = XPLMFindCommand("sim/transponder/transponder_ident"                            )) == NULL ||
+        (yfms->xpl.com1_standy_flip                = XPLMFindCommand("sim/radios/com1_standy_flip"                                  )) == NULL ||
+        (yfms->xpl.com2_standy_flip                = XPLMFindCommand("sim/radios/com2_standy_flip"                                  )) == NULL)
     {
-        ndt_log("YFMS [error]: could not load aircraft-specific datarefs\n");
+        ndt_log("YFMS [error]: could not load aircraft-related datarefs and commands\n");
         goto fail;
     }
 

@@ -31,6 +31,7 @@
 
 #include "YFSmain.h"
 #include "YFSmenu.h"
+#include "YFSrdio.h"
 #include "YFSspad.h"
 
 static void  yfs_key_callback_menu(void *yfms);
@@ -66,7 +67,8 @@ void yfs_menu_resetall(yfms_context *yfms)
     }
 
     /* callbacks for page-specific keys */
-    yfms->spcs.cback_menu = &yfs_key_callback_menu;
+    yfms->spcs.cback_menu = (YFS_SPC_f)&yfs_menu_pageopen;
+    yfms->spcs.cback_radn = (YFS_SPC_f)&yfs_rdio_pageopen;
 
     /* navigation backend */
     if (yfms->ndt.flp.arr)
@@ -122,8 +124,8 @@ void yfs_menu_pageupdt(yfms_context *yfms)
     }
 
     /* line 0: main header (white, centered) */
-    yfs_main_rline(yfms, 0, COLR_IDX_WHITE); int len = strlen("MCDU MENU");
-    sprintf(yfms->mwindow.screen.text[0], "%*s", (1 + YFS_DISPLAY_NUMC + len) / 2, "MCDU MENU");
+    yfs_main_rline(yfms, 0, COLR_IDX_WHITE);
+    sprintf(yfms->mwindow.screen.text[0], "%*s", (YFS_DISPLAY_NUMC + 10) / 2, "MCDU MENU");
 
     /* line 2 left: ident page (green) */
     yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "<FMGC");
@@ -224,11 +226,6 @@ void yfs_idnt_pageupdt(yfms_context *yfms)
     return;
 }
 
-static void yfs_key_callback_menu(void *yfms)
-{
-    yfs_menu_pageopen(yfms); return;
-}
-
 static void yfs_lsk_callback_menu(void *context, int key[2], intptr_t refcon)
 {
     yfms_context *yfms = context;
@@ -263,5 +260,10 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         ndt_log("YFMS [warning]: no context in flight loop callback!\n");
         return 0; // we're screwed
     }
-    return 0.5f; // half a second should do fine
+
+    /* radio frequencies need to be constantly updated */
+    yfs_rdio_pageupdt(yfms);
+
+    /* every 1/2 second should do fine */
+    return 0.5f;
 }

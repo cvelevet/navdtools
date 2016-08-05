@@ -23,6 +23,7 @@
 
 #include "YFSmain.h"
 
-//fixme
+void yfs_rdio_pageopen(yfms_context *yfms);
+void yfs_rdio_pageupdt(yfms_context *yfms);
 
 #endif /* YFS_RDIO_H */
