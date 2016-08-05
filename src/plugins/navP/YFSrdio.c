@@ -201,7 +201,67 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     {
         XPLMCommandOnce(yfms->xpl.com2_standy_flip); yfs_rad1_pageupdt(yfms); return;
     }
-    //fixme standby radio frequencies
+    if (key[1] == 1)
+    {
+        int mhz, khz, len, dot; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        if (buf[0] == 0)
+        {
+            if (key[0] == 0)
+            {
+                snprintf(buf, sizeof(buf), "%.7s", yfms->mwindow.screen.text[4]);
+                buf[7] = 0; yfs_spad_reset(yfms, buf, -1); return; // c1 sb to scratchpad
+            }
+            if (key[0] == 1)
+            {
+                snprintf(buf, sizeof(buf), "%.7s", yfms->mwindow.screen.text[4] + YFS_DISPLAY_NUMC - 7);
+                buf[7] = 0; yfs_spad_reset(yfms, buf, -1); return; // c2 sb to scratchpad
+            }
+        }
+        if ((len = strnlen(buf, 8)) != 7 && len != 6 && len != 5 && len !=4)
+        {
+            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+        }
+        if (sscanf(buf, "%d.%d", &mhz, &khz) == 2)
+        {
+            dot = 1;
+        }
+        else if (sscanf(buf, "%3d%d", &mhz, &khz) == 2)
+        {
+            dot = 0;
+        }
+        else
+        {
+            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+        }
+        if (6 + dot - len >= 1)
+        {
+            if (6 + dot - len >= 2)
+            {
+                khz *= 100; // 122.8 -> 122.800, 1228 -> 122800
+            }
+            else
+            {
+                khz *= 10; // 123.45 -> 123.450, 12345 -> 123450
+            }
+        }
+        if (mhz < 118 || mhz > 136)
+        {
+            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+        }
+        //fixme sanitize khz
+        if (key[0] == 0)
+        {
+            XPLMSetDatai(yfms->xpl.com1_standby_frequency_Mhz, mhz);
+            XPLMSetDatai(yfms->xpl.com1_standby_frequency_khz, khz);
+            yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+        }
+        if (key[0] == 1)
+        {
+            XPLMSetDatai(yfms->xpl.com2_standby_frequency_Mhz, mhz);
+            XPLMSetDatai(yfms->xpl.com2_standby_frequency_khz, khz);
+            yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+        }
+    }
     if (key[0] == 0 && key[1] == 3)
     {
         if (XPLMGetDatai(yfms->xpl.transponder_mode) <= 0)
