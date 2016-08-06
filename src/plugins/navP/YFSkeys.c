@@ -43,22 +43,23 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
         do
         {
             /* check all possible datarefs and commands */
-            yfms->xpl.ixeg.xpdr_mode_act   = XPLMFindDataRef("ixeg/733/xpdr/xpdr_mode_act");
-            yfms->xpl.ixeg.xpdr_stby_act   = XPLMFindDataRef("ixeg/733/xpdr/xpdr_stby_act");
-            yfms->xpl.qpac.XPDRPower       = XPLMFindDataRef("AirbusFBW/XPDRPower"        );
-            yfms->xpl.qpac.XPDRAltitude    = XPLMFindDataRef("AirbusFBW/XPDRAltitude"     );
-            yfms->xpl.qpac.RMPSwapCapt     = XPLMFindCommand("AirbusFBW/RMPSwapCapt"      );
-            yfms->xpl.qpac.RMPSwapCo       = XPLMFindCommand("AirbusFBW/RMPSwapCo"        );
-            yfms->xpl.qpac.VHF1Capt        = XPLMFindCommand("AirbusFBW/VHF1Capt"         );
-            yfms->xpl.qpac.VHF2Co          = XPLMFindCommand("AirbusFBW/VHF2Co"           );
-            yfms->xpl.qpac.RMP1FreqUpLrg   = XPLMFindCommand("AirbusFBW/RMP1FreqUpLrg"    );
-            yfms->xpl.qpac.RMP1FreqUpSml   = XPLMFindCommand("AirbusFBW/RMP1FreqUpSml"    );
-            yfms->xpl.qpac.RMP1FreqDownLrg = XPLMFindCommand("AirbusFBW/RMP1FreqDownLrg"  );
-            yfms->xpl.qpac.RMP1FreqDownSml = XPLMFindCommand("AirbusFBW/RMP1FreqDownSml"  );
-            yfms->xpl.qpac.RMP2FreqUpLrg   = XPLMFindCommand("AirbusFBW/RMP2FreqUpLrg"    );
-            yfms->xpl.qpac.RMP2FreqUpSml   = XPLMFindCommand("AirbusFBW/RMP2FreqUpSml"    );
-            yfms->xpl.qpac.RMP2FreqDownLrg = XPLMFindCommand("AirbusFBW/RMP2FreqDownLrg"  );
-            yfms->xpl.qpac.RMP2FreqDownSml = XPLMFindCommand("AirbusFBW/RMP2FreqDownSml"  );
+            yfms->xpl.ixeg.xpdr_mode_act   = XPLMFindDataRef("ixeg/733/xpdr/xpdr_mode_act"  );
+            yfms->xpl.ixeg.xpdr_stby_act   = XPLMFindDataRef("ixeg/733/xpdr/xpdr_stby_act"  );
+            yfms->xpl.qpac.XPDRPower       = XPLMFindDataRef("AirbusFBW/XPDRPower"          );
+            yfms->xpl.qpac.XPDRAltitude    = XPLMFindDataRef("AirbusFBW/XPDRAltitude"       );
+            yfms->xpl.qpac.RMPSwapCapt     = XPLMFindCommand("AirbusFBW/RMPSwapCapt"        );
+            yfms->xpl.qpac.RMPSwapCo       = XPLMFindCommand("AirbusFBW/RMPSwapCo"          );
+            yfms->xpl.qpac.VHF1Capt        = XPLMFindCommand("AirbusFBW/VHF1Capt"           );
+            yfms->xpl.qpac.VHF2Co          = XPLMFindCommand("AirbusFBW/VHF2Co"             );
+            yfms->xpl.qpac.RMP1FreqUpLrg   = XPLMFindCommand("AirbusFBW/RMP1FreqUpLrg"      );
+            yfms->xpl.qpac.RMP1FreqUpSml   = XPLMFindCommand("AirbusFBW/RMP1FreqUpSml"      );
+            yfms->xpl.qpac.RMP1FreqDownLrg = XPLMFindCommand("AirbusFBW/RMP1FreqDownLrg"    );
+            yfms->xpl.qpac.RMP1FreqDownSml = XPLMFindCommand("AirbusFBW/RMP1FreqDownSml"    );
+            yfms->xpl.qpac.RMP2FreqUpLrg   = XPLMFindCommand("AirbusFBW/RMP2FreqUpLrg"      );
+            yfms->xpl.qpac.RMP2FreqUpSml   = XPLMFindCommand("AirbusFBW/RMP2FreqUpSml"      );
+            yfms->xpl.qpac.RMP2FreqDownLrg = XPLMFindCommand("AirbusFBW/RMP2FreqDownLrg"    );
+            yfms->xpl.qpac.RMP2FreqDownSml = XPLMFindCommand("AirbusFBW/RMP2FreqDownSml"    );
+            yfms->xpl.fb76.systemMode      = XPLMFindDataRef("1-sim/transponder/systemMode" );
 
             /* use them to determine the custom aircraft type, if any */
             if (yfms->xpl.ixeg.xpdr_mode_act && yfms->xpl.ixeg.xpdr_stby_act)
@@ -74,6 +75,10 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
                 yfms->xpl.qpac.RMP2FreqDownLrg && yfms->xpl.qpac.RMP2FreqDownSml)
             {
                 yfms->xpl.atyp = YFS_ATYP_QPAC; break;
+            }
+            if (yfms->xpl.fb76.systemMode)
+            {
+                yfms->xpl.atyp = YFS_ATYP_FB76; break;
             }
 
             /* no custom type founmd, all default X-Plane systems used */

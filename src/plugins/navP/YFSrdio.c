@@ -462,6 +462,11 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                     XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    0);
                     yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
                 }
+                if (yfms->xpl.atyp == YFS_ATYP_FB76)
+                {
+                    XPLMSetDataf(yfms->xpl.fb76.systemMode, 1.0f);
+                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                }
                 XPLMSetDatai(yfms->xpl.transponder_mode, 1);
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
@@ -496,6 +501,11 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                     XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    2);
                     yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
                 }
+                if (yfms->xpl.atyp == YFS_ATYP_FB76)
+                {
+                    XPLMSetDataf(yfms->xpl.fb76.systemMode, 5.0f);
+                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                }
                 XPLMSetDatai(yfms->xpl.transponder_mode, 3);
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
@@ -527,6 +537,18 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             {
                 XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1);
                 XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    2); // TA/RA
+            }
+            yfs_rad1_pageupdt(yfms); return;
+        }
+        else if (yfms->xpl.atyp == YFS_ATYP_FB76)
+        {
+            if ((int)roundf(XPLMGetDataf(yfms->xpl.fb76.systemMode)) != 1)
+            {
+                XPLMSetDataf(yfms->xpl.fb76.systemMode, 1.0f); // STBY
+            }
+            else
+            {
+                XPLMSetDataf(yfms->xpl.fb76.systemMode, 5.0f); // TA/RA
             }
             yfs_rad1_pageupdt(yfms); return;
         }

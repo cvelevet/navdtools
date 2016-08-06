@@ -292,6 +292,11 @@ typedef struct
             XPLMCommandRef RMP2FreqDownSml;
         }
         qpac;
+        struct
+        {
+            XPLMDataRef systemMode;
+        }
+        fb76;
     }
     xpl;
 }
