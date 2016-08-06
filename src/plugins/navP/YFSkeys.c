@@ -42,12 +42,32 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
     {
         do
         {
-            yfms->xpl.ixeg.xpdr_mode_act = XPLMFindDataRef("ixeg/733/xpdr/xpdr_mode_act");
-            yfms->xpl.ixeg.xpdr_stby_act = XPLMFindDataRef("ixeg/733/xpdr/xpdr_stby_act");
+            /* check all possible datarefs and commands */
+            yfms->xpl.ixeg.xpdr_mode_act   = XPLMFindDataRef("ixeg/733/xpdr/xpdr_mode_act");
+            yfms->xpl.ixeg.xpdr_stby_act   = XPLMFindDataRef("ixeg/733/xpdr/xpdr_stby_act");
+            yfms->xpl.qpac.XPDRPower       = XPLMFindDataRef("AirbusFBW/XPDRPower"        );
+            yfms->xpl.qpac.RMPSwapCapt     = XPLMFindCommand("AirbusFBW/RMPSwapCapt"      );
+            yfms->xpl.qpac.VHF1Capt        = XPLMFindCommand("AirbusFBW/VHF1Capt"         );
+            yfms->xpl.qpac.VHF2Capt        = XPLMFindCommand("AirbusFBW/VHF2Capt"         );
+            yfms->xpl.qpac.RMP1FreqUpLrg   = XPLMFindCommand("AirbusFBW/RMP1FreqUpLrg"    );
+            yfms->xpl.qpac.RMP1FreqUpSml   = XPLMFindCommand("AirbusFBW/RMP1FreqUpSml"    );
+            yfms->xpl.qpac.RMP1FreqDownLrg = XPLMFindCommand("AirbusFBW/RMP1FreqDownLrg"  );
+            yfms->xpl.qpac.RMP1FreqDownSml = XPLMFindCommand("AirbusFBW/RMP1FreqDownSml"  );
+
+            /* use them to determine the custom aircraft type, if any */
             if (yfms->xpl.ixeg.xpdr_mode_act && yfms->xpl.ixeg.xpdr_stby_act)
             {
                 yfms->xpl.atyp = YFS_ATYP_IXEG; break;
             }
+            if (yfms->xpl.qpac.XPDRPower       && yfms->xpl.qpac.RMPSwapCapt   &&
+                yfms->xpl.qpac.VHF1Capt        && yfms->xpl.qpac.VHF2Capt      &&
+                yfms->xpl.qpac.RMP1FreqUpLrg   && yfms->xpl.qpac.RMP1FreqUpSml &&
+                yfms->xpl.qpac.RMP1FreqDownLrg && yfms->xpl.qpac.RMP1FreqDownSml)
+            {
+                yfms->xpl.atyp = YFS_ATYP_QPAC; break;
+            }
+
+            /* no custom type founmd, all default X-Plane systems used */
             yfms->xpl.atyp = YFS_ATYP_XPLN; break;
         }
         while (0);

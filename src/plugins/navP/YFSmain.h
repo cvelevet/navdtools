@@ -274,6 +274,18 @@ typedef struct
             XPLMDataRef xpdr_mode_act;
             XPLMDataRef xpdr_stby_act;
         } ixeg;
+        struct
+        {
+            XPLMDataRef XPDRPower;
+            XPLMCommandRef VHF1Capt;
+            XPLMCommandRef VHF2Capt;
+            XPLMCommandRef RMPSwapCapt;
+            XPLMCommandRef RMP1FreqUpLrg;
+            XPLMCommandRef RMP1FreqUpSml;
+            XPLMCommandRef RMP1FreqDownLrg;
+            XPLMCommandRef RMP1FreqDownSml;
+        }
+        qpac;
     }
     xpl;
 }
