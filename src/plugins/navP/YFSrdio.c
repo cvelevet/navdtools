@@ -147,6 +147,27 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
                 break;
         }
     }
+    else if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+    {
+        switch (XPLMGetDatai(yfms->xpl.qpac.XPDRPower))
+        {
+            case 0:
+                snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
+                yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,      buf);
+                yfs_printf_rgt(yfms,  8, 0, COLR_IDX_BLUE,   "STBY");
+                break;
+            case 2:
+                snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
+                yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,      buf);
+                yfs_printf_rgt(yfms,  8, 0, COLR_IDX_BLUE,  "TA/RA");
+                break;
+            default:
+                snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
+                yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,      buf);
+                yfs_printf_rgt(yfms,  8, 0, COLR_IDX_BLUE,   "AUTO");
+                break;
+        }
+    }
     else switch (XPLMGetDatai(yfms->xpl.transponder_mode))
     {
         case 0:
@@ -344,6 +365,11 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                     XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 0.0f);
                     yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
                 }
+                if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+                {
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    0);
+                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                }
                 XPLMSetDatai(yfms->xpl.transponder_mode, 1);
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
@@ -353,6 +379,12 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 {
                     XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);
                     XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 1.0f);
+                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                }
+                if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+                {
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1);
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    1);
                     yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
                 }
                 XPLMSetDatai(yfms->xpl.transponder_mode, 1);
@@ -366,6 +398,12 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                     XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 2.0f);
                     yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
                 }
+                if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+                {
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1);
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    2);
+                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                }
                 XPLMSetDatai(yfms->xpl.transponder_mode, 3);
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
@@ -377,12 +415,26 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 (int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_stby_act)) != 1)
             {
                 XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);
-                XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 1.0f); // standby
+                XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 1.0f); // AUTO
             }
             else
             {
                 XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);
                 XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 2.0f); // TA/RA
+            }
+            yfs_rad1_pageupdt(yfms); return;
+        }
+        else if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+        {
+            if (XPLMGetDatai(yfms->xpl.qpac.XPDRPower) != 1)
+            {
+                XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1);
+                XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    1); // AUTO
+            }
+            else
+            {
+                XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1);
+                XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    2); // TA/RA
             }
             yfs_rad1_pageupdt(yfms); return;
         }

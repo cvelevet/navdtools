@@ -277,6 +277,7 @@ typedef struct
         struct
         {
             XPLMDataRef XPDRPower;
+            XPLMDataRef XPDRAltitude;
             XPLMCommandRef VHF1Capt;
             XPLMCommandRef VHF2Capt;
             XPLMCommandRef RMPSwapCapt;
