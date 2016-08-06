@@ -78,6 +78,14 @@ typedef struct
         XPWidgetID id;
         int win_state;
         int ks_rgstrd;
+        enum
+        {
+            YFS_KSM_OFF,
+            YFS_KSM_DSP,
+            YFS_KSM_WIN,
+            YFS_KSM_ALL,
+        }
+        ks_mode;
         struct
         {
             // line select keys
@@ -252,6 +260,15 @@ typedef struct
         XPLMCommandRef com1_standy_flip;
         XPLMCommandRef com2_standy_flip;
         XPLMFlightLoop_f fl_callback;
+        enum
+        {
+            YFS_ATYP_NSET = 0,
+            YFS_ATYP_XPLN = 1,
+            YFS_ATYP_QPAC = 2,
+            YFS_ATYP_IXEG = 3,
+            YFS_ATYP_FB76 = 6,
+        }
+        atyp;
         struct
         {
             XPLMDataRef xpdr_mode_act;

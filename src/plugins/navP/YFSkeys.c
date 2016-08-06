@@ -21,8 +21,10 @@
 #include <ctype.h>
 
 #include "Widgets/XPWidgets.h"
+#include "XPLM/XPLMDataAccess.h"
 #include "XPLM/XPLMDefs.h"
 #include "XPLM/XPLMDisplay.h"
+#include "XPLM/XPLMUtilities.h"
 
 #include "YFSkeys.h"
 #include "YFSmain.h"
@@ -33,6 +35,23 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
     if (!yfms || !key)
     {
         return; // no error
+    }
+
+    /* first key pressed since reset */
+    if (yfms->xpl.atyp == YFS_ATYP_NSET)
+    {
+        do
+        {
+            yfms->xpl.ixeg.xpdr_mode_act = XPLMFindDataRef("ixeg/733/xpdr/xpdr_mode_act");
+            yfms->xpl.ixeg.xpdr_stby_act = XPLMFindDataRef("ixeg/733/xpdr/xpdr_stby_act");
+            if (yfms->xpl.ixeg.xpdr_mode_act && yfms->xpl.ixeg.xpdr_stby_act)
+            {
+                yfms->xpl.atyp = YFS_ATYP_IXEG; break;
+            }
+            yfms->xpl.atyp = YFS_ATYP_XPLN; break;
+        }
+        while (0);
+        ndt_log("YFMS [info]: first key press, determined type %d\n", yfms->xpl.atyp);
     }
 
     /* keys that write to the scratchpad */
@@ -250,12 +269,25 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
     {
         return 1; // pass through
     }
+    if (yfms->mwindow.ks_mode == YFS_KSM_OFF)
+    {
+        return 1; // pass through
+    }
     if (XPIsWidgetVisible(yfms->mwindow.id) == 0)
     {
         return 1; // pass through
     }
-    XPGetWidgetGeometry (yfms->mwindow.id, &xmin, &ymax, &xmax, &ymin);
-    XPLMGetMouseLocation(&x, &y);
+    switch (yfms->mwindow.ks_mode)
+    {
+        case YFS_KSM_DSP: // mouse within main display only
+            XPLMGetMouseLocation(&x, &y); XPGetWidgetGeometry(yfms->mwindow.screen.subw_id, &xmin, &ymax, &xmax, &ymin); break;
+        case YFS_KSM_WIN: // mouse within main window boundaries
+            XPLMGetMouseLocation(&x, &y); XPGetWidgetGeometry(yfms->mwindow.id,             &xmin, &ymax, &xmax, &ymin); break;
+        case YFS_KSM_ALL: // anywhere
+            XPLMGetMouseLocation(&x, &y);                                              xmin = xmax = x; ymin = ymax = y; break;
+        default:
+            return 1; // pass through
+    }
     if (x < xmin || x > xmax || y < ymin || y > ymax)
     {
         return 1; // pass through

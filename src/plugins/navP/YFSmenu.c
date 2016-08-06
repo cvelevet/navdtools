@@ -58,13 +58,13 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfs_spad_reset(yfms, "YFMS INITIALIZED", COLR_IDX_ORANGE);
 
     /* flight loop callback to monitor dataref changes and update pages as required */
-    if (yfms->xpl.fl_callback)
-    {
-        XPLMUnregisterFlightLoopCallback(yfms->xpl.fl_callback, yfms);
-    }
+    if (yfms->xpl.fl_callback == NULL)
     {
         XPLMRegisterFlightLoopCallback(yfms->xpl.fl_callback = &yfs_flight_loop_cback, -1, yfms);
     }
+
+    /* always reset aircraft type */
+    yfms->xpl.atyp = YFS_ATYP_NSET;
 
     /* callbacks for page-specific keys */
     yfms->spcs.cback_menu = (YFS_SPC_f)&yfs_menu_pageopen;
