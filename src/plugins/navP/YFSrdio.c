@@ -240,6 +240,21 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     {
         return; // callback not applicable to current page
     }
+    if (key[1] == 0 && yfms->xpl.atyp == YFS_ATYP_QPAC)
+    {
+        switch (key[0])
+        {
+            case 0:
+                XPLMCommandOnce(yfms->xpl.qpac.VHF1Capt);
+                XPLMCommandOnce(yfms->xpl.qpac.RMPSwapCapt);
+                break;
+            default:
+                XPLMCommandOnce(yfms->xpl.qpac.VHF2Co);
+                XPLMCommandOnce(yfms->xpl.qpac.RMPSwapCo);
+                break;
+        }
+        yfs_rad1_pageupdt(yfms); return;
+    }
     if (key[0] == 0 && key[1] == 0)
     {
         XPLMCommandOnce(yfms->xpl.com1_standy_flip); yfs_rad1_pageupdt(yfms); return;

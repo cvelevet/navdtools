@@ -278,13 +278,18 @@ typedef struct
         {
             XPLMDataRef XPDRPower;
             XPLMDataRef XPDRAltitude;
+            XPLMCommandRef VHF2Co;
             XPLMCommandRef VHF1Capt;
-            XPLMCommandRef VHF2Capt;
+            XPLMCommandRef RMPSwapCo;
             XPLMCommandRef RMPSwapCapt;
             XPLMCommandRef RMP1FreqUpLrg;
+            XPLMCommandRef RMP2FreqUpLrg;
             XPLMCommandRef RMP1FreqUpSml;
+            XPLMCommandRef RMP2FreqUpSml;
             XPLMCommandRef RMP1FreqDownLrg;
+            XPLMCommandRef RMP2FreqDownLrg;
             XPLMCommandRef RMP1FreqDownSml;
+            XPLMCommandRef RMP2FreqDownSml;
         }
         qpac;
     }
