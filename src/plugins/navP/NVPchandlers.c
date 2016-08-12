@@ -2095,13 +2095,24 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 case NVP_ACF_B757_FF:
                 case NVP_ACF_B767_FF:
                 case NVP_ACF_B777_FF:
+                    if ((cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("YFMS/toggle")))
+                    {
+                        (cdu->status = 0); break;
+                    }
                     cdu->status = -2; return 0; // custom FMS, but no popup/command
 
                 case NVP_ACF_A320_QP:
                 case NVP_ACF_A330_RW:
                 case NVP_ACF_A350_FF:
-                    cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("AirbusFBW/UndockMCDU1");
-                    cdu->status = 0; break;
+                    if ((cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("AirbusFBW/UndockMCDU1")))
+                    {
+                        (cdu->status = 0); break;
+                    }
+                    if ((cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("YFMS/toggle")))
+                    {
+                        (cdu->status = 0); break;
+                    }
+                    cdu->status = -2; return 0;
 
                 case NVP_ACF_EMBE_SS:
                 {
@@ -2152,6 +2163,10 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         {
                             cdu->status = -2; return 0; // GNS430, GNS530, G1000
                         }
+                    }
+                    if ((cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("YFMS/toggle")))//fixme???
+                    {
+                        (cdu->status = 0); break;
                     }
                     if (sfmc != XPLM_NO_PLUGIN_ID)
                     {
