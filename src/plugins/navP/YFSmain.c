@@ -1100,7 +1100,10 @@ static int yfs_mcdudish(XPWidgetMessage inMessage,
 
 static int chandler_tog(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    yfms_context  *yfms = inRefcon;
-    yfs_main_toggl(yfms);
+    if (inPhase == xplm_CommandEnd)
+    {
+        yfms_context  *yfms = inRefcon;
+        yfs_main_toggl(yfms);
+    }
     return 0;
 }
