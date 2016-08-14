@@ -47,6 +47,8 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
             yfms->xpl.ixeg.xpdr_stby_act   = XPLMFindDataRef("ixeg/733/xpdr/xpdr_stby_act"  );
             yfms->xpl.qpac.XPDRPower       = XPLMFindDataRef("AirbusFBW/XPDRPower"          );
             yfms->xpl.qpac.XPDRAltitude    = XPLMFindDataRef("AirbusFBW/XPDRAltitude"       );
+            yfms->xpl.qpac.BaroStdCapt     = XPLMFindDataRef("AirbusFBW/BaroStdCapt"        );
+            yfms->xpl.qpac.BaroStdFO       = XPLMFindDataRef("AirbusFBW/BaroStdFO"          );
             yfms->xpl.qpac.RMPSwapCapt     = XPLMFindCommand("AirbusFBW/RMPSwapCapt"        );
             yfms->xpl.qpac.RMPSwapCo       = XPLMFindCommand("AirbusFBW/RMPSwapCo"          );
             yfms->xpl.qpac.VHF1Capt        = XPLMFindCommand("AirbusFBW/VHF1Capt"           );
@@ -67,6 +69,7 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
                 yfms->xpl.atyp = YFS_ATYP_IXEG; break;
             }
             if (yfms->xpl.qpac.XPDRPower       && yfms->xpl.qpac.XPDRAltitude    &&
+                yfms->xpl.qpac.BaroStdCapt     && yfms->xpl.qpac.BaroStdFO       &&
                 yfms->xpl.qpac.RMPSwapCapt     && yfms->xpl.qpac.RMPSwapCo       &&
                 yfms->xpl.qpac.VHF1Capt        && yfms->xpl.qpac.VHF2Co          &&
                 yfms->xpl.qpac.RMP1FreqUpLrg   && yfms->xpl.qpac.RMP1FreqUpSml   &&

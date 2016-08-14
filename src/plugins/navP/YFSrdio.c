@@ -216,9 +216,16 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     }
 
     /* line 12: switches (white) */
-    if (alt_inhg <= 29.913 /* 1012.97 */ || alt_inhg >= 29.929 /* 1013.51 */)
+    if ((yfms->xpl.atyp == YFS_ATYP_QPAC && !XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt)) ||
+        (yfms->xpl.atyp != YFS_ATYP_QPAC && (alt_inhg <= 29.913 /* 1012.97 */ ||
+                                             alt_inhg >= 29.929 /* 1013.51 */)))
     {
         yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "<ALT STD");
+        yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
+    }
+    else
+    {
+        yfms->lsks[0][5].cback = (YFS_LSK_f)NULL;
     }
     if (XPLMGetDatai(yfms->xpl.transponder_mode) >= 2)
     {
@@ -594,6 +601,11 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
+        if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+        {
+            XPLMSetDatai(yfms->xpl.qpac.BaroStdCapt, 0);
+            XPLMSetDatai(yfms->xpl.qpac.BaroStdFO,   0);
+        }
         XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_copilot, alt);
         XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_pilot,   alt);
         yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
@@ -622,6 +634,11 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     {
         XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_copilot, 29.92f);
         XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_pilot,   29.92f);
+        if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+        {
+            XPLMSetDatai(yfms->xpl.qpac.BaroStdCapt, 1);
+            XPLMSetDatai(yfms->xpl.qpac.BaroStdFO,   1);
+        }
         yfs_rad1_pageupdt(yfms); return;
     }
     if (key[0] == 1 && key[1] == 5)
