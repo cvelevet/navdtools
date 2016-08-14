@@ -62,6 +62,10 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
             yfms->xpl.qpac.RMP2FreqUpSml          = XPLMFindCommand("AirbusFBW/RMP2FreqUpSml"                   );
             yfms->xpl.qpac.RMP2FreqDownLrg        = XPLMFindCommand("AirbusFBW/RMP2FreqDownLrg"                 );
             yfms->xpl.qpac.RMP2FreqDownSml        = XPLMFindCommand("AirbusFBW/RMP2FreqDownSml"                 );
+            yfms->xpl.q350.pressLeftButton        = XPLMFindDataRef("1-sim/pres/pressLeftButton"                );
+            yfms->xpl.q350.pressLeftRotary        = XPLMFindDataRef("1-sim/pres/pressLeftRotary"                );
+            yfms->xpl.q350.pressRightButton       = XPLMFindDataRef("1-sim/pres/pressRightButton"               );
+            yfms->xpl.q350.pressRightRotary       = XPLMFindDataRef("1-sim/pres/pressRightRotary"               );
             yfms->xpl.fb76.systemMode             = XPLMFindDataRef("1-sim/transponder/systemMode"              );
             yfms->xpl.fb76.baroRotary_stby        = XPLMFindDataRef("1-sim/gauges/baroRotary_stby"              );
             yfms->xpl.fb76.baroRotary_left        = XPLMFindDataRef("1-sim/gauges/baroRotary_left"              );
@@ -86,6 +90,11 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
                 yfms->xpl.qpac.RMP2FreqDownLrg && yfms->xpl.qpac.RMP2FreqDownSml)
             {
                 yfms->xpl.atyp = YFS_ATYP_QPAC; break;
+            }
+            if (yfms->xpl.q350.pressLeftButton  && yfms->xpl.q350.pressLeftRotary &&
+                yfms->xpl.q350.pressRightButton && yfms->xpl.q350.pressRightRotary)
+            {
+                yfms->xpl.atyp = YFS_ATYP_Q350; break;
             }
             if (yfms->xpl.fb76.systemMode      && yfms->xpl.fb76.baroRotary_stby &&
                 yfms->xpl.fb76.baroRotary_left && yfms->xpl.fb76.baroRotary_right)

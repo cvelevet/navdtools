@@ -268,6 +268,7 @@ typedef struct
             YFS_ATYP_IXEG = 3,
             YFS_ATYP_FB76 = 6,
             YFS_ATYP_FB77 = 7,
+            YFS_ATYP_Q350 = 9,
         }
         atyp;
         struct
@@ -296,6 +297,14 @@ typedef struct
             XPLMCommandRef RMP2FreqDownSml;
         }
         qpac;
+        struct
+        {
+            XPLMDataRef pressLeftButton;
+            XPLMDataRef pressLeftRotary;
+            XPLMDataRef pressRightButton;
+            XPLMDataRef pressRightRotary;
+        }
+        q350;
         struct
         {
             XPLMDataRef systemMode;

@@ -32,6 +32,10 @@
 
 #define FB76_BARO_MIN (26.966629f) // rotary at 0.0f
 #define FB76_BARO_MAX (32.873302f) // rotary at 1.0f
+/*
+ * check if a given barometric pressure is 29.92 InHg (or 1013 hPa, rounded)
+ *                                           10_12.97                10_13.51 */
+#define BPRESS_IS_STD(bpress) ((((bpress) >= 29.913) || ((bpress) <= 29.929)))
 
 static void yfs_rad1_pageupdt    (yfms_context *yfms);
 static void yfs_rad2_pageupdt    (yfms_context *yfms);
@@ -204,24 +208,53 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     float alt, alt_inhg = XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot);
     switch (yfms->ndt.alt.unit)
     {
-        case 1: // hPa
+        case 1: // hectoPascals
             alt = roundf(alt_inhg * 33.86389f);
-            snprintf (buf, sizeof(buf), "%04.0f", alt);
-            yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE,    buf);
+            snprintf(buf, sizeof(buf), "%04.0f", alt);
             yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE,  "hPa");
             break;
         default: // inches of mercury
             alt = roundf(alt_inhg * 100.0f);
-            snprintf (buf, sizeof(buf), "%05.2f", alt / 100.0f);
-            yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE,    buf);
+            snprintf(buf, sizeof(buf), "%05.2f", alt / 100.0f);
             yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "InHg");
             break;
     }
+    if ((yfms->xpl.atyp == YFS_ATYP_QPAC && XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt)) ||
+        (yfms->xpl.atyp == YFS_ATYP_Q350 && XPLMGetDatai(yfms->xpl.q350.pressLeftButton)))
+    {
+        yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "STD");
+    }
+    else
+    {
+        yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, buf);
+    }
 
     /* line 12: switches (white) */
-    if ((yfms->xpl.atyp == YFS_ATYP_QPAC && !XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt)) ||
-        (yfms->xpl.atyp != YFS_ATYP_QPAC && (alt_inhg <= 29.913 /* 1012.97 */ ||
-                                             alt_inhg >= 29.929 /* 1013.51 */)))
+    if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+    {
+        if (!XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt))
+        {
+            yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "<ALT STD");
+            yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
+        }
+        else
+        {
+            yfms->lsks[0][5].cback = (YFS_LSK_f)NULL;
+        }
+    }
+    else if (yfms->xpl.atyp == YFS_ATYP_Q350)
+    {
+        if (!XPLMGetDatai(yfms->xpl.q350.pressLeftButton))
+        {
+            yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "<ALT STD");
+            yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
+        }
+        else
+        {
+            yfms->lsks[0][5].cback = (YFS_LSK_f)NULL;
+        }
+    }
+    else if (BPRESS_IS_STD(alt_inhg) == 0)
     {
         yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "<ALT STD");
         yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
@@ -625,6 +658,15 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
+        if (yfms->xpl.atyp == YFS_ATYP_Q350)
+        {
+            float offset        = roundf(100.0f * (alt - 29.92f));
+            XPLMSetDatai(yfms->xpl.q350.pressLeftButton,       0);
+            XPLMSetDatai(yfms->xpl.q350.pressRightButton,      0);
+            XPLMSetDataf(yfms->xpl.q350.pressLeftRotary,  offset);
+            XPLMSetDataf(yfms->xpl.q350.pressRightRotary, offset);
+            yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+        }
         if (yfms->xpl.atyp == YFS_ATYP_FB76)
         {
             if (alt < FB76_BARO_MIN)     alt = FB76_BARO_MIN;
@@ -642,9 +684,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             float alt_inhg = XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot);
             float rot_posn = XPLMGetDataf(yfms->xpl.fb77.anim_25_rotery);
             int   rot_indx = (int)roundf(100.0f * rot_posn);
-            if   (rot_indx != 50                   &&
-                  alt_inhg >= 29.913 /* 1012.97 */ &&
-                  alt_inhg <= 29.929 /* 1013.51 */)
+            if   (rot_indx != 50 && BPRESS_IS_STD(alt_inhg))
             {
                 // altimeter standard but rotary not halfway
                 // we're in "STD" mode, switch to manual mode
@@ -692,6 +732,12 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 5)
     {
+        if (yfms->xpl.atyp == YFS_ATYP_Q350)
+        {
+            XPLMSetDatai(yfms->xpl.q350.pressLeftButton,  1);
+            XPLMSetDatai(yfms->xpl.q350.pressRightButton, 1);
+            yfs_rad1_pageupdt(yfms); return;
+        }
         if (yfms->xpl.atyp == YFS_ATYP_FB76)
         {
             XPLMSetDataf(yfms->xpl.fb76.baroRotary_stby,  0.5f);
