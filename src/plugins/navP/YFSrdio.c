@@ -619,6 +619,10 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             XPLMSetDatai(yfms->xpl.qpac.BaroStdCapt, 0);
             XPLMSetDatai(yfms->xpl.qpac.BaroStdFO,   0);
         }
+        if (yfms->xpl.atyp == YFS_ATYP_IXEG)
+        {
+            XPLMSetDataf(yfms->xpl.ixeg.baro_inhg_sby_0001_ind, alt);
+        }
         XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_copilot, alt);
         XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_pilot,   alt);
         yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
@@ -651,6 +655,10 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             XPLMSetDataf(yfms->xpl.fb76.baroRotary_left,  0.5f);
             XPLMSetDataf(yfms->xpl.fb76.baroRotary_right, 0.5f);
             yfs_rad1_pageupdt(yfms); return;
+        }
+        if (yfms->xpl.atyp == YFS_ATYP_IXEG)
+        {
+            XPLMSetDataf(yfms->xpl.ixeg.baro_inhg_sby_0001_ind, 29.92f);
         }
         XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_copilot, 29.92f);
         XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_pilot,   29.92f);

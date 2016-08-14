@@ -273,6 +273,7 @@ typedef struct
         {
             XPLMDataRef xpdr_mode_act;
             XPLMDataRef xpdr_stby_act;
+            XPLMDataRef baro_inhg_sby_0001_ind;
         } ixeg;
         struct
         {
