@@ -66,6 +66,9 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
             yfms->xpl.fb76.baroRotary_stby        = XPLMFindDataRef("1-sim/gauges/baroRotary_stby"              );
             yfms->xpl.fb76.baroRotary_left        = XPLMFindDataRef("1-sim/gauges/baroRotary_left"              );
             yfms->xpl.fb76.baroRotary_right       = XPLMFindDataRef("1-sim/gauges/baroRotary_right"             );
+            yfms->xpl.fb77.anim_25_rotery         = XPLMFindDataRef("anim/25/rotery"                            );
+            yfms->xpl.fb77.anim_85_switch         = XPLMFindDataRef("anim/85/switch"                            );
+            yfms->xpl.fb77.anim_175_button        = XPLMFindDataRef("anim/175/button"                           );
 
             /* use them to determine the custom aircraft type, if any */
             if (yfms->xpl.ixeg.xpdr_mode_act && yfms->xpl.ixeg.xpdr_stby_act &&
@@ -88,6 +91,11 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
                 yfms->xpl.fb76.baroRotary_left && yfms->xpl.fb76.baroRotary_right)
             {
                 yfms->xpl.atyp = YFS_ATYP_FB76; break;
+            }
+            if (yfms->xpl.fb77.anim_25_rotery &&
+                yfms->xpl.fb77.anim_85_switch && yfms->xpl.fb77.anim_175_button)
+            {
+                yfms->xpl.atyp = YFS_ATYP_FB77; break;
             }
 
             /* no custom type founmd, all default X-Plane systems used */

@@ -267,6 +267,7 @@ typedef struct
             YFS_ATYP_QPAC = 2,
             YFS_ATYP_IXEG = 3,
             YFS_ATYP_FB76 = 6,
+            YFS_ATYP_FB77 = 7,
         }
         atyp;
         struct
@@ -303,6 +304,13 @@ typedef struct
             XPLMDataRef baroRotary_right;
         }
         fb76;
+        struct
+        {
+            XPLMDataRef anim_25_rotery;
+            XPLMDataRef anim_85_switch;
+            XPLMDataRef anim_175_button;
+        }
+        fb77;
     }
     xpl;
 }

@@ -459,6 +459,22 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 XPLMSetDatai(yfms->xpl.transponder_mode, 0);
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
+            if (!strcmp(buf, "AUTO"))
+            {
+                if (yfms->xpl.atyp == YFS_ATYP_IXEG)
+                {
+                    XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);
+                    XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 1.0f);
+                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                }
+                if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+                {
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1);
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    1);
+                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                }
+                sprintf(buf, "%s", "STBY"); // fall through
+            }
             if (!strcmp(buf, "STBY"))
             {
                 if (yfms->xpl.atyp == YFS_ATYP_IXEG)
@@ -477,21 +493,9 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                     XPLMSetDataf(yfms->xpl.fb76.systemMode, 1.0f);
                     yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
                 }
-                XPLMSetDatai(yfms->xpl.transponder_mode, 1);
-                yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-            }
-            if (!strcmp(buf, "AUTO"))
-            {
-                if (yfms->xpl.atyp == YFS_ATYP_IXEG)
+                if (yfms->xpl.atyp == YFS_ATYP_FB77)
                 {
-                    XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);
-                    XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 1.0f);
-                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-                }
-                if (yfms->xpl.atyp == YFS_ATYP_QPAC)
-                {
-                    XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1);
-                    XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    1);
+                    XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 0);
                     yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
                 }
                 XPLMSetDatai(yfms->xpl.transponder_mode, 1);
@@ -514,6 +518,11 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 if (yfms->xpl.atyp == YFS_ATYP_FB76)
                 {
                     XPLMSetDataf(yfms->xpl.fb76.systemMode, 5.0f);
+                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                }
+                if (yfms->xpl.atyp == YFS_ATYP_FB77)
+                {
+                    XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 4);
                     yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
                 }
                 XPLMSetDatai(yfms->xpl.transponder_mode, 3);
@@ -562,6 +571,18 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             }
             yfs_rad1_pageupdt(yfms); return;
         }
+        else if (yfms->xpl.atyp == YFS_ATYP_FB77)
+        {
+            if (XPLMGetDatai(yfms->xpl.fb77.anim_85_switch) != 0)
+            {
+                XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 0); // STBY
+            }
+            else
+            {
+                XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 4); // TA/RA
+            }
+            yfs_rad1_pageupdt(yfms); return;
+        }
         else if (XPLMGetDatai(yfms->xpl.transponder_mode) == 1)
         {
             XPLMSetDatai(yfms->xpl.transponder_mode, 3);
@@ -600,18 +621,40 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 alt = roundf(alt * 100.00000f) / 100.0f;
                 break;
         }
-        if (alt > FB76_BARO_MAX || alt < FB76_BARO_MIN)
+        if (alt > 40.0f || alt < 0.0f)
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
         if (yfms->xpl.atyp == YFS_ATYP_FB76)
         {
+            if (alt < FB76_BARO_MIN)     alt = FB76_BARO_MIN;
+            if (alt > FB76_BARO_MAX)     alt = FB76_BARO_MAX;
             float baro_range = alt           - FB76_BARO_MIN;
             float full_range = FB76_BARO_MAX - FB76_BARO_MIN;
             float alt_rotary_value = baro_range / full_range;
             XPLMSetDataf(yfms->xpl.fb76.baroRotary_stby,  alt_rotary_value);
             XPLMSetDataf(yfms->xpl.fb76.baroRotary_left,  alt_rotary_value);
             XPLMSetDataf(yfms->xpl.fb76.baroRotary_right, alt_rotary_value);
+            yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+        }
+        if (yfms->xpl.atyp == YFS_ATYP_FB77)
+        {
+            float alt_inhg = XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot);
+            float rot_posn = XPLMGetDataf(yfms->xpl.fb77.anim_25_rotery);
+            int   rot_indx = (int)roundf(100.0f * rot_posn);
+            if   (rot_indx != 50                   &&
+                  alt_inhg >= 29.913 /* 1012.97 */ &&
+                  alt_inhg <= 29.929 /* 1013.51 */)
+            {
+                // altimeter standard but rotary not halfway
+                // we're in "STD" mode, switch to manual mode
+                XPLMSetDatai(yfms->xpl.fb77.anim_175_button, 1);
+            }
+            // very limited rng. (29.42 -> 30.42)
+            float rot_newp = alt - 29.92f + 0.5f;
+            if (rot_newp < 0.0f) rot_newp = 0.0f;
+            if (rot_newp > 1.0f) rot_newp = 1.0f;
+            XPLMSetDataf(yfms->xpl.fb77.anim_25_rotery, rot_newp);
             yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
         }
         if (yfms->xpl.atyp == YFS_ATYP_QPAC)
@@ -654,6 +697,13 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             XPLMSetDataf(yfms->xpl.fb76.baroRotary_stby,  0.5f);
             XPLMSetDataf(yfms->xpl.fb76.baroRotary_left,  0.5f);
             XPLMSetDataf(yfms->xpl.fb76.baroRotary_right, 0.5f);
+            yfs_rad1_pageupdt(yfms); return;
+        }
+        if (yfms->xpl.atyp == YFS_ATYP_FB77)
+        {
+            // only reached w/altimeter in manual mode
+            // switch altimeter to "STD" mode instead
+            XPLMSetDatai(yfms->xpl.fb77.anim_175_button, 1);
             yfs_rad1_pageupdt(yfms); return;
         }
         if (yfms->xpl.atyp == YFS_ATYP_IXEG)
