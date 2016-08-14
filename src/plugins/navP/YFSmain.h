@@ -297,6 +297,9 @@ typedef struct
         struct
         {
             XPLMDataRef systemMode;
+            XPLMDataRef baroRotary_stby;
+            XPLMDataRef baroRotary_left;
+            XPLMDataRef baroRotary_right;
         }
         fb76;
     }

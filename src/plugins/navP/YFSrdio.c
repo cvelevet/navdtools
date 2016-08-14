@@ -30,6 +30,9 @@
 #include "YFSrdio.h"
 #include "YFSspad.h"
 
+#define FB76_BARO_MIN (26.966629f) // rotary at 0.0f
+#define FB76_BARO_MAX (32.873302f) // rotary at 1.0f
+
 static void yfs_rad1_pageupdt    (yfms_context *yfms);
 static void yfs_rad2_pageupdt    (yfms_context *yfms);
 static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refcon);
@@ -597,9 +600,19 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 alt = roundf(alt * 100.00000f) / 100.0f;
                 break;
         }
-        if (alt > 40.0f || alt < 0.0f)
+        if (alt > FB76_BARO_MAX || alt < FB76_BARO_MIN)
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+        }
+        if (yfms->xpl.atyp == YFS_ATYP_FB76)
+        {
+            float baro_range = alt           - FB76_BARO_MIN;
+            float full_range = FB76_BARO_MAX - FB76_BARO_MIN;
+            float alt_rotary_value = baro_range / full_range;
+            XPLMSetDataf(yfms->xpl.fb76.baroRotary_stby,  alt_rotary_value);
+            XPLMSetDataf(yfms->xpl.fb76.baroRotary_left,  alt_rotary_value);
+            XPLMSetDataf(yfms->xpl.fb76.baroRotary_right, alt_rotary_value);
+            yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
         }
         if (yfms->xpl.atyp == YFS_ATYP_QPAC)
         {
@@ -632,6 +645,13 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 5)
     {
+        if (yfms->xpl.atyp == YFS_ATYP_FB76)
+        {
+            XPLMSetDataf(yfms->xpl.fb76.baroRotary_stby,  0.5f);
+            XPLMSetDataf(yfms->xpl.fb76.baroRotary_left,  0.5f);
+            XPLMSetDataf(yfms->xpl.fb76.baroRotary_right, 0.5f);
+            yfs_rad1_pageupdt(yfms); return;
+        }
         XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_copilot, 29.92f);
         XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_pilot,   29.92f);
         if (yfms->xpl.atyp == YFS_ATYP_QPAC)
