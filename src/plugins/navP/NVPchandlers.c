@@ -92,8 +92,9 @@ typedef struct
     int            status;
     XPLMCommandRef cmd[2];
     XPLMDataRef iAutoReset;
-    XPLMDataRef iQPAC350_1;
-    XPLMDataRef iQPAC350_P;
+    XPLMDataRef iQPAC350_O;
+    XPLMDataRef iQPAC350_L;
+    XPLMDataRef iQPAC350_H;
 } refcon_cdu_pop;
 
 typedef struct
@@ -1250,10 +1251,14 @@ int nvp_chandlers_update(void *inContext)
             }
         }
     }
-    ctx->mcdu.rc.iAutoReset = ctx->mcdu.rc.iQPAC350_1 = ctx->mcdu.rc.iQPAC350_P = NULL;
-    ctx->mcdu.rc.cmd[0] = ctx->mcdu.rc.cmd[1] = NULL;
-    ctx->mcdu.rc.acftyp = ctx->atyp;
-    ctx->mcdu.rc.status = -1;
+    ctx->mcdu.rc.iAutoReset =
+    ctx->mcdu.rc.iQPAC350_O =
+    ctx->mcdu.rc.iQPAC350_L =
+    ctx->mcdu.rc.iQPAC350_H = NULL;
+    ctx->mcdu.rc.cmd[0]     =
+    ctx->mcdu.rc.cmd[1]     = NULL;
+    ctx->mcdu.rc.acftyp     = ctx->atyp;
+    ctx->mcdu.rc.status     = -1;
 
     /* all good */
     ndt_log("navP [info]: nvp_chandlers_update OK\n"); XPLMSpeakString("nav P configured"); return 0;
@@ -2114,8 +2119,9 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     cdu->status = 0; break;
 
                 case NVP_ACF_A350_FF:
-                    cdu->iQPAC350_1 = XPLMFindDataRef("1-sim/misc/popupLeft");
-                    cdu->iQPAC350_P = XPLMFindDataRef("1-sim/misc/popupsHide");
+                    cdu->iQPAC350_O = XPLMFindDataRef("1-sim/misc/popupOis");
+                    cdu->iQPAC350_L = XPLMFindDataRef("1-sim/misc/popupLeft");
+                    cdu->iQPAC350_H = XPLMFindDataRef("1-sim/misc/popupsHide");
                     cdu->cmd[0]     = XPLMFindCommand("AirbusFBW/UndockMCDU1");
                     cdu->status     = 0; break;
 
@@ -2194,11 +2200,19 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             XPLMSetDatai(cdu->iAutoReset, cdu->status); return 0;
         }
-        if (cdu->iQPAC350_1 && cdu->iQPAC350_P && cdu->cmd[0])
+        if (cdu->iQPAC350_O && cdu->iQPAC350_L && cdu->iQPAC350_H && cdu->cmd[0])
         {
-            if (XPLMGetDatai(cdu->iQPAC350_P) == 0)
+            if (XPLMGetDatai(cdu->iQPAC350_H) == 0)
             {
-                XPLMSetDatai(cdu->iQPAC350_1, !XPLMGetDatai(cdu->iQPAC350_1));
+                if (XPLMGetDatai(cdu->iQPAC350_O))
+                {
+                    XPLMSetDatai(cdu->iQPAC350_O, 0);
+                    XPLMSetDatai(cdu->iQPAC350_L, 0);
+                }
+                else
+                {
+                    XPLMSetDatai(cdu->iQPAC350_L, !XPLMGetDatai(cdu->iQPAC350_L));
+                }
             }
             else
             {
