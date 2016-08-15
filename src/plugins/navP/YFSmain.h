@@ -262,13 +262,14 @@ typedef struct
         XPLMFlightLoop_f fl_callback;
         enum
         {
-            YFS_ATYP_NSET = 0,
-            YFS_ATYP_XPLN = 1,
-            YFS_ATYP_QPAC = 2,
-            YFS_ATYP_IXEG = 3,
-            YFS_ATYP_FB76 = 6,
-            YFS_ATYP_FB77 = 7,
-            YFS_ATYP_Q350 = 9,
+            YFS_ATYP_NSET =  0,
+            YFS_ATYP_XPLN =  1,
+            YFS_ATYP_QPAC = 32,
+            YFS_ATYP_Q350 = 35,
+            YFS_ATYP_Q380 = 38,
+            YFS_ATYP_IXEG = 73,
+            YFS_ATYP_FB76 = 76,
+            YFS_ATYP_FB77 = 77,
         }
         atyp;
         struct
@@ -305,6 +306,12 @@ typedef struct
             XPLMDataRef pressRightRotary;
         }
         q350;
+        struct
+        {
+            XPLMDataRef BaroStdCapt;
+            XPLMDataRef BaroStdFO;
+        }
+        q380;
         struct
         {
             XPLMDataRef systemMode;

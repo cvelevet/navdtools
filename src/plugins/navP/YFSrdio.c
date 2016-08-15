@@ -35,7 +35,7 @@
 /*
  * check if a given barometric pressure is 29.92 InHg (or 1013 hPa, rounded)
  *                                           10_12.97                10_13.51 */
-#define BPRESS_IS_STD(bpress) ((((bpress) >= 29.913) || ((bpress) <= 29.929)))
+#define BPRESS_IS_STD(bpress) ((((bpress) >= 29.913) && ((bpress) <= 29.929)))
 
 static void yfs_rad1_pageupdt    (yfms_context *yfms);
 static void yfs_rad2_pageupdt    (yfms_context *yfms);
@@ -220,6 +220,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
             break;
     }
     if ((yfms->xpl.atyp == YFS_ATYP_QPAC && XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt)) ||
+        (yfms->xpl.atyp == YFS_ATYP_Q380 && XPLMGetDatai(yfms->xpl.q380.BaroStdCapt)) ||
         (yfms->xpl.atyp == YFS_ATYP_Q350 && XPLMGetDatai(yfms->xpl.q350.pressLeftButton)))
     {
         yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "STD");
@@ -245,6 +246,18 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     else if (yfms->xpl.atyp == YFS_ATYP_Q350)
     {
         if (!XPLMGetDatai(yfms->xpl.q350.pressLeftButton))
+        {
+            yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "<ALT STD");
+            yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
+        }
+        else
+        {
+            yfms->lsks[0][5].cback = (YFS_LSK_f)NULL;
+        }
+    }
+    else if (yfms->xpl.atyp == YFS_ATYP_Q380)
+    {
+        if (!XPLMGetDatai(yfms->xpl.q380.BaroStdCapt))
         {
             yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "<ALT STD");
             yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
@@ -702,6 +715,11 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             XPLMSetDatai(yfms->xpl.qpac.BaroStdCapt, 0);
             XPLMSetDatai(yfms->xpl.qpac.BaroStdFO,   0);
         }
+        if (yfms->xpl.atyp == YFS_ATYP_Q380)
+        {
+            XPLMSetDatai(yfms->xpl.q380.BaroStdCapt, 0);
+            XPLMSetDatai(yfms->xpl.q380.BaroStdFO,   0);
+        }
         if (yfms->xpl.atyp == YFS_ATYP_IXEG)
         {
             XPLMSetDataf(yfms->xpl.ixeg.baro_inhg_sby_0001_ind, alt);
@@ -762,6 +780,11 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         {
             XPLMSetDatai(yfms->xpl.qpac.BaroStdCapt, 1);
             XPLMSetDatai(yfms->xpl.qpac.BaroStdFO,   1);
+        }
+        if (yfms->xpl.atyp == YFS_ATYP_Q380)
+        {
+            XPLMSetDatai(yfms->xpl.q380.BaroStdCapt, 1);
+            XPLMSetDatai(yfms->xpl.q380.BaroStdFO,   1);
         }
         yfs_rad1_pageupdt(yfms); return;
     }
