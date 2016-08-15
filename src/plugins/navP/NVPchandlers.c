@@ -2193,7 +2193,7 @@ static float flc_flap_func(float inElapsedSinceLastCall,
     return 0;
 }
 
-#define _DO(_func, _val, _name) { if ((d_ref = XPLMFindDataRef(_name))) _func(d_ref, _val); }
+#define _DO(_verbose, _func, _val, _name) { if ((d_ref = XPLMFindDataRef(_name))) _func(d_ref, _val); else if (_verbose) ndt_log("navP [warning]: dataref not found: \"%s\"\n", _name); }
 static int first_fcall_do(chandler_context *ctx)
 {
     XPLMCommandRef cr;
@@ -2212,163 +2212,163 @@ static int first_fcall_do(chandler_context *ctx)
             if ((d_ref = XPLMFindDataRef("AirbusFBW/OHPLightSwitches")))
             {
                 int OHPLightSwitches[1] = { 1, };
-                XPLMSetDatavi(d_ref, &OHPLightSwitches[0], 2, 1);               // nav&logo: system 1
-                XPLMSetDatavi(d_ref, &OHPLightSwitches[0], 7, 1);               // strobes: automatic
+                XPLMSetDatavi(d_ref, &OHPLightSwitches[0], 2, 1);                   // nav&logo: system 1
+                XPLMSetDatavi(d_ref, &OHPLightSwitches[0], 7, 1);                   // strobes: automatic
             }
-            _DO(XPLMSetDatai, 1, "AirbusFBW/ALT100_1000");                      // FCU alt. sel. increm.  (1000ft)
-            _DO(XPLMSetDatai, 3, "AirbusFBW/NDmodeCapt");                       // ND m. sel. (cap. side) (arc)
-            _DO(XPLMSetDatai, 2, "AirbusFBW/NDmodeFO");                         // ND m. sel. (f/o. side) (nav)
-            _DO(XPLMSetDatai, 1, "AirbusFBW/NDrangeCapt");                      // ND r. sel. (cap. side) (20)
-            _DO(XPLMSetDatai, 3, "AirbusFBW/NDrangeFO");                        // ND r. sel. (f/o. side) (80)
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot"); // VOR1 on ND2 off
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot"); // VOR2 on ND2 off
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");   // VOR1 on ND1 off
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");   // VOR2 on ND1 off
+            _DO(1, XPLMSetDatai, 1, "AirbusFBW/ALT100_1000");                       // FCU alt. sel. increm.  (1000ft)
+            _DO(1, XPLMSetDatai, 3, "AirbusFBW/NDmodeCapt");                        // ND m. sel. (cap. side) (arc)
+            _DO(1, XPLMSetDatai, 2, "AirbusFBW/NDmodeFO");                          // ND m. sel. (f/o. side) (nav)
+            _DO(1, XPLMSetDatai, 1, "AirbusFBW/NDrangeCapt");                       // ND r. sel. (cap. side) (20)
+            _DO(1, XPLMSetDatai, 3, "AirbusFBW/NDrangeFO");                         // ND r. sel. (f/o. side) (80)
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");  // VOR1 on ND2 off
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");  // VOR2 on ND2 off
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");    // VOR1 on ND1 off
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
             break;
 
         case NVP_ACF_A350_FF:
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot"); // VOR1 on ND2 off
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot"); // VOR2 on ND2 off
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");   // VOR1 on ND1 off
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");   // VOR2 on ND1 off
-            _DO(XPLMSetDatai,      0, "1-sim/fcu/navL/flag");                   // sync with above
-            _DO(XPLMSetDatai,      0, "1-sim/fcu/navL2/flag");                  // sync with above
-            _DO(XPLMSetDatai,      0, "1-sim/fcu/navR/flag");                   // sync with above
-            _DO(XPLMSetDatai,      0, "1-sim/fcu/navR2/flag");                  // sync with above
-            _DO(XPLMSetDatai,      1, "1-sim/fcu/altModeSwitch");               // FCU alt. sel. increm.  (1000ft)
-            _DO(XPLMSetDataf,   3.0f, "1-sim/fcu/ndModeLeft/switch");           // ND m. sel. (cap. side) (arc)
-            _DO(XPLMSetDataf,   2.0f, "1-sim/fcu/ndModeRight/switch");          // ND m. sel. (f/o. side) (nav)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/fcu/ndZoomLeft/switch");           // ND r. sel. (cap. side) (20)
-            _DO(XPLMSetDataf,   3.0f, "1-sim/fcu/ndZoomRight/switch");          // ND r. sel. (f/o. side) (80)
-            _DO(XPLMSetDatai,      1, "1-sim/radio/button/1/16");               // RMP1: microph. on VHF1 (on)
-            _DO(XPLMSetDatai,      1, "1-sim/radio/push/1/1");                  // RMP1: receiver on VHF1 (on)
-            _DO(XPLMSetDataf, 270.0f, "1-sim/radio/1/1/rotary");                // RMP1: receiver on VHF1 (volume)
-            _DO(XPLMSetDatai,      1, "1-sim/radio/push/1/10");                 // RMP1: c. crew intercom (on)
-            _DO(XPLMSetDataf, 270.0f, "1-sim/radio/1/10/rotary");               // RMP1: c. crew intercom (volume)
-            _DO(XPLMSetDatai,      1, "1-sim/radio/push/1/11");                 // RMP1: p. announcements (on)
-            _DO(XPLMSetDataf, 270.0f, "1-sim/radio/1/11/rotary");               // RMP1: p. announcements (volume)
-            _DO(XPLMSetDatai,      1, "1-sim/1/switch");                        // Evac. panel: selector  (capt&purs)
-            _DO(XPLMSetDatai,      1, "1-sim/2/switch");                        // Ext. lighting: strobe  (auto)
-//          _DO(XPLMSetDatai,      1, "1-sim/3/switch");                        // Ext. lighting: beacon  (on)
-            _DO(XPLMSetDatai,      1, "1-sim/4/switch");                        // Ext. lighting: navig.  (on)
-            _DO(XPLMSetDatai,      1, "1-sim/5/switch");                        // Ext. lighting: logo    (auto)
-            _DO(XPLMSetDatai,      1, "1-sim/20/switch");                       // Ext. lighting: emerg.  (auto)
-            _DO(XPLMSetDatai,      1, "1-sim/37/switch");                       // Braking: anti-skid sw. (on)
-//          _DO(XPLMSetDataf,   1.0f, "1-sim/3/cover");                         // Ground HFreq. datalink (lift cover)
-//          _DO(XPLMSetDataf,   1.0f, "1-sim/8/button");                        // Ground HFreq. datalink (off)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/15/button");                       // Cabin panel: wireless  (auto)
-//          _DO(XPLMSetDataf,   1.0f, "1-sim/7/cover");                         // Cabin panel: pas. data (lift cover)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/16/button");                       // Cabin panel: pas. data (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/17/button");                       // Cabin panel: sat. com. (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/18/button");                       // Cabin panel: lan. cam. (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/19/button");                       // Cabin panel: FAR4 sys. (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/20/button");                       // Cabin panel: mob. com. (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/21/button");                       // Cabin panel: IFEC sys. (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/22/button");                       // Cabin panel: DER  sys. (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/38/button");                       // Oxyg. panel: crew sup. (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/42/button");                       // Vent. panel: cooling   (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/44/button");                       // Vent. panel: c. fans 1 (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/45/button");                       // Vent. panel: c. fans 2 (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/53/button");                       // NSS: data to avionics  (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/54/button");                       // NSS: cabin data to NSS (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/230/button");                      // NSS: gatelink          (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/55/button");                       // Cargo: A/C I. v. (fwd) (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/56/button");                       // Cargo: A/C I. v. (aft) (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/57/button");                       // Cargo: A/C I. v. (blk) (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/59/button");                       // Cargo: A/C heating sw. (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/65/button");                       // Hydraulics: YELL. p. 1 (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/67/button");                       // Hydraulics: GREEN p. 1 (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/75/button");                       // Hydraulics: YELL. p. 2 (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/77/button");                       // Hydraulics: GREEN p. 2 (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/84/button");                       // Fuel: C tank feed mode (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/96/button");                       // Elec. panel: AC bus 1A (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/99/button");                       // Elec. panel: AC bus 1B (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/100/button");                      // Elec. panel: AC bus t. (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/101/button");                      // Elec. panel: APU (gen) (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/103/button");                      // Elec. panel: AC bus 2B (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/106/button");                      // Elec. panel: AC bus 2A (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/109/button");                      // Air panel: bleed en. 1 (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/110/button");                      // Air panel: heat. en. 1 (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/114/button");                      // Air panel: heat. en. 2 (auto)
-            _DO(XPLMSetDataf,   1.0f, "1-sim/115/button");                      // Air panel: bleed en. 2 (auto)
-            _DO(XPLMSetDatai,      1, "1-sim/air/airFlowSwitch");               // Air panel: flow selec. (norm)
-            _DO(XPLMSetDatai,      1, "1-sim/air/crossBeedSwitch");             // Air panel: c.b. selec. (auto)
-            _DO(XPLMSetDataf,   0.4f, "1-sim/air/ckptSettingRotery");           // Air panel: cock. temp. (purser)
-            _DO(XPLMSetDataf,   0.4f, "1-sim/air/cabinSettingRotery");          // Air panel: cabin temp. (purser)
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");  // VOR1 on ND2 off
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");  // VOR2 on ND2 off
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");    // VOR1 on ND1 off
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
+            _DO(1, XPLMSetDatai,      0, "1-sim/fcu/navL/flag");                    // sync with above
+            _DO(1, XPLMSetDatai,      0, "1-sim/fcu/navL2/flag");                   // sync with above
+            _DO(1, XPLMSetDatai,      0, "1-sim/fcu/navR/flag");                    // sync with above
+            _DO(1, XPLMSetDatai,      0, "1-sim/fcu/navR2/flag");                   // sync with above
+            _DO(1, XPLMSetDatai,      1, "1-sim/fcu/altModeSwitch");                // FCU alt. sel. increm.  (1000ft)
+            _DO(1, XPLMSetDataf,   3.0f, "1-sim/fcu/ndModeLeft/switch");            // ND m. sel. (cap. side) (arc)
+            _DO(1, XPLMSetDataf,   2.0f, "1-sim/fcu/ndModeRight/switch");           // ND m. sel. (f/o. side) (nav)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/fcu/ndZoomLeft/switch");            // ND r. sel. (cap. side) (20)
+            _DO(1, XPLMSetDataf,   3.0f, "1-sim/fcu/ndZoomRight/switch");           // ND r. sel. (f/o. side) (80)
+            _DO(1, XPLMSetDatai,      1, "1-sim/radio/button/1/16");                // RMP1: microph. on VHF1 (on)
+            _DO(1, XPLMSetDatai,      1, "1-sim/radio/push/1/1");                   // RMP1: receiver on VHF1 (on)
+            _DO(1, XPLMSetDataf, 270.0f, "1-sim/radio/1/1/rotary");                 // RMP1: receiver on VHF1 (volume)
+            _DO(1, XPLMSetDatai,      1, "1-sim/radio/push/1/10");                  // RMP1: c. crew intercom (on)
+            _DO(1, XPLMSetDataf, 270.0f, "1-sim/radio/1/10/rotary");                // RMP1: c. crew intercom (volume)
+            _DO(1, XPLMSetDatai,      1, "1-sim/radio/push/1/11");                  // RMP1: p. announcements (on)
+            _DO(1, XPLMSetDataf, 270.0f, "1-sim/radio/1/11/rotary");                // RMP1: p. announcements (volume)
+            _DO(1, XPLMSetDatai,      1, "1-sim/1/switch");                         // Evac. panel: selector  (capt&purs)
+            _DO(1, XPLMSetDatai,      1, "1-sim/2/switch");                         // Ext. lighting: strobe  (auto)
+//          _DO(1, XPLMSetDatai,      1, "1-sim/3/switch");                         // Ext. lighting: beacon  (on)
+            _DO(1, XPLMSetDatai,      1, "1-sim/4/switch");                         // Ext. lighting: navig.  (on)
+            _DO(1, XPLMSetDatai,      1, "1-sim/5/switch");                         // Ext. lighting: logo    (auto)
+            _DO(1, XPLMSetDatai,      1, "1-sim/20/switch");                        // Ext. lighting: emerg.  (auto)
+            _DO(1, XPLMSetDatai,      1, "1-sim/37/switch");                        // Braking: anti-skid sw. (on)
+//          _DO(1, XPLMSetDataf,   1.0f, "1-sim/3/cover");                          // Ground HFreq. datalink (lift cover)
+//          _DO(1, XPLMSetDataf,   1.0f, "1-sim/8/button");                         // Ground HFreq. datalink (off)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/15/button");                        // Cabin panel: wireless  (auto)
+//          _DO(1, XPLMSetDataf,   1.0f, "1-sim/7/cover");                          // Cabin panel: pas. data (lift cover)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/16/button");                        // Cabin panel: pas. data (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/17/button");                        // Cabin panel: sat. com. (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/18/button");                        // Cabin panel: lan. cam. (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/19/button");                        // Cabin panel: FAR4 sys. (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/20/button");                        // Cabin panel: mob. com. (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/21/button");                        // Cabin panel: IFEC sys. (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/22/button");                        // Cabin panel: DER  sys. (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/38/button");                        // Oxyg. panel: crew sup. (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/42/button");                        // Vent. panel: cooling   (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/44/button");                        // Vent. panel: c. fans 1 (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/45/button");                        // Vent. panel: c. fans 2 (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/53/button");                        // NSS: data to avionics  (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/54/button");                        // NSS: cabin data to NSS (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/230/button");                       // NSS: gatelink          (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/55/button");                        // Cargo: A/C I. v. (fwd) (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/56/button");                        // Cargo: A/C I. v. (aft) (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/57/button");                        // Cargo: A/C I. v. (blk) (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/59/button");                        // Cargo: A/C heating sw. (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/65/button");                        // Hydraulics: YELL. p. 1 (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/67/button");                        // Hydraulics: GREEN p. 1 (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/75/button");                        // Hydraulics: YELL. p. 2 (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/77/button");                        // Hydraulics: GREEN p. 2 (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/84/button");                        // Fuel: C tank feed mode (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/96/button");                        // Elec. panel: AC bus 1A (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/99/button");                        // Elec. panel: AC bus 1B (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/100/button");                       // Elec. panel: AC bus t. (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/101/button");                       // Elec. panel: APU (gen) (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/103/button");                       // Elec. panel: AC bus 2B (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/106/button");                       // Elec. panel: AC bus 2A (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/109/button");                       // Air panel: bleed en. 1 (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/110/button");                       // Air panel: heat. en. 1 (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/114/button");                       // Air panel: heat. en. 2 (auto)
+            _DO(1, XPLMSetDataf,   1.0f, "1-sim/115/button");                       // Air panel: bleed en. 2 (auto)
+            _DO(1, XPLMSetDatai,      1, "1-sim/air/airFlowSwitch");                // Air panel: flow selec. (norm)
+            _DO(1, XPLMSetDatai,      1, "1-sim/air/crossBeedSwitch");              // Air panel: c.b. selec. (auto)
+            _DO(1, XPLMSetDataf,   0.4f, "1-sim/air/ckptSettingRotery");            // Air panel: cock. temp. (purser)
+            _DO(1, XPLMSetDataf,   0.4f, "1-sim/air/cabinSettingRotery");           // Air panel: cabin temp. (purser)
             break;
 
         case NVP_ACF_A380_PH:
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/instrument_brightness_ratio")))
             {
                 float instrument_brightness_ratio[3] = { 0.8f, 0.4f, 0.0f, };
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  0, 1);   // Backlighting: switches, FCU
-//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  1, 1);   // Controlled by plugin?
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  2, 1);   // Navigation display
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  3, 1);   // ECAM (upp. display)
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2],  4, 1);   // OIS (unus. display)
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  5, 1);   // Primary f. display
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  6, 1);   // Control dis. units
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  7, 1);   // ECAM (low. display)
-//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2],  8, 1);   // ???
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[1],  9, 1);   // LED lam. 4 displays
-//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 10, 1);   // ???
-//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 11, 1);   // ???
-//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 12, 1);   // ???
-//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 13, 1);   // ???
-//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 14, 1);   // ???
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 15, 1);   // R.M. Panel displays, instrument outline lighting
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  0, 1);    // Backlighting: switches, FCU
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  1, 1);    // Controlled by plugin?
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  2, 1);    // Navigation display
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  3, 1);    // ECAM (upp. display)
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2],  4, 1);    // OIS (unus. display)
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  5, 1);    // Primary f. display
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  6, 1);    // Control dis. units
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  7, 1);    // ECAM (low. display)
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2],  8, 1);    // ???
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[1],  9, 1);    // LED lam. 4 displays
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 10, 1);    // ???
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 11, 1);    // ???
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 12, 1);    // ???
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 13, 1);    // ???
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 14, 1);    // ???
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 15, 1);    // R.M. Panel displays, instrument outline lighting
             }
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/panel_brightness_ratio")))
             {
                 float panel_brightness_ratio[1] = { 0.4f, };
-                XPLMSetDatavf(d_ref, &panel_brightness_ratio[0], 0, 1);         // Cockpit/flood lights
+                XPLMSetDatavf(d_ref, &panel_brightness_ratio[0], 0, 1);             // Cockpit/flood lights
             }
-            _DO(XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");                 // ND m. sel. (cap. side) (arc)
-            _DO(XPLMSetDatai, 3, "sim/cockpit2/EFIS/map_range");                // ND r. sel. (cap. side) (20)
-            _DO(XPLMSetDatai, 1, "com/petersaircraft/aibus/ALT100_1000");       // FCU alt. sel. increm.  (1000ft)
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on"); // Ext. lighting: navig.  (on)
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot"); // VOR1 on ND2 off
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot"); // VOR2 on ND2 off
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");   // VOR1 on ND1 off
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");   // VOR2 on ND1 off
-            _DO(XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_airport_on");          // various aircraft
-            _DO(XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");              // various aircraft
-            _DO(XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_ndb_on");              // various aircraft
-            _DO(XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_vor_on");              // various aircraft
+            _DO(1, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");                  // ND m. sel. (cap. side) (arc)
+            _DO(1, XPLMSetDatai, 3, "sim/cockpit2/EFIS/map_range");                 // ND r. sel. (cap. side) (20)
+            _DO(1, XPLMSetDatai, 1, "com/petersaircraft/aibus/ALT100_1000");        // FCU alt. sel. increm.  (1000ft)
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on");  // Ext. lighting: navig.  (on)
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");  // VOR1 on ND2 off
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");  // VOR2 on ND2 off
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");    // VOR1 on ND1 off
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_airport_on");           // various aircraft
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");               // various aircraft
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_ndb_on");               // various aircraft
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_vor_on");               // various aircraft
             break;
 
         case NVP_ACF_B737_EA:
-            _DO(XPLMSetDatai, 1, "x737/systems/exteriorLights/positionLightSwitch");
-            _DO(XPLMSetDatai, 0, "x737/cockpit/yoke/captYokeVisible");
-            _DO(XPLMSetDatai, 0, "x737/cockpit/yoke/foYokeVisible");
+            _DO(1, XPLMSetDatai, 1, "x737/systems/exteriorLights/positionLightSwitch");
+            _DO(1, XPLMSetDatai, 0, "x737/cockpit/yoke/captYokeVisible");
+            _DO(1, XPLMSetDatai, 0, "x737/cockpit/yoke/foYokeVisible");
             break;
 
         case NVP_ACF_B737_XG:
-            _DO(XPLMSetDataf,   0.0f, "ixeg/733/aircond/aircond_cont_cabin_sel_act"); // Cont. cab. air temper. (normal)
-            _DO(XPLMSetDataf,   0.0f, "ixeg/733/aircond/aircond_pass_cabin_sel_act"); // Pass. cab. air temper. (normal)
-            _DO(XPLMSetDataf,   1.0f, "ixeg/733/bleedair/bleedair_recirc_fan_act");   // Bleed air recirc. fans (auto)
-//          _DO(XPLMSetDataf, -20.0f, "ixeg/733/ehsi/dh_pt_act");                     // ADI DH REF (cap. side) (reset)     // note: only works when power is on
-//          _DO(XPLMSetDataf, -20.0f, "ixeg/733/ehsi/dh_cpt_act");                    // ADI DH REF (f/o. side) (reset)     // note: only works when power is on
-            _DO(XPLMSetDataf,   2.0f, "ixeg/733/ehsi/ehsi_mode_pt_act");              // HSI m.sel. (cap. side) (map)
-            _DO(XPLMSetDataf,   3.0f, "ixeg/733/ehsi/ehsi_mode_cpt_act");             // HSI m.sel. (f/o. side) (ctr)
-            _DO(XPLMSetDataf,   1.0f, "ixeg/733/ehsi/ehsi_range_pt_act");             // HSI r.sel. (cap. side) (20)
-            _DO(XPLMSetDataf,   3.0f, "ixeg/733/ehsi/ehsi_range_cpt_act");            // HSI r.sel. (f/o. side) (80)
-            _DO(XPLMSetDataf,   1.0f, "ixeg/733/lighting/position_lt_act");           // Exte. lighting: posit. (on)
-            _DO(XPLMSetDataf,   0.0f, "ixeg/733/rheostats/light_breakers_act");       // Circuit breakers light (off)
-            _DO(XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_pedpanel_act");       // Panel light (pedestal) (daylight)
-            _DO(XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_overhead_act");       // Panel light (overhead) (daylight)
-            _DO(XPLMSetDataf,   .21f, "ixeg/733/rheostats/light_pedflood_act");       // Flood light (pedestal) (daylight)
-            _DO(XPLMSetDataf,   0.2f, "ixeg/733/rheostats/light_afds_act");           // Flood light (A.F.D.S.) (daylight)
-            _DO(XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_fmc_pt_act");         // MCDU: lig. (cap. side) (daylight)
-            _DO(XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_fmc_cpt_act");        // MCDU: lig. (f/o. side) (daylight)
-            _DO(XPLMSetDataf,   0.0f, "ixeg/733/rheostats/light_mapbr_pt_act");       // Maps: lig. (cap. side) (off)
-            _DO(XPLMSetDataf,   0.0f, "ixeg/733/rheostats/light_mapbr_cpt_act");      // Maps: lig. (f/o. side) (off)
+            _DO(1, XPLMSetDataf,   0.0f, "ixeg/733/aircond/aircond_cont_cabin_sel_act");    // Cont. cab. air temper. (normal)
+            _DO(1, XPLMSetDataf,   0.0f, "ixeg/733/aircond/aircond_pass_cabin_sel_act");    // Pass. cab. air temper. (normal)
+            _DO(1, XPLMSetDataf,   1.0f, "ixeg/733/bleedair/bleedair_recirc_fan_act");      // Bleed air recirc. fans (auto)
+//          _DO(1, XPLMSetDataf, -20.0f, "ixeg/733/ehsi/dh_pt_act");                        // ADI DH REF (cap. side) (reset)   // note: only works when power is on
+//          _DO(1, XPLMSetDataf, -20.0f, "ixeg/733/ehsi/dh_cpt_act");                       // ADI DH REF (f/o. side) (reset)   // note: only works when power is on
+            _DO(1, XPLMSetDataf,   2.0f, "ixeg/733/ehsi/ehsi_mode_pt_act");                 // HSI m.sel. (cap. side) (map)
+            _DO(1, XPLMSetDataf,   3.0f, "ixeg/733/ehsi/ehsi_mode_cpt_act");                // HSI m.sel. (f/o. side) (ctr)
+            _DO(1, XPLMSetDataf,   1.0f, "ixeg/733/ehsi/ehsi_range_pt_act");                // HSI r.sel. (cap. side) (20)
+            _DO(1, XPLMSetDataf,   3.0f, "ixeg/733/ehsi/ehsi_range_cpt_act");               // HSI r.sel. (f/o. side) (80)
+            _DO(1, XPLMSetDataf,   1.0f, "ixeg/733/lighting/position_lt_act");              // Exte. lighting: posit. (on)
+            _DO(1, XPLMSetDataf,   0.0f, "ixeg/733/rheostats/light_breakers_act");          // Circuit breakers light (off)
+            _DO(1, XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_pedpanel_act");          // Panel light (pedestal) (daylight)
+            _DO(1, XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_overhead_act");          // Panel light (overhead) (daylight)
+            _DO(1, XPLMSetDataf,   .21f, "ixeg/733/rheostats/light_pedflood_act");          // Flood light (pedestal) (daylight)
+            _DO(1, XPLMSetDataf,   0.2f, "ixeg/733/rheostats/light_afds_act");              // Flood light (A.F.D.S.) (daylight)
+            _DO(1, XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_fmc_pt_act");            // MCDU: lig. (cap. side) (daylight)
+            _DO(1, XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_fmc_cpt_act");           // MCDU: lig. (f/o. side) (daylight)
+            _DO(1, XPLMSetDataf,   0.0f, "ixeg/733/rheostats/light_mapbr_pt_act");          // Maps: lig. (cap. side) (off)
+            _DO(1, XPLMSetDataf,   0.0f, "ixeg/733/rheostats/light_mapbr_cpt_act");         // Maps: lig. (f/o. side) (off)
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/instrument_brightness_ratio")))
             {
                 float instrument_brightness_ratio[1] = { 0.8f, };
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 0, 1);    // Panel (cap. side): daylight
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 1, 1);    // Panel (f/o. side): daylight
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 2, 1);    // Panel (backgrnd.): neon off
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 0, 1);                // Panel (cap. side): daylight
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 1, 1);                // Panel (f/o. side): daylight
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 2, 1);                // Panel (backgrnd.): neon off
             }
             break;
 
@@ -2379,87 +2379,87 @@ static int first_fcall_do(chandler_context *ctx)
             if ((d_ref = XPLMFindDataRef("1-sim/vor1/isAuto")) &&
                 (0000 == XPLMGetDatai(d_ref)))
             {
-                _DO(XPLMSetDatai,1, "anim/78/button"); // VOR 1: manual -> auto
+                _DO(1, XPLMSetDatai,1, "anim/78/button"); // VOR 1: manual -> auto
             }
             if ((d_ref = XPLMFindDataRef("1-sim/vor2/isAuto")) &&
                 (0000 == XPLMGetDatai(d_ref)))
             {
-                _DO(XPLMSetDatai,1, "anim/79/button"); // VOR 2: manual -> auto
+                _DO(1, XPLMSetDatai,1, "anim/79/button"); // VOR 2: manual -> auto
             }
-            _DO(XPLMSetDatai,    2, "1-sim/ndpanel/1/hsiModeRotary");           // ND m. sel. (cap. side) (map)
-            _DO(XPLMSetDatai,    2, "1-sim/ndpanel/2/hsiModeRotary");           // ND m. sel. (f/o. side) (map)
-            _DO(XPLMSetDatai,    1, "1-sim/ndpanel/2/hsiModeButton");           // ND m. sel. (f/o. side) (ctr)
-            _DO(XPLMSetDatai,    1, "1-sim/ndpanel/1/hsiRangeRotary");          // ND r. sel. (cap. side) (20)
-            _DO(XPLMSetDatai,    3, "1-sim/ndpanel/2/hsiRangeRotary");          // ND r. sel. (f/o. side) (80)
-//          _DO(XPLMSetDatai,    1, "anim/75/button");                          // Terrain override switch (on)
-            _DO(XPLMSetDataf, 1.0f, "1-sim/gauges/terrOVRDcover");              // Terrain override switch (lift cover)
-            _DO(XPLMSetDataf, 1.0f, "1-sim/electrical/batteryCover");           // Battery on/off selector (lift cover)
-//          _DO(XPLMSetDataf, 1.0f, "1-sim/elecengcont/leftCover");             // Engine elec. contr. (L) (lift cover)
-//          _DO(XPLMSetDataf, 1.0f, "1-sim/elecengcont/rightCover");            // Engine elec. contr. (R) (lift cover)
-            _DO(XPLMSetDatai,    1, "anim/3/button");                           // Engine elec. contr. (L) (on)
-            _DO(XPLMSetDatai,    1, "anim/4/button");                           // Engine elec. contr. (R) (on)
-            _DO(XPLMSetDatai,    1, "anim/8/button");                           // Engine-dr. hy. pump (L) (on)
-            _DO(XPLMSetDatai,    1, "anim/11/button");                          // Engine-dr. hy. pump (R) (on)
-            _DO(XPLMSetDatai,    1, "anim/43/button");                          // Exter. lighting: posit. (on)
-            _DO(XPLMSetDatai,    1, "anim/54/button");                          // Air: trim air valve sw. (on)
-            _DO(XPLMSetDatai,    1, "anim/55/button");                          // Air: L recirc. fans sw. (on)
-            _DO(XPLMSetDatai,    1, "anim/56/button");                          // Air: R recirc. fans sw. (on)
-            _DO(XPLMSetDatai,    1, "anim/59/button");                          // Air: L bleed ISLN valve (on/open)
-            _DO(XPLMSetDatai,    1, "anim/87/button");                          // Air: R bleed ISLN valve (on/open)
-            _DO(XPLMSetDatai,    1, "anim/90/button");                          // Air: C bleed ISLN valve (on/open)
-            _DO(XPLMSetDatai,    1, "anim/60/button");                          // Air: L e. bleed air sw. (on)
-            _DO(XPLMSetDatai,    1, "anim/62/button");                          // Air: R e. bleed air sw. (on)
-            _DO(XPLMSetDataf, 0.5f, "1-sim/cond/fwdTempControl");               // Temp. control (fwd ca.) (auto)
-            _DO(XPLMSetDataf, 0.5f, "1-sim/cond/midTempControl");               // Temp. control (mid ca.) (auto)
-            _DO(XPLMSetDataf, 0.5f, "1-sim/cond/aftTempControl");               // Temp. control (aft ca.) (auto)
-            _DO(XPLMSetDataf, 0.5f, "1-sim/cond/fltdkTempControl");             // Temp. control (f. deck) (auto)
+            _DO(1, XPLMSetDatai,    2, "1-sim/ndpanel/1/hsiModeRotary");            // ND m. sel. (cap. side) (map)
+            _DO(1, XPLMSetDatai,    2, "1-sim/ndpanel/2/hsiModeRotary");            // ND m. sel. (f/o. side) (map)
+            _DO(1, XPLMSetDatai,    1, "1-sim/ndpanel/2/hsiModeButton");            // ND m. sel. (f/o. side) (ctr)
+            _DO(1, XPLMSetDatai,    1, "1-sim/ndpanel/1/hsiRangeRotary");           // ND r. sel. (cap. side) (20)
+            _DO(1, XPLMSetDatai,    3, "1-sim/ndpanel/2/hsiRangeRotary");           // ND r. sel. (f/o. side) (80)
+//          _DO(1, XPLMSetDatai,    1, "anim/75/button");                           // Terrain override switch (on)
+            _DO(1, XPLMSetDataf, 1.0f, "1-sim/gauges/terrOVRDcover");               // Terrain override switch (lift cover)
+            _DO(1, XPLMSetDataf, 1.0f, "1-sim/electrical/batteryCover");            // Battery on/off selector (lift cover)
+//          _DO(1, XPLMSetDataf, 1.0f, "1-sim/elecengcont/leftCover");              // Engine elec. contr. (L) (lift cover)
+//          _DO(1, XPLMSetDataf, 1.0f, "1-sim/elecengcont/rightCover");             // Engine elec. contr. (R) (lift cover)
+            _DO(1, XPLMSetDatai,    1, "anim/3/button");                            // Engine elec. contr. (L) (on)
+            _DO(1, XPLMSetDatai,    1, "anim/4/button");                            // Engine elec. contr. (R) (on)
+            _DO(1, XPLMSetDatai,    1, "anim/8/button");                            // Engine-dr. hy. pump (L) (on)
+            _DO(1, XPLMSetDatai,    1, "anim/11/button");                           // Engine-dr. hy. pump (R) (on)
+            _DO(1, XPLMSetDatai,    1, "anim/43/button");                           // Exter. lighting: posit. (on)
+            _DO(1, XPLMSetDatai,    1, "anim/54/button");                           // Air: trim air valve sw. (on)
+            _DO(1, XPLMSetDatai,    1, "anim/55/button");                           // Air: L recirc. fans sw. (on)
+            _DO(1, XPLMSetDatai,    1, "anim/56/button");                           // Air: R recirc. fans sw. (on)
+            _DO(1, XPLMSetDatai,    1, "anim/59/button");                           // Air: L bleed ISLN valve (on/open)
+            _DO(1, XPLMSetDatai,    1, "anim/87/button");                           // Air: R bleed ISLN valve (on/open)
+            _DO(1, XPLMSetDatai,    1, "anim/90/button");                           // Air: C bleed ISLN valve (on/open)
+            _DO(1, XPLMSetDatai,    1, "anim/60/button");                           // Air: L e. bleed air sw. (on)
+            _DO(1, XPLMSetDatai,    1, "anim/62/button");                           // Air: R e. bleed air sw. (on)
+            _DO(1, XPLMSetDataf, 0.5f, "1-sim/cond/fwdTempControl");                // Temp. control (fwd ca.) (auto)
+            _DO(1, XPLMSetDataf, 0.5f, "1-sim/cond/midTempControl");                // Temp. control (mid ca.) (auto)
+            _DO(1, XPLMSetDataf, 0.5f, "1-sim/cond/aftTempControl");                // Temp. control (aft ca.) (auto)
+            _DO(1, XPLMSetDataf, 0.5f, "1-sim/cond/fltdkTempControl");              // Temp. control (f. deck) (auto)
             break;
 
         case NVP_ACF_B777_FF:
-            _DO(XPLMSetDatai,    0, "anim/31/switch");                          // VOR1 on ND1 off
-            _DO(XPLMSetDatai,    0, "anim/32/switch");                          // VOR2 on ND1 off
-            _DO(XPLMSetDatai,    2, "anim/64/switch");                          // ND m. sel. (capt. side) (map)
-            _DO(XPLMSetDatai,    1, "anim/65/switch");                          // ND r. sel. (capt. side) (20)
-//          _DO(XPLMSetDatai,    1, "anim/???/button"); // TODO: find dataref   // Terrain override switch (on)
-//          _DO(XPLMSetDataf, 1.0f, "anim/33/cover");                           // Terrain override switch (lift cover)
-//          _DO(XPLMSetDataf, 1.0f, "anim/14/cover");                           // Engine elec. contr. (L) (lift cover)
-//          _DO(XPLMSetDataf, 1.0f, "anim/16/cover");                           // Engine elec. contr. (R) (lift cover)
-            _DO(XPLMSetDatai,    1, "anim/108/button");                         // Engine-dr. hy. pump (L) (on)
-            _DO(XPLMSetDatai,    1, "anim/111/button");                         // Engine-dr. hy. pump (R) (on)
-            _DO(XPLMSetDatai,    1, "anim/116/button");                         // Engine elec. contr. (L) (norm)
-            _DO(XPLMSetDatai,    1, "anim/117/button");                         // Engine elec. contr. (R) (norm)
-            _DO(XPLMSetDatai,    1, "anim/154/button");                         // Engine autostart switch (on)
-            _DO(XPLMSetDatai,    1, "anim/130/button");                         // Exter. lighting: navig. (on)
-            _DO(XPLMSetDatai,    1, "anim/134/button");                         // Air: upper recirc. fans (on)
-            _DO(XPLMSetDatai,    1, "anim/135/button");                         // Air: lower recirc. fans (on)
-            _DO(XPLMSetDatai,    1, "anim/137/button");                         // Air: L t. air valve sw. (on)
-            _DO(XPLMSetDatai,    1, "anim/138/button");                         // Air: R t. air valve sw. (on)
-            _DO(XPLMSetDatai,    1, "anim/139/button");                         // Air: L bleed ISLN valve (auto)
-            _DO(XPLMSetDatai,    1, "anim/140/button");                         // Air: C bleed ISLN valve (auto)
-            _DO(XPLMSetDatai,    1, "anim/141/button");                         // Air: R bleed ISLN valve (auto)
-            _DO(XPLMSetDatai,    1, "anim/143/button");                         // Air: APU  bleed air sw. (auto)
-            _DO(XPLMSetDatai,    1, "anim/142/button");                         // Air: L e. bleed air sw. (on)
-            _DO(XPLMSetDatai,    1, "anim/144/button");                         // Air: R e. bleed air sw. (on)
-            _DO(XPLMSetDatai,    1, "anim/25/switch");                          // Cargo temp. cont. (aft) (low)
-            _DO(XPLMSetDatai,    1, "anim/26/switch");                          // Cargo temp. cont. (blk) (low)
-            _DO(XPLMSetDataf, 0.5f, "anim/5/rotery");                           // Temp. control (f. deck) (auto)
-            _DO(XPLMSetDataf, 0.5f, "anim/6/rotery");                           // Temp. control (all ca.) (auto)
+            _DO(1, XPLMSetDatai,    0, "anim/31/switch");                           // VOR1 on ND1 off
+            _DO(1, XPLMSetDatai,    0, "anim/32/switch");                           // VOR2 on ND1 off
+            _DO(1, XPLMSetDatai,    2, "anim/64/switch");                           // ND m. sel. (capt. side) (map)
+            _DO(1, XPLMSetDatai,    1, "anim/65/switch");                           // ND r. sel. (capt. side) (20)
+//          _DO(1, XPLMSetDatai,    1, "anim/???/button"); // TODO: find dataref    // Terrain override switch (on)
+//          _DO(1, XPLMSetDataf, 1.0f, "anim/33/cover");                            // Terrain override switch (lift cover)
+//          _DO(1, XPLMSetDataf, 1.0f, "anim/14/cover");                            // Engine elec. contr. (L) (lift cover)
+//          _DO(1, XPLMSetDataf, 1.0f, "anim/16/cover");                            // Engine elec. contr. (R) (lift cover)
+            _DO(1, XPLMSetDatai,    1, "anim/108/button");                          // Engine-dr. hy. pump (L) (on)
+            _DO(1, XPLMSetDatai,    1, "anim/111/button");                          // Engine-dr. hy. pump (R) (on)
+            _DO(1, XPLMSetDatai,    1, "anim/116/button");                          // Engine elec. contr. (L) (norm)
+            _DO(1, XPLMSetDatai,    1, "anim/117/button");                          // Engine elec. contr. (R) (norm)
+            _DO(1, XPLMSetDatai,    1, "anim/154/button");                          // Engine autostart switch (on)
+            _DO(1, XPLMSetDatai,    1, "anim/130/button");                          // Exter. lighting: navig. (on)
+            _DO(1, XPLMSetDatai,    1, "anim/134/button");                          // Air: upper recirc. fans (on)
+            _DO(1, XPLMSetDatai,    1, "anim/135/button");                          // Air: lower recirc. fans (on)
+            _DO(1, XPLMSetDatai,    1, "anim/137/button");                          // Air: L t. air valve sw. (on)
+            _DO(1, XPLMSetDatai,    1, "anim/138/button");                          // Air: R t. air valve sw. (on)
+            _DO(1, XPLMSetDatai,    1, "anim/139/button");                          // Air: L bleed ISLN valve (auto)
+            _DO(1, XPLMSetDatai,    1, "anim/140/button");                          // Air: C bleed ISLN valve (auto)
+            _DO(1, XPLMSetDatai,    1, "anim/141/button");                          // Air: R bleed ISLN valve (auto)
+            _DO(1, XPLMSetDatai,    1, "anim/143/button");                          // Air: APU  bleed air sw. (auto)
+            _DO(1, XPLMSetDatai,    1, "anim/142/button");                          // Air: L e. bleed air sw. (on)
+            _DO(1, XPLMSetDatai,    1, "anim/144/button");                          // Air: R e. bleed air sw. (on)
+            _DO(1, XPLMSetDatai,    1, "anim/25/switch");                           // Cargo temp. cont. (aft) (low)
+            _DO(1, XPLMSetDatai,    1, "anim/26/switch");                           // Cargo temp. cont. (blk) (low)
+            _DO(1, XPLMSetDataf, 0.5f, "anim/5/rotery");                            // Temp. control (f. deck) (auto)
+            _DO(1, XPLMSetDataf, 0.5f, "anim/6/rotery");                            // Temp. control (all ca.) (auto)
             break;
 
         case NVP_ACF_EMBE_SS:
-            _DO(XPLMSetDatai, 1, "SSG/EJET/LIGHTS/nav_lights_sw");              // Exter. lighting: navig. (on)
-            _DO(XPLMSetDatai, 1, "SSG/EJET/ENG/eng_iginit1_sw");                // m3rm0z: real-world def. auto
-            _DO(XPLMSetDatai, 1, "SSG/EJET/ENG/eng_iginit2_sw");                // m3rm0z: real-world def. auto
-            _DO(XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys3a_sw");               // m3rm0z: real-world def. off
-            _DO(XPLMSetDatai, 1, "ssg/EJET/GND/rain_hide_sw");                  // Disable custom rain effects
-            _DO(XPLMSetDatai, 0, "ssg/EJET/GND/stair1_ON");                     // Hide passenger stairs
-            _DO(XPLMSetDatai, 0, "ssg/EJET/GND/seats_hide_sw");                 // Hide captain's seat
-            _DO(XPLMSetDatai, 0, "ssg/EJET/GND/yokes_hide_sw");                 // Hide both yokes
+            _DO(1, XPLMSetDatai, 1, "SSG/EJET/LIGHTS/nav_lights_sw");               // Exter. lighting: navig. (on)
+            _DO(1, XPLMSetDatai, 1, "SSG/EJET/ENG/eng_iginit1_sw");                 // m3rm0z: real-world def. auto
+            _DO(1, XPLMSetDatai, 1, "SSG/EJET/ENG/eng_iginit2_sw");                 // m3rm0z: real-world def. auto
+            _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys3a_sw");                // m3rm0z: real-world def. off
+            _DO(1, XPLMSetDatai, 1, "ssg/EJET/GND/rain_hide_sw");                   // Disable custom rain effects
+            _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/stair1_ON");                      // Hide passenger stairs
+            _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/seats_hide_sw");                  // Hide captain's seat
+            _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/yokes_hide_sw");                  // Hide both yokes
             // hydraulics seem to draw power from systems 1 & 2 even though engines are off (bug)
-            _DO(XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys3b_sw");
-            _DO(XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys3a_sw");
-            _DO(XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys2_sw");
-            _DO(XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys1_sw");
+            _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys3b_sw");
+            _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys3a_sw");
+            _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys2_sw");
+            _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys1_sw");
             break;
 
         case NVP_ACF_SSJ1_RZ:
@@ -2478,38 +2478,38 @@ static int first_fcall_do(chandler_context *ctx)
             }
 
             // items that require avionics power to change state
-            _DO(XPLMSetDataf, 0.0f, "but/temp/airL");
-            _DO(XPLMSetDataf, 0.0f, "but/temp/airR");
-            _DO(XPLMSetDataf, 0.0f, "but/temp/heater");
-            _DO(XPLMSetDataf, 1.0f, "but/fuel/pumpLt");
-            _DO(XPLMSetDataf, 1.0f, "but/fuel/pumpRt");
-            _DO(XPLMSetDataf, 1.0f, "but/sim/cockpit2/fuel/fuel_tank_pump_on0");
-            _DO(XPLMSetDataf, 1.0f, "but/sim/cockpit2/fuel/fuel_tank_pump_on1");
-            _DO(XPLMSetDataf, 1.0f, "but/sim/cockpit2/fuel/fuel_tank_pump_on2");
-            _DO(XPLMSetDataf, 1.0f, "but/sim/cockpit2/fuel/fuel_tank_pump_on3");
-            _DO(XPLMSetDataf, 1.0f, "but/sim/cockpit2/fuel/fuel_tank_pump_on4");
+            _DO(1, XPLMSetDataf, 0.0f, "but/temp/airL");
+            _DO(1, XPLMSetDataf, 0.0f, "but/temp/airR");
+            _DO(1, XPLMSetDataf, 0.0f, "but/temp/heater");
+            _DO(1, XPLMSetDataf, 1.0f, "but/fuel/pumpLt");
+            _DO(1, XPLMSetDataf, 1.0f, "but/fuel/pumpRt");
+            _DO(1, XPLMSetDataf, 1.0f, "but/sim/cockpit2/fuel/fuel_tank_pump_on0");
+            _DO(1, XPLMSetDataf, 1.0f, "but/sim/cockpit2/fuel/fuel_tank_pump_on1");
+            _DO(1, XPLMSetDataf, 1.0f, "but/sim/cockpit2/fuel/fuel_tank_pump_on2");
+            _DO(1, XPLMSetDataf, 1.0f, "but/sim/cockpit2/fuel/fuel_tank_pump_on3");
+            _DO(1, XPLMSetDataf, 1.0f, "but/sim/cockpit2/fuel/fuel_tank_pump_on4");
             if (ctx->first_fcall == -2)
             {
                 ctx->first_fcall += -1; return 0; // pass 2, enable pass 3
             }
 
             // everything else
-            _DO(XPLMSetDataf, 1.0f, "door/lock");
-            _DO(XPLMSetDataf, 1.0f, "elec/cap1");
-            _DO(XPLMSetDataf, 1.0f, "elec/cap2");
-            _DO(XPLMSetDataf, 1.0f, "elec/cap3");
-            _DO(XPLMSetDataf, 1.0f, "elec/cap4");
-            _DO(XPLMSetDataf, 1.0f, "elec/cap8");
-            _DO(XPLMSetDataf, 0.0f, "prep/lock1");
-            _DO(XPLMSetDataf, 0.0f, "prep/lock2");
-            _DO(XPLMSetDataf, 0.0f, "prep/lock3");
-            _DO(XPLMSetDataf, 0.0f, "prep/lock4");
-            _DO(XPLMSetDataf, 0.0f, "prep/lock5");
-            _DO(XPLMSetDataf, 0.0f, "prep/lock6");
-            _DO(XPLMSetDataf, .75f, "lights/brt");
-            _DO(XPLMSetDataf, 0.5f, "lights/flood");
-            _DO(XPLMSetDataf, 0.5f, "but/lights/pilot");
-            _DO(XPLMSetDatai,    1, "sim/cockpit2/switches/navigation_lights_on");
+            _DO(1, XPLMSetDataf, 1.0f, "door/lock");
+            _DO(1, XPLMSetDataf, 1.0f, "elec/cap1");
+            _DO(1, XPLMSetDataf, 1.0f, "elec/cap2");
+            _DO(1, XPLMSetDataf, 1.0f, "elec/cap3");
+            _DO(1, XPLMSetDataf, 1.0f, "elec/cap4");
+            _DO(1, XPLMSetDataf, 1.0f, "elec/cap8");
+            _DO(1, XPLMSetDataf, 0.0f, "prep/lock1");
+            _DO(1, XPLMSetDataf, 0.0f, "prep/lock2");
+            _DO(1, XPLMSetDataf, 0.0f, "prep/lock3");
+            _DO(1, XPLMSetDataf, 0.0f, "prep/lock4");
+            _DO(1, XPLMSetDataf, 0.0f, "prep/lock5");
+            _DO(1, XPLMSetDataf, 0.0f, "prep/lock6");
+            _DO(1, XPLMSetDataf, .75f, "lights/brt");
+            _DO(1, XPLMSetDataf, 0.5f, "lights/flood");
+            _DO(1, XPLMSetDataf, 0.5f, "but/lights/pilot");
+            _DO(1, XPLMSetDatai,    1, "sim/cockpit2/switches/navigation_lights_on");
             if (ctx->first_fcall == -3)
             {
                 XPLMSetDatai(av_pwr_on, 0); // pass 3, avionics back to off
@@ -2522,28 +2522,28 @@ static int first_fcall_do(chandler_context *ctx)
         }
 
         case NVP_ACF_GENERIC:
-            // all Carenado addons handled here (dataref not found: no effect)
-            _DO(XPLMSetDatai,     0, "thranda/views/InstRefl");                 // various aircraft
-            _DO(XPLMSetDatai,     0, "thranda/views/WindowRefl");               // various aircraft
-            _DO(XPLMSetDatai,     1, "thranda/cockpit/actuators/HideYokeL");    // various aircraft
-            _DO(XPLMSetDatai,     1, "thranda/cockpit/actuators/HideYokeR");    // various aircraft
-            _DO(XPLMSetDataf,  1.0f, "thranda/cockpit/actuators/VisorSwingL");  // TBM 850 & PC-12
-            _DO(XPLMSetDataf,  1.0f, "thranda/cockpit/actuators/VisorSwingR");  // TBM 850 & PC-12
-            _DO(XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideL");  // TBM 850 & PC-12
-            _DO(XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideR");  // TBM 850 & PC-12
-            _DO(XPLMSetDataf, -0.5f, "thranda/cockpit/actuators/VisorL");       // TBM 850 & PC-12
-            _DO(XPLMSetDataf, -0.5f, "thranda/cockpit/actuators/VisorR");       // TBM 850 & PC-12
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on"); // various aircraft
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot"); // various aircraft
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot"); // various aircraft
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");   // various aircraft
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");   // various aircraft
-            _DO(XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_airport_on");          // various aircraft
-            _DO(XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");              // various aircraft
-            _DO(XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_ndb_on");              // various aircraft
-            _DO(XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_vor_on");              // various aircraft
-            _DO(XPLMSetDatai, 3, "sim/cockpit2/EFIS/map_range");                // various aircraft
-            _DO(XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");                 // various aircraft
+            // Carenado addons handled here (generic path is always non-verbose)
+            _DO(0, XPLMSetDatai,     0, "thranda/views/InstRefl");                  // various aircraft
+            _DO(0, XPLMSetDatai,     0, "thranda/views/WindowRefl");                // various aircraft
+            _DO(0, XPLMSetDatai,     1, "thranda/cockpit/actuators/HideYokeL");     // various aircraft
+            _DO(0, XPLMSetDatai,     1, "thranda/cockpit/actuators/HideYokeR");     // various aircraft
+            _DO(0, XPLMSetDataf,  1.0f, "thranda/cockpit/actuators/VisorSwingL");   // TBM 850 & PC-12
+            _DO(0, XPLMSetDataf,  1.0f, "thranda/cockpit/actuators/VisorSwingR");   // TBM 850 & PC-12
+            _DO(0, XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideL");   // TBM 850 & PC-12
+            _DO(0, XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideR");   // TBM 850 & PC-12
+            _DO(0, XPLMSetDataf, -0.5f, "thranda/cockpit/actuators/VisorL");        // TBM 850 & PC-12
+            _DO(0, XPLMSetDataf, -0.5f, "thranda/cockpit/actuators/VisorR");        // TBM 850 & PC-12
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on");  // various aircraft
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");  // various aircraft
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");  // various aircraft
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");    // various aircraft
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // various aircraft
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_airport_on");           // various aircraft
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");               // various aircraft
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_ndb_on");               // various aircraft
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_vor_on");               // various aircraft
+            _DO(0, XPLMSetDatai, 3, "sim/cockpit2/EFIS/map_range");                 // various aircraft
+            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");                  // various aircraft
             break;
 
         default:
