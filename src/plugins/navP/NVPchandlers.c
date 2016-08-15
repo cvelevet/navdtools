@@ -2301,22 +2301,22 @@ static int first_fcall_do(chandler_context *ctx)
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/instrument_brightness_ratio")))
             {
                 float instrument_brightness_ratio[3] = { 0.8f, 0.4f, 0.0f, };
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  0, 1);    // Backlighting: switches, FCU
-//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  1, 1);    // Controlled by plugin?
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  2, 1);    // Navigation display
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  3, 1);    // ECAM (upp. display)
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2],  4, 1);    // OIS (unus. display)
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  5, 1);    // Primary f. display
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  6, 1);    // Control dis. units
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  7, 1);    // ECAM (low. display)
-//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2],  8, 1);    // ???
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[1],  9, 1);    // LED lam. 4 displays
-//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 10, 1);    // ???
-//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 11, 1);    // ???
-//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 12, 1);    // ???
-//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 13, 1);    // ???
-//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 14, 1);    // ???
-                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 15, 1);    // R.M. Panel displays, instrument outline lighting
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  0, 1);       // Backlighting: switches, FCU
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  1, 1);       // Controlled by plugin?
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  2, 1);       // Navigation display
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  3, 1);       // ECAM (upp. display)
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2],  4, 1);       // OIS (unus. display)
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  5, 1);       // Primary f. display
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  6, 1);       // Control dis. units
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0],  7, 1);       // ECAM (low. display)
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2],  8, 1);       // ???
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[1],  9, 1);       // LED lam. 4 displays
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 10, 1);       // ???
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 11, 1);       // ???
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 12, 1);       // ???
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 13, 1);       // ???
+//              XPLMSetDatavf(d_ref, &instrument_brightness_ratio[2], 14, 1);       // ???
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 15, 1);       // R.M. Panel displays, instrument outline lighting
             }
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/panel_brightness_ratio")))
             {
