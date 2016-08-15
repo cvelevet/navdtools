@@ -2331,10 +2331,10 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");  // VOR2 on ND2 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");    // VOR1 on ND1 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_airport_on");           // various aircraft
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");               // various aircraft
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_ndb_on");               // various aircraft
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_vor_on");               // various aircraft
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_airport_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_ndb_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_vor_on");
             break;
 
         case NVP_ACF_B737_EA:
@@ -2521,8 +2521,9 @@ static int first_fcall_do(chandler_context *ctx)
             break;
         }
 
+        // Note: path always non-verbose (don't log warnings for unapplicable datarefs)
         case NVP_ACF_GENERIC:
-            // Carenado addons handled here (generic path is always non-verbose)
+            // datarefs: Alabeo, Carenado
             _DO(0, XPLMSetDatai,     0, "thranda/views/InstRefl");                  // various aircraft
             _DO(0, XPLMSetDatai,     0, "thranda/views/WindowRefl");                // various aircraft
             _DO(0, XPLMSetDatai,     1, "thranda/cockpit/actuators/HideYokeL");     // various aircraft
@@ -2533,17 +2534,18 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideR");   // TBM 850 & PC-12
             _DO(0, XPLMSetDataf, -0.5f, "thranda/cockpit/actuators/VisorL");        // TBM 850 & PC-12
             _DO(0, XPLMSetDataf, -0.5f, "thranda/cockpit/actuators/VisorR");        // TBM 850 & PC-12
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on");  // various aircraft
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");  // various aircraft
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");  // various aircraft
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");    // various aircraft
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // various aircraft
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_airport_on");           // various aircraft
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");               // various aircraft
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_ndb_on");               // various aircraft
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_vor_on");               // various aircraft
-            _DO(0, XPLMSetDatai, 3, "sim/cockpit2/EFIS/map_range");                 // various aircraft
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");                  // various aircraft
+            // datarefs: X-Plane default
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_airport_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_ndb_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_vor_on");
+            _DO(0, XPLMSetDatai, 3, "sim/cockpit2/EFIS/map_range");
+            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
             break;
 
         default:
