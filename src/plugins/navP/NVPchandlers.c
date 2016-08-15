@@ -2215,6 +2215,11 @@ static int first_fcall_do(chandler_context *ctx)
                 XPLMSetDatavi(d_ref, &OHPLightSwitches[0], 2, 1);               // nav&logo: system 1
                 XPLMSetDatavi(d_ref, &OHPLightSwitches[0], 7, 1);               // strobes: automatic
             }
+            _DO(XPLMSetDatai,      1, "AirbusFBW/ALT100_1000");                 // FCU alt. sel. increm.  (1000ft)
+            _DO(XPLMSetDatai,      3, "AirbusFBW/NDmodeCapt");                  // ND m. sel. (cap. side) (arc)
+            _DO(XPLMSetDatai,      2, "AirbusFBW/NDmodeFO");                    // ND m. sel. (f/o. side) (nav)
+            _DO(XPLMSetDatai,      1, "AirbusFBW/NDrangeCapt");                 // ND r. sel. (cap. side) (20)
+            _DO(XPLMSetDatai,      3, "AirbusFBW/NDrangeFO");                   // ND r. sel. (f/o. side) (80)
             break;
 
         case NVP_ACF_A350_FF:
@@ -2323,7 +2328,7 @@ static int first_fcall_do(chandler_context *ctx)
 //          _DO(XPLMSetDataf, -20.0f, "ixeg/733/ehsi/dh_cpt_act");                    // ADI DH REF (f/o. side) (reset)     // note: only works when power is on
             _DO(XPLMSetDataf,   2.0f, "ixeg/733/ehsi/ehsi_mode_pt_act");              // HSI m.sel. (cap. side) (map)
             _DO(XPLMSetDataf,   3.0f, "ixeg/733/ehsi/ehsi_mode_cpt_act");             // HSI m.sel. (f/o. side) (ctr)
-            _DO(XPLMSetDataf,   0.0f, "ixeg/733/ehsi/ehsi_range_pt_act");             // HSI r.sel. (cap. side) (10)
+            _DO(XPLMSetDataf,   1.0f, "ixeg/733/ehsi/ehsi_range_pt_act");             // HSI r.sel. (cap. side) (20)
             _DO(XPLMSetDataf,   3.0f, "ixeg/733/ehsi/ehsi_range_cpt_act");            // HSI r.sel. (f/o. side) (80)
             _DO(XPLMSetDataf,   1.0f, "ixeg/733/lighting/position_lt_act");           // Exte. lighting: posit. (on)
             _DO(XPLMSetDataf,   0.0f, "ixeg/733/rheostats/light_breakers_act");       // Circuit breakers light (off)
