@@ -750,10 +750,22 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 5)
     {
+        if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+        {
+            XPLMSetDatai(yfms->xpl.qpac.BaroStdCapt, 1);
+            XPLMSetDatai(yfms->xpl.qpac.BaroStdFO,   1);
+            yfs_rad1_pageupdt(yfms); return;
+        }
         if (yfms->xpl.atyp == YFS_ATYP_Q350)
         {
             XPLMSetDatai(yfms->xpl.q350.pressLeftButton,  1);
             XPLMSetDatai(yfms->xpl.q350.pressRightButton, 1);
+            yfs_rad1_pageupdt(yfms); return;
+        }
+        if (yfms->xpl.atyp == YFS_ATYP_Q380)
+        {
+            XPLMSetDatai(yfms->xpl.q380.BaroStdCapt, 1);
+            XPLMSetDatai(yfms->xpl.q380.BaroStdFO,   1);
             yfs_rad1_pageupdt(yfms); return;
         }
         if (yfms->xpl.atyp == YFS_ATYP_FB76)
@@ -776,16 +788,6 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_copilot, 29.92f);
         XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_pilot,   29.92f);
-        if (yfms->xpl.atyp == YFS_ATYP_QPAC)
-        {
-            XPLMSetDatai(yfms->xpl.qpac.BaroStdCapt, 1);
-            XPLMSetDatai(yfms->xpl.qpac.BaroStdFO,   1);
-        }
-        if (yfms->xpl.atyp == YFS_ATYP_Q380)
-        {
-            XPLMSetDatai(yfms->xpl.q380.BaroStdCapt, 1);
-            XPLMSetDatai(yfms->xpl.q380.BaroStdFO,   1);
-        }
         yfs_rad1_pageupdt(yfms); return;
     }
     if (key[0] == 1 && key[1] == 5)
