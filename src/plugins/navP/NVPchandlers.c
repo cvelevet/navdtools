@@ -2220,17 +2220,17 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(XPLMSetDatai, 2, "AirbusFBW/NDmodeFO");                         // ND m. sel. (f/o. side) (nav)
             _DO(XPLMSetDatai, 1, "AirbusFBW/NDrangeCapt");                      // ND r. sel. (cap. side) (20)
             _DO(XPLMSetDatai, 3, "AirbusFBW/NDrangeFO");                        // ND r. sel. (f/o. side) (80)
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot"); // various aircraft
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot"); // various aircraft
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");   // various aircraft
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");   // various aircraft
+            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot"); // VOR1 on ND2 off
+            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot"); // VOR2 on ND2 off
+            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");   // VOR1 on ND1 off
+            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");   // VOR2 on ND1 off
             break;
 
         case NVP_ACF_A350_FF:
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot"); // various aircraft
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot"); // various aircraft
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");   // various aircraft
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");   // various aircraft
+            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot"); // VOR1 on ND2 off
+            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot"); // VOR2 on ND2 off
+            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");   // VOR1 on ND1 off
+            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");   // VOR2 on ND1 off
             _DO(XPLMSetDatai,      0, "1-sim/fcu/navL/flag");                   // sync with above
             _DO(XPLMSetDatai,      0, "1-sim/fcu/navL2/flag");                  // sync with above
             _DO(XPLMSetDatai,      0, "1-sim/fcu/navR/flag");                   // sync with above
@@ -2323,18 +2323,18 @@ static int first_fcall_do(chandler_context *ctx)
                 float panel_brightness_ratio[1] = { 0.4f, };
                 XPLMSetDatavf(d_ref, &panel_brightness_ratio[0], 0, 1);         // Cockpit/flood lights
             }
+            _DO(XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");                 // ND m. sel. (cap. side) (arc)
+            _DO(XPLMSetDatai, 3, "sim/cockpit2/EFIS/map_range");                // ND r. sel. (cap. side) (20)
             _DO(XPLMSetDatai, 1, "com/petersaircraft/aibus/ALT100_1000");       // FCU alt. sel. increm.  (1000ft)
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on"); // various aircraft
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot"); // various aircraft
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot"); // various aircraft
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");   // various aircraft
-            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");   // various aircraft
+            _DO(XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on"); // Ext. lighting: navig.  (on)
+            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot"); // VOR1 on ND2 off
+            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot"); // VOR2 on ND2 off
+            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");   // VOR1 on ND1 off
+            _DO(XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");   // VOR2 on ND1 off
             _DO(XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_airport_on");          // various aircraft
             _DO(XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");              // various aircraft
             _DO(XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_ndb_on");              // various aircraft
             _DO(XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_vor_on");              // various aircraft
-            _DO(XPLMSetDatai, 3, "sim/cockpit2/EFIS/map_range");                // various aircraft
-            _DO(XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");                 // various aircraft
             break;
 
         case NVP_ACF_B737_EA:
@@ -2416,6 +2416,10 @@ static int first_fcall_do(chandler_context *ctx)
             break;
 
         case NVP_ACF_B777_FF:
+            _DO(XPLMSetDatai,    0, "anim/31/switch");                          // VOR1 on ND1 off
+            _DO(XPLMSetDatai,    0, "anim/32/switch");                          // VOR2 on ND1 off
+            _DO(XPLMSetDatai,    2, "anim/64/switch");                          // ND m. sel. (capt. side) (map)
+            _DO(XPLMSetDatai,    1, "anim/65/switch");                          // ND r. sel. (capt. side) (20)
 //          _DO(XPLMSetDatai,    1, "anim/???/button"); // TODO: find dataref   // Terrain override switch (on)
 //          _DO(XPLMSetDataf, 1.0f, "anim/33/cover");                           // Terrain override switch (lift cover)
 //          _DO(XPLMSetDataf, 1.0f, "anim/14/cover");                           // Engine elec. contr. (L) (lift cover)
