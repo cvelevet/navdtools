@@ -91,6 +91,9 @@ typedef struct
     int            acftyp;
     int            status;
     XPLMCommandRef cmd[2];
+    XPLMDataRef iAutoReset;
+    XPLMDataRef iQPAC350_1;
+    XPLMDataRef iQPAC350_P;
 } refcon_cdu_pop;
 
 typedef struct
@@ -1247,6 +1250,8 @@ int nvp_chandlers_update(void *inContext)
             }
         }
     }
+    ctx->mcdu.rc.iAutoReset = ctx->mcdu.rc.iQPAC350_1 = ctx->mcdu.rc.iQPAC350_P = NULL;
+    ctx->mcdu.rc.cmd[0] = ctx->mcdu.rc.cmd[1] = NULL;
     ctx->mcdu.rc.acftyp = ctx->atyp;
     ctx->mcdu.rc.status = -1;
 
@@ -2092,16 +2097,27 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 case NVP_ACF_A320_JD:
                 case NVP_ACF_A330_JD:
                 case NVP_ACF_B737_XG:
+                    cdu->status = -2; return 0; // custom FMS, but no popup/command
+
                 case NVP_ACF_B757_FF:
                 case NVP_ACF_B767_FF:
+                    cdu->iAutoReset = XPLMFindDataRef("757Avionics/cdu/popup");
+                    cdu->status = 1; break;
+
                 case NVP_ACF_B777_FF:
-                    cdu->status = -2; return 0; // custom FMS, but no popup/command
+                    cdu->iAutoReset = XPLMFindDataRef( "T7Avionics/cdu/popup");
+                    cdu->status = 1; break;
 
                 case NVP_ACF_A320_QP:
                 case NVP_ACF_A330_RW:
-                case NVP_ACF_A350_FF:
                     cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("AirbusFBW/UndockMCDU1");
                     cdu->status = 0; break;
+
+                case NVP_ACF_A350_FF:
+                    cdu->iQPAC350_1 = XPLMFindDataRef("1-sim/misc/popupLeft");
+                    cdu->iQPAC350_P = XPLMFindDataRef("1-sim/misc/popupsHide");
+                    cdu->cmd[0]     = XPLMFindCommand("AirbusFBW/UndockMCDU1");
+                    cdu->status     = 0; break;
 
                 case NVP_ACF_EMBE_SS:
                 {
@@ -2174,12 +2190,28 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     cdu->status = -2; return 0; // no plugin FMS found
             }
         }
-        if (!cdu->cmd[0] || !cdu->cmd[1])
+        if (cdu->iAutoReset)
         {
-            cdu->status = -2; return 0;
+            XPLMSetDatai(cdu->iAutoReset, cdu->status); return 0;
         }
-        XPLMCommandOnce(cdu->cmd[!!cdu->status]);
-        cdu->status  = !cdu->status;
+        if (cdu->iQPAC350_1 && cdu->iQPAC350_P && cdu->cmd[0])
+        {
+            if (XPLMGetDatai(cdu->iQPAC350_P) == 0)
+            {
+                XPLMSetDatai(cdu->iQPAC350_1, !XPLMGetDatai(cdu->iQPAC350_1));
+            }
+            else
+            {
+                XPLMCommandOnce(cdu->cmd[0]);
+            }
+            return 0;
+        }
+        if (cdu->cmd[0] && cdu->cmd[1])
+        {
+            XPLMCommandOnce(cdu->cmd[!!cdu->status]);
+            cdu->status  = !cdu->status; return 0;
+        }
+        cdu->status = -2; return 0;
     }
     return 0;
 }
