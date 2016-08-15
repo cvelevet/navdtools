@@ -2363,6 +2363,11 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 _DO(XPLMSetDatai,1, "anim/79/button"); // VOR 2: manual -> auto
             }
+            _DO(XPLMSetDatai,    2, "1-sim/ndpanel/1/hsiModeRotary");           // ND m. sel. (cap. side) (map)
+            _DO(XPLMSetDatai,    2, "1-sim/ndpanel/2/hsiModeRotary");           // ND m. sel. (f/o. side) (map)
+            _DO(XPLMSetDatai,    1, "1-sim/ndpanel/2/hsiModeButton");           // ND m. sel. (f/o. side) (ctr)
+            _DO(XPLMSetDatai,    1, "1-sim/ndpanel/1/hsiRangeRotary");          // ND r. sel. (cap. side) (20)
+            _DO(XPLMSetDatai,    3, "1-sim/ndpanel/2/hsiRangeRotary");          // ND r. sel. (f/o. side) (80)
 //          _DO(XPLMSetDatai,    1, "anim/75/button");                          // Terrain override switch (on)
             _DO(XPLMSetDataf, 1.0f, "1-sim/gauges/terrOVRDcover");              // Terrain override switch (lift cover)
             _DO(XPLMSetDataf, 1.0f, "1-sim/electrical/batteryCover");           // Battery on/off selector (lift cover)
