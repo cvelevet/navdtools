@@ -327,10 +327,6 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
     {
         return 1; // pass through
     }
-    if ((inFlags & (xplm_ShiftFlag|xplm_OptionAltFlag|xplm_ControlFlag)) != 0)
-    {
-        return 1; // pass through
-    }
     if ((inFlags & (xplm_DownFlag)) == 0)
     {
         return 1; // pass through
@@ -345,20 +341,28 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
     }
     switch (yfms->mwindow.ks_mode)
     {
-        case YFS_KSM_DSP: // mouse within main display only
-            XPLMGetMouseLocation(&x, &y); XPGetWidgetGeometry(yfms->mwindow.screen.subw_id, &xmin, &ymax, &xmax, &ymin); break;
-        case YFS_KSM_WIN: // mouse within main window boundaries
+        // mouse within main display + line select key area only
+        case YFS_KSM_DSP:
+            XPGetWidgetGeometry                              (yfms->mwindow.keys.keyid_lsk[0], &xmin, NULL, NULL, NULL);
+            XPGetWidgetGeometry                              (yfms->mwindow.keys.keyid_rsk[0], NULL, NULL, &xmax, NULL);
+            XPLMGetMouseLocation(&x, &y); XPGetWidgetGeometry(yfms->mwindow.screen.subw_id,   NULL, &ymax, NULL, &ymin); break;
+
+        // mouse within main window boundaries
+        case YFS_KSM_WIN:
             XPLMGetMouseLocation(&x, &y); XPGetWidgetGeometry(yfms->mwindow.id,             &xmin, &ymax, &xmax, &ymin); break;
-        case YFS_KSM_ALL: // anywhere
+
+        // anywhere
+        case YFS_KSM_ALL:
             XPLMGetMouseLocation(&x, &y);                                              xmin = xmax = x; ymin = ymax = y; break;
+
         default:
-            return 1; // pass through
+            return 1;
     }
     if (x < xmin || x > xmax || y < ymin || y > ymax)
     {
-        return 1; // pass through
+        return 1;
     }
-    switch ((unsigned char)inVirtualKey)
+    if ((inFlags & (xplm_ShiftFlag|xplm_OptionAltFlag|xplm_ControlFlag)) == 0) switch ((unsigned char)inVirtualKey)
     {
         case XPLM_VK_ADD:
             yfs_spad_apndc(yfms, '+', -1);
@@ -382,64 +386,91 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
             yfs_spad_apndc(yfms, '/', -1);
             return 0;
         case XPLM_VK_SPACE:
-            yfs_spad_apndc(yfms, ' ', -1);
+            yfs_spad_apndc(yfms, '_', -1); // cf. YFSmain.c, draw_display()
             return 0;
         case XPLM_VK_UP:
         case XPLM_VK_DOWN:
         case XPLM_VK_LEFT:
         case XPLM_VK_RIGHT:
             return 1; // TODO (lnup, lndn, left, rigt)
-        case XPLM_VK_0:
-        case XPLM_VK_1:
-        case XPLM_VK_2:
-        case XPLM_VK_3:
-        case XPLM_VK_4:
-        case XPLM_VK_5:
-        case XPLM_VK_6:
-        case XPLM_VK_7:
-        case XPLM_VK_8:
-        case XPLM_VK_9:
-        case XPLM_VK_NUMPAD0:
-        case XPLM_VK_NUMPAD1:
-        case XPLM_VK_NUMPAD2:
-        case XPLM_VK_NUMPAD3:
-        case XPLM_VK_NUMPAD4:
-        case XPLM_VK_NUMPAD5:
-        case XPLM_VK_NUMPAD6:
-        case XPLM_VK_NUMPAD7:
-        case XPLM_VK_NUMPAD8:
-        case XPLM_VK_NUMPAD9:
+        default:
+            break;
+    }
+    switch (inChar)
+    {
+        case ' ':
+            yfs_spad_apndc(yfms, '_', -1); // cf. YFSmain.c, draw_display()
+        case '+':
+        case '-':
+        case '.':
+        case '/':
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+        case 'A':
+        case 'B':
+        case 'C':
+        case 'D':
+        case 'E':
+        case 'F':
+        case 'G':
+        case 'H':
+        case 'I':
+        case 'J':
+        case 'K':
+        case 'L':
+        case 'M':
+        case 'N':
+        case 'O':
+        case 'P':
+        case 'Q':
+        case 'R':
+        case 'S':
+        case 'T':
+        case 'U':
+        case 'V':
+        case 'W':
+        case 'X':
+        case 'Y':
+        case 'Z':
             yfs_spad_apndc(yfms, inChar, -1);
             return 0;
-        case XPLM_VK_A:
-        case XPLM_VK_B:
-        case XPLM_VK_C:
-        case XPLM_VK_D:
-        case XPLM_VK_E:
-        case XPLM_VK_F:
-        case XPLM_VK_G:
-        case XPLM_VK_H:
-        case XPLM_VK_I:
-        case XPLM_VK_J:
-        case XPLM_VK_K:
-        case XPLM_VK_L:
-        case XPLM_VK_M:
-        case XPLM_VK_N:
-        case XPLM_VK_O:
-        case XPLM_VK_P:
-        case XPLM_VK_Q:
-        case XPLM_VK_R:
-        case XPLM_VK_S:
-        case XPLM_VK_T:
-        case XPLM_VK_U:
-        case XPLM_VK_V:
-        case XPLM_VK_W:
-        case XPLM_VK_X:
-        case XPLM_VK_Y:
-        case XPLM_VK_Z:
+        case 'a':
+        case 'b':
+        case 'c':
+        case 'd':
+        case 'e':
+        case 'f':
+        case 'g':
+        case 'h':
+        case 'i':
+        case 'j':
+        case 'k':
+        case 'l':
+        case 'm':
+        case 'n':
+        case 'o':
+        case 'p':
+        case 'q':
+        case 'r':
+        case 's':
+        case 't':
+        case 'u':
+        case 'v':
+        case 'w':
+        case 'x':
+        case 'y':
+        case 'z':
             yfs_spad_apndc(yfms, toupper(inChar), -1);
             return 0;
         default:
-            return 1; // pass through
+            return 1;
     }
 }
