@@ -400,6 +400,7 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
     {
         case ' ':
             yfs_spad_apndc(yfms, '_', -1); // cf. YFSmain.c, draw_display()
+            return 0;
         case '+':
         case '-':
         case '.':
