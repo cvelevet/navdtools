@@ -2627,22 +2627,8 @@ intc_drect:
      * STAR's first waypoint, or that of its enroute transition (if any).
      */
 altitude:
-    switch (leg->type)
     {
-        case NDT_LEGTYPE_CA:
-            *_alt = leg->course. altitude;
-            goto end;
-        case NDT_LEGTYPE_FA:
-            *_alt = leg->fix.    altitude;
-            goto end;
-        case NDT_LEGTYPE_HA:
-            *_alt = leg->hold.   altitude;
-            goto end;
-        case NDT_LEGTYPE_VA:
-            *_alt = leg->heading.altitude;
-            goto end;
-        default:
-            break;
+        // some compilers dislike variable declarations after a label
     }
     int64_t horiz, alt_prev = ndt_distance_get(*_alt, NDT_ALTUNIT_FT);
     ndt_distance climb, desct, interdis, totaldis = NDT_DISTANCE_ZERO;
@@ -2752,6 +2738,23 @@ altitude_climb:
      * Respect any and all altitude constraints specified by a procedure.
      */
 altitude_constraints:
+    switch (leg->type) // TODO: check if we're descending during hold
+    {
+        case NDT_LEGTYPE_CA:
+            *_alt = ndt_distance_max(*_alt, leg->course. altitude);
+            goto end;
+        case NDT_LEGTYPE_FA:
+            *_alt = ndt_distance_max(*_alt, leg->fix.    altitude);
+            goto end;
+        case NDT_LEGTYPE_HA:
+            *_alt = ndt_distance_max(*_alt, leg->hold.   altitude);
+            goto end;
+        case NDT_LEGTYPE_VA:
+            *_alt = ndt_distance_max(*_alt, leg->heading.altitude);
+            goto end;
+        default:
+            break;
+    }
     switch (leg->constraints.altitude.typ)
     {
         case NDT_RESTRICT_AT:
