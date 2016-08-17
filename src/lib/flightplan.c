@@ -2691,12 +2691,13 @@ altitude:
     {
         // TODO: start descending after TOD, segment type is irrelevant
         case NDT_PROCTYPE_FINAL:
-            if (leg->rsg->type == NDT_RSTYPE_MAP) // climb 4.1° (1:11 ratio)
+            if (leg->rsg->type == NDT_RSTYPE_MAP) // climb 4.5° (1:10 ratio)
             {
-                climb = ndt_distance_init(horiz / INT64_C(11), NDT_ALTUNIT_NA);
+                climb = ndt_distance_init(horiz / INT64_C(10), NDT_ALTUNIT_NA);
                 *_alt = ndt_distance_add(*_alt, climb); goto altitude_constraints;
             }
             // fall through
+        case NDT_PROCTYPE_APPTR:
         case NDT_PROCTYPE_STAR1:
         case NDT_PROCTYPE_STAR2:
         case NDT_PROCTYPE_STAR3:
@@ -2706,7 +2707,6 @@ altitude:
         case NDT_PROCTYPE_STAR7:
         case NDT_PROCTYPE_STAR8:
         case NDT_PROCTYPE_STAR9:
-        case NDT_PROCTYPE_APPTR:
             if (alt_prev >= INT64_C(11000)) // descend 3.0° (1:15 ratio)
             {
                 desct = ndt_distance_init(horiz / INT64_C(15), NDT_ALTUNIT_NA);
