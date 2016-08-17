@@ -2630,6 +2630,7 @@ altitude:
     {
         // some compilers dislike variable declarations after a label
     }
+    int ptype = leg->rsg->prc ? leg->rsg->prc->type : NDT_PROCTYPE_ENRTE;
     int64_t horiz, alt_prev = ndt_distance_get(*_alt, NDT_ALTUNIT_FT);
     ndt_distance climb, desct, interdis, totaldis = NDT_DISTANCE_ZERO;
     ndt_waypoint *dst_wpt, *src_wpt = legsrc;
@@ -2673,7 +2674,7 @@ altitude:
             *_alt = ndt_distance_max(*_alt, flp->crz_altitude); // dummy top of descent
         }
     }
-    switch (leg->rsg->prc->type)
+    switch (ptype)
     {
         // TODO: start descending after TOD, segment type is irrelevant
         case NDT_PROCTYPE_FINAL:
