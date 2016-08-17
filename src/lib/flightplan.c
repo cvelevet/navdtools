@@ -82,7 +82,7 @@ ndt_flightplan* ndt_flightplan_init(ndt_navdatabase *ndb)
 
     // default cruising altitude to remain compatible
     // with most procedures' restrictions if possible
-    flp->crz_altitude = ndt_distance_init(30000, NDT_ALTUNIT_NA);
+    flp->crz_altitude = ndt_distance_init(30000, NDT_ALTUNIT_FT);
 
 end:
     return flp;
@@ -2733,7 +2733,7 @@ altitude:
      * During climb, never exceed the specified cruise altitude (obviously).
      */
 altitude_climb:
-    *_alt = ndt_distance_max(*_alt, flp->crz_altitude);
+    *_alt = ndt_distance_min(*_alt, flp->crz_altitude);
 
     /*
      * Respect any and all altitude constraints specified by a procedure.
