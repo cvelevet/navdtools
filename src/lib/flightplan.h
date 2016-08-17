@@ -185,6 +185,7 @@ typedef struct ndt_procedure
 
     enum ndt_procedure_type
     {
+        NDT_PROCTYPE_ENRTE = 01,        // enroute leg (not used in ndt_procedure)
         NDT_PROCTYPE_SID_1 = 10,        // transition: runway   ->  SID
         NDT_PROCTYPE_SID_2 = 11,        // SID
         NDT_PROCTYPE_SID_3 = 12,        // transition: SID      ->  enroute
