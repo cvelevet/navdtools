@@ -50,7 +50,27 @@ typedef struct ndt_flightplan
     ndt_info             info; // identification information
     ndt_list             *cws; // custom waypoints (struct ndt_waypoint)
     ndt_navdatabase      *ndb; // associated navigation database
-    ndt_distance crz_altitude; // cruise altitude
+    ndt_distance crz_altitude; // initially planned flight level (cruise)
+    ndt_distance tra_altitude; // applicable transition altitude (climb)
+    ndt_distance trl_altitude; // applicable transition level    (descent)
+
+    struct // pseudo-waypoint: top of climb
+    {
+        int                valid; // if computed or not
+        void                *leg; // applicable route leg (may be NULL)
+        ndt_waypoint        *wpt; // associated waypoint  (may be NULL)
+        ndt_position coordinates; // latitude and longitude
+        ndt_distance along_track; // distance from leg->src
+    } toc;
+
+    struct // pseudo-waypoint: top of descent
+    {
+        int                valid; // if computed or not
+        void                *leg; // applicable route leg (may be NULL)
+        ndt_waypoint        *wpt; // associated waypoint  (may be NULL)
+        ndt_position coordinates; // latitude and longitude
+        ndt_distance along_track; // distance to leg->dst
+    } tod;
 
     struct
     {
@@ -245,6 +265,9 @@ typedef struct ndt_route_leg
     ndt_route_segment *rsg;    // leg's parent route segment
     ndt_list        *xpfms;    // list of fake waypoints for XPFMS based formats
 
+    ndt_restriction constraints;    // altitude constraints
+    ndt_distance    altitude;       // altitude at leg->dst
+
     enum
     {
         // ARINC 424
@@ -368,8 +391,6 @@ typedef struct ndt_route_leg
             double  inbound_course;
         } hold;
     };
-
-    ndt_restriction constraints;
 } ndt_route_leg;
 
 ndt_route_leg* ndt_route_leg_init    (                                                 );

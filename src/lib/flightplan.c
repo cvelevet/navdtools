@@ -80,7 +80,9 @@ ndt_flightplan* ndt_flightplan_init(ndt_navdatabase *ndb)
 
     flp->ndb = ndb;
 
-    flp->crz_altitude = ndt_distance_init(0, NDT_ALTUNIT_NA);
+    // default cruising altitude to remain compatible
+    // with most procedures' restrictions if possible
+    flp->crz_altitude = ndt_distance_init(30000, NDT_ALTUNIT_NA);
 
 end:
     return flp;
@@ -231,6 +233,13 @@ int ndt_flightplan_set_departure(ndt_flightplan *flp, const char *icao, const ch
         }
         flp->dep.rwy = rwy;
     }
+
+    // transition altitude
+    int64_t tr_altitude = (ndt_distance_get(apt->tr_altitude, NDT_ALTUNIT_FT));
+    int64_t trans_level = (ndt_distance_get(apt->trans_level, NDT_ALTUNIT_FT));
+    flp->tra_altitude   = (tr_altitude ? apt->tr_altitude :
+                           trans_level ? apt->trans_level :
+                           ndt_distance_init(10000, NDT_ALTUNIT_FT));
 
 end:
     if (err)
@@ -403,6 +412,13 @@ int ndt_flightplan_set_arrival(ndt_flightplan *flp, const char *icao, const char
         }
         flp->arr.rwy = rwy;
     }
+
+    // transition level
+    int64_t trans_level = (ndt_distance_get(apt->trans_level, NDT_ALTUNIT_FT));
+    int64_t tr_altitude = (ndt_distance_get(apt->tr_altitude, NDT_ALTUNIT_FT));
+    flp->trl_altitude   = (trans_level ? apt->trans_level :
+                           tr_altitude ? apt->tr_altitude :
+                           ndt_distance_init(10000, NDT_ALTUNIT_FT));
 
 end:
     if (err)
@@ -2604,31 +2620,13 @@ intc_drect:
 
     /*
      * Update altitude based on distance flown for the previous leg.
-     * Not terribly accurate but better than nothing: climb during SID,
-     * altitude remains stable enroute, descend during STAR and approach.
-     * Also assume we're respecting all constraints.
+     * Not extremely accurate but better than nothing: we climb until reaching
+     * our cruise altitude, and start descending when reaching "top of descent".
+     *
+     * Since we don't compute top of descent yet, just assume it is the
+     * STAR's first waypoint, or that of its enroute transition (if any).
      */
 altitude:
-    if (!leg->rsg->prc)
-    {
-        goto end; // enroute leg, climb or descent not applicable
-    }
-    if (flp->arr.star.enroute.rsgt)
-    {
-        if (leg->rsg == flp->arr.star.enroute.rsgt &&
-            leg      == ndt_list_item(leg->rsg->legs, 0))
-        {
-            goto altitude_constraints; //future: flightplan's cruise altitude
-        }
-    }
-    else if (flp->arr.star.rsgt)
-    {
-        if (leg->rsg == flp->arr.star.rsgt &&
-            leg      == ndt_list_item(leg->rsg->legs, 0))
-        {
-            goto altitude_constraints; //future: flightplan's cruise altitude
-        }
-    }
     switch (leg->type)
     {
         case NDT_LEGTYPE_CA:
@@ -2646,9 +2644,9 @@ altitude:
         default:
             break;
     }
-    ndt_distance verti, intermed, distance = NDT_DISTANCE_ZERO;
+    int64_t horiz, alt_prev = ndt_distance_get(*_alt, NDT_ALTUNIT_FT);
+    ndt_distance climb, desct, interdis, totaldis = NDT_DISTANCE_ZERO;
     ndt_waypoint *dst_wpt, *src_wpt = legsrc;
-    int64_t horiz;
     for (size_t i = 0; i < ndt_list_count(leg->xpfms); i++)
     {
         if (!(dst_wpt = ndt_list_item(leg->xpfms, i)))
@@ -2656,31 +2654,49 @@ altitude:
             err = ENOMEM;
             goto end;
         }
-        intermed = ndt_position_calcdistance(src_wpt->position,  dst_wpt->position);
-        distance = ndt_distance_add(distance, intermed);
+        interdis = ndt_position_calcdistance(src_wpt->position, dst_wpt ->position);
+        totaldis = ndt_distance_add         (totaldis,                    interdis);
         src_wpt  = dst_wpt;
     }
     if (leg->dst)
     {
-        intermed = ndt_position_calcdistance(src_wpt->position, leg->dst->position);
-        distance = ndt_distance_add(distance, intermed);
+        interdis = ndt_position_calcdistance(src_wpt->position, leg->dst->position);
+        totaldis = ndt_distance_add         (totaldis,                    interdis);
     }
     if (rwy) // no climb during takeoff roll
     {
-        distance = ndt_distance_rem(distance, rwy->length);
+        totaldis = ndt_distance_rem(totaldis, rwy->length);
+    }
+    {
+        // make horizontal distance usable (native units for maximum precision)
+        horiz = ndt_distance_get(totaldis, NDT_ALTUNIT_NA);
+    }
+    if (flp->arr.star.enroute.rsgt)
+    {
+        if (leg->rsg == flp->arr.star.enroute.rsgt &&
+            leg      == ndt_list_item(leg->rsg->legs, 0))
+        {
+            *_alt = ndt_distance_max(*_alt, flp->crz_altitude); // dummy top of descent
+        }
+    }
+    else if (flp->arr.star.rsgt)
+    {
+        if (leg->rsg == flp->arr.star.rsgt &&
+            leg      == ndt_list_item(leg->rsg->legs, 0))
+        {
+            *_alt = ndt_distance_max(*_alt, flp->crz_altitude); // dummy top of descent
+        }
     }
     switch (leg->rsg->prc->type)
     {
-        case NDT_PROCTYPE_SID_1:
-        case NDT_PROCTYPE_SID_2:
-        case NDT_PROCTYPE_SID_3:
-        case NDT_PROCTYPE_SID_4:
-        case NDT_PROCTYPE_SID_5:
-        case NDT_PROCTYPE_SID_6: // climbing 4.1° (1:11 ratio)
-            horiz = ndt_distance_get (distance,            NDT_ALTUNIT_NA);
-            verti = ndt_distance_init(horiz / INT64_C(11), NDT_ALTUNIT_NA);
-            *_alt = ndt_distance_add (*_alt,  verti);
-            goto altitude_constraints;
+        // TODO: start descending after TOD, segment type is irrelevant
+        case NDT_PROCTYPE_FINAL:
+            if (leg->rsg->type == NDT_RSTYPE_MAP) // climb 4.1° (1:11 ratio)
+            {
+                climb = ndt_distance_init(horiz / INT64_C(11), NDT_ALTUNIT_NA);
+                *_alt = ndt_distance_add(*_alt, climb); goto altitude_constraints;
+            }
+            // fall through
         case NDT_PROCTYPE_STAR1:
         case NDT_PROCTYPE_STAR2:
         case NDT_PROCTYPE_STAR3:
@@ -2690,27 +2706,51 @@ altitude:
         case NDT_PROCTYPE_STAR7:
         case NDT_PROCTYPE_STAR8:
         case NDT_PROCTYPE_STAR9:
-        case NDT_PROCTYPE_APPTR: // descend. 3.0° (1:15 ratio)
-            horiz = ndt_distance_get (distance,            NDT_ALTUNIT_NA);
-            verti = ndt_distance_init(horiz / INT64_C(15), NDT_ALTUNIT_NA);
-            *_alt = ndt_distance_rem (*_alt,  verti);
-            goto altitude_constraints;
-        case NDT_PROCTYPE_FINAL:
-            if (leg->rsg->type == NDT_RSTYPE_MAP)
+        case NDT_PROCTYPE_APPTR:
+            if (alt_prev >= INT64_C(11000)) // descend 3.0° (1:15 ratio)
             {
-                horiz = ndt_distance_get (distance,            NDT_ALTUNIT_NA);
-                verti = ndt_distance_init(horiz / INT64_C(11), NDT_ALTUNIT_NA);
-                *_alt = ndt_distance_add (*_alt,  verti);
-                goto altitude_constraints;
+                desct = ndt_distance_init(horiz / INT64_C(15), NDT_ALTUNIT_NA);
+                *_alt = ndt_distance_rem(*_alt, desct); goto altitude_constraints;
             }
-            horiz = ndt_distance_get (distance,            NDT_ALTUNIT_NA);
-            verti = ndt_distance_init(horiz / INT64_C(15), NDT_ALTUNIT_NA);
-            *_alt = ndt_distance_rem (*_alt,  verti);
-            goto altitude_constraints;
+            // descend. 2.5° (1:18 ratio)
+            desct = ndt_distance_init(horiz / INT64_C(18), NDT_ALTUNIT_NA);
+            *_alt = ndt_distance_rem(*_alt, desct); goto altitude_constraints;
+
+        // TODO: more realistic climb profile
         default:
-            goto end;
+            if (alt_prev >= ndt_distance_get(flp->crz_altitude, NDT_ALTUNIT_FT))
+            {
+                goto altitude_constraints;  // already reached top of climb
+            }
+            if (alt_prev <= INT64_C( 9000)) // climb 4.5° (1:10 ratio)
+            {
+                climb = ndt_distance_init(horiz / INT64_C(10), NDT_ALTUNIT_NA);
+                *_alt = ndt_distance_add(*_alt, climb); goto altitude_climb;
+            }
+            if (alt_prev <= INT64_C(19000)) // climb 3.0° (1:15 ratio)
+            {
+                climb = ndt_distance_init(horiz / INT64_C(15), NDT_ALTUNIT_NA);
+                *_alt = ndt_distance_add(*_alt, climb); goto altitude_climb;
+            }
+            if (alt_prev <= INT64_C(29000)) // climb 2.3° (1:20 ratio)
+            {
+                climb = ndt_distance_init(horiz / INT64_C(20), NDT_ALTUNIT_NA);
+                *_alt = ndt_distance_add(*_alt, climb); goto altitude_climb;
+            }
+            // climb 1.8° (1:25 ratio)
+            climb = ndt_distance_init(horiz / INT64_C(25), NDT_ALTUNIT_NA);
+            *_alt = ndt_distance_add(*_alt, climb); goto altitude_climb;
     }
 
+    /*
+     * During climb, never exceed the specified cruise altitude (obviously).
+     */
+altitude_climb:
+    *_alt = ndt_distance_max(*_alt, flp->crz_altitude);
+
+    /*
+     * Respect any and all altitude constraints specified by a procedure.
+     */
 altitude_constraints:
     switch (leg->constraints.altitude.typ)
     {
@@ -2722,6 +2762,7 @@ altitude_constraints:
             break;
         case NDT_RESTRICT_BT:
             *_alt = ndt_distance_max(*_alt, leg->constraints.altitude.min);
+            // fall through
         case NDT_RESTRICT_BL:
             *_alt = ndt_distance_min(*_alt, leg->constraints.altitude.max);
             break;
@@ -2739,6 +2780,9 @@ end:
                 leg    ? leg->type         : -1,
                 legsrc ? legsrc->info.idnt : NULL, error);
         return NULL;
+    }
+    {
+        leg->altitude = *_alt; // store final altitude in leg before returning
     }
     if (leg->dst)
     {
