@@ -82,7 +82,7 @@ ndt_flightplan* ndt_flightplan_init(ndt_navdatabase *ndb)
 
     // default cruising altitude to remain compatible
     // with most procedures' restrictions if possible
-    flp->crz_altitude = ndt_distance_init(30000, NDT_ALTUNIT_FT);
+    flp->crz_altitude = ndt_distance_init(33000, NDT_ALTUNIT_FT);
 
 end:
     return flp;
@@ -2674,13 +2674,25 @@ altitude:
             *_alt = ndt_distance_max(*_alt, flp->crz_altitude); // dummy top of descent
         }
     }
+#define ALT1 (INT64_C(10000)) // speed transition
+#define ALT2 (INT64_C(20000)) // +10,000
+#define ALT3 (INT64_C(30000)) // +10,000
+#define ALT4 (INT64_C(40000)) // +10,000
+#define ALT5 (INT64_C(50000)) // +10,000
+#define ALTM (INT64_C(60000)) // +10,000
+#define CLB1 (INT64_C(10))  // <= 10,000, climb 4.5° (1:10 ratio)
+#define CLB2 (INT64_C(15))  // <= 20,000, climb 3.0° (1:15 ratio)
+#define CLB3 (INT64_C(30))  // <= 30,000, climb 1.5° (1:30 ratio)
+#define CLB4 (INT64_C(45))  // <= 40,000, climb 1.0° (1:45 ratio)
+#define CLB5 (INT64_C(60))  // <= 50,000, climb .75° (1:60 ratio)
+#define CLBM (INT64_C(75))  // <= 60,000, climb 0.6° (1:75 ratio)
     switch (ptype)
     {
         // TODO: start descending after TOD, segment type is irrelevant
         case NDT_PROCTYPE_FINAL:
-            if (leg->rsg->type == NDT_RSTYPE_MAP) // climb 4.5° (1:10 ratio)
+            if (leg->rsg->type == NDT_RSTYPE_MAP)
             {
-                climb = ndt_distance_init(horiz / INT64_C(10), NDT_ALTUNIT_NA);
+                climb = ndt_distance_init(horiz / CLB1, NDT_ALTUNIT_NA);
                 *_alt = ndt_distance_add(*_alt, climb); goto altitude_constraints;
             }
             // fall through
@@ -2694,7 +2706,10 @@ altitude:
         case NDT_PROCTYPE_STAR7:
         case NDT_PROCTYPE_STAR8:
         case NDT_PROCTYPE_STAR9:
-            if (alt_prev >= INT64_C(11000)) // descend 3.0° (1:15 ratio)
+            {   // minimal 1-degree predicted altitude, used to determine descent rate
+                alt_prev -= ndt_distance_get(ndt_distance_init(horiz / INT64_C(45), NDT_ALTUNIT_NA), NDT_ALTUNIT_FT);
+            }
+            if (alt_prev >= INT64_C(10000)) // descend 3.0° (1:15 ratio)
             {
                 desct = ndt_distance_init(horiz / INT64_C(15), NDT_ALTUNIT_NA);
                 *_alt = ndt_distance_rem(*_alt, desct); goto altitude_constraints;
@@ -2703,29 +2718,57 @@ altitude:
             desct = ndt_distance_init(horiz / INT64_C(18), NDT_ALTUNIT_NA);
             *_alt = ndt_distance_rem(*_alt, desct); goto altitude_constraints;
 
-        // TODO: more realistic climb profile
+        /*
+         * TODO: more realistic climb profile
+         *
+         * Calibr.: LSGG/23 GVA PAS GG602 MOLUS UN871 BERSU LOWI/08
+         * S/Brief: A320-IAE, perf: M078, pax: 150, altitude: FL330
+         *
+         *     GVA       SimBrief FL029     navdconv     FL015
+         *     PAS       SimBrief FL102     navdconv     FL062
+         *     GG602     SimBrief FL129     navdconv     FL086
+         *     TINAM     SimBrief FL223     navdconv     FL184
+         *     MOLUS     SimBrief FL243     navdconv     FL216
+         *     SOSAL     SimBrief FL266     navdconv     FL238
+         *     TELNO     SimBrief FL298     navdconv     FL280
+         *     KORED     SimBrief FL309     navdconv     FL295
+         *     KONOL     SimBrief FL323     navdconv     FL314
+         *     BERSU     SimBrief FL330     navdconv     FL330
+         */
         default:
             if (alt_prev >= ndt_distance_get(flp->crz_altitude, NDT_ALTUNIT_FT))
             {
                 goto altitude_constraints;  // already reached top of climb
             }
-            if (alt_prev <= INT64_C( 9000)) // climb 4.5° (1:10 ratio)
+            {   // minimal 1-degree predicted altitude, used to determine climb rate
+                alt_prev += ndt_distance_get(ndt_distance_init(horiz / INT64_C(45), NDT_ALTUNIT_NA), NDT_ALTUNIT_FT);
+            }
+            if (alt_prev <= ALT1)
             {
-                climb = ndt_distance_init(horiz / INT64_C(10), NDT_ALTUNIT_NA);
+                climb = ndt_distance_init(horiz / CLB1, NDT_ALTUNIT_NA);
                 *_alt = ndt_distance_add(*_alt, climb); goto altitude_climb;
             }
-            if (alt_prev <= INT64_C(19000)) // climb 3.0° (1:15 ratio)
+            if (alt_prev <= ALT2)
             {
-                climb = ndt_distance_init(horiz / INT64_C(15), NDT_ALTUNIT_NA);
+                climb = ndt_distance_init(horiz / CLB2, NDT_ALTUNIT_NA);
                 *_alt = ndt_distance_add(*_alt, climb); goto altitude_climb;
             }
-            if (alt_prev <= INT64_C(29000)) // climb 2.3° (1:20 ratio)
+            if (alt_prev <= ALT3)
             {
-                climb = ndt_distance_init(horiz / INT64_C(20), NDT_ALTUNIT_NA);
+                climb = ndt_distance_init(horiz / CLB3, NDT_ALTUNIT_NA);
                 *_alt = ndt_distance_add(*_alt, climb); goto altitude_climb;
             }
-            // climb 1.8° (1:25 ratio)
-            climb = ndt_distance_init(horiz / INT64_C(25), NDT_ALTUNIT_NA);
+            if (alt_prev <= ALT4)
+            {
+                climb = ndt_distance_init(horiz / CLB4, NDT_ALTUNIT_NA);
+                *_alt = ndt_distance_add(*_alt, climb); goto altitude_climb;
+            }
+            if (alt_prev <= ALT5)
+            {
+                climb = ndt_distance_init(horiz / CLB5, NDT_ALTUNIT_NA);
+                *_alt = ndt_distance_add(*_alt, climb); goto altitude_climb;
+            }
+            climb = ndt_distance_init(horiz / CLBM, NDT_ALTUNIT_NA);
             *_alt = ndt_distance_add(*_alt, climb); goto altitude_climb;
     }
 
