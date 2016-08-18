@@ -753,8 +753,9 @@ void* yfs_main_init(void)
         do
         {
             if (0 == (ret = ndt_file_getpath(yfms->ndt.xsystem_pth, "Custom Data/GNS430/navdata/ATS.txt", &path, &pathlen)) &&
+                0 == (stat(path, &stats)) && S_ISREG(stats.st_mode)                                                         &&
                 0 == (ret = ndt_file_getpath(yfms->ndt.xsystem_pth, "Custom Data/GNS430/navdata",         &path, &pathlen)) &&
-                0 == stat(path, &stats) && S_ISDIR(stats.st_mode))
+                0 == (stat(path, &stats)) && S_ISDIR(stats.st_mode))
             {
                 if ((yfms->ndt.ndb = ndt_navdatabase_init(path, NDT_NAVDFMT_XPGNS)) == NULL)
                 {
@@ -765,8 +766,9 @@ void* yfs_main_init(void)
                 free(path); break;
             }
             if (0 == (ret = ndt_file_getpath(yfms->ndt.xsystem_pth, "Resources/GNS430/navdata/ATS.txt", &path, &pathlen)) &&
+                0 == (stat(path, &stats)) && S_ISREG(stats.st_mode)                                                       &&
                 0 == (ret = ndt_file_getpath(yfms->ndt.xsystem_pth, "Resources/GNS430/navdata",         &path, &pathlen)) &&
-                0 == stat(path, &stats) && S_ISDIR(stats.st_mode))
+                0 == (stat(path, &stats)) && S_ISDIR(stats.st_mode))
             {
                 if ((yfms->ndt.ndb = ndt_navdatabase_init(path, NDT_NAVDFMT_XPGNS)) == NULL)
                 {
