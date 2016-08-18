@@ -607,56 +607,46 @@ int nvp_menu_setup(void *_menu_context)
         if (ctx->data.speedbooster.dr_frstr3d)
         {
             ctx->data.speedbooster.df_frstr3d = XPLMGetDataf(ctx->data.speedbooster.dr_frstr3d);
-            XPLMSetDataf(ctx->data.speedbooster.dr_frstr3d, 3.00f);
         }
         if (ctx->data.speedbooster.dr_lastr3d)
         {
             ctx->data.speedbooster.df_lastr3d = XPLMGetDataf(ctx->data.speedbooster.dr_lastr3d);
-            XPLMSetDataf(ctx->data.speedbooster.dr_lastr3d, 3.00f);
         }
         if (ctx->data.speedbooster.dr_plotrad)
         {
             ctx->data.speedbooster.df_plotrad = XPLMGetDataf(ctx->data.speedbooster.dr_plotrad);
-            XPLMSetDataf(ctx->data.speedbooster.dr_plotrad, 0.60f);
         }
         if (ctx->data.speedbooster.dr_shadrad)
         {
             ctx->data.speedbooster.df_shadrad = XPLMGetDataf(ctx->data.speedbooster.dr_shadrad);
-            XPLMSetDataf(ctx->data.speedbooster.dr_shadrad, 0.40f);
         }
         if (ctx->data.speedbooster.dr_limitfr)
         {
             ctx->data.speedbooster.df_limitfr = XPLMGetDataf(ctx->data.speedbooster.dr_limitfr);
-            XPLMSetDataf(ctx->data.speedbooster.dr_limitfr, 0.35f);
         }
         if (ctx->data.speedbooster.dr_difgain)
         {
             ctx->data.speedbooster.df_difgain = XPLMGetDataf(ctx->data.speedbooster.dr_difgain);
-            XPLMSetDataf(ctx->data.speedbooster.dr_difgain, 1.00f);
         }
         if (ctx->data.speedbooster.dr_ovrdctl)
         {
             ctx->data.speedbooster.df_ovrdctl = XPLMGetDataf(ctx->data.speedbooster.dr_ovrdctl);
-            XPLMSetDataf(ctx->data.speedbooster.dr_ovrdctl, 1.00f);
         }
         if (ctx->data.speedbooster.dr_use_csm)
         {
             ctx->data.speedbooster.df_use_csm = XPLMGetDataf(ctx->data.speedbooster.dr_use_csm);
-            XPLMSetDataf(ctx->data.speedbooster.dr_use_csm, 0.00f);
         }
         if (ctx->data.speedbooster.dr_disprep)
         {
             ctx->data.speedbooster.df_disprep = XPLMGetDataf(ctx->data.speedbooster.dr_disprep);
-            XPLMSetDataf(ctx->data.speedbooster.dr_disprep, 1.00f);
         }
         if (ctx->data.speedbooster.dr_disrcam)
         {
             ctx->data.speedbooster.df_disrcam = XPLMGetDataf(ctx->data.speedbooster.dr_disrcam);
-            XPLMSetDataf(ctx->data.speedbooster.dr_disrcam, 1.00f);
         }
         XPLMCheckMenuItem(ctx->id, ctx->items.cloud_killer.id, xplm_Menu_NoCheck);
-        XPLMCheckMenuItem(ctx->id, ctx->items.speedbooster.id, xplm_Menu_Checked);
-        ndt_log          ("navP [info]: enabling clouds & Tachyon Enhancement\n");
+        XPLMCheckMenuItem(ctx->id, ctx->items.speedbooster.id, xplm_Menu_NoCheck);
+        ndt_log          (   "navP [info]: clouds on, Tachyon Enhancement off\n");
 
         /* custom brake brake and speedbrake callouts */
         XPLMCheckMenuItem(ctx->id, ctx->items.callouts_sts.id, xplm_Menu_Checked);
