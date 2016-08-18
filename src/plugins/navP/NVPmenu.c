@@ -172,6 +172,7 @@ typedef struct
             XPLMDataRef dr_kill_2d; // sim/private/controls/clouds/kill_2d      (toggle: 0/1 (default 0))
             XPLMDataRef dr_kill_3d; // sim/private/controls/clouds/kill_3d      (toggle: 0/1 (default 0))
             XPLMDataRef dr_skpdraw; // sim/private/controls/clouds/skip_draw    (toggle: 0/1 (default 0))
+            XPLMDataRef dr_k3drain; // sim/private/controls/rain/kill_3d_rain   (toggle: 0/1 (default 0))
 
             // cloud resolution & drawing parameters
             XPLMDataRef dr_frstr3d; // sim/private/controls/clouds/first_res_3d
@@ -563,6 +564,7 @@ int nvp_menu_setup(void *_menu_context)
         ctx->data.speedbooster.dr_kill_2d = XPLMFindDataRef("sim/private/controls/clouds/kill_2d"               );
         ctx->data.speedbooster.dr_kill_3d = XPLMFindDataRef("sim/private/controls/clouds/kill_3d"               );
         ctx->data.speedbooster.dr_skpdraw = XPLMFindDataRef("sim/private/controls/clouds/skip_draw"             );
+        ctx->data.speedbooster.dr_k3drain = XPLMFindDataRef("sim/private/controls/rain/kill_3d_rain"            );
         ctx->data.speedbooster.dr_frstr3d = XPLMFindDataRef("sim/private/controls/clouds/first_res_3d"          );
         ctx->data.speedbooster.dr_lastr3d = XPLMFindDataRef("sim/private/controls/clouds/last_res_3d"           );
         ctx->data.speedbooster.dr_plotrad = XPLMFindDataRef("sim/private/controls/clouds/plot_radius"           );
@@ -583,6 +585,7 @@ int nvp_menu_setup(void *_menu_context)
                 ctx->data.speedbooster.dr_kill_2d = NULL;
                 ctx->data.speedbooster.dr_kill_3d = NULL;
                 ctx->data.speedbooster.dr_skpdraw = NULL;
+                ctx->data.speedbooster.dr_k3drain = NULL;
                 ctx->data.speedbooster.dr_frstr3d = NULL;
                 ctx->data.speedbooster.dr_lastr3d = NULL;
                 ctx->data.speedbooster.dr_plotrad = NULL;
@@ -603,6 +606,10 @@ int nvp_menu_setup(void *_menu_context)
         if (ctx->data.speedbooster.dr_skpdraw)
         {
             XPLMSetDataf(ctx->data.speedbooster.dr_skpdraw, 0.00f);
+        }
+        if (ctx->data.speedbooster.dr_k3drain)
+        {
+            XPLMSetDataf(ctx->data.speedbooster.dr_k3drain, 0.00f);
         }
         if (ctx->data.speedbooster.dr_frstr3d)
         {
@@ -1013,6 +1020,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_kill_2d, 0.00f);
             SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_kill_3d, 0.00f);
             SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_skpdraw, 0.00f);
+            SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_k3drain, 0.00f);
             ndt_log(          "navP [info]: re-enabling clouds\n");
             return;
         }
@@ -1020,6 +1028,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_kill_2d, 1.00f);
         SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_kill_3d, 1.00f);
         SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_skpdraw, 1.00f);
+        SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_k3drain, 1.00f);
         ndt_log(     "navP [info]: disabling clouds (INOP)\n");
         return;
     }
