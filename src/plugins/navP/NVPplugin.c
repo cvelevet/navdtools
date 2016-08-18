@@ -42,8 +42,7 @@ void         *chandler_context = NULL;
 void         *navpmenu_context = NULL;
 yfms_context *navpyfms_context = NULL;
 
-#define PLUGIN_NAME "navP"      // or "YFMS"
-#define INTRO_SPEAK "nav P OK"  // or "Y FMS OK"
+#define PLUGIN_NAME "navP" // or "YFMS"
 
 #if IBM
 #include <windows.h>
@@ -121,10 +120,6 @@ PLUGIN_API int XPluginEnable(void)
     }
 
     /* all good */
-    if (XPLMFindPluginBySignature("x-fmc.com") == XPLM_NO_PLUGIN_ID)
-    {
-        XPLMSpeakString(INTRO_SPEAK);
-    }
     XPLMDebugString(PLUGIN_NAME " [info]: XPluginEnable OK\n"); return 1;
 }
 
