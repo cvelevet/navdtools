@@ -926,7 +926,7 @@ void yfs_printf_lft(void *context, int index, int offset, int color, char *strin
     {
         return;
     }
-    if (index > YFS_DISPLAY_NUMR - 2)
+    if (index  < 0 || index  >  YFS_DISPLAY_NUMR - 2)
     {
         return; // scratchpad or beyond
     }
@@ -952,7 +952,7 @@ void yfs_printf_rgt(void *context, int index, int offset, int color, char *strin
     {
         return;
     }
-    if (index > YFS_DISPLAY_NUMR - 2)
+    if (index  < 0 || index  >  YFS_DISPLAY_NUMR - 2)
     {
         return; // scratchpad or beyond
     }
@@ -969,6 +969,15 @@ void yfs_printf_rgt(void *context, int index, int offset, int color, char *strin
         }
         yfms->mwindow.screen.text[index][j - offset] = string[i];
     }
+}
+
+void yfs_printf_ctr(void *context, int index, int color, char *string)
+{
+    if (!string)
+    {
+        return;
+    }
+    yfs_printf_lft(context, index, (YFS_DISPLAY_NUMC - strnlen(string, YFS_DISPLAY_NUMC)) / 2, color, string); return;
 }
 
 static void menu_handler(void *inMenuRef, void *inItemRef)

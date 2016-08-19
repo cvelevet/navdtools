@@ -124,8 +124,7 @@ void yfs_menu_pageupdt(yfms_context *yfms)
     }
 
     /* line 0: main header (white, centered) */
-    yfs_main_rline(yfms, 0, COLR_IDX_WHITE);
-    sprintf(yfms->mwindow.screen.text[0], "%*s", (YFS_DISPLAY_NUMC + 10) / 2, "MCDU MENU");
+    yfs_printf_ctr(yfms, 0,    COLR_IDX_WHITE, "MCDU MENU");
 
     /* line 2 left: ident page (green) */
     yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "<FMGC");
@@ -154,7 +153,7 @@ void yfs_idnt_pageupdt(yfms_context *yfms)
     }
 
     /* row buffer */
-    int len; char buf[YFS_DISPLAY_NUMC + 1];
+    char buf[YFS_DISPLAY_NUMC + 1];
 
     /* reset lines before drawing */
     for (int i = 0; i < YFS_DISPLAY_NUMR - 1; i++)
@@ -163,15 +162,14 @@ void yfs_idnt_pageupdt(yfms_context *yfms)
     }
 
     /* line 0: aircraft ICAO identifier (white, centered) */
-    yfs_main_rline(yfms, 0, COLR_IDX_WHITE);
-    len = XPLMGetDatab(yfms->xpl.acf_ICAO, buf, 0, sizeof(buf) - 1); buf[len] = 0; len = strlen(buf);
-    sprintf(yfms->mwindow.screen.text[0], "%*s", (1 + YFS_DISPLAY_NUMC + len) / 2, buf);
+    buf[XPLMGetDatab(yfms->xpl.acf_ICAO, buf, 0, sizeof(buf) - 1)] = 0;
+    yfs_printf_ctr(yfms,  0, COLR_IDX_WHITE, buf);
 
     /* line 1: header (white, offset 1 right) */
     yfs_main_rline(yfms,  1, COLR_IDX_WHITE); sprintf(yfms->mwindow.screen.text[ 1], "%s", " ENG");
 
     /* line 2: engine count & type (green) */
-    yfs_main_rline(yfms, 2, COLR_IDX_GREEN);
+    yfs_main_rline(yfms,  2, COLR_IDX_GREEN);
     int engc   = XPLMGetDatai (yfms->xpl.acf_num_engines);
     int engt[8]; XPLMGetDatavi(yfms->xpl.acf_en_type, engt, 0, 8);
     for (int i = 1; i < engc && i < 8; i++)

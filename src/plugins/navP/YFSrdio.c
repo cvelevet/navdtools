@@ -102,8 +102,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     char buf[YFS_DISPLAY_NUMC + 1];
 
     /* line 0: main header (white, centered) */
-    snprintf(buf, sizeof(buf), "%*s", (YFS_DISPLAY_NUMC + 10) / 2, "COM RADIO");
-    yfs_printf_lft(yfms,  0, 0, COLR_IDX_WHITE,    buf);
+    yfs_printf_ctr(yfms,  0,    COLR_IDX_WHITE, "COM RADIO");
     yfs_printf_rgt(yfms,  0, 0, COLR_IDX_WHITE, "<-> ");
 
     /* line 1: headers (white) */
@@ -127,8 +126,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     yfs_printf_rgt(yfms,  4, 0, COLR_IDX_BLUE,  buf);
 
     /* line 7: headers (white) */
-    snprintf(buf, sizeof(buf), "%*s", (YFS_DISPLAY_NUMC + 5) / 2, "XPDR");
-    yfs_printf_lft(yfms,  7, 0, COLR_IDX_WHITE,    buf);
+    yfs_printf_ctr(yfms,  7,    COLR_IDX_WHITE, "XPDR");
     yfs_printf_lft(yfms,  7, 0, COLR_IDX_WHITE, "CODE");
     yfs_printf_rgt(yfms,  7, 0, COLR_IDX_WHITE, "MODE");
 
@@ -199,10 +197,9 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     }
 
     /* line 9: headers (white) */
-    snprintf(buf, sizeof(buf), "%*s", (YFS_DISPLAY_NUMC + 10) / 2, "ALTIMETER");
-    yfs_printf_lft(yfms,  9, 0, COLR_IDX_WHITE,    buf);
-    yfs_printf_lft(yfms,  9, 0, COLR_IDX_WHITE,  "BARO");
-    yfs_printf_rgt(yfms,  9, 0, COLR_IDX_WHITE,  "UNIT");
+    yfs_printf_ctr(yfms,  9,    COLR_IDX_WHITE, "PRESSURE");
+    yfs_printf_lft(yfms,  9, 0, COLR_IDX_WHITE, "BARO");
+    yfs_printf_rgt(yfms,  9, 0, COLR_IDX_WHITE, "UNIT");
 
     /* line 10: barometric altimeter information */
     float alt, alt_inhg = XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot);

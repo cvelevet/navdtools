@@ -338,5 +338,6 @@ void  yfs_main_rline(yfms_context*,     int, int);
 int   yfs_main_close(yfms_context**             );
 void  yfs_printf_lft(void*, int, int, int, char*);
 void  yfs_printf_rgt(void*, int, int, int, char*);
+void  yfs_printf_ctr(void*, int,      int, char*);
 
 #endif /* YFS_MAIN_H */
