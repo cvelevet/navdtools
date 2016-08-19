@@ -262,6 +262,6 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     /* radio frequencies need to be constantly updated */
     yfs_rdio_pageupdt(yfms);
 
-    /* every 1/2 second should do fine */
-    return 0.5f;
+    /* every 1/4 second should not be perceivable by users */
+    return .25f;
 }
