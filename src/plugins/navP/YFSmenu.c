@@ -106,8 +106,8 @@ void yfs_menu_pageopen(yfms_context *yfms)
     {
         return; // no error
     }
-    yfms->lsks[0][0].cback = yfms->lsks[1][0].cback = &yfs_lsk_callback_menu;
-    yfms->mwindow.current_page = PAGE_MENU; yfs_menu_pageupdt(yfms); return;
+    yfs_main_newpg(yfms, PAGE_MENU); yfs_menu_pageupdt(yfms);
+    yfms->lsks[0][0].cback = yfms->lsks[1][0].cback = &yfs_lsk_callback_menu; return;
 }
 
 void yfs_menu_pageupdt(yfms_context *yfms)
@@ -142,7 +142,7 @@ void yfs_idnt_pageopen(yfms_context *yfms)
     {
         return; // no error
     }
-    yfms->mwindow.current_page = PAGE_IDNT; yfs_idnt_pageupdt(yfms); return;
+    yfs_main_newpg(yfms, PAGE_IDNT); yfs_idnt_pageupdt(yfms); return;
 }
 
 void yfs_idnt_pageupdt(yfms_context *yfms)

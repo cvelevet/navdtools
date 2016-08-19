@@ -919,6 +919,37 @@ void yfs_main_toggl(yfms_context *yfms)
     return;
 }
 
+int yfs_main_newpg(yfms_context *yfms, int new_page)
+{
+    if (yfms == NULL)
+    {
+        return ENOMEM;
+    }
+    if (yfms->mwindow.current_page == PAGE_MENU)
+    {
+        switch (new_page)
+        {
+            case PAGE_MENU:
+                break;      // re-opening itself must never fail
+            case PAGE_IDNT:
+                break;      // only available from MENU page itself
+            default:
+                return -1;  // MENU is special, cannot open FMGC pages from it
+        }
+    }
+    // some keys' functions are always page-specific, so their callbacks
+    // need to be (unconditionally) reset on any and every page change
+    yfms->lsks[0][0].cback = yfms->lsks[1][0].cback =
+    yfms->lsks[0][1].cback = yfms->lsks[1][1].cback =
+    yfms->lsks[0][3].cback = yfms->lsks[1][3].cback =
+    yfms->lsks[0][4].cback = yfms->lsks[1][4].cback =
+    yfms->lsks[0][5].cback = yfms->lsks[1][5].cback = (YFS_LSK_f)NULL;
+    yfms->spcs.cback_left  = yfms->spcs.cback_rigt  =
+    yfms->spcs.cback_lnup  = yfms->spcs.cback_lndn  = (YFS_SPC_f)NULL;
+    // YFMS should always know which page is being displayed
+    yfms->mwindow.current_page = new_page; return 0;
+}
+
 void yfs_printf_lft(void *context, int index, int offset, int color, char *string)
 {
     yfms_context *yfms = context;

@@ -307,6 +307,28 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
         }
     }
 
+    /* keys with page-specific functionality */
+    if (yfms->mwindow.keys.keyid_left == key &&
+        yfms->spcs.cback_left)
+    {
+        yfms->spcs.cback_left(yfms);
+    }
+    if (yfms->mwindow.keys.keyid_rigt == key &&
+        yfms->spcs.cback_rigt)
+    {
+        yfms->spcs.cback_rigt(yfms);
+    }
+    if (yfms->mwindow.keys.keyid_lnup == key &&
+        yfms->spcs.cback_lnup)
+    {
+        yfms->spcs.cback_lnup(yfms);
+    }
+    if (yfms->mwindow.keys.keyid_lndn == key &&
+        yfms->spcs.cback_lndn)
+    {
+        yfms->spcs.cback_lndn(yfms);
+    }
+
     /* keys meant to open a specific page */
     if (yfms->mwindow.keys.keyid_menu == key &&
         yfms->spcs.cback_menu)
