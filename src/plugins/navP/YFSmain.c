@@ -695,6 +695,15 @@ static void toggle_main_window(yfms_context *yfms)
         XPLoseKeyboardFocus(yfms->mwindow.id);
         return;
     }
+    if (yfms->xpl.atyp == YFS_ATYP_NSET)
+    {
+        /*
+         * Sync VOR/LOC courses between pilot & copilot;
+         * pilot crs1 master, copilot crs2 master (ideal for IXEG/B733).
+         */
+        XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_copilot, XPLMGetDataf(yfms->xpl.nav1_obs_deg_mag_pilot));
+        XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot, XPLMGetDataf(yfms->xpl.nav2_obs_deg_mag_copilot));
+    }
     XPShowWidget            (yfms->mwindow.id);
     XPSetKeyboardFocus      (yfms->mwindow.id);
     XPBringRootWidgetToFront(yfms->mwindow.id);
@@ -786,9 +795,12 @@ void* yfs_main_init(void)
     ndt_log("YFMS [info]: %s\n", yfms->ndt.ndb->info.desc);
 
     /* aicraft specific X-Plane data */
-    if ((yfms->xpl.acf_ICAO                        = XPLMFindDataRef("sim/aircraft/view/acf_ICAO"                                   )) == NULL ||
+    if ((yfms->xpl.acf_ICAO                        = XPLMFindDataRef("sim/aircraft/view/acf_ICAO"                                   )) == NULL || // PAGE_IDNT
         (yfms->xpl.acf_en_type                     = XPLMFindDataRef("sim/aircraft/prop/acf_en_type"                                )) == NULL ||
         (yfms->xpl.acf_num_engines                 = XPLMFindDataRef("sim/aircraft/engine/acf_num_engines"                          )) == NULL ||
+        (yfms->xpl.com1_standy_flip                = XPLMFindCommand("sim/radios/com1_standy_flip"                                  )) == NULL || // PAGE_RAD1
+        (yfms->xpl.com2_standy_flip                = XPLMFindCommand("sim/radios/com2_standy_flip"                                  )) == NULL ||
+        (yfms->xpl.transponder_ident               = XPLMFindCommand("sim/transponder/transponder_ident"                            )) == NULL ||
         (yfms->xpl.transponder_id                  = XPLMFindDataRef("sim/cockpit2/radios/indicators/transponder_id"                )) == NULL ||
         (yfms->xpl.transponder_mode                = XPLMFindDataRef("sim/cockpit2/radios/actuators/transponder_mode"               )) == NULL ||
         (yfms->xpl.transponder_code                = XPLMFindDataRef("sim/cockpit2/radios/actuators/transponder_code"               )) == NULL ||
@@ -802,9 +814,25 @@ void* yfs_main_init(void)
         (yfms->xpl.com2_standby_frequency_khz      = XPLMFindDataRef("sim/cockpit2/radios/actuators/com2_standby_frequency_khz"     )) == NULL ||
         (yfms->xpl.barometer_setting_in_hg_pilot   = XPLMFindDataRef("sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot"  )) == NULL ||
         (yfms->xpl.barometer_setting_in_hg_copilot = XPLMFindDataRef("sim/cockpit2/gauges/actuators/barometer_setting_in_hg_copilot")) == NULL ||
-        (yfms->xpl.transponder_ident               = XPLMFindCommand("sim/transponder/transponder_ident"                            )) == NULL ||
-        (yfms->xpl.com1_standy_flip                = XPLMFindCommand("sim/radios/com1_standy_flip"                                  )) == NULL ||
-        (yfms->xpl.com2_standy_flip                = XPLMFindCommand("sim/radios/com2_standy_flip"                                  )) == NULL)
+        (yfms->xpl.nav1_type                       = XPLMFindDataRef("sim/cockpit2/radios/indicators/nav1_type"                     )) == NULL || // PAGE_RAD2
+        (yfms->xpl.nav2_type                       = XPLMFindDataRef("sim/cockpit2/radios/indicators/nav2_type"                     )) == NULL ||
+        (yfms->xpl.adf1_nav_id                     = XPLMFindDataRef("sim/cockpit2/radios/indicators/adf1_nav_id"                   )) == NULL ||
+        (yfms->xpl.adf2_nav_id                     = XPLMFindDataRef("sim/cockpit2/radios/indicators/adf2_nav_id"                   )) == NULL ||
+        (yfms->xpl.nav1_nav_id                     = XPLMFindDataRef("sim/cockpit2/radios/indicators/nav1_nav_id"                   )) == NULL ||
+        (yfms->xpl.nav2_nav_id                     = XPLMFindDataRef("sim/cockpit2/radios/indicators/nav2_nav_id"                   )) == NULL ||
+        (yfms->xpl.autopilot_source                = XPLMFindDataRef("sim/cockpit2/autopilot/autopilot_source"                      )) == NULL ||
+        (yfms->xpl.adf1_frequency_hz               = XPLMFindDataRef("sim/cockpit2/radios/actuators/adf1_frequency_hz"              )) == NULL ||
+        (yfms->xpl.adf2_frequency_hz               = XPLMFindDataRef("sim/cockpit2/radios/actuators/adf2_frequency_hz"              )) == NULL ||
+        (yfms->xpl.nav1_frequency_hz               = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav1_frequency_hz"              )) == NULL ||
+        (yfms->xpl.nav2_frequency_hz               = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav2_frequency_hz"              )) == NULL ||
+        (yfms->xpl.nav1_obs_deg_mag_pilot          = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav1_obs_deg_mag_pilot"         )) == NULL ||
+        (yfms->xpl.nav2_obs_deg_mag_pilot          = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav2_obs_deg_mag_pilot"         )) == NULL ||
+        (yfms->xpl.nav1_obs_deg_mag_copilot        = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav1_obs_deg_mag_copilot"       )) == NULL ||
+        (yfms->xpl.HSI_source_select_pilot         = XPLMFindDataRef("sim/cockpit2/radios/actuators/HSI_source_select_pilot"        )) == NULL ||
+        (yfms->xpl.HSI_source_select_copilot       = XPLMFindDataRef("sim/cockpit2/radios/actuators/HSI_source_select_copilot"      )) == NULL ||
+        (yfms->xpl.nav2_obs_deg_mag_copilot        = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav2_obs_deg_mag_copilot"       )) == NULL ||
+        (yfms->xpl.nav1_course_deg_mag_pilot       = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav1_course_deg_mag_pilot"      )) == NULL ||
+        (yfms->xpl.nav2_course_deg_mag_pilot       = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav2_course_deg_mag_pilot"      )) == NULL)
     {
         ndt_log("YFMS [error]: could not load aircraft-related datarefs and commands\n");
         goto fail;

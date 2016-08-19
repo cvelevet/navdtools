@@ -240,9 +240,14 @@ typedef struct
 
     struct
     {
+        // PAGE_IDNT
         XPLMDataRef acf_ICAO;
         XPLMDataRef acf_en_type;
         XPLMDataRef acf_num_engines;
+        // PAGE_RAD1
+        XPLMCommandRef com1_standy_flip;
+        XPLMCommandRef com2_standy_flip;
+        XPLMCommandRef transponder_ident;
         XPLMDataRef transponder_id;
         XPLMDataRef transponder_mode;
         XPLMDataRef transponder_code;
@@ -256,9 +261,27 @@ typedef struct
         XPLMDataRef com2_standby_frequency_khz;
         XPLMDataRef barometer_setting_in_hg_pilot;
         XPLMDataRef barometer_setting_in_hg_copilot;
-        XPLMCommandRef transponder_ident;
-        XPLMCommandRef com1_standy_flip;
-        XPLMCommandRef com2_standy_flip;
+        // PAGE_RAD2
+        XPLMDataRef nav1_type;
+        XPLMDataRef nav2_type;
+        XPLMDataRef adf1_nav_id;
+        XPLMDataRef adf2_nav_id;
+        XPLMDataRef nav1_nav_id;
+        XPLMDataRef nav2_nav_id;
+        XPLMDataRef autopilot_source;
+        XPLMDataRef adf1_frequency_hz;
+        XPLMDataRef adf2_frequency_hz;
+        XPLMDataRef nav1_frequency_hz;
+        XPLMDataRef nav2_frequency_hz;
+        XPLMDataRef nav1_obs_deg_mag_pilot;
+        XPLMDataRef nav2_obs_deg_mag_pilot;
+        XPLMDataRef nav1_obs_deg_mag_copilot;
+        XPLMDataRef nav2_obs_deg_mag_copilot;
+        XPLMDataRef HSI_source_select_pilot;
+        XPLMDataRef HSI_source_select_copilot;
+        XPLMDataRef nav1_course_deg_mag_pilot;
+        XPLMDataRef nav2_course_deg_mag_pilot;
+        // miscellaneous
         XPLMFlightLoop_f fl_callback;
         enum
         {
