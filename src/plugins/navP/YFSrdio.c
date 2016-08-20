@@ -981,7 +981,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
 }
 
-static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refcon)//fixme
+static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refcon)
 {
     if (yfms == NULL || yfms->mwindow.current_page != PAGE_RAD2)
     {
@@ -1030,7 +1030,8 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
         {
             XPLMSetDatai(yfms->xpl.nav2_frequency_hz, i_hz);
         }
-        yfs_spad_clear(yfms); yfs_rad2_pageupdt(yfms); return;
+        /* don't update page (to avoid 2 consecutive user-noticeable redraws) */
+        yfs_spad_clear(yfms); return;
     }
     if (key[1] == 1) // NAV 1/2 course get/set
     {
@@ -1110,8 +1111,8 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
         {
             XPLMSetDatai(yfms->xpl.nav1_frequency_hz, i_hz);
         }
-        yfms->xpl.ils.frequency_changed = 1; // don't update page (we must wait)
-        XPLMSetDatai(yfms->xpl.nav2_frequency_hz, i_hz); yfs_spad_clear(yfms); return;
+        XPLMSetDatai(yfms->xpl.nav2_frequency_hz, i_hz); yfs_spad_clear(yfms);
+        /* don't update page, must wait */yfms->xpl.ils.frequency_changed = 1; return;
     }
     if (key[0] == 0 && key[1] == 3) // ILS 1 course get/set
     {
@@ -1135,12 +1136,44 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (yfms->xpl.atyp != YFS_ATYP_FB76)
         {
-            XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_pilot,   (float)crs);
-            XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_copilot, (float)crs);
+            XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_pilot,    (float)crs);
+            XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_copilot,  (float)crs);
+            XPLMSetDataf(yfms->xpl.nav1_course_deg_mag_pilot, (float)crs);      // may reset itself (OK)
         }
-        XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot,   (float)crs);
-        XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_copilot, (float)crs);
+        XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot,    (float)crs);
+        XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_copilot,  (float)crs);
+        XPLMSetDataf(yfms->xpl.nav2_course_deg_mag_pilot, (float)crs);          // may reset itself (OK)
         yfs_spad_clear(yfms); yfs_rad2_pageupdt(yfms); return;
+    }
+    if (key[1] == 4) // ADF 1/2 frequency get/set
+    {
+        int i_hz; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        if (buf[0] == 0)
+        {
+            if (key[0] == 0)
+            {
+                snprintf(buf, sizeof(buf), "%03d", XPLMGetDatai(yfms->xpl.adf1_frequency_hz));
+            }
+            else
+            {
+                snprintf(buf, sizeof(buf), "%03d", XPLMGetDatai(yfms->xpl.adf2_frequency_hz));
+            }
+            yfs_spad_reset(yfms, buf, -1); return; // frequency to scratchpad
+        }
+        if (sscanf(buf, "%d", &i_hz) != 1 || i_hz < 175 || i_hz > 999)
+        {
+            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+        }
+        if (key[0] == 0)
+        {
+            XPLMSetDatai(yfms->xpl.adf1_frequency_hz, i_hz);
+        }
+        else
+        {
+            XPLMSetDatai(yfms->xpl.adf2_frequency_hz, i_hz);
+        }
+        /* don't update page (to avoid 2 consecutive user-noticeable redraws) */
+        yfs_spad_clear(yfms); return;
     }
 
     /* all good */
