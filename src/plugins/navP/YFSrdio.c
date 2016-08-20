@@ -314,9 +314,10 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
 
     /* relevant data */
     int nav1_course_deg_mag_pilot = (int)round(ndt_mod((double)XPLMGetDataf(yfms->xpl.nav1_course_deg_mag_pilot), 360.));
-    int nav2_course_deg_mag_pilot = (int)round(ndt_mod((double)XPLMGetDataf(yfms->xpl.nav1_course_deg_mag_pilot), 360.));
-    int nav1_obs_deg_mag_pilot    = (int)round(ndt_mod((double)XPLMGetDataf(yfms->xpl.nav1_obs_deg_mag_pilot   ), 360.));
+    int nav2_course_deg_mag_pilot = (int)round(ndt_mod((double)XPLMGetDataf(yfms->xpl.nav2_course_deg_mag_pilot), 360.));
     int nav2_obs_deg_mag_copilot  = (int)round(ndt_mod((double)XPLMGetDataf(yfms->xpl.nav2_obs_deg_mag_copilot ), 360.));
+    int nav2_obs_deg_mag_pilot    = (int)round(ndt_mod((double)XPLMGetDataf(yfms->xpl.nav2_obs_deg_mag_pilot   ), 360.));
+    int nav1_obs_deg_mag_pilot    = (int)round(ndt_mod((double)XPLMGetDataf(yfms->xpl.nav1_obs_deg_mag_pilot   ), 360.));
     adf1_nav_id[XPLMGetDatab(yfms->xpl.adf1_nav_id, adf1_nav_id, 0, sizeof(adf1_nav_id) - 1)] = 0;
     adf2_nav_id[XPLMGetDatab(yfms->xpl.adf2_nav_id, adf2_nav_id, 0, sizeof(adf2_nav_id) - 1)] = 0;
     nav1_nav_id[XPLMGetDatab(yfms->xpl.nav1_nav_id, nav1_nav_id, 0, sizeof(nav1_nav_id) - 1)] = 0;
@@ -391,18 +392,27 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
      * autopilot ? (> pilot), HSI source ? (nav1) => nav1 master
      * only type 8 means ILS…
      */
-    if ((autopilot_source == 1 && HSI_source_select_copilot == 1 && nav2_type == 8) ||
-        (autopilot_source != 1 && HSI_source_select_pilot   == 1 && nav2_type == 8))
+    if (((yfms->xpl.atyp != YFS_ATYP_FB76)) &&
+        ((autopilot_source == 1 && HSI_source_select_copilot == 1 && nav2_type == 8) ||
+         (autopilot_source != 1 && HSI_source_select_pilot   == 1 && nav2_type == 8)))
     {
         sprintf(buf1, "%4s/%06.2lf", strnlen(nav2_nav_id, 1) ? nav2_nav_id : " [ ]", nav2_frequency_hz / 100.);
         sprintf(buf2, "%03d",   nav2_course_deg_mag_pilot);
         yfs_printf_lft(yfms,  6, 0, COLR_IDX_BLUE,   buf1);
         yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,   buf2);
     }
-    else if (nav1_type == 8)
+    else if (yfms->xpl.atyp != YFS_ATYP_FB76 && nav1_type == 8)
     {
         sprintf(buf1, "%4s/%06.2lf", strnlen(nav1_nav_id, 1) ? nav1_nav_id : " [ ]", nav1_frequency_hz / 100.);
         sprintf(buf2, "%03d",   nav1_course_deg_mag_pilot);
+        yfs_printf_lft(yfms,  6, 0, COLR_IDX_BLUE,   buf1);
+        yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,   buf2);
+    }
+    else if (yfms->xpl.atyp == YFS_ATYP_FB76 && nav2_frequency_hz >= 10800 &&
+             HSI_source_select_copilot  == 2 && HSI_source_select_pilot == 2)
+    {
+        sprintf(buf1, "%4s/%06.2lf", strnlen(nav2_nav_id, 1) ? nav2_nav_id : " [ ]", nav2_frequency_hz / 100.);
+        sprintf(buf2, "%03d",      nav2_obs_deg_mag_pilot);
         yfs_printf_lft(yfms,  6, 0, COLR_IDX_BLUE,   buf1);
         yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,   buf2);
     }
