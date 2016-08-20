@@ -44,42 +44,44 @@ static void yfs_rad2_pageupdt    (yfms_context *yfms);
 static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refcon);
 static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refcon);
 
-void yfs_rdio_pageopen(yfms_context *yfms)
+void yfs_rad1_pageopen(yfms_context *yfms)
 {
     if (yfms == NULL)
     {
         return; // no error
     }
-    if (yfms->mwindow.current_page == PAGE_RAD1)
+    if (yfs_main_newpg(yfms, PAGE_RAD1))
     {
-        if (yfs_main_newpg(yfms, PAGE_RAD2))
-        {
-            return;
-        }
-        yfms->lsks[0][0].cback = yfms->lsks[1][0].cback =
-        yfms->lsks[0][1].cback = yfms->lsks[1][1].cback =
-        yfms->lsks[0][3].cback = yfms->lsks[1][3].cback =
-        yfms->lsks[0][4].cback = yfms->lsks[1][4].cback =
-        yfms->lsks[0][5].cback = yfms->lsks[1][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad2;
+        return;
     }
-    else
+    if (yfms->xpl.atyp == YFS_ATYP_QPAC)
     {
-        if (yfs_main_newpg(yfms, PAGE_RAD1))
-        {
-            return;
-        }
-        if (yfms->xpl.atyp == YFS_ATYP_QPAC)
-        {
-            XPLMCommandOnce(yfms->xpl.qpac.VHF1Capt);
-            XPLMCommandOnce(yfms->xpl.qpac.VHF2Co);
-        }
-        yfms->lsks[0][0].cback = yfms->lsks[1][0].cback =
-        yfms->lsks[0][1].cback = yfms->lsks[1][1].cback =
-        yfms->lsks[0][3].cback = yfms->lsks[1][3].cback =
-        yfms->lsks[0][4].cback = yfms->lsks[1][4].cback =
-        yfms->lsks[0][5].cback = yfms->lsks[1][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
+        XPLMCommandOnce(yfms->xpl.qpac.VHF1Capt);
+        XPLMCommandOnce(yfms->xpl.qpac.VHF2Co);
     }
-    yfms->spcs.cback_left = yfms->spcs.cback_rigt = (YFS_SPC_f)&yfs_rdio_pageopen;
+    yfms->lsks[0][0].cback = yfms->lsks[1][0].cback =
+    yfms->lsks[0][1].cback = yfms->lsks[1][1].cback =
+    yfms->lsks[0][3].cback = yfms->lsks[1][3].cback =
+    yfms->lsks[0][4].cback = yfms->lsks[1][4].cback =
+    yfms->lsks[0][5].cback = yfms->lsks[1][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
+    yfs_rdio_pageupdt(yfms); return;
+}
+
+void yfs_rad2_pageopen(yfms_context *yfms)
+{
+    if (yfms == NULL)
+    {
+        return; // no error
+    }
+    if (yfs_main_newpg(yfms, PAGE_RAD2))
+    {
+        return;
+    }
+    yfms->lsks[0][0].cback = yfms->lsks[1][0].cback =
+    yfms->lsks[0][1].cback = yfms->lsks[1][1].cback =
+    yfms->lsks[0][3].cback = yfms->lsks[1][3].cback =
+    yfms->lsks[0][4].cback = yfms->lsks[1][4].cback =
+    yfms->lsks[0][5].cback = yfms->lsks[1][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad2;
     yfs_rdio_pageupdt(yfms); return;
 }
 
@@ -111,8 +113,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     char buf[YFS_DISPLAY_NUMC + 1];
 
     /* line 0: main header (white, centered) */
-    yfs_printf_ctr(yfms,  0,    COLR_IDX_WHITE, "COM RADIO");
-    yfs_printf_rgt(yfms,  0, 0, COLR_IDX_WHITE, "<-> ");
+    yfs_printf_ctr(yfms,  0,    COLR_IDX_WHITE, "ATC COMM");
 
     /* line 1: headers (white) */
     yfs_printf_lft(yfms,  1, 0, COLR_IDX_WHITE, "COM 1");
@@ -348,7 +349,6 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
 
     /* line 0: main header (white, centered) */
     yfs_printf_ctr(yfms,  0,    COLR_IDX_WHITE, "RADIO NAV");
-    yfs_printf_rgt(yfms,  0, 0, COLR_IDX_WHITE, "<-> ");
 
     /* line 1: headers (white) */
     yfs_printf_lft(yfms,  1, 0, COLR_IDX_WHITE, "VOR1/FREQ");
@@ -359,8 +359,8 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     yfs_printf_rgt(yfms,  3, 0, COLR_IDX_WHITE, "CRS");
 
     /* line 5: headers (white) */
-    yfs_printf_lft(yfms,  5, 0, COLR_IDX_WHITE, "ILS/FREQ");
-//  yfs_printf_rgt(yfms,  5, 0, COLR_IDX_WHITE, "CHAN/MLS");
+    yfs_printf_lft(yfms,  5, 0, COLR_IDX_WHITE, "ILS1/FREQ");
+//  yfs_printf_rgt(yfms,  5, 0, COLR_IDX_WHITE, "CHANN/MLS");
 
     /* line 7: headers (white) */
     yfs_printf_lft(yfms,  7, 0, COLR_IDX_WHITE, "CRS");

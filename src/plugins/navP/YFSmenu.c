@@ -68,7 +68,8 @@ void yfs_menu_resetall(yfms_context *yfms)
 
     /* callbacks for page-specific keys */
     yfms->spcs.cback_menu = (YFS_SPC_f)&yfs_menu_pageopen;
-    yfms->spcs.cback_radn = (YFS_SPC_f)&yfs_rdio_pageopen;
+    yfms->spcs.cback_atcc = (YFS_SPC_f)&yfs_rad1_pageopen;
+    yfms->spcs.cback_radn = (YFS_SPC_f)&yfs_rad2_pageopen;
 
     /* navigation backend */
     if (yfms->ndt.flp.arr)

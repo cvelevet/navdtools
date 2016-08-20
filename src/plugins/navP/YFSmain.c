@@ -210,18 +210,18 @@ static int create_main_window(yfms_context *yfms)
     {
         goto create_button_fail;
     }
-    softkey.desc = "";
+    softkey.desc = "ATC";
     softkey._wid = &yfms->mwindow.keys.keyid_atcc;
     if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
     {
         goto create_button_fail;
     }
-    softkey.desc = "";
-    softkey._wid = &yfms->mwindow.keys.keyid_sfpl;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
+//    softkey.desc = "";
+//    softkey._wid = &yfms->mwindow.keys.keyid_sfpl;
+//    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+//    {
+//        goto create_button_fail;
+//    }
     softkey.desc = "FUEL";
     softkey._wid = &yfms->mwindow.keys.keyid_fuel;
     if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
@@ -245,18 +245,18 @@ static int create_main_window(yfms_context *yfms)
         softkey.inRT = keybordRT - separat1W - softkey.btnW * 4; // missing 4 columns
         softkey.inTP = keybordTP             - softkey.btnH * 3; // set top position
     }
-    softkey.desc = "";
-    softkey._wid = &yfms->mwindow.keys.keyid_null;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
-    softkey.desc = "";
-    softkey._wid = &yfms->mwindow.keys.keyid_arpt;
-    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
-    {
-        goto create_button_fail;
-    }
+//    softkey.desc = "";
+//    softkey._wid = &yfms->mwindow.keys.keyid_null;
+//    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+//    {
+//        goto create_button_fail;
+//    }
+//    softkey.desc = "";
+//    softkey._wid = &yfms->mwindow.keys.keyid_arpt;
+//    if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
+//    {
+//        goto create_button_fail;
+//    }
     // row 4
     {
         softkey.inRT = keybordRT - separat1W - softkey.btnW * 4; // missing 4 columns
