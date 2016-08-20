@@ -72,6 +72,9 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
             yfms->xpl.fb76.baroRotary_stby        = XPLMFindDataRef("1-sim/gauges/baroRotary_stby"              );
             yfms->xpl.fb76.baroRotary_left        = XPLMFindDataRef("1-sim/gauges/baroRotary_left"              );
             yfms->xpl.fb76.baroRotary_right       = XPLMFindDataRef("1-sim/gauges/baroRotary_right"             );
+            yfms->xpl.fb76.nav2_nav_id            = XPLMFindDataRef("1-sim/radios/nav3_nav_id"                  );
+            yfms->xpl.fb76.nav2_frequency_hz      = XPLMFindDataRef("1-sim/radios/nav3_frequency_hz"            );
+            yfms->xpl.fb76.nav2_obs_deg_mag_pilot = XPLMFindDataRef("1-sim/radios/nav3_obs_deg_mag_pilot"       );
             yfms->xpl.fb77.anim_25_rotery         = XPLMFindDataRef("anim/25/rotery"                            );
             yfms->xpl.fb77.anim_85_switch         = XPLMFindDataRef("anim/85/switch"                            );
             yfms->xpl.fb77.anim_175_button        = XPLMFindDataRef("anim/175/button"                           );
@@ -102,8 +105,10 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
             {
                 yfms->xpl.atyp = YFS_ATYP_Q380; break;
             }
-            if (yfms->xpl.fb76.systemMode      && yfms->xpl.fb76.baroRotary_stby &&
-                yfms->xpl.fb76.baroRotary_left && yfms->xpl.fb76.baroRotary_right)
+            if (yfms->xpl.fb76.systemMode      && yfms->xpl.fb76.baroRotary_stby   &&
+                yfms->xpl.fb76.baroRotary_left && yfms->xpl.fb76.baroRotary_right  &&
+                yfms->xpl.fb76.nav2_nav_id     && yfms->xpl.fb76.nav2_frequency_hz &&
+                yfms->xpl.fb76.nav2_obs_deg_mag_pilot)
             {
                 yfms->xpl.atyp = YFS_ATYP_FB76; break;
             }

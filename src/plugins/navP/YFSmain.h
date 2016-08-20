@@ -341,6 +341,9 @@ typedef struct
             XPLMDataRef baroRotary_stby;
             XPLMDataRef baroRotary_left;
             XPLMDataRef baroRotary_right;
+            XPLMDataRef nav2_nav_id;
+            XPLMDataRef nav2_frequency_hz;
+            XPLMDataRef nav2_obs_deg_mag_pilot;
         }
         fb76;
         struct
