@@ -414,11 +414,25 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
 //  yfs_printf_rgt(yfms,  6, 0, COLR_IDX_WHITE, "---/---");
 //  yfs_printf_rgt(yfms,  8, 0, COLR_IDX_WHITE, "-.-/---");
 
-    /* line 10: frequencies (blue) */
+    /*
+     * line 10: frequencies (blue)
+     * don't display ADF frequencies if outside 175-999 kHz range…
+     */
     sprintf(buf1,  "%4s/%03d", strnlen(adf1_nav_id, 1) ? adf1_nav_id : " [ ]", adf1_frequency_hz);
     sprintf(buf2, "%03d/%-4s", adf2_frequency_hz, strnlen(adf2_nav_id, 1) ? adf2_nav_id : "[ ] ");
-    yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE,  buf1);
-    yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE,  buf2);
+    yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE,  " [ ]/[ ] ");
+    yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE,  " [ ]/[ ] ");
+    if (adf1_frequency_hz >= 175 && adf1_frequency_hz <= 999)
+    {
+        yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE,  buf1);
+    }
+    if (adf2_frequency_hz >= 175 && adf2_frequency_hz <= 999)
+    {
+        yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE,  buf2);
+    }
+
+    /* all good */
+    return;
 }
 
 static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refcon)
