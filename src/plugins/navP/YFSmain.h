@@ -353,6 +353,11 @@ typedef struct
             XPLMDataRef anim_175_button;
         }
         fb77;
+        struct
+        {
+            int frequency_changed;
+        }
+        ils;
     }
     xpl;
 }

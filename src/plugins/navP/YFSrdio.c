@@ -38,6 +38,7 @@
  * check if a given barometric pressure is 29.92 InHg (or 1013 hPa, rounded)
  *                                           10_12.97                10_13.51 */
 #define BPRESS_IS_STD(bpress) ((((bpress) >= 29.913) && ((bpress) <= 29.929)))
+#define NAVTYP_IS_ILS(navtyp) ((navtyp == 8) || (navtyp == 1024))
 
 static void yfs_rad1_pageupdt    (yfms_context *yfms);
 static void yfs_rad2_pageupdt    (yfms_context *yfms);
@@ -79,9 +80,8 @@ void yfs_rad2_pageopen(yfms_context *yfms)
     }
     yfms->lsks[0][0].cback = yfms->lsks[1][0].cback =
     yfms->lsks[0][1].cback = yfms->lsks[1][1].cback =
-    yfms->lsks[0][3].cback = yfms->lsks[1][3].cback =
-    yfms->lsks[0][4].cback = yfms->lsks[1][4].cback =
-    yfms->lsks[0][5].cback = yfms->lsks[1][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad2;
+    yfms->lsks[0][2].cback = yfms->lsks[0][3].cback =
+    yfms->lsks[0][4].cback = yfms->lsks[1][4].cback = (YFS_LSK_f)&yfs_lsk_callback_rad2;
     yfs_rdio_pageupdt(yfms); return;
 }
 
@@ -299,6 +299,20 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
 
 static void yfs_rad2_pageupdt(yfms_context *yfms)
 {
+    /* auto-select ILS course after user-requested frequency change */
+    if (yfms->xpl.ils.frequency_changed && NAVTYP_IS_ILS(XPLMGetDatai(yfms->xpl.nav2_type)))
+    {
+        float ils_crs = XPLMGetDataf(yfms->xpl.nav2_course_deg_mag_pilot);
+        XPLMSetDataf        (yfms->xpl.nav2_obs_deg_mag_pilot,   ils_crs);
+        XPLMSetDataf        (yfms->xpl.nav2_obs_deg_mag_copilot, ils_crs);
+        if (yfms->xpl.atyp != YFS_ATYP_FB76)
+        {
+            XPLMSetDataf    (yfms->xpl.nav1_obs_deg_mag_pilot,   ils_crs);
+            XPLMSetDataf    (yfms->xpl.nav1_obs_deg_mag_copilot, ils_crs);
+        }
+    }
+    yfms->xpl.ils.frequency_changed = 0;
+
     /* reset lines before drawing */
     for (int i = 0; i < YFS_DISPLAY_NUMR - 1; i++)
     {
@@ -409,15 +423,15 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
         }
     }
     if (((yfms->xpl.atyp != YFS_ATYP_FB76)) &&
-        ((autopilot_source == 1 && HSI_source_select_copilot == 1 && nav2_type == 8) ||
-         (autopilot_source != 1 && HSI_source_select_pilot   == 1 && nav2_type == 8)))
+        ((autopilot_source == 1 && HSI_source_select_copilot == 1 && NAVTYP_IS_ILS(nav2_type)) ||
+         (autopilot_source != 1 && HSI_source_select_pilot   == 1 && NAVTYP_IS_ILS(nav2_type))))
     {
         sprintf(buf1, "%4s/%06.2lf", strnlen(nav2_nav_id, 1) ? nav2_nav_id : " [ ]", nav2_frequency_hz / 100.);
         sprintf(buf2, "%03d",   nav2_course_deg_mag_pilot);
         yfs_printf_lft(yfms,  6, 0, COLR_IDX_BLUE,   buf1);
         yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,   buf2);
     }
-    else if (yfms->xpl.atyp != YFS_ATYP_FB76 && nav1_type == 8)
+    else if (yfms->xpl.atyp != YFS_ATYP_FB76 && NAVTYP_IS_ILS(nav1_type))
     {
         sprintf(buf1, "%4s/%06.2lf", strnlen(nav1_nav_id, 1) ? nav1_nav_id : " [ ]", nav1_frequency_hz / 100.);
         sprintf(buf2, "%03d",   nav1_course_deg_mag_pilot);
@@ -1059,6 +1073,73 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
             XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot,   (float)crs);
             XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_copilot, (float)crs);
         }
+        yfs_spad_clear(yfms); yfs_rad2_pageupdt(yfms); return;
+    }
+    if (key[0] == 0 && key[1] == 2) // ILS 1 frequency get/set
+    {
+        double d_hz; int i_hz; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        if (buf[0] == 0)
+        {
+            if (yfms->mwindow.screen.text[6][5] != '1')
+            {
+                return; // not an ILS frequency
+            }
+            strncpy(&buf[0], &yfms->mwindow.screen.text[6][5], 6); buf[6] = 0;
+            yfs_spad_reset(yfms, buf, -1); return; // frequency to scratchpad
+        }
+        if (sscanf(buf, "%lf", &d_hz) != 1)
+        {
+            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+        }
+        else
+        {
+            i_hz = (int)round(d_hz * 500. + 2.5) / 5; // 50 kHz spacing
+        }
+        if (i_hz < 10800 || i_hz > 11795)
+        {
+            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+        }
+        if (yfms->xpl.atyp == YFS_ATYP_FB76)
+        {
+            if ((((i_hz)) > 11195) || (((i_hz / 10) % 2) == 0))
+            {
+                yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+            }
+        }
+        else
+        {
+            XPLMSetDatai(yfms->xpl.nav1_frequency_hz, i_hz);
+        }
+        yfms->xpl.ils.frequency_changed = 1; // don't update page (we must wait)
+        XPLMSetDatai(yfms->xpl.nav2_frequency_hz, i_hz); yfs_spad_clear(yfms); return;
+    }
+    if (key[0] == 0 && key[1] == 3) // ILS 1 course get/set
+    {
+        int crs; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        if (buf[0] == 0)
+        {
+            if (yfms->mwindow.screen.text[6][5] != '1')
+            {
+                return; // not an ILS frequency: no associated course
+            }
+            strncpy(&buf[0], &yfms->mwindow.screen.text[8][0], 3); buf[3] = 0;
+            yfs_spad_reset(yfms, buf, -1); return; // course to scratchpad
+        }
+        if (sscanf(buf, "%d", &crs) != 1 || crs < 0 || crs > 360)
+        {
+            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+        }
+        if (crs < 1)
+        {
+            crs = 360;
+        }
+        if (yfms->xpl.atyp != YFS_ATYP_FB76)
+        {
+            XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_pilot,   (float)crs);
+            XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_copilot, (float)crs);
+        }
+        XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot,   (float)crs);
+        XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_copilot, (float)crs);
         yfs_spad_clear(yfms); yfs_rad2_pageupdt(yfms); return;
     }
 
