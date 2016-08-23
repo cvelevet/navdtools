@@ -708,6 +708,12 @@ static void toggle_main_window(yfms_context *yfms)
         {
             yfms->xpl.ixeg.xpdr_mode_act          = XPLMFindDataRef("ixeg/733/xpdr/xpdr_mode_act"               );
             yfms->xpl.ixeg.xpdr_stby_act          = XPLMFindDataRef("ixeg/733/xpdr/xpdr_stby_act"               );
+            yfms->xpl.ixeg.radios_adf1_100_act    = XPLMFindDataRef("ixeg/733/radios/radios_adf1_100_act"       );
+            yfms->xpl.ixeg.radios_adf1_010_act    = XPLMFindDataRef("ixeg/733/radios/radios_adf1_010_act"       );
+            yfms->xpl.ixeg.radios_adf1_001_act    = XPLMFindDataRef("ixeg/733/radios/radios_adf1_001_act"       );
+            yfms->xpl.ixeg.radios_adf2_100_act    = XPLMFindDataRef("ixeg/733/radios/radios_adf2_100_act"       );
+            yfms->xpl.ixeg.radios_adf2_010_act    = XPLMFindDataRef("ixeg/733/radios/radios_adf2_010_act"       );
+            yfms->xpl.ixeg.radios_adf2_001_act    = XPLMFindDataRef("ixeg/733/radios/radios_adf2_001_act"       );
             yfms->xpl.ixeg.baro_inhg_sby_0001_ind = XPLMFindDataRef("ixeg/733/altimeter/baro_inhg_sby_0001_ind" );
             yfms->xpl.qpac.XPDRPower              = XPLMFindDataRef("AirbusFBW/XPDRPower"                       );
             yfms->xpl.qpac.XPDRAltitude           = XPLMFindDataRef("AirbusFBW/XPDRAltitude"                    );
@@ -748,7 +754,10 @@ static void toggle_main_window(yfms_context *yfms)
             yfms->xpl.fb77.anim_85_switch         = XPLMFindDataRef("anim/85/switch"                            );
             yfms->xpl.fb77.anim_175_button        = XPLMFindDataRef("anim/175/button"                           );
 
-            if (yfms->xpl.ixeg.xpdr_mode_act && yfms->xpl.ixeg.xpdr_stby_act &&
+            if (yfms->xpl.ixeg.xpdr_mode_act       && yfms->xpl.ixeg.xpdr_stby_act       &&
+                yfms->xpl.ixeg.radios_adf1_100_act && yfms->xpl.ixeg.radios_adf2_100_act &&
+                yfms->xpl.ixeg.radios_adf1_010_act && yfms->xpl.ixeg.radios_adf2_010_act &&
+                yfms->xpl.ixeg.radios_adf1_001_act && yfms->xpl.ixeg.radios_adf2_001_act &&
                 yfms->xpl.ixeg.baro_inhg_sby_0001_ind)
             {
                 yfms->xpl.atyp = YFS_ATYP_IXEG; break;

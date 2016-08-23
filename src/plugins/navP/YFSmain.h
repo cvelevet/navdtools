@@ -299,6 +299,12 @@ typedef struct
         {
             XPLMDataRef xpdr_mode_act;
             XPLMDataRef xpdr_stby_act;
+            XPLMDataRef radios_adf1_100_act;
+            XPLMDataRef radios_adf1_010_act;
+            XPLMDataRef radios_adf1_001_act;
+            XPLMDataRef radios_adf2_100_act;
+            XPLMDataRef radios_adf2_010_act;
+            XPLMDataRef radios_adf2_001_act;
             XPLMDataRef baro_inhg_sby_0001_ind;
         } ixeg;
         struct

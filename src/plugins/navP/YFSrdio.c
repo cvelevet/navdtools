@@ -1198,6 +1198,25 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
                     }
                     break;
                 }
+            case YFS_ATYP_IXEG:
+            {
+                int i100 = (i_hz) / 100;
+                int i010 = (i_hz - i100 * 100) / 10;
+                int i001 = (i_hz - i100 * 100 - i010 * 10);
+                if (key[0] == 0)
+                {
+                    XPLMSetDataf(yfms->xpl.ixeg.radios_adf1_100_act, (float)i100);
+                    XPLMSetDataf(yfms->xpl.ixeg.radios_adf1_010_act, (float)i010);
+                    XPLMSetDataf(yfms->xpl.ixeg.radios_adf1_001_act, (float)i001);
+                }
+                else
+                {
+                    XPLMSetDataf(yfms->xpl.ixeg.radios_adf2_100_act, (float)i100);
+                    XPLMSetDataf(yfms->xpl.ixeg.radios_adf2_010_act, (float)i010);
+                    XPLMSetDataf(yfms->xpl.ixeg.radios_adf2_001_act, (float)i001);
+                }
+                break;
+            }
             default:
                 {
                     if (key[0] == 0)
