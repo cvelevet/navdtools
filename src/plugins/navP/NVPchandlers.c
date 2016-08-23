@@ -2434,6 +2434,12 @@ static int first_fcall_do(chandler_context *ctx)
             }
             _DO(0, XPLMSetDataf,360.0f,"sim/cockpit2/radios/actuators/nav1_obs_deg_mag_pilot"); // VOR 1: course selector: 360
             _DO(1, XPLMSetDataf,360.0f,"1-sim/radios/nav3_obs_deg_mag_pilot");                  // VOR 2: course selector: 360
+            _DO(1, XPLMSetDataf,  .85f,"1-sim/adf/leftBigRotary");                  // ADF 1: 3 // LSGG GLA (Gland)
+            _DO(1, XPLMSetDataf,  .20f,"1-sim/adf/leftMidRotary");                  // ADF 1: 7
+            _DO(1, XPLMSetDataf,  .40f,"1-sim/adf/leftSmallRotary");                // ADF 1: 5
+            _DO(1, XPLMSetDataf,  .10f,"1-sim/adf/rightBigRotary");                 // ADF 2: 2 // KJFK BBN (Babylon)
+            _DO(1, XPLMSetDataf,  .80f,"1-sim/adf/rightMidRotary");                 // ADF 2: 7
+            _DO(1, XPLMSetDataf,  .60f,"1-sim/adf/rightSmallRotary");               // ADF 2: 5
             _DO(1, XPLMSetDatai,    2, "1-sim/ndpanel/1/hsiModeRotary");            // ND m. sel. (cap. side) (map)
             _DO(1, XPLMSetDatai,    2, "1-sim/ndpanel/2/hsiModeRotary");            // ND m. sel. (f/o. side) (map)
             _DO(1, XPLMSetDatai,    1, "1-sim/ndpanel/2/hsiModeButton");            // ND m. sel. (f/o. side) (ctr)
