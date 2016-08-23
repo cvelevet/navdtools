@@ -40,6 +40,9 @@
 #define BPRESS_IS_STD(bpress) ((((bpress) >= 29.913) && ((bpress) <= 29.929)))
 #define NAVTYP_IS_ILS(navtyp) ((navtyp == 8) || (navtyp == 1024))
 
+//fixme get_com_frequency(str), get_nav_frequency(str), make both consistent re: accepting frequencies without separator, and align to smallest kHz interval
+//fixme get_baro_pressure(str), converts anything in the range ]40; 2000[ to hPa, and everything else to InHg (handle the case of InHg w/out separator, too)
+
 static void yfs_rad1_pageupdt    (yfms_context *yfms);
 static void yfs_rad2_pageupdt    (yfms_context *yfms);
 static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refcon);
