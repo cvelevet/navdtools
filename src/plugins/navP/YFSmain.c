@@ -803,6 +803,27 @@ static void toggle_main_window(yfms_context *yfms)
         ndt_log("YFMS [info]: first key press, determined type %d\n", yfms->xpl.atyp);
 
         /*
+         * Sync IXEG ADF selectors with X-Plane datarefs (they aren't at start).
+         */
+        if (yfms->xpl.atyp == YFS_ATYP_IXEG)
+        {
+            int adf1_htz = XPLMGetDatai(yfms->xpl.adf1_frequency_hz);
+            int adf1_100 = (adf1_htz) / 100;
+            int adf1_010 = (adf1_htz - adf1_100 * 100) / 10;
+            int adf1_001 = (adf1_htz - adf1_100 * 100 - adf1_010 * 10);
+            XPLMSetDataf(yfms->xpl.ixeg.radios_adf1_100_act, (float)adf1_100);
+            XPLMSetDataf(yfms->xpl.ixeg.radios_adf1_010_act, (float)adf1_010);
+            XPLMSetDataf(yfms->xpl.ixeg.radios_adf1_001_act, (float)adf1_001);
+            int adf2_htz = XPLMGetDatai(yfms->xpl.adf2_frequency_hz);
+            int adf2_100 = (adf2_htz) / 100;
+            int adf2_010 = (adf2_htz - adf2_100 * 100) / 10;
+            int adf2_001 = (adf2_htz - adf2_100 * 100 - adf2_010 * 10);
+            XPLMSetDataf(yfms->xpl.ixeg.radios_adf2_100_act, (float)adf2_100);
+            XPLMSetDataf(yfms->xpl.ixeg.radios_adf2_010_act, (float)adf2_010);
+            XPLMSetDataf(yfms->xpl.ixeg.radios_adf2_001_act, (float)adf2_001);
+        }
+
+        /*
          * Sync VOR/LOC courses between pilot & copilot;
          * pilot crs1 master, copilot crs2 master (ideal for IXEG/B733).
          */
