@@ -39,14 +39,147 @@
  *                                           10_12.97                10_13.51 */
 #define BPRESS_IS_STD(bpress) ((((bpress) >= 29.913) && ((bpress) <= 29.929)))
 #define NAVTYP_IS_ILS(navtyp) ((navtyp == 8) || (navtyp == 1024))
-
-//fixme get_com_frequency(str), get_nav_frequency(str), make both consistent re: accepting frequencies without separator, and align to smallest kHz interval
-//fixme get_baro_pressure(str), converts anything in the range ]40; 2000[ to hPa, and everything else to InHg (handle the case of InHg w/out separator, too)
+/*
+ * Theoretically, the float representation of an integer may be inexact, for
+ * example, 118 could be stored as 118.999999 or 119.000001. This is no issue
+ * when using rounding operations, but may change the result of floor or ceil
+ * operations, however.
+ *
+ * While this may never actually happen, to play it safe, add a negligible
+ * offset to floating-point values when using the aforementioned operations.
+ */
+#define YVP_FLOORDBL (00.005)
+#define YVP_CEIL_DBL (-0.005)
+#define YVP_FLOORFLT (0.005f)
+#define YVP_CEIL_FLT (-.005f)
 
 static void yfs_rad1_pageupdt    (yfms_context *yfms);
 static void yfs_rad2_pageupdt    (yfms_context *yfms);
 static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refcon);
 static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refcon);
+
+/*
+ * Frequency parsers and sanitizers.
+ */
+static double get_com_frequency(const char *string)
+{
+    double freq; size_t len;
+    if (!string)
+    {
+        return -1.;
+    }
+    else
+    {
+        len = strnlen(string, 8);
+    }
+    if (len < 3 || len > 7) // min: "122", max: "122.800"
+    {
+        return -1.;
+    }
+    if (sscanf(string, "%lf", &freq) != 1)
+    {
+        return -1.;
+    }
+    while (999.999 < freq) // no decimal separator provided
+    {
+        freq /= 10.;
+    }
+    if (freq < 118.000 || freq > 136.999) // valid range 118.* -> 136.* Mhz
+    {
+        return -1.;
+    }
+    else
+    {
+        /*
+         * For com. radios, the "tick" is 8.33 kHz. For frequencies that don't
+         * divide cleanly by our tick, always use the next (i.e. higher) tick.
+         */
+        freq = ceil(freq * 120. + YVP_CEIL_DBL) / 120.;
+    }
+    /* For display purposes, we must round the frequency to .005 Mhz (1/200) */
+    return (round(freq * 200.) / 200.);
+}
+
+static double get_nav_frequency(const char *string)
+{
+    double freq; size_t len;
+    if (!string)
+    {
+        return -1.;
+    }
+    else
+    {
+        len = strnlen(string, 8);
+    }
+    if (len < 3 || len > 7) // min: "109", max: "109.900"
+    {
+        return -1.;
+    }
+    if (sscanf(string, "%lf", &freq) != 1)
+    {
+        return -1.;
+    }
+    while (999.999 < freq) // no decimal separator provided
+    {
+        freq /= 10.;
+    }
+    if (freq < 108.000 || freq > 117.999) // valid range 108.* -> 117.* Mhz
+    {
+        return -1.;
+    }
+    else
+    {
+        /*
+         * For nav. radios, the "tick" is 25.0 kHz. For frequencies that don't
+         * divide cleanly by our tick, always use the next (i.e. higher) tick.
+         */
+        freq = ceil(freq * 40. + YVP_CEIL_DBL) / 40.;
+    }
+    /* For display purposes, we must floor the frequency to .01 Mhz (1/100) */
+    return (floor(freq * 100. + YVP_FLOORDBL) / 100.);
+}
+
+static double get_adf_frequency(const char *string)
+{
+    double freq; size_t len;
+    if (!string)
+    {
+        return -1.;
+    }
+    else
+    {
+        len = strnlen(string, 8);
+    }
+    if (len < 3 || len > 7) // min: "175", max: "1750.00"
+    {
+        return -1.;
+    }
+    if (sscanf(string, "%lf", &freq) != 1)
+    {
+        return -1.;
+    }
+    while (1750. < freq) // no decimal separator provided
+    {
+        freq /= 10.;
+    }
+    if (freq < 175. || freq > 1750.) // valid range 175 -> 1750 kHz
+    {
+        return -1.;
+    }
+    else
+    {
+        /*
+         * For such radios, the "tick" is 0.5 kHz. For frequencies that don't
+         * divide cleanly by our tick, always use previous (i.e. lower) tick.
+         */
+        freq = floor(freq * 2. + YVP_FLOORDBL) / 2.;
+    }
+    /* For X-Plane purposes, we must floor the frequency to 1.0 kHz */
+    return (floor(freq + YVP_FLOORDBL));
+}
+
+//fixme get_baro_pressure(str), converts anything in the range ]40; 2000[ to hPa, and everything else to InHg (handle the case of InHg w/out separator, too)
+static double get_baro_pressure(const char *string);
 
 void yfs_rad1_pageopen(yfms_context *yfms)
 {
@@ -509,7 +642,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[1] == 1)
     {
-        int mhz, khz, len, dot; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        int mhz, khz; double freq; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             if (key[0] == 0)
@@ -523,43 +656,14 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 buf[7] = 0; yfs_spad_reset(yfms, buf, -1); return; // c2 sb to scratchpad
             }
         }
-        if ((len = strnlen(buf, 8)) != 7 && len != 6 && len != 5 && len !=4)
+        if ((freq = get_com_frequency(buf)) < 0.)
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
-        }
-        if (sscanf(buf, "%d.%d", &mhz, &khz) == 2)
-        {
-            dot = 1;
-        }
-        else if (sscanf(buf, "%3d%d", &mhz, &khz) == 2)
-        {
-            dot = 0;
         }
         else
         {
-            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
-        }
-        if (mhz < 118 || mhz > 136)
-        {
-            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
-        }
-        if (6 + dot - len >= 1)
-        {
-            if (6 + dot - len >= 2)
-            {
-                khz *= 100; // 122.8 -> 122.800, 1228 -> 122800
-            }
-            else
-            {
-                khz *= 10; // 123.45 -> 123.450, 12345 -> 123450
-            }
-        }
-        // 8.33 kHz spacing
-        {
-            // 0.6 is the minimum to adjust .520 (62.4) -> .525 (63.0)
-            // we then round to the nearest mod5 khz value for display
-            double ticks_833 = floor(((double)khz / 8.33) + 0.6);
-            khz = (((int)floor(ticks_833 * 8.34 + 2.5)) / 5 * 5);
+            mhz = (int)round((freq));
+            khz = (int)round((freq - (double)mhz) * 1000.);
         }
         if (key[0] == 0)
         {
@@ -992,12 +1096,12 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[1] == 0) // NAV 1/2 frequency get/set
     {
-        double d_hz; int i_hz; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        double freq; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             if (key[0] == 0)
             {
-                snprintf(buf, sizeof(buf), "%06.2lf", (double)XPLMGetDatai(yfms->xpl.nav1_frequency_hz) / 100.);
+                snprintf(buf, sizeof(buf), "%06.2lf", (double)XPLMGetDatai(yfms->xpl.nav1_frequency_hz)      / 100.);
             }
             else if (yfms->xpl.atyp == YFS_ATYP_FB76)
             {
@@ -1005,33 +1109,25 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
             }
             else
             {
-                snprintf(buf, sizeof(buf), "%06.2lf", (double)XPLMGetDatai(yfms->xpl.nav2_frequency_hz) / 100.);
+                snprintf(buf, sizeof(buf), "%06.2lf", (double)XPLMGetDatai(yfms->xpl.nav2_frequency_hz)      / 100.);
             }
             yfs_spad_reset(yfms, buf, -1); return; // frequency to scratchpad
         }
-        if (sscanf(buf, "%lf", &d_hz) != 1)
-        {
-            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
-        }
-        else
-        {
-            i_hz = (int)round(d_hz * 500. + 2.5) / 5; // 50 kHz spacing
-        }
-        if (i_hz < 10800 || i_hz > 11795)
+        if ((freq = get_nav_frequency(buf)) < 0.)
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
         if (key[0] == 0)
         {
-            XPLMSetDatai(yfms->xpl.nav1_frequency_hz, i_hz);
+            XPLMSetDatai(yfms->xpl.nav1_frequency_hz,      (int)round(freq * 100.));
         }
         else if (yfms->xpl.atyp == YFS_ATYP_FB76)
         {
-            XPLMSetDatai(yfms->xpl.fb76.nav2_frequency_hz, i_hz);
+            XPLMSetDatai(yfms->xpl.fb76.nav2_frequency_hz, (int)round(freq * 100.));
         }
         else
         {
-            XPLMSetDatai(yfms->xpl.nav2_frequency_hz, i_hz);
+            XPLMSetDatai(yfms->xpl.nav2_frequency_hz,      (int)round(freq * 100.));
         }
         /* don't update page (to avoid 2 consecutive user-noticeable redraws) */
         yfs_spad_clear(yfms); return;
@@ -1081,7 +1177,7 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 2) // ILS 1 frequency get/set
     {
-        double d_hz; int i_hz; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        double freq; int hz10; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             if (yfms->mwindow.screen.text[6][5] != '1')
@@ -1091,30 +1187,26 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
             strncpy(&buf[0], &yfms->mwindow.screen.text[6][5], 6); buf[6] = 0;
             yfs_spad_reset(yfms, buf, -1); return; // frequency to scratchpad
         }
-        if (sscanf(buf, "%lf", &d_hz) != 1)
+        if ((freq = get_nav_frequency(buf)) < 0.)
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
         else
         {
-            i_hz = (int)round(d_hz * 500. + 2.5) / 5; // 50 kHz spacing
-        }
-        if (i_hz < 10800 || i_hz > 11795)
-        {
-            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+            hz10 = (int)round(freq * 100.);
         }
         if (yfms->xpl.atyp == YFS_ATYP_FB76)
         {
-            if ((((i_hz)) > 11195) || (((i_hz / 10) % 2) == 0))
+            if ((((hz10)) > 11195) || (((hz10 / 10) % 2) == 0))
             {
-                yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+                yfs_spad_reset(yfms, "FORMAT ERROR", -1); return; // non-ILS
             }
         }
         else
         {
-            XPLMSetDatai(yfms->xpl.nav1_frequency_hz, i_hz);
+            XPLMSetDatai(yfms->xpl.nav1_frequency_hz, hz10); // FB76: N/A
         }
-        XPLMSetDatai(yfms->xpl.nav2_frequency_hz, i_hz); yfs_spad_clear(yfms);
+        XPLMSetDatai(yfms->xpl.nav2_frequency_hz, hz10); yfs_spad_clear(yfms);
         /* don't update page, must wait */yfms->xpl.ils.frequency_changed = 1; return;
     }
     if (key[0] == 0 && key[1] == 3) // ILS 1 course get/set
@@ -1150,7 +1242,7 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[1] == 4) // ADF 1/2 frequency get/set
     {
-        int i_hz; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        double freq; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             if (key[0] == 0)
@@ -1163,7 +1255,7 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
             }
             yfs_spad_reset(yfms, buf, -1); return; // frequency to scratchpad
         }
-        if (sscanf(buf, "%d", &i_hz) != 1 || i_hz < 175 || i_hz > 999)
+        if ((freq = get_adf_frequency(buf)) < 0.)
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
@@ -1171,22 +1263,19 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
         {
             case YFS_ATYP_FB76:
                 {
-                    int   i100 = (i_hz) / 100;
-                    int   i010 = (i_hz - i100 * 100) / 10;
-                    int   i001 = (i_hz - i100 * 100 - i010 * 10);
+                    int   i100 = ((int)round(freq)) / 100;
+                    int   i010 = ((int)round(freq) - i100 * 100) / 10;
+                    int   i001 = ((int)round(freq) - i100 * 100 - i010 * 10);
                     float f100 = (float)(16 + 1 - i100) / 16.0f; // 17 to 1: 17 positions, 16 increments
                     float f010 = (float)( 9 + 0 - i010) /  9.0f; //  9 to 0: 10 positions,  9 increments
                     float f001 = (float)( 9 + 0 - i001) /  9.0f; //  9 to 0: 10 positions,  9 increments
                     /*
                      * Seems like FlightFfactor's plugin doesn't always compare
                      * correctly, so let's floor to 2 decimals to help it a bit.
-                     *
-                     * 0.01f offset to avoid theoretical-only flooring of (n).0f
-                     * to (n-1), if e.g. (n).0f were stored as (n-1).999999999f…
                      */
-                    f100 = floorf(f100 * 100.0f + .01f) / 100.0f;
-                    f010 = floorf(f010 * 100.0f + .01f) / 100.0f;
-                    f001 = floorf(f001 * 100.0f + .01f) / 100.0f;
+                    f100 = floorf(f100 * 100.0f + YVP_FLOORFLT) / 100.0f;
+                    f010 = floorf(f010 * 100.0f + YVP_FLOORFLT) / 100.0f;
+                    f001 = floorf(f001 * 100.0f + YVP_FLOORFLT) / 100.0f;
                     if (key[0] == 0)
                     {
                         XPLMSetDataf(yfms->xpl.fb76.leftBigRotary,   f100);
@@ -1203,9 +1292,9 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
                 }
             case YFS_ATYP_IXEG:
             {
-                int i100 = (i_hz) / 100;
-                int i010 = (i_hz - i100 * 100) / 10;
-                int i001 = (i_hz - i100 * 100 - i010 * 10);
+                int i100 = ((int)round(freq)) / 100;
+                int i010 = ((int)round(freq) - i100 * 100) / 10;
+                int i001 = ((int)round(freq) - i100 * 100 - i010 * 10);
                 if (key[0] == 0)
                 {
                     XPLMSetDataf(yfms->xpl.ixeg.radios_adf1_100_act, (float)i100);
@@ -1224,11 +1313,11 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
                 {
                     if (key[0] == 0)
                     {
-                        XPLMSetDatai(yfms->xpl.adf1_frequency_hz, i_hz);
+                        XPLMSetDatai(yfms->xpl.adf1_frequency_hz, (int)round(freq));
                     }
                     else
                     {
-                        XPLMSetDatai(yfms->xpl.adf2_frequency_hz, i_hz);
+                        XPLMSetDatai(yfms->xpl.adf2_frequency_hz, (int)round(freq));
                     }
                 }
                 break;
