@@ -756,17 +756,17 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         {
             return; // transponder off
         }
-        char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        size_t len; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
             yfs_spad_reset(yfms, buf, -1); return; // current code to scratchpad
         }
-        if (strnlen(buf, 5) != 4)
+        if ((len = strnlen(buf, 5)) > 4)
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < len; i++)
         {
             if (buf[i] < '0' || buf[i] > '7')
             {
