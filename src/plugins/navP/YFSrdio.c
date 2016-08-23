@@ -1164,13 +1164,52 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
-        if (key[0] == 0)
+        switch (yfms->xpl.atyp)
         {
-            XPLMSetDatai(yfms->xpl.adf1_frequency_hz, i_hz);
-        }
-        else
-        {
-            XPLMSetDatai(yfms->xpl.adf2_frequency_hz, i_hz);
+            case YFS_ATYP_FB76:
+                {
+                    int   i100 = (i_hz) / 100;
+                    int   i010 = (i_hz - i100 * 100) / 10;
+                    int   i001 = (i_hz - i100 * 100 - i010 * 10);
+                    float f100 = (float)(16 + 1 - i100) / 16.0f; // 17 to 1: 17 positions, 16 increments
+                    float f010 = (float)( 9 + 0 - i010) /  9.0f; //  9 to 0: 10 positions,  9 increments
+                    float f001 = (float)( 9 + 0 - i001) /  9.0f; //  9 to 0: 10 positions,  9 increments
+                    /*
+                     * Seems like FlightFfactor's plugin doesn't always compare
+                     * correctly, so let's floor to 2 decimals to help it a bit.
+                     *
+                     * 0.01f offset to avoid theoretical-only flooring of (n).0f
+                     * to (n-1), if e.g. (n).0f were stored as (n-1).999999999f…
+                     */
+                    f100 = floorf(f100 * 100.0f + .01f) / 100.0f;
+                    f010 = floorf(f010 * 100.0f + .01f) / 100.0f;
+                    f001 = floorf(f001 * 100.0f + .01f) / 100.0f;
+                    if (key[0] == 0)
+                    {
+                        XPLMSetDataf(yfms->xpl.fb76.leftBigRotary,   f100);
+                        XPLMSetDataf(yfms->xpl.fb76.leftMidRotary,   f010);
+                        XPLMSetDataf(yfms->xpl.fb76.leftSmallRotary, f001);
+                    }
+                    else
+                    {
+                        XPLMSetDataf(yfms->xpl.fb76.rightBigRotary,   1.00f - f100);
+                        XPLMSetDataf(yfms->xpl.fb76.rightMidRotary,   1.00f - f010);
+                        XPLMSetDataf(yfms->xpl.fb76.rightSmallRotary, 1.00f - f001);
+                    }
+                    break;
+                }
+            default:
+                {
+                    if (key[0] == 0)
+                    {
+                        XPLMSetDatai(yfms->xpl.adf1_frequency_hz, i_hz);
+                    }
+                    else
+                    {
+                        XPLMSetDatai(yfms->xpl.adf2_frequency_hz, i_hz);
+                    }
+                }
+                break;
         }
         /* don't update page (to avoid 2 consecutive user-noticeable redraws) */
         yfs_spad_clear(yfms); return;

@@ -738,6 +738,12 @@ static void toggle_main_window(yfms_context *yfms)
             yfms->xpl.fb76.nav2_nav_id            = XPLMFindDataRef("1-sim/radios/nav3_nav_id"                  );
             yfms->xpl.fb76.nav2_frequency_hz      = XPLMFindDataRef("1-sim/radios/nav3_frequency_hz"            );
             yfms->xpl.fb76.nav2_obs_deg_mag_pilot = XPLMFindDataRef("1-sim/radios/nav3_obs_deg_mag_pilot"       );
+            yfms->xpl.fb76.leftBigRotary          = XPLMFindDataRef("1-sim/adf/leftBigRotary"                   );
+            yfms->xpl.fb76.leftMidRotary          = XPLMFindDataRef("1-sim/adf/leftMidRotary"                   );
+            yfms->xpl.fb76.leftSmallRotary        = XPLMFindDataRef("1-sim/adf/leftSmallRotary"                 );
+            yfms->xpl.fb76.rightBigRotary         = XPLMFindDataRef("1-sim/adf/rightBigRotary"                  );
+            yfms->xpl.fb76.rightMidRotary         = XPLMFindDataRef("1-sim/adf/rightMidRotary"                  );
+            yfms->xpl.fb76.rightSmallRotary       = XPLMFindDataRef("1-sim/adf/rightSmallRotary"                );
             yfms->xpl.fb77.anim_25_rotery         = XPLMFindDataRef("anim/25/rotery"                            );
             yfms->xpl.fb77.anim_85_switch         = XPLMFindDataRef("anim/85/switch"                            );
             yfms->xpl.fb77.anim_175_button        = XPLMFindDataRef("anim/175/button"                           );
@@ -769,8 +775,9 @@ static void toggle_main_window(yfms_context *yfms)
             }
             if (yfms->xpl.fb76.systemMode      && yfms->xpl.fb76.baroRotary_stby   &&
                 yfms->xpl.fb76.baroRotary_left && yfms->xpl.fb76.baroRotary_right  &&
-                yfms->xpl.fb76.nav2_nav_id     && yfms->xpl.fb76.nav2_frequency_hz &&
-                yfms->xpl.fb76.nav2_obs_deg_mag_pilot)
+                yfms->xpl.fb76.leftBigRotary   && yfms->xpl.fb76.leftMidRotary     && yfms->xpl.fb76.leftSmallRotary  &&
+                yfms->xpl.fb76.rightBigRotary  && yfms->xpl.fb76.rightMidRotary    && yfms->xpl.fb76.rightSmallRotary &&
+                yfms->xpl.fb76.nav2_nav_id     && yfms->xpl.fb76.nav2_frequency_hz && yfms->xpl.fb76.nav2_obs_deg_mag_pilot)
             {
                 yfms->xpl.atyp = YFS_ATYP_FB76; break;
             }

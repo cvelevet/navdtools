@@ -344,6 +344,12 @@ typedef struct
             XPLMDataRef nav2_nav_id;
             XPLMDataRef nav2_frequency_hz;
             XPLMDataRef nav2_obs_deg_mag_pilot;
+            XPLMDataRef leftBigRotary;
+            XPLMDataRef leftMidRotary;
+            XPLMDataRef leftSmallRotary;
+            XPLMDataRef rightBigRotary;
+            XPLMDataRef rightMidRotary;
+            XPLMDataRef rightSmallRotary;
         }
         fb76;
         struct
