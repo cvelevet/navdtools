@@ -2432,6 +2432,8 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 _DO(1, XPLMSetDatai,1, "anim/79/button"); // VOR 2: manual -> auto
             }
+            _DO(0, XPLMSetDataf,360.0f,"sim/cockpit2/radios/actuators/nav1_obs_deg_mag_pilot"); // VOR 1: course selector: 360
+            _DO(1, XPLMSetDataf,360.0f,"1-sim/radios/nav3_obs_deg_mag_pilot");                  // VOR 2: course selector: 360
             _DO(1, XPLMSetDatai,    2, "1-sim/ndpanel/1/hsiModeRotary");            // ND m. sel. (cap. side) (map)
             _DO(1, XPLMSetDatai,    2, "1-sim/ndpanel/2/hsiModeRotary");            // ND m. sel. (f/o. side) (map)
             _DO(1, XPLMSetDatai,    1, "1-sim/ndpanel/2/hsiModeButton");            // ND m. sel. (f/o. side) (ctr)
