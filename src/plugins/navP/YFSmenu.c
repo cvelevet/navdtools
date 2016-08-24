@@ -31,6 +31,7 @@
 
 #include "YFSmain.h"
 #include "YFSmenu.h"
+#include "YFSprog.h"
 #include "YFSrdio.h"
 #include "YFSspad.h"
 
@@ -70,6 +71,7 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfms->spcs.cback_menu = (YFS_SPC_f)&yfs_menu_pageopen;
     yfms->spcs.cback_atcc = (YFS_SPC_f)&yfs_rad1_pageopen;
     yfms->spcs.cback_radn = (YFS_SPC_f)&yfs_rad2_pageopen;
+    yfms->spcs.cback_prog = (YFS_SPC_f)&yfs_prog_pageopen;
 
     /* navigation backend */
     if (yfms->ndt.flp.arr)
@@ -260,7 +262,24 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         return 0; // we're screwed
     }
 
-    /* radio frequencies need to be constantly updated */
+    /* aircraft position update */
+    yfms->data.aircraft_pos = ndt_position_init(XPLMGetDatad(yfms->xpl.latitude),
+                                                XPLMGetDatad(yfms->xpl.longitude),
+                                                ndt_distance_init((int64_t)(XPLMGetDatad(yfms->xpl.elevation) / .3048), NDT_ALTUNIT_FT));
+
+    /* only update visible page */
+    switch (yfms->mwindow.current_page)
+    {
+        case PAGE_PROG:
+            yfs_prog_pageupdt(yfms);
+            break;
+        case PAGE_RAD1:
+        case PAGE_RAD2:
+            yfs_rdio_pageupdt(yfms);
+            break;
+        default:
+            break;
+    }
     yfs_rdio_pageupdt(yfms);
 
     /* every 1/4 second should not be perceivable by users */

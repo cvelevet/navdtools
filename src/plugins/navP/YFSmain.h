@@ -29,8 +29,10 @@
 #include "XPLM/XPLMProcessing.h"
 #include "XPLM/XPLMUtilities.h"
 
+#include "common/common.h"
 #include "lib/flightplan.h"
 #include "lib/navdata.h"
+#include "lib/waypoint.h"
 
 // TODO: when new aircraft loaded, reset YFMS automatically
 
@@ -195,6 +197,7 @@ typedef struct
             PAGE_MENU = 2,
             PAGE_RAD1 = 3,
             PAGE_RAD2 = 4,
+            PAGE_PROG = 5,
         }
         current_page;
     }
@@ -222,8 +225,16 @@ typedef struct
 
     struct
     {
+        ndt_position aircraft_pos;
+    }
+    data;
+
+    struct
+    {
         char xsystem_pth[513];
+        char flight_number[9];
         ndt_navdatabase  *ndb;
+        ndt_waypoint *fix_nfo;
         struct
         {
             ndt_flightplan *arr;
@@ -233,7 +244,8 @@ typedef struct
         } flp;
         struct
         {
-            int unit;
+            int         unit; // barometric pressure: InHg (0), hPa (1)
+            ndt_distance crz; // initial cruise altitude
         } alt;
     }
     ndt;
@@ -281,6 +293,10 @@ typedef struct
         XPLMDataRef HSI_source_select_copilot;
         XPLMDataRef nav1_course_deg_mag_pilot;
         XPLMDataRef nav2_course_deg_mag_pilot;
+        // PAGE_PROG
+        XPLMDataRef latitude;
+        XPLMDataRef longitude;
+        XPLMDataRef elevation;
         // miscellaneous
         XPLMFlightLoop_f fl_callback;
         enum

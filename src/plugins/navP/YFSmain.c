@@ -58,7 +58,7 @@ static float COLR_WHITE  [] = { 0.9f, 1.0f, 1.0f, };
 static float COLR_RED    [] = { 1.0f, 0.1f, 0.1f, };
 static float COLR_GREEN  [] = { 0.0f, 1.0f, 0.5f, };
 static float COLR_BLUE   [] = { 0.0f, 1.0f, 1.0f, };
-static float COLR_MAGENTA[] = { 0.9f, 0.0f, 0.9f, };
+static float COLR_MAGENTA[] = { 1.0f, .33f, 1.0f, };
 static float COLR_ORANGE [] = { 1.0f, 0.5f, 0.0f, };
 static float COLR_YELLOW [] = { 0.9f, 0.9f, 0.0f, };
 
@@ -958,7 +958,10 @@ void* yfs_main_init(void)
         (yfms->xpl.HSI_source_select_copilot       = XPLMFindDataRef("sim/cockpit2/radios/actuators/HSI_source_select_copilot"      )) == NULL ||
         (yfms->xpl.nav2_obs_deg_mag_copilot        = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav2_obs_deg_mag_copilot"       )) == NULL ||
         (yfms->xpl.nav1_course_deg_mag_pilot       = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav1_course_deg_mag_pilot"      )) == NULL ||
-        (yfms->xpl.nav2_course_deg_mag_pilot       = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav2_course_deg_mag_pilot"      )) == NULL)
+        (yfms->xpl.nav2_course_deg_mag_pilot       = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav2_course_deg_mag_pilot"      )) == NULL ||
+        (yfms->xpl.latitude                        = XPLMFindDataRef("sim/flightmodel/position/latitude"                            )) == NULL ||
+        (yfms->xpl.longitude                       = XPLMFindDataRef("sim/flightmodel/position/longitude"                           )) == NULL ||
+        (yfms->xpl.elevation                       = XPLMFindDataRef("sim/flightmodel/position/elevation"                           )) == NULL)
     {
         ndt_log("YFMS [error]: could not load aircraft-related datarefs and commands\n");
         goto fail;
