@@ -79,7 +79,7 @@ void yfs_prog_pageupdt(yfms_context *yfms)
     /* lines 10, 11: headers (green, white) */
 //  yfs_printf_rgt(yfms, 10,  0, COLR_IDX_GREEN,              "GPS PRIMARY"); // we don't simulate any IRS system(s) at this point
     yfs_printf_ctr(yfms, 11,     COLR_IDX_WHITE, "REQUIRED ACCUR ESTIMATED");
-    yfs_printf_rgt(yfms, 12,  0, COLR_IDX_GREEN,           "N/A     -.--NM");
+    yfs_printf_rgt(yfms, 12,  0, COLR_IDX_GREEN,           "----    -.--NM");
     yfs_printf_lft(yfms, 12,  0, COLR_IDX_BLUE,                      "-.--");
     yfs_printf_lft(yfms, 12,  4, COLR_IDX_WHITE,                       "NM");
 
@@ -144,7 +144,8 @@ static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refco
             yfms->ndt.fix_nfo = NULL; yfs_spad_clear(yfms); yfs_prog_pageupdt(yfms); return;
         }
         // TODO: place/bearing/distance and others
-        if ((wpt = ndt_navdata_get_waypoint(yfms->ndt.ndb, buf, NULL)) == NULL)
+        // TODO: disambiguation page for duplicates
+        if ((wpt = ndt_navdata_get_wptnear2(yfms->ndt.ndb, buf, NULL, yfms->data.aircraft_pos)) == NULL)
         {
             yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return;
         }
