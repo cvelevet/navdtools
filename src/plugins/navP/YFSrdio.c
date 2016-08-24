@@ -692,12 +692,12 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         else
         {
-            mhz = (int)round((freq));
+            mhz = (int)floor((freq + YVP_FLOORDBL));
             khz = (int)round((freq - (double)mhz) * 1000.);
         }
         if (key[0] == 0)
         {
-            if (yfms->xpl.atyp == YFS_ATYP_QPAC)//fixme got broken at some point
+            if (yfms->xpl.atyp == YFS_ATYP_QPAC)
             {
                 XPLMCommandOnce(yfms->xpl.qpac.VHF1Capt);
                 khz = khz / 25 * 25; // QPAC radios only have 25 kHz precision
