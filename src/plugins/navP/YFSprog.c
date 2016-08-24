@@ -42,7 +42,8 @@ void yfs_prog_pageopen(yfms_context *yfms)
     {
         return;
     }
-    yfms->lsks[0][0].cback = yfms->lsks[1][3].cback = (YFS_LSK_f)&yfs_lsk_callback_prog;
+    yfms->lsks[0][0].cback =
+    yfms->lsks[0][3].cback = yfms->lsks[1][3].cback = (YFS_LSK_f)&yfs_lsk_callback_prog;
     yfs_prog_pageupdt(yfms); return;
 }
 
@@ -131,7 +132,11 @@ static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refco
     {
         return;      // TODO: implement
     }
-    if (key[1] == 3) // setting the reference fix
+    if (key[0] == 0 && key[1] == 3) // future: specify required accuracy
+    {
+        return;      // TODO: implement
+    }
+    if (key[0] == 1 && key[1] == 3) // setting the reference fix
     {
         ndt_waypoint *wpt; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0 && yfms->ndt.fix_nfo)
