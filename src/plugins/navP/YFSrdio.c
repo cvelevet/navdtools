@@ -80,21 +80,20 @@ static double get_com_frequency(const char *string)
     {
         return -1.;
     }
-    while (999.999 < freq) // no decimal separator provided
+    while (1000. <= freq + YVP_FLOORDBL) // no decimal separator provided
     {
         freq /= 10.;
     }
-    if (freq < 118.000 || freq > 136.999) // valid range 118.* -> 136.* Mhz
-    {
-        return -1.;
-    }
-    else
     {
         /*
          * For com. radios, the "tick" is 8.33 kHz. For frequencies that don't
          * divide cleanly by our tick, always use the next (i.e. higher) tick.
          */
         freq = ceil(freq * 120. + YVP_CEIL_DBL) / 120.;
+    }
+    if (freq + YVP_FLOORDBL <= 118.000 || freq + YVP_CEIL_DBL >= 136.999) // valid range 118.* -> 136.* Mhz
+    {
+        return -1.;
     }
     /* For display purposes, we must round the frequency to .005 Mhz (1/200) */
     return (round(freq * 200.) / 200.);
@@ -119,21 +118,20 @@ static double get_nav_frequency(const char *string)
     {
         return -1.;
     }
-    while (999.999 < freq) // no decimal separator provided
+    while (1000. <= freq + YVP_FLOORDBL) // no decimal separator provided
     {
         freq /= 10.;
     }
-    if (freq < 108.000 || freq > 117.999) // valid range 108.* -> 117.* Mhz
-    {
-        return -1.;
-    }
-    else
     {
         /*
          * For nav. radios, the "tick" is 25.0 kHz. For frequencies that don't
          * divide cleanly by our tick, always use the next (i.e. higher) tick.
          */
         freq = ceil(freq * 40. + YVP_CEIL_DBL) / 40.;
+    }
+    if (freq + YVP_FLOORDBL <= 108.000 || freq + YVP_CEIL_DBL >= 117.999) // valid range 108.* -> 117.* Mhz
+    {
+        return -1.;
     }
     /* For display purposes, we must floor the frequency to .01 Mhz (1/100) */
     return (floor(freq * 100. + YVP_FLOORDBL) / 100.);
@@ -158,15 +156,10 @@ static double get_adf_frequency(const char *string)
     {
         return -1.;
     }
-    while (1750. < freq) // no decimal separator provided
+    while (1750. <= freq + YVP_FLOORDBL) // no decimal separator provided
     {
         freq /= 10.;
     }
-    if (freq < 175. || freq > 1750.) // valid range 175 -> 1750 kHz
-    {
-        return -1.;
-    }
-    else
     {
         /*
          * For such radios, the "tick" is 0.5 kHz. For frequencies that don't
@@ -174,12 +167,49 @@ static double get_adf_frequency(const char *string)
          */
         freq = floor(freq * 2. + YVP_FLOORDBL) / 2.;
     }
+    if (freq + YVP_FLOORDBL <= 175. || freq + YVP_CEIL_DBL >= 1750.) // valid range 175 -> 1750 kHz
+    {
+        return -1.;
+    }
     /* For X-Plane purposes, we must floor the frequency to 1.0 kHz */
     return (floor(freq + YVP_FLOORDBL));
 }
 
-//fixme get_baro_pressure(str), converts anything in the range ]40; 2000[ to hPa, and everything else to InHg (handle the case of InHg w/out separator, too)
-static double get_baro_pressure(const char *string);
+static double get_baro_pressure(const char *string)
+{
+    double press; size_t len;
+    if (!string)
+    {
+        return -1.;
+    }
+    else
+    {
+        len = strnlen(string, 6);
+    }
+    if (len < 2 || len > 5) // min: "29", max: "29.92"
+    {
+        return -1.;
+    }
+    if (sscanf(string, "%lf", &press) != 1)
+    {
+        return -1.;
+    }
+    if (1356. <= press + YVP_FLOORDBL) // InHg, no decimal separator provided
+    {
+        press /= 100.;
+    }
+    else if (40. <= press + YVP_FLOORDBL) // between 41 and 1355: hPa
+    {
+        press = (press + .04) / 33.86389; // STD: 1013.00 -> 1013.04 -> 2991.51 -> 2992.00 -> 29.92
+        if (press + YVP_CEIL_DBL >= 40.) press = 40.; // sanitize for next check: 1355 -> 1354.5556
+    }
+    if (press + YVP_FLOORDBL <= 1. || press + YVP_CEIL_DBL >= 40.) // valid range 1.00 -> 40.00 InHg
+    {
+        return -1.;
+    }
+    /* For display purposes, we must round the value to .01 InHg (1/100) */
+    return (round(press * 100.) / 100.);
+}
 
 void yfs_rad1_pageopen(yfms_context *yfms)
 {
@@ -929,38 +959,20 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 4)
     {
-        float alt; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        float inhg; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             snprintf(buf, sizeof(buf), "%.5s", yfms->mwindow.screen.text[10]);
             buf[4 + !yfms->ndt.alt.unit] = 0; yfs_spad_reset(yfms, buf, -1);
             return; // current baro to scratchpad
         }
-        if (strnlen(buf, 6) != 4 + !yfms->ndt.alt.unit)
-        {
-            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
-        }
-        if (sscanf(buf, "%f", &alt) != 1)
-        {
-            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
-        }
-        switch (yfms->ndt.alt.unit)
-        {
-            case 1: // STD: 1013.00 -> 1013.04 -> 2991.51 -> 2992.00 -> 29.92
-                alt = alt + 0.04f;
-                alt = roundf(alt / 0.3386389f) / 100.0f;
-                break;
-            default:
-                alt = roundf(alt * 100.00000f) / 100.0f;
-                break;
-        }
-        if (alt > 40.0f || alt < 0.0f)
+        if ((inhg = (float)get_baro_pressure(buf)) < 0.0f)
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
         if (yfms->xpl.atyp == YFS_ATYP_Q350)
         {
-            float offset        = roundf(100.0f * (alt - 29.92f));
+            float offset       = roundf(100.0f * (inhg - 29.92f));
             XPLMSetDatai(yfms->xpl.q350.pressLeftButton,       0);
             XPLMSetDatai(yfms->xpl.q350.pressRightButton,      0);
             XPLMSetDataf(yfms->xpl.q350.pressLeftRotary,  offset);
@@ -969,9 +981,9 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (yfms->xpl.atyp == YFS_ATYP_FB76)
         {
-            if (alt < FB76_BARO_MIN)     alt = FB76_BARO_MIN;
-            if (alt > FB76_BARO_MAX)     alt = FB76_BARO_MAX;
-            float baro_range = alt           - FB76_BARO_MIN;
+            if (inhg < FB76_BARO_MIN)   inhg = FB76_BARO_MIN;
+            if (inhg > FB76_BARO_MAX)   inhg = FB76_BARO_MAX;
+            float baro_range = inhg          - FB76_BARO_MIN;
             float full_range = FB76_BARO_MAX - FB76_BARO_MIN;
             float alt_rotary_value = baro_range / full_range;
             XPLMSetDataf(yfms->xpl.fb76.baroRotary_stby,  alt_rotary_value);
@@ -991,10 +1003,10 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 XPLMSetDatai(yfms->xpl.fb77.anim_175_button, 1);
             }
             // very limited rng. (29.42 -> 30.42)
-            float rot_newp = alt - 29.92f + 0.5f;
-            if (rot_newp < 0.0f) rot_newp = 0.0f;
-            if (rot_newp > 1.0f) rot_newp = 1.0f;
-            XPLMSetDataf(yfms->xpl.fb77.anim_25_rotery, rot_newp);
+            float rot_newpr = inhg - 29.92f + 0.5f;
+            if (rot_newpr < 0.0f) rot_newpr = 0.0f;
+            if (rot_newpr > 1.0f) rot_newpr = 1.0f;
+            XPLMSetDataf(yfms->xpl.fb77.anim_25_rotery, rot_newpr);
             yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
         }
         if (yfms->xpl.atyp == YFS_ATYP_QPAC)
@@ -1009,10 +1021,10 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (yfms->xpl.atyp == YFS_ATYP_IXEG)
         {
-            XPLMSetDataf(yfms->xpl.ixeg.baro_inhg_sby_0001_ind, alt);
+            XPLMSetDataf(yfms->xpl.ixeg.baro_inhg_sby_0001_ind, inhg);
         }
-        XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_copilot, alt);
-        XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_pilot,   alt);
+        XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_copilot, inhg);
+        XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_pilot,   inhg);
         yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
     }
     if (key[0] == 1 && key[1] == 4)
