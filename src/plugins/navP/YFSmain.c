@@ -66,6 +66,7 @@ static void menu_handler(void *inMenuRef,                void *inItemRef);
 static int  yfs_mwindowh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
 static int  yfs_mcdubgrh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
 static int  yfs_mcdudish(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
+static int  yfs_captionh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
 static int  chandler_tog(XPLMCommandRef, XPLMCommandPhase, void*inRefcon);
 
 typedef struct
@@ -642,6 +643,10 @@ static int create_main_window(yfms_context *yfms)
         {
             ndt_log("YFMS [error]: could not create MCDU display, line %d\n", i + 1);
             return -1;
+        }
+        else
+        {
+            XPAddWidgetCallback(yfms->mwindow.screen.line_id[i], &yfs_captionh);
         }
         if (i >= 2 && i % 2 == 0) // line select keys here
         {
@@ -1293,6 +1298,18 @@ static int yfs_mcdudish(XPWidgetMessage inMessage,
             }
             draw_display(yfms);
         }
+        return 1;
+    }
+    return 0;
+}
+
+static int yfs_captionh(XPWidgetMessage inMessage,
+                        XPWidgetID      inWidget,
+                        intptr_t        inParam1,
+                        intptr_t        inParam2)
+{
+    if (inMessage == xpMsg_Draw)
+    {
         return 1;
     }
     return 0;
