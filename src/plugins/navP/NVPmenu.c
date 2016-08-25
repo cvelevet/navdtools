@@ -657,10 +657,10 @@ int nvp_menu_setup(void *_menu_context)
 
         /* custom brake brake and speedbrake callouts */
         XPLMCheckMenuItem(ctx->id, ctx->items.callouts_sts.id, xplm_Menu_Checked);
-        XPLMSetDatai     (         ctx->data.callouts_sts.park_brake,          1);
-        XPLMSetDatai     (         ctx->data.callouts_sts.speedbrake,          1);
-        XPLMSetDatai     (         ctx->data.callouts_sts.flap_lever,          1);
-        ndt_log          (             "navP [info]: enabling custom callouts\n");
+        XPLMSetDatai     (         ctx->data.callouts_sts.park_brake,         -1);
+        XPLMSetDatai     (         ctx->data.callouts_sts.speedbrake,         -1);
+        XPLMSetDatai     (         ctx->data.callouts_sts.flap_lever,         -1);
+        ndt_log          (         "navP [info]: custom callouts to automatic\n");
 
         /*
          * Create and place the payload & fuel dialog's window and contents.
