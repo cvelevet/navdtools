@@ -465,20 +465,6 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
 
 static void yfs_rad2_pageupdt(yfms_context *yfms)
 {
-    /* auto-select ILS course after user-requested frequency change */
-    if (yfms->xpl.ils.frequency_changed && NAVTYP_IS_ILS(XPLMGetDatai(yfms->xpl.nav2_type)))
-    {
-        float ils_crs = XPLMGetDataf(yfms->xpl.nav2_course_deg_mag_pilot);
-        XPLMSetDataf        (yfms->xpl.nav2_obs_deg_mag_pilot,   ils_crs);
-        XPLMSetDataf        (yfms->xpl.nav2_obs_deg_mag_copilot, ils_crs);
-        if (yfms->xpl.atyp != YFS_ATYP_FB76)
-        {
-            XPLMSetDataf    (yfms->xpl.nav1_obs_deg_mag_pilot,   ils_crs);
-            XPLMSetDataf    (yfms->xpl.nav1_obs_deg_mag_copilot, ils_crs);
-        }
-    }
-    yfms->xpl.ils.frequency_changed = 0;
-
     /* reset lines before drawing */
     for (int i = 0; i < YFS_DISPLAY_NUMR - 1; i++)
     {
@@ -495,6 +481,7 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     /* relevant data */
     int nav1_course_deg_mag_pilot = (int)round(ndt_mod((double)XPLMGetDataf(yfms->xpl.nav1_course_deg_mag_pilot), 360.));
     int nav2_course_deg_mag_pilot = (int)round(ndt_mod((double)XPLMGetDataf(yfms->xpl.nav2_course_deg_mag_pilot), 360.));
+    int nav1_obs_deg_mag_copilot  = (int)round(ndt_mod((double)XPLMGetDataf(yfms->xpl.nav1_obs_deg_mag_copilot ), 360.));
     int nav2_obs_deg_mag_copilot  = (int)round(ndt_mod((double)XPLMGetDataf(yfms->xpl.nav2_obs_deg_mag_copilot ), 360.));
     int nav2_obs_deg_mag_pilot    = (int)round(ndt_mod((double)XPLMGetDataf(yfms->xpl.nav2_obs_deg_mag_pilot   ), 360.));
     int nav1_obs_deg_mag_pilot    = (int)round(ndt_mod((double)XPLMGetDataf(yfms->xpl.nav1_obs_deg_mag_pilot   ), 360.));
@@ -511,12 +498,7 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     int autopilot_source          = XPLMGetDatai(yfms->xpl.autopilot_source         );
     int nav1_type                 = XPLMGetDatai(yfms->xpl.nav1_type                );
     int nav2_type                 = XPLMGetDatai(yfms->xpl.nav2_type                );
-    if (yfms->xpl.atyp == YFS_ATYP_FB76)
-    {
-        nav2_obs_deg_mag_copilot = (int)round(ndt_mod((double)XPLMGetDataf(yfms->xpl.fb76.nav2_obs_deg_mag_pilot), 360.));
-        nav2_nav_id[XPLMGetDatab(yfms->xpl.fb76.nav2_nav_id, nav2_nav_id, 0, sizeof(nav2_nav_id) - 1)] = 0;
-        nav2_frequency_hz = XPLMGetDatai(yfms->xpl.fb76.nav2_frequency_hz);
-    }
+    int ils_in_use                = 0;
     if (nav1_course_deg_mag_pilot < 1)
     {
         nav1_course_deg_mag_pilot = 360;
@@ -557,87 +539,112 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     yfs_printf_lft(yfms,  9, 0, COLR_IDX_WHITE, "ADF1/FREQ");
     yfs_printf_rgt(yfms,  9, 0, COLR_IDX_WHITE, "FREQ/ADF2");
 
-    /* line 2: frequencies (blue) */
-    sprintf(buf1,  "%4s/%06.2lf", strnlen(nav1_nav_id, 1) ? nav1_nav_id : " [ ]", nav1_frequency_hz / 100.);
-    sprintf(buf2, "%06.2lf/%-4s", nav2_frequency_hz / 100., strnlen(nav2_nav_id, 1) ? nav2_nav_id : "[ ] ");
-    yfs_printf_lft(yfms,  2, 0, COLR_IDX_BLUE,  buf1);
-    yfs_printf_rgt(yfms,  2, 0, COLR_IDX_BLUE,  buf2);
-
-    /* line 4: courses (blue) */
-    sprintf(buf1, "%03d",     nav1_obs_deg_mag_pilot);
-    sprintf(buf2, "%03d",   nav2_obs_deg_mag_copilot);
-    yfs_printf_lft(yfms,  4, 0, COLR_IDX_BLUE,  buf1);
-    yfs_printf_rgt(yfms,  4, 0, COLR_IDX_BLUE,  buf2);
-
     /*
-     * lines 6, 8: frequencies & associated courses (blue)
+     * lines 2, 4, 6, 8: frequencies & associated courses (blue)
      *
      * autopilot 1 (copilot), HSI source 1 (nav2) => nav2 master
      * autopilot 1 (copilot), HSI source ? (nav1) => nav1 master
      * autopilot ? (> pilot), HSI source 1 (nav2) => nav2 master
      * autopilot ? (> pilot), HSI source ? (nav1) => nav1 master
-     * only type 8 means ILS…
      */
-    if (yfms->xpl.atyp == YFS_ATYP_FB76) // ILS is X-Plane default NAV 2
+    if (yfms->xpl.atyp == YFS_ATYP_FB76)                                        // FlightFactor's Boeing 767
+    {                                                                           // ILS is always X-Plane NAV2
+        if (nav2_frequency_hz >= 10800)
+        {
+            if (yfms->xpl.ils.frequency_changed && NAVTYP_IS_ILS(nav2_type))
+            {
+                XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot,   (nav2_obs_deg_mag_pilot   = nav2_course_deg_mag_pilot));
+                XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_copilot, (nav2_obs_deg_mag_copilot = nav2_course_deg_mag_pilot));
+            }
+            {
+                sprintf(buf1, "%4s/%06.2lf", nav2_nav_id[0] ? nav2_nav_id : " [ ]", nav2_frequency_hz / 100.);
+                yfs_printf_lft(yfms,  6,  0, COLR_IDX_BLUE, buf1);
+            }
+            if (NAVTYP_IS_ILS(nav2_type))
+            {
+                sprintf(buf2, "%03d",     nav2_obs_deg_mag_pilot);
+                yfs_printf_lft(yfms,  8,  0, COLR_IDX_BLUE, buf2);
+            }
+            else // ILS frequency, but no signal, course not reliable
+            {
+                yfs_printf_lft(yfms,  8,  0, COLR_IDX_BLUE, " [ ]");
+            }
+            ils_in_use = 1;
+        }
+    }
+    else if ((autopilot_source == 1 && HSI_source_select_copilot == 1) ||       // Generic plane
+             (autopilot_source != 1 && HSI_source_select_pilot   == 1))         // w/NAV2 master
     {
-        nav2_obs_deg_mag_copilot = (int)round(ndt_mod((double)XPLMGetDataf(yfms->xpl.nav2_obs_deg_mag_pilot), 360.));
-        nav2_nav_id[XPLMGetDatab(yfms->xpl.nav2_nav_id, nav2_nav_id, 0, sizeof(nav2_nav_id) - 1)] = 0;
-        nav2_frequency_hz = XPLMGetDatai(yfms->xpl.nav2_frequency_hz);
+        if (NAVTYP_IS_ILS(nav2_type))
+        {
+            if (yfms->xpl.ils.frequency_changed) // auto-set all OBS courses after user-requested ILS change
+            {
+                XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_pilot,   (nav1_obs_deg_mag_pilot   = nav2_course_deg_mag_pilot));
+                XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_copilot, (nav1_obs_deg_mag_copilot = nav2_course_deg_mag_pilot));
+                XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot,   (nav2_obs_deg_mag_pilot   = nav2_course_deg_mag_pilot));
+                XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_copilot, (nav2_obs_deg_mag_copilot = nav2_course_deg_mag_pilot));
+            }
+            sprintf(buf1, "%4s/%06.2lf", nav2_nav_id[0] ? nav2_nav_id : " [ ]", nav2_frequency_hz / 100.);
+            sprintf(buf2, "%03d",  nav2_course_deg_mag_pilot);
+            yfs_printf_lft(yfms,  6,  0, COLR_IDX_BLUE, buf1);
+            yfs_printf_lft(yfms,  8,  0, COLR_IDX_BLUE, buf2);
+            ils_in_use = 1;
+        }
+    }
+    else                                                                        // Generic plane
+    {                                                                           // w/NAV1 master
+        if (NAVTYP_IS_ILS(nav1_type))
+        {
+            if (yfms->xpl.ils.frequency_changed) // auto-set all OBS courses after user-requested ILS change
+            {
+                XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_pilot,   (nav1_obs_deg_mag_pilot   = nav1_course_deg_mag_pilot));
+                XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_copilot, (nav1_obs_deg_mag_copilot = nav1_course_deg_mag_pilot));
+                XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot,   (nav2_obs_deg_mag_pilot   = nav1_course_deg_mag_pilot));
+                XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_copilot, (nav2_obs_deg_mag_copilot = nav1_course_deg_mag_pilot));
+            }
+            sprintf(buf1, "%4s/%06.2lf", nav1_nav_id[0] ? nav1_nav_id : " [ ]", nav1_frequency_hz / 100.);
+            sprintf(buf2, "%03d",  nav1_course_deg_mag_pilot);
+            yfs_printf_lft(yfms,  6,  0, COLR_IDX_BLUE, buf1);
+            yfs_printf_lft(yfms,  8,  0, COLR_IDX_BLUE, buf2);
+            ils_in_use = 1;
+        }
+    }
+    if (ils_in_use == 0)
+    {
+        yfs_printf_lft(yfms,  6,  0, COLR_IDX_BLUE, " [ ]/[ ] ");
+        yfs_printf_lft(yfms,  8,  0, COLR_IDX_BLUE,      " [ ]");
+    }
+//  yfs_printf_rgt(yfms,  6, 0, COLR_IDX_WHITE, "---/---");
+//  yfs_printf_rgt(yfms,  8, 0, COLR_IDX_WHITE, "-.-/---");
+
+    /* NAV1/2 information: drawn earlier, but must be computed after ILS */
+    if (yfms->xpl.atyp == YFS_ATYP_FB76)
+    {
+        nav2_obs_deg_mag_copilot = (int)round(ndt_mod((double)XPLMGetDataf(yfms->xpl.fb76.nav2_obs_deg_mag_pilot), 360.));
+        nav2_nav_id[XPLMGetDatab(yfms->xpl.fb76.nav2_nav_id, nav2_nav_id, 0, sizeof(nav2_nav_id) - 1)] = 0;
+        nav2_frequency_hz = XPLMGetDatai(yfms->xpl.fb76.nav2_frequency_hz);
         if (nav2_obs_deg_mag_copilot < 1)
         {
             nav2_obs_deg_mag_copilot = 360;
         }
     }
-    if (((yfms->xpl.atyp != YFS_ATYP_FB76)) &&
-        ((autopilot_source == 1 && HSI_source_select_copilot == 1 && NAVTYP_IS_ILS(nav2_type)) ||
-         (autopilot_source != 1 && HSI_source_select_pilot   == 1 && NAVTYP_IS_ILS(nav2_type))))
-    {
-        sprintf(buf1, "%4s/%06.2lf", strnlen(nav2_nav_id, 1) ? nav2_nav_id : " [ ]", nav2_frequency_hz / 100.);
-        sprintf(buf2, "%03d",   nav2_course_deg_mag_pilot);
-        yfs_printf_lft(yfms,  6, 0, COLR_IDX_BLUE,   buf1);
-        yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,   buf2);
-    }
-    else if (yfms->xpl.atyp != YFS_ATYP_FB76 && NAVTYP_IS_ILS(nav1_type))
-    {
-        sprintf(buf1, "%4s/%06.2lf", strnlen(nav1_nav_id, 1) ? nav1_nav_id : " [ ]", nav1_frequency_hz / 100.);
-        sprintf(buf2, "%03d",   nav1_course_deg_mag_pilot);
-        yfs_printf_lft(yfms,  6, 0, COLR_IDX_BLUE,   buf1);
-        yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,   buf2);
-    }
-    else if (yfms->xpl.atyp == YFS_ATYP_FB76 && nav2_frequency_hz >= 10800)
-    {
-        sprintf(buf1, "%4s/%06.2lf", strnlen(nav2_nav_id, 1) ? nav2_nav_id : " [ ]", nav2_frequency_hz / 100.);
-        sprintf(buf2, "%03d",    nav2_obs_deg_mag_copilot);
-        yfs_printf_lft(yfms,  6, 0, COLR_IDX_BLUE,   buf1);
-        yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,   buf2);
-    }
-    else
-    {
-        yfs_printf_lft(yfms,  6, 0, COLR_IDX_BLUE,  " [ ]/[ ] ");
-        yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,       " [ ]");
-    }
-//  yfs_printf_rgt(yfms,  6, 0, COLR_IDX_WHITE, "---/---");
-//  yfs_printf_rgt(yfms,  8, 0, COLR_IDX_WHITE, "-.-/---");
+    sprintf(buf1,  "%4s/%06.2lf", nav1_nav_id[0] ? nav1_nav_id : " [ ]", nav1_frequency_hz / 100.);
+    sprintf(buf2, "%06.2lf/%-4s", nav2_frequency_hz / 100., nav2_nav_id[0] ? nav2_nav_id : "[ ] ");
+    yfs_printf_lft(yfms,  2, 0, COLR_IDX_BLUE,  buf1);
+    yfs_printf_rgt(yfms,  2, 0, COLR_IDX_BLUE,  buf2);
+    sprintf(buf1, "%03d",     nav1_obs_deg_mag_pilot);
+    sprintf(buf2, "%03d",   nav2_obs_deg_mag_copilot);
+    yfs_printf_lft(yfms,  4, 0, COLR_IDX_BLUE,  buf1);
+    yfs_printf_rgt(yfms,  4, 0, COLR_IDX_BLUE,  buf2);
 
-    /*
-     * line 10: frequencies (blue)
-     * don't display ADF frequencies if outside 175-999 kHz range…
-     */
-    sprintf(buf1,  "%4s/%03d", strnlen(adf1_nav_id, 1) ? adf1_nav_id : " [ ]", adf1_frequency_hz);
-    sprintf(buf2, "%03d/%-4s", adf2_frequency_hz, strnlen(adf2_nav_id, 1) ? adf2_nav_id : "[ ] ");
-    yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE,  " [ ]/[ ] ");
-    yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE,  " [ ]/[ ] ");
-    if (adf1_frequency_hz >= 175 && adf1_frequency_hz <= 999)
-    {
-        yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE,  buf1);
-    }
-    if (adf2_frequency_hz >= 175 && adf2_frequency_hz <= 999)
-    {
-        yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE,  buf2);
-    }
+    /* line 10: ADF frequencies (blue) */
+    sprintf(buf1,  "%4s/%03d", adf1_nav_id[0] ? adf1_nav_id : " [ ]", adf1_frequency_hz);
+    sprintf(buf2, "%03d/%-4s", adf2_frequency_hz, adf2_nav_id[0] ? adf2_nav_id : "[ ] ");
+    yfs_printf_lft(yfms, 10,  0, COLR_IDX_BLUE, buf1);
+    yfs_printf_rgt(yfms, 10,  0, COLR_IDX_BLUE, buf2);
 
     /* all good */
-    return;
+    yfms->xpl.ils.frequency_changed = 0; return;
 }
 
 static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refcon)
