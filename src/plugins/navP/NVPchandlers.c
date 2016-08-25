@@ -1321,7 +1321,7 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         // if set to automatic, callouts become enabled on first turnaround
         if (XPLMGetDatai(ctx->callouts.ref_park_brake) == -1)
         {
-            XPLMSetDatai(ctx->callouts.ref_park_brake,     1);
+            XPLMSetDatai(ctx->callouts.ref_park_brake, (speak = 1));
         }
         if (XPLMGetDatai(ctx->callouts.ref_speedbrake) == -1)
         {
