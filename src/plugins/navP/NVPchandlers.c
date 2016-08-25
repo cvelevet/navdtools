@@ -924,7 +924,8 @@ int nvp_chandlers_update(void *inContext)
             break; // still an x737 variant
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("de-ru.philippmuenzel-den_rain.757avionics") ||
-            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("ru.flightfactor-steptosky.757767avionics"))
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature( "ru.flightfactor-steptosky.757767avionics") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(                  "ru.stsff.757767avionics"))
         {
             if (!STRN_CASECMP_AUTO(xaircraft_desc_str, "Boeing 757"))
             {
