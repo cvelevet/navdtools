@@ -604,8 +604,7 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
         yfs_printf_lft(yfms,  6, 0, COLR_IDX_BLUE,   buf1);
         yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,   buf2);
     }
-    else if (yfms->xpl.atyp == YFS_ATYP_FB76 && nav2_frequency_hz >= 10800 &&
-             HSI_source_select_copilot  == 2 && HSI_source_select_pilot == 2)
+    else if (yfms->xpl.atyp == YFS_ATYP_FB76 && nav2_frequency_hz >= 10800)
     {
         sprintf(buf1, "%4s/%06.2lf", strnlen(nav2_nav_id, 1) ? nav2_nav_id : " [ ]", nav2_frequency_hz / 100.);
         sprintf(buf2, "%03d",    nav2_obs_deg_mag_copilot);
