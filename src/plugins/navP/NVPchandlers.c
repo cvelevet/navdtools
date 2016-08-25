@@ -1318,6 +1318,19 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     }
     if (ctx->first_fcall && inPhase == xplm_CommandEnd)
     {
+        // if set to automatic, callouts become enabled on first turnaround
+        if (XPLMGetDatai(ctx->callouts.ref_park_brake) == -1)
+        {
+            XPLMSetDatai(ctx->callouts.ref_park_brake,     1);
+        }
+        if (XPLMGetDatai(ctx->callouts.ref_speedbrake) == -1)
+        {
+            XPLMSetDatai(ctx->callouts.ref_speedbrake,     1);
+        }
+        if (XPLMGetDatai(ctx->callouts.ref_flap_lever) == -1)
+        {
+            XPLMSetDatai(ctx->callouts.ref_flap_lever,     1);
+        }
         if (first_fcall_do(ctx) == 0 && ctx->first_fcall == 0)
         {
             if ((ctx->atyp & NVP_ACF_MASK_JDN) == 0)
@@ -1326,9 +1339,9 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             XPLMCommandOnce(ctx->views.cbs[1].command);
         }
-        if (speak) XPLMSetDatai(ctx->callouts.ref_park_brake, 0);
-        XPLMCommandOnce        (ctx->bking.prk.cb.      command);
-        if (speak) XPLMSetDatai(ctx->callouts.ref_park_brake, 1);
+        if (speak > 0) XPLMSetDatai(ctx->callouts.ref_park_brake, 0);
+        XPLMCommandOnce            (ctx->      bking.prk.cb.command);
+        if (speak > 0) XPLMSetDatai(ctx->callouts.ref_park_brake, 1);
     }
     return 0;
 }
@@ -1360,7 +1373,7 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (ctx->acfspec.a350.ready && inPhase == xplm_CommandEnd)
         {
             XPLMSetDatai(ctx->acfspec.a350.pkb_ref, 0); // inverted
-            if (speak) XPLMSpeakString("park brake set");
+            if (speak > 0) XPLMSpeakString("park brake set");
         }
         return 0;
     }
@@ -1374,14 +1387,14 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1);
             XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, 1);
-            if (speak) XPLMSpeakString("park brake set");
+            if (speak > 0) XPLMSpeakString("park brake set");
         }
         return 0;
     }
     if (inPhase == xplm_CommandEnd)
     {
         XPLMSetDataf(rcb->p_b_rat, 1.0f);
-        if (speak) XPLMSpeakString("park brake set");
+        if (speak > 0) XPLMSpeakString("park brake set");
     }
     return 0;
 }
@@ -1404,7 +1417,7 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (ctx->acfspec.a350.ready && inPhase == xplm_CommandEnd)
         {
             XPLMSetDatai(ctx->acfspec.a350.pkb_ref, 1); // inverted
-            if (speak) XPLMSpeakString("park brake released");
+            if (speak > 0) XPLMSpeakString("park brake released");
         }
         return 0;
     }
@@ -1418,14 +1431,14 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 0);
             XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, 0);
-            if (speak) XPLMSpeakString("park brake released");
+            if (speak > 0) XPLMSpeakString("park brake released");
         }
         return 0;
     }
     if (inPhase == xplm_CommandEnd)
     {
         XPLMSetDataf(rcb->p_b_rat, 0.0f);
-        if (speak) XPLMSpeakString("park brake released");
+        if (speak > 0) XPLMSpeakString("park brake released");
     }
     return 0;
 }
@@ -1574,12 +1587,12 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMCommandOnce (ctx->spbrk.sext);
                 if (XPLMGetDataf(ctx->spbrk.srat) < +.01f)
                 {
-                    if (speak) XPLMSpeakString("spoilers disarmed");
+                    if (speak > 0) XPLMSpeakString("spoilers disarmed");
                     return 0;
                 }
                 if (XPLMGetDataf(ctx->spbrk.srat) > +.01f)
                 {
-                    if (speak) XPLMSpeakString("speedbrake");
+                    if (speak > 0) XPLMSpeakString("speedbrake");
                     return 0;
                 }
                 return 0;
@@ -1591,11 +1604,11 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 if (ratio < -.01f)
                 {
                     XPLMSetDataf(i33->slat, 0.0f);    // armed: retract fully
-                    if (speak) XPLMSpeakString("spoilers disarmed");
+                    if (speak > 0) XPLMSpeakString("spoilers disarmed");
                     return 0;
                 }
                 XPLMSetDataf(i33->slat, 0.8f);        // extend: flight detent
-                if (speak) XPLMSpeakString("speedbrake");
+                if (speak > 0) XPLMSpeakString("speedbrake");
                 return 0;
             }
             if (x38 && x38->ready)
@@ -1603,11 +1616,11 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 if (ratio > .1f && ratio < .2f)
                 {
                     XPLMCommandOnce(x38->spret);      // extend: disarm spoilers
-                    if (speak) XPLMSpeakString("spoilers disarmed");
+                    if (speak > 0) XPLMSpeakString("spoilers disarmed");
                     return 0;
                 }
                 XPLMCommandOnce(ctx->spbrk.sext);     // extend: one
-                if (speak) XPLMSpeakString("speedbrake");
+                if (speak > 0) XPLMSpeakString("speedbrake");
                 return 0;
             }
         }
@@ -1648,12 +1661,12 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMCommandOnce (ctx->spbrk.sret);
                 if (XPLMGetDataf(ctx->spbrk.srat) < -.01f)
                 {
-                    if (speak) XPLMSpeakString("spoilers armed");
+                    if (speak > 0) XPLMSpeakString("spoilers armed");
                     return 0;
                 }
                 if (XPLMGetDataf(ctx->spbrk.srat) < +.01f)
                 {
-                    if (speak) XPLMSpeakString("speedbrake retracted");
+                    if (speak > 0) XPLMSpeakString("speedbrake retracted");
                     return 0;
                 }
                 return 0;
@@ -1668,7 +1681,7 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     {
                         XPLMSetDataf(i33->slat, .15f);// retract: arm spoilers
                     }
-                    if (speak) XPLMSpeakString("spoilers armed");
+                    if (speak > 0) XPLMSpeakString("spoilers armed");
                     return 0;
                 }
                 if (ratio > +.51f)
@@ -1677,7 +1690,7 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     return 0;
                 }
                 XPLMSetDataf(i33->slat, 0.0f);        // retract: fully
-                if (speak) XPLMSpeakString("speedbrake retracted");
+                if (speak > 0) XPLMSpeakString("speedbrake retracted");
                 return 0;
             }
             if (x38 && x38->ready)
@@ -1688,13 +1701,13 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     {
                         XPLMCommandOnce(x38->sparm);  // retract: arm spoilers
                     }
-                    if (speak) XPLMSpeakString("spoilers armed");
+                    if (speak > 0) XPLMSpeakString("spoilers armed");
                     return 0;
                 }
                 XPLMCommandOnce (ctx->spbrk.sret);    // retract: one
                 if (XPLMGetDataf(ctx->spbrk.srat) < .01f)
                 {
-                    if (speak) XPLMSpeakString("speedbrake retracted");
+                    if (speak > 0) XPLMSpeakString("speedbrake retracted");
                 }
                 return 0;
             }
