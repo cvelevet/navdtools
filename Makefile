@@ -5,7 +5,7 @@ NAVP_XPDLL = navP.xpl
 NDTINCLUDE = -I$(SOURCE_DIR)
 SDKINCLUDE = -I$(SOURCE_SDK)/CHeaders
 SDKLDPATHS = -F$(SOURCE_SDK)/Libraries/Mac
-SDKLDLINKS = -framework XPLM -framework XPWidgets
+SDKLDLINKS = -framework XPLM -framework XPWidgets -framework OpenGL -framework GLUT
 CFLAGS     = -O3 -std=c99 -mmacosx-version-min=10.6
 TARGETARCH = -arch i386 -arch x86_64
 GITVERSION = $(shell find . -name ".git" -type d -exec git describe --long --always --dirty=/m --abbrev=1 --tags \;)
