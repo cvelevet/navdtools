@@ -24,9 +24,6 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#include <OpenGL/gl.h>//fixme
-#include <GLUT/glut.h>//fixme
-
 #include "Widgets/XPStandardWidgets.h"
 #include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMDisplay.h"
@@ -1232,17 +1229,10 @@ static int yfs_mcdubgrh(XPWidgetMessage inMessage,
 
 static void draw_display(yfms_context *yfms)
 {
-    XPLMSetGraphicsState(0, 1, 0, 0, 0, 0, 0);//fixme
-    glColor3f(COLR_ORANGE[0], COLR_ORANGE[1], COLR_ORANGE[2]);//fixme
-    glPushMatrix();//fixme what do I need this for???
-    XPLMBindTexture2d(XPLMGetTexture(xplm_Tex_GeneralInterface), 0);//fixme
-    glColor3f(COLR_ORANGE[0], COLR_ORANGE[1], COLR_ORANGE[2]);//fixme
-    glBegin(GL_QUADS);//fixme
     char buf[2]; int x, y;
     for (int i = 0; i < YFS_DISPLAY_NUMR; i++)
     {
         XPGetWidgetGeometry(yfms->mwindow.screen.line_id[i], &x, NULL, NULL, &y);
-        glRasterPos2i(x + 2 * YFS_FONT_BASIC_H, y+ 2 * YFS_FONT_BASIC_H);//fixme is this correct?
         for (int j = strlen(yfms->mwindow.screen.text[i]); j < YFS_DISPLAY_NUMC; j++)
         {
             if (yfms->mwindow.screen.text[i][j] == 0)
@@ -1258,45 +1248,37 @@ static void draw_display(yfms_context *yfms)
                  // scratchpad parser strips trailing spaces, we use underscores instead
                 *buf = ' '; // display the intended character, not the stored workaround
             }
-//            switch (yfms->mwindow.screen.colr[i][j])
-//            {
-//                case COLR_IDX_BLACK:
-//                    XPLMDrawString(COLR_BLACK,   x, y, buf, NULL, xplmFont_Basic);
-//                    break;
-//                case COLR_IDX_BLUE:
-//                    XPLMDrawString(COLR_BLUE,    x, y, buf, NULL, xplmFont_Basic);
-//                    break;
-//                case COLR_IDX_MAGENTA:
-//                    XPLMDrawString(COLR_MAGENTA, x, y, buf, NULL, xplmFont_Basic);
-//                    break;
-//                case COLR_IDX_ORANGE:
-//                    XPLMDrawString(COLR_ORANGE,  x, y, buf, NULL, xplmFont_Basic);
-//                    break;
-//                case COLR_IDX_RED:
-//                    XPLMDrawString(COLR_RED,     x, y, buf, NULL, xplmFont_Basic);
-//                    break;
-//                case COLR_IDX_WHITE:
-//                    XPLMDrawString(COLR_WHITE,   x, y, buf, NULL, xplmFont_Basic);
-//                    break;
-//                case COLR_IDX_YELLOW:
-//                    XPLMDrawString(COLR_YELLOW,  x, y, buf, NULL, xplmFont_Basic);
-//                    break;
-//                case COLR_IDX_GREEN:
-//                default:
-//                    XPLMDrawString(COLR_GREEN,   x, y, buf, NULL, xplmFont_Basic);
-//                    break;
-//            }
-//            x += YFS_FONT_BASIC_W; // move position for next character
-            //fixme actual draw here
-            if (i == YFS_DISPLAY_NUMR - 1)//fixme scratchpad-only for now
+            switch  (yfms->mwindow.screen.colr[i][j])
             {
-                glutBitmapCharacter(GLUT_BITMAP_8_BY_13, *buf);//fixme deprecated use GLFW instead of GLUT
+                case COLR_IDX_BLACK:
+                    XPLMDrawString(COLR_BLACK,   x, y, buf, NULL, xplmFont_Basic);
+                    break;
+                case COLR_IDX_BLUE:
+                    XPLMDrawString(COLR_BLUE,    x, y, buf, NULL, xplmFont_Basic);
+                    break;
+                case COLR_IDX_MAGENTA:
+                    XPLMDrawString(COLR_MAGENTA, x, y, buf, NULL, xplmFont_Basic);
+                    break;
+                case COLR_IDX_ORANGE:
+                    XPLMDrawString(COLR_ORANGE,  x, y, buf, NULL, xplmFont_Basic);
+                    break;
+                case COLR_IDX_RED:
+                    XPLMDrawString(COLR_RED,     x, y, buf, NULL, xplmFont_Basic);
+                    break;
+                case COLR_IDX_WHITE:
+                    XPLMDrawString(COLR_WHITE,   x, y, buf, NULL, xplmFont_Basic);
+                    break;
+                case COLR_IDX_YELLOW:
+                    XPLMDrawString(COLR_YELLOW,  x, y, buf, NULL, xplmFont_Basic);
+                    break;
+                case COLR_IDX_GREEN:
+                default:
+                    XPLMDrawString(COLR_GREEN,   x, y, buf, NULL, xplmFont_Basic);
+                    break;
             }
+            x += YFS_FONT_BASIC_W; // move position for next character
         }
     }
-    glEnd();//fixme
-    glPopMatrix();//fixme what do I need this for???
-    glFlush();//fixme what do I need this for???
 }
 
 static int yfs_mcdudish(XPWidgetMessage inMessage,
