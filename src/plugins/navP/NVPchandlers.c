@@ -91,7 +91,8 @@ typedef struct
     int            acftyp;
     int            status;
     XPLMCommandRef cmd[2];
-    XPLMDataRef iAutoReset;
+    XPLMDataRef iAutoRst_1;
+    XPLMDataRef iAutoRst_2;
     XPLMDataRef iQPAC350_O;
     XPLMDataRef iQPAC350_L;
     XPLMDataRef iQPAC350_H;
@@ -1252,7 +1253,8 @@ int nvp_chandlers_update(void *inContext)
             }
         }
     }
-    ctx->mcdu.rc.iAutoReset =
+    ctx->mcdu.rc.iAutoRst_1 =
+    ctx->mcdu.rc.iAutoRst_2 =
     ctx->mcdu.rc.iQPAC350_O =
     ctx->mcdu.rc.iQPAC350_L =
     ctx->mcdu.rc.iQPAC350_H = NULL;
@@ -2120,11 +2122,12 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
                 case NVP_ACF_B757_FF:
                 case NVP_ACF_B767_FF:
-                    cdu->iAutoReset = XPLMFindDataRef("757Avionics/cdu/popup");
+                    cdu->iAutoRst_1 = XPLMFindDataRef("757Avionics/cdu/popup");
+                    cdu->iAutoRst_2 = XPLMFindDataRef("757Avionics/cdu2/popup");
                     cdu->status = 1; break;
 
                 case NVP_ACF_B777_FF:
-                    cdu->iAutoReset = XPLMFindDataRef( "T7Avionics/cdu/popup");
+                    cdu->iAutoRst_1 = XPLMFindDataRef("T7Avionics/cdu/popup");
                     cdu->status = 1; break;
 
                 case NVP_ACF_A320_QP:
@@ -2210,9 +2213,17 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     cdu->status = -2; return 0; // no plugin FMS found
             }
         }
-        if (cdu->iAutoReset)
+        if (cdu->iAutoRst_1)
         {
-            XPLMSetDatai(cdu->iAutoReset, cdu->status); return 0;
+            if (cdu->iAutoRst_2)
+            {
+                XPLMSetDatai(cdu->iAutoRst_1, cdu->status);
+                XPLMSetDatai(cdu->iAutoRst_2, cdu->status); return 0;
+            }
+            else
+            {
+                XPLMSetDatai(cdu->iAutoRst_1, cdu->status); return 0;
+            }
         }
         if (cdu->iQPAC350_O && cdu->iQPAC350_L && cdu->iQPAC350_H && cdu->cmd[0])
         {
