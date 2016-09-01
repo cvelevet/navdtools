@@ -2618,6 +2618,8 @@ intc_drect:
     }
     goto altitude;
 
+// TODO: XP overfly dummy waypoint here (last, but before altitude computation) (for e.g. YFMS, maybe even QPAC down the road)
+
     /*
      * Update altitude based on distance flown for the previous leg.
      * Not extremely accurate but better than nothing: we climb until reaching
