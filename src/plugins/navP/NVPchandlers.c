@@ -2624,7 +2624,10 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_ndb_on");
             _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_vor_on");
             _DO(0, XPLMSetDatai, 3, "sim/cockpit2/EFIS/map_range");
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
+            if (!XPLMFindCommand("aerobask/skyview/toggle_left"))
+            {
+                _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
+            }
             break;
 
         default:
