@@ -448,6 +448,9 @@ static int          ref_ql_idx_val(void)
     }                                                                           \
 }
 
+/* Convenience macro to automatically check and assign a dataref */
+#define _DO(_verbose, _func, _val, _name) { if ((d_ref = XPLMFindDataRef(_name))) _func(d_ref, _val); else if (_verbose) ndt_log("navP [warning]: dataref not found: \"%s\"\n", _name); }
+
 static int  dataref_read_string(XPLMDataRef dataref, char *string_buffer,  size_t buffer_size);
 static int  dataref_wrte_string(XPLMDataRef dataref, char *string_buffer,  size_t buffer_size);
 static int  chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -799,6 +802,7 @@ int nvp_chandlers_close(void **_chandler_context)
 int nvp_chandlers_reset(void *inContext)
 {
     chandler_context *ctx = inContext;
+    XPLMDataRef d_ref;
     if (!ctx)
     {
         return -1;
@@ -818,6 +822,12 @@ int nvp_chandlers_reset(void *inContext)
 
     /* Reset engine count */
     ctx->revrs.n_engines = -1;
+
+    /* Reset some datarefs to match X-Plane's defaults at startup */
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com1_power");
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com2_power");
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/nav1_power");
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/nav2_power");
 
     /* all good */
     ndt_log("navP [info]: nvp_chandlers_reset OK\n"); return (ctx->initialized = 0);
@@ -2265,7 +2275,6 @@ static float flc_flap_func(float inElapsedSinceLastCall,
     return 0;
 }
 
-#define _DO(_verbose, _func, _val, _name) { if ((d_ref = XPLMFindDataRef(_name))) _func(d_ref, _val); else if (_verbose) ndt_log("navP [warning]: dataref not found: \"%s\"\n", _name); }
 static int first_fcall_do(chandler_context *ctx)
 {
     XPLMCommandRef cr;
@@ -2695,7 +2704,6 @@ static int first_fcall_do(chandler_context *ctx)
     }
     return (ctx->first_fcall = 0);
 }
-#undef _DO
 
 static int aibus_350_init(refcon_ff_a350 *ffa)
 {
@@ -2787,3 +2795,4 @@ static void priv_setdata_i(void *inRefcon, int inValue)
 #undef CALLOUT_SPEEDBRAK
 #undef CALLOUT_FLAPLEVER
 #undef STRN_CASECMP_AUTO
+#undef _DO
