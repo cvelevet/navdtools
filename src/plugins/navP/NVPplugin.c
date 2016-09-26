@@ -36,6 +36,7 @@
 static int log_with_sdk(const char *format, va_list ap);
 
 /* Miscellaneous data */
+int  xplane_first_load = 1;
 void *chandler_context = NULL;
 void *navpmenu_context = NULL;
 
@@ -134,6 +135,15 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
             break;
 
         case XPLM_MSG_PLANE_LOADED:
+            if (xplane_first_load)
+            {
+                xplane_first_load = 0;
+                XPLMPluginID xfsr = XPLMFindPluginBySignature("ivao.xivap");
+                if (XPLM_NO_PLUGIN_ID != xfsr) // X-FlightServer's X-IvAp
+                {
+                    XPLMDisablePlugin(xfsr);
+                }
+            }
             if (inParam == XPLM_USER_AIRCRAFT) // user's plane changed
             {
                 nvp_menu_reset     (navpmenu_context);

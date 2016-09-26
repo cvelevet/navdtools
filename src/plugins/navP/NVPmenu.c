@@ -71,6 +71,9 @@ typedef struct
         MENUITEM_XFMC01_SM_IC,
         MENUITEM_XFMC01_NABLE,
         MENUITEM_XFMC01_DSBLE,
+        MENUITEM_XFLTS1_SM_IC,
+        MENUITEM_XFLTS1_NABLE,
+        MENUITEM_XFLTS1_DSBLE,
         MENUITEM_CALLOUTS_STS,
         MENUITEM_SPEEDBOOSTER,
         MENUITEM_CLOUD_KILLER,
@@ -115,6 +118,13 @@ typedef struct
             item_context    nable;
             item_context    dsble;
         } xfmc01;
+        struct
+        {
+            XPLMMenuID      sm_id;
+            item_context    sm_ic;
+            item_context    nable;
+            item_context    dsble;
+        } xflts1;
         item_context callouts_sts;
         item_context speedbooster;
         item_context cloud_killer;
@@ -219,6 +229,11 @@ typedef struct
         {
             XPLMPluginID plugin_id;
         } xfmc;
+
+        struct
+        {
+            XPLMPluginID plugin_id;
+        } xfsr;
     } data;
 } menu_context;
 
@@ -420,6 +435,48 @@ void* nvp_menu_init(void)
                                  xfmc01_items[i].cx,
                                  xfmc01_items[i].item_mivalue,
                                  ctx->items.xfmc01.sm_id))
+            {
+                goto fail;
+            }
+        }
+    }
+
+    /* X-FlightServer sub-menu & its items */
+    ctx->data.xfsr.plugin_id = XPLMFindPluginBySignature("ivao.xivap");
+    if (XPLM_NO_PLUGIN_ID != ctx->data.xfsr.plugin_id)
+    {
+        if (append_menu_item("X-FlightServer", &ctx->items.xflts1.sm_ic,
+                             MENUITEM_XFLTS1_SM_IC, ctx->id))
+        {
+            goto fail;
+        }
+        if (create_menu("X-FlightServer", ctx, &ctx->items.xflts1.sm_id,
+                        &menu_handler, ctx->id, ctx->items.xflts1.sm_ic.id))
+        {
+            goto fail;
+        }
+        else
+        {
+            XPLMAppendMenuSeparator(ctx->id);
+        }
+        struct
+        {
+            const char *name;
+            int item_mivalue;
+            item_context *cx;
+        }
+        xflts1_items[] =
+        {
+            {  "Enable", MENUITEM_XFLTS1_NABLE, &ctx->items.xflts1.nable, },
+            { "Disable", MENUITEM_XFLTS1_DSBLE, &ctx->items.xflts1.dsble, },
+            {      NULL,                     0,                     NULL, },
+        };
+        for (int i = 0; xflts1_items[i].name; i++)
+        {
+            if (append_menu_item(xflts1_items[i].name,
+                                 xflts1_items[i].cx,
+                                 xflts1_items[i].item_mivalue,
+                                 ctx->items.xflts1.sm_id))
             {
                 goto fail;
             }
@@ -1121,6 +1178,25 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         {
             XPLMDisablePlugin  (ctx->data.xfmc.plugin_id);
             XPLMSpeakString    ("X FMC disabled");
+        }
+        return;
+    }
+
+    if (itx->mivalue == MENUITEM_XFLTS1_NABLE)
+    {
+        if (XPLMIsPluginEnabled(ctx->data.xfsr.plugin_id) == 0)
+        {
+            XPLMEnablePlugin   (ctx->data.xfsr.plugin_id);
+            XPLMSpeakString    ("X Flight Server enabled");
+        }
+        return;
+    }
+    if (itx->mivalue == MENUITEM_XFLTS1_DSBLE)
+    {
+        if (XPLMIsPluginEnabled(ctx->data.xfsr.plugin_id) != 0)
+        {
+            XPLMDisablePlugin  (ctx->data.xfsr.plugin_id);
+            XPLMSpeakString    ("X Flight Server disabled");
         }
         return;
     }
