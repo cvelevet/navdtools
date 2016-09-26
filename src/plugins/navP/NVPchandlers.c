@@ -105,6 +105,7 @@ typedef struct
     int kill_daniel;
 
     char icao[5]; // addon's ICAO aircraft type designator
+    int old_atyp;
     enum
     {
         NVP_ACF_GENERIC = 0x0000000,
@@ -804,7 +805,7 @@ int nvp_chandlers_reset(void *inContext)
     }
 
     /* Reset the aircraft/addon type */
-    ctx->atyp = NVP_ACF_GENERIC;
+    ctx->old_atyp = ctx->atyp; ctx->atyp = NVP_ACF_GENERIC;
 
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
     ctx->acfspec.a350.ready = 0;
@@ -2632,6 +2633,65 @@ static int first_fcall_do(chandler_context *ctx)
 
         default:
             break;
+    }
+    if (ctx->atyp != NVP_ACF_B737_EA && ctx->atyp != NVP_ACF_B737_XG)
+    {
+        /*
+         * Some addons override X-Plane volume ratios, going as far as
+         * muting the radios' volume in cold & dark (e.g. EADT's x737).
+         */
+        XPLMDataRef wxr, wvr, evr, gvr, rvr, pvr, fvr;
+        if ((wxr = XPLMFindDataRef("sim/operation/sound/weather_volume_ratio")) &&
+            (wvr = XPLMFindDataRef("sim/operation/sound/warning_volume_ratio")) &&
+            (evr = XPLMFindDataRef( "sim/operation/sound/engine_volume_ratio")) &&
+            (gvr = XPLMFindDataRef( "sim/operation/sound/ground_volume_ratio")) &&
+            (rvr = XPLMFindDataRef(  "sim/operation/sound/radio_volume_ratio")) &&
+            (pvr = XPLMFindDataRef(   "sim/operation/sound/prop_volume_ratio")) &&
+            (fvr = XPLMFindDataRef(    "sim/operation/sound/fan_volume_ratio")))
+        {
+            float new_v_ratio;
+            if (ctx->old_atyp == NVP_ACF_B737_XG)
+            {
+                /*
+                 * The IXEG volumes tend to be calibrated quite
+                 * differently compared to other X-Plane addons.
+                 *
+                 * If the warnings' volume is greater than 75%, we can assume
+                 * that cockpit volume is at or near 100% and that the master
+                 * volume is greater than 25%: we may then assume that "full"
+                 * volume was the intent; otherwise, we use the engines' volume
+                 * as our baseline (100% IXEG master volume actually translates
+                 * to 80% engine volume set via X-Plane's corresponding slider).
+                 */
+                if ((new_v_ratio = XPLMGetDataf(wvr)) > .75f)
+                {
+                    (new_v_ratio = 1.0f);
+                }
+                else if ((new_v_ratio = XPLMGetDataf(evr)) > .75f)
+                {
+                    (new_v_ratio = 1.0f);
+                }
+                else
+                {
+                    (new_v_ratio /= .8f);
+                }
+                XPLMSetDataf(wxr, new_v_ratio);
+                XPLMSetDataf(wvr, new_v_ratio);
+                XPLMSetDataf(evr, new_v_ratio);
+                XPLMSetDataf(gvr, new_v_ratio);
+                XPLMSetDataf(pvr, new_v_ratio);
+                XPLMSetDataf(rvr, new_v_ratio);
+                XPLMSetDataf(fvr, new_v_ratio);
+            }
+            else if (XPLMGetDataf(rvr) < (new_v_ratio = XPLMGetDataf(wvr)))
+            {
+                /*
+                 * Always make sure the radio volume is at least
+                 * equal to that of cockpit warnings and callouts.
+                 */
+                XPLMSetDataf(rvr, new_v_ratio);
+            }
+        }
     }
     return (ctx->first_fcall = 0);
 }
