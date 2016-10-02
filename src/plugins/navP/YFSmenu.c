@@ -249,7 +249,31 @@ static void yfs_lsk_callback_menu(void *context, int key[2], intptr_t refcon)
     }
 }
 
-// TODO: monitor radio frequencies, etc.
+void yfs_curr_pageupdt(yfms_context *yfms)
+{
+    if (yfms && XPIsWidgetVisible(yfms->mwindow.id))
+    {
+        /* aircraft position update */
+        yfms->data.aircraft_pos = ndt_position_init(XPLMGetDatad(yfms->xpl.latitude),
+                                                    XPLMGetDatad(yfms->xpl.longitude),
+                                                    ndt_distance_init((int64_t)(XPLMGetDatad(yfms->xpl.elevation) / .3048), NDT_ALTUNIT_FT));
+        /* only update visible page */
+        switch (yfms->mwindow.current_page)
+        {
+            case PAGE_PROG:
+                yfs_prog_pageupdt(yfms);
+                break;
+            case PAGE_RAD1:
+            case PAGE_RAD2:
+                yfs_rdio_pageupdt(yfms);
+                break;
+            default:
+                break;
+        }
+    }
+    return;
+}
+
 static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                                    float inElapsedTimeSinceLastFlightLoop,
                                    int   inCounter,
@@ -262,25 +286,8 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         return 0; // we're screwed
     }
 
-    /* aircraft position update */
-    yfms->data.aircraft_pos = ndt_position_init(XPLMGetDatad(yfms->xpl.latitude),
-                                                XPLMGetDatad(yfms->xpl.longitude),
-                                                ndt_distance_init((int64_t)(XPLMGetDatad(yfms->xpl.elevation) / .3048), NDT_ALTUNIT_FT));
-
-    /* only update visible page */
-    switch (yfms->mwindow.current_page)
-    {
-        case PAGE_PROG:
-            yfs_prog_pageupdt(yfms);
-            break;
-        case PAGE_RAD1:
-        case PAGE_RAD2:
-            yfs_rdio_pageupdt(yfms);
-            break;
-        default:
-            break;
-    }
-    yfs_rdio_pageupdt(yfms);
+    /* if main window visible, update currently displayed page */
+    yfs_curr_pageupdt(yfms);
 
     /* every 1/4 second should not be perceivable by users */
     return .25f;

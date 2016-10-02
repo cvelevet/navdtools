@@ -835,6 +835,7 @@ static void toggle_main_window(yfms_context *yfms)
         XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_copilot, XPLMGetDataf(yfms->xpl.nav1_obs_deg_mag_pilot));
         XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot, XPLMGetDataf(yfms->xpl.nav2_obs_deg_mag_copilot));
     }
+    yfs_curr_pageupdt       (yfms            );
     XPShowWidget            (yfms->mwindow.id);
     XPSetKeyboardFocus      (yfms->mwindow.id);
     XPBringRootWidgetToFront(yfms->mwindow.id);

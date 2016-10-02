@@ -28,5 +28,6 @@ void yfs_menu_pageopen(yfms_context *yfms);
 void yfs_menu_pageupdt(yfms_context *yfms);
 void yfs_idnt_pageopen(yfms_context *yfms);
 void yfs_idnt_pageupdt(yfms_context *yfms);
+void yfs_curr_pageupdt(yfms_context *yfms);
 
 #endif /* YFS_MENU_H */
