@@ -445,12 +445,12 @@ void* nvp_menu_init(void)
     ctx->data.xfsr.plugin_id = XPLMFindPluginBySignature("ivao.xivap");
     if (XPLM_NO_PLUGIN_ID != ctx->data.xfsr.plugin_id)
     {
-        if (append_menu_item("X-FlightServer", &ctx->items.xflts1.sm_ic,
+        if (append_menu_item("X-IvAp", &ctx->items.xflts1.sm_ic,
                              MENUITEM_XFLTS1_SM_IC, ctx->id))
         {
             goto fail;
         }
-        if (create_menu("X-FlightServer", ctx, &ctx->items.xflts1.sm_id,
+        if (create_menu("IvAp", ctx, &ctx->items.xflts1.sm_id,
                         &menu_handler, ctx->id, ctx->items.xflts1.sm_ic.id))
         {
             goto fail;
@@ -1187,7 +1187,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         if (XPLMIsPluginEnabled(ctx->data.xfsr.plugin_id) == 0)
         {
             XPLMEnablePlugin   (ctx->data.xfsr.plugin_id);
-            XPLMSpeakString    ("X Flight Server enabled");
+            XPLMSpeakString    ("X IvAp enabled");
         }
         return;
     }
@@ -1196,7 +1196,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         if (XPLMIsPluginEnabled(ctx->data.xfsr.plugin_id) != 0)
         {
             XPLMDisablePlugin  (ctx->data.xfsr.plugin_id);
-            XPLMSpeakString    ("X Flight Server disabled");
+            XPLMSpeakString    ("X IvAp disabled");
         }
         return;
     }
