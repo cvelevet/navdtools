@@ -1550,12 +1550,12 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     switch (inPhase)
     {
         case xplm_CommandBegin:
-            XPLMSetDataf(rcb->l_b_rat, 0.3f);
-            XPLMSetDataf(rcb->r_b_rat, 0.3f);
+            XPLMSetDataf(rcb->l_b_rat, .25f);
+            XPLMSetDataf(rcb->r_b_rat, .25f);
             break;
         case xplm_CommandContinue:
-            XPLMSetDataf(rcb->l_b_rat, 0.3f);
-            XPLMSetDataf(rcb->r_b_rat, 0.3f);
+            XPLMSetDataf(rcb->l_b_rat, .25f);
+            XPLMSetDataf(rcb->r_b_rat, .25f);
             break;
         case xplm_CommandEnd:
         default:
