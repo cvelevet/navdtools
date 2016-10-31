@@ -96,6 +96,8 @@ typedef struct
     XPLMDataRef iQPAC350_O;
     XPLMDataRef iQPAC350_L;
     XPLMDataRef iQPAC350_H;
+    XPLMDataRef iArray_Ref;
+    int         iArray_Idx;
 } refcon_cdu_pop;
 
 typedef struct
@@ -1035,7 +1037,7 @@ int nvp_chandlers_update(void *inContext)
                 !STRN_CASECMP_AUTO(xaircraft_desc_str, "Embraer ERJ-195LR"))
             {
                 ndt_log("navP [info]: plane is X-Crafts Embraer E-Jet 195LR\n");
-                ctx->atyp = NVP_ACF_EMBE_XC;
+                ctx->atyp = NVP_ACF_GENERIC; // not all functionality of 175 yet
                 break;
             }
             if (!STRN_CASECMP_AUTO(xaircraft_desc_str, "Sukhoy SuperJet"))
@@ -1268,7 +1270,8 @@ int nvp_chandlers_update(void *inContext)
     ctx->mcdu.rc.iAutoRst_2 =
     ctx->mcdu.rc.iQPAC350_O =
     ctx->mcdu.rc.iQPAC350_L =
-    ctx->mcdu.rc.iQPAC350_H = NULL;
+    ctx->mcdu.rc.iQPAC350_H =
+    ctx->mcdu.rc.iArray_Ref = NULL;
     ctx->mcdu.rc.cmd[0]     =
     ctx->mcdu.rc.cmd[1]     = NULL;
     ctx->mcdu.rc.acftyp     = ctx->atyp;
@@ -2153,6 +2156,10 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     cdu->cmd[0]     = XPLMFindCommand("AirbusFBW/UndockMCDU1");
                     cdu->status     = 0; break;
 
+                case NVP_ACF_EMBE_XC:
+                    cdu->iArray_Ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on");
+                    cdu->iArray_Idx = 16; cdu->status = 0; break;
+
                 case NVP_ACF_EMBE_SS:
                 {
                     for (int i = 0; i < XPLMCountHotKeys(); i++)
@@ -2223,6 +2230,12 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     }
                     cdu->status = -2; return 0; // no plugin FMS found
             }
+        }
+        if (cdu->iArray_Ref)
+        {
+            int v;
+            XPLMGetDatavi(cdu->iArray_Ref, &v, cdu->iArray_Idx, 1); v = !v;
+            XPLMSetDatavi(cdu->iArray_Ref, &v, cdu->iArray_Idx, 1); return 0;
         }
         if (cdu->iAutoRst_1)
         {
@@ -2412,10 +2425,10 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");  // VOR2 on ND2 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");    // VOR1 on ND1 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_airport_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
             _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_ndb_on");
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_vor_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
             break;
 
         case NVP_ACF_B737_EA:
@@ -2551,6 +2564,52 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys1_sw");
             break;
 
+        case NVP_ACF_EMBE_XC:
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/electrical/generator_on")))
+            {
+                int generator_on[1] = { 1, };
+                XPLMSetDatavi(d_ref, &generator_on[0], 0, 1);
+                XPLMSetDatavi(d_ref, &generator_on[0], 1, 1);
+                _DO(1, XPLMSetDatai, 1, "sim/cockpit2/electrical/APU_generator_on");
+            }
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/electrical/inverter_on")))
+            {
+                int inverter_on[1] = { 1, };
+                XPLMSetDatavi(d_ref, &inverter_on[0], 0, 1);
+                XPLMSetDatavi(d_ref, &inverter_on[0], 1, 1);
+                _DO(1, XPLMSetDatai, 1, "sim/cockpit2/electrical/cross_tie");
+            }
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/ice/ice_inlet_heat_on_per_engine")))
+            {
+                int ice_inlet_heat_on_per_engine[1] = { 1, };
+                XPLMSetDatavi(d_ref, &ice_inlet_heat_on_per_engine[0], 0, 1);
+                XPLMSetDatavi(d_ref, &ice_inlet_heat_on_per_engine[0], 1, 1);
+                _DO(1, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_surfce_heat_on");
+                _DO(1, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_window_heat_on");
+            }
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/generic_lights_switch")))
+            {
+                float generic_lights_switch[1] = { 1.0f, };
+                XPLMSetDatavf(d_ref, &generic_lights_switch[0], 14, 1); // pack 1
+                XPLMSetDatavf(d_ref, &generic_lights_switch[0], 15, 1); // pack 2
+                XPLMSetDatavf(d_ref, &generic_lights_switch[0], 28, 1); // bleed1
+                XPLMSetDatavf(d_ref, &generic_lights_switch[0], 29, 1); // bleed2
+            }
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
+            {
+                int custom_slider_on[1] = { 1, };
+                XPLMSetDatavi(d_ref, &custom_slider_on[0], 14, 1); // hide yoke L
+                XPLMSetDatavi(d_ref, &custom_slider_on[0], 15, 1); // hide yoke R
+                XPLMSetDatavi(d_ref, &custom_slider_on[0], 20, 1); // show popups' on/off buttons
+            }
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
+            _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+            break;
+
         case NVP_ACF_SSJ1_RZ:
         {
             // check avionics state, enable and delay processing if required
@@ -2629,11 +2688,11 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_airport_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
             _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_ndb_on");
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_vor_on");
-            _DO(0, XPLMSetDatai, 3, "sim/cockpit2/EFIS/map_range");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
+            _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
             if (!XPLMFindCommand("aerobask/skyview/toggle_left"))
             {
                 _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
