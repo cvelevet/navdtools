@@ -2678,6 +2678,16 @@ static int first_fcall_do(chandler_context *ctx)
 
         // Note: path always non-verbose (don't log warnings for unapplicable datarefs)
         case NVP_ACF_GENERIC:
+            // datarefs: Aerobask
+            _DO(0, XPLMSetDatai, 1, "aerobask/E1000/yokeL_hidden");
+            _DO(0, XPLMSetDatai, 1, "aerobask/E1000/yokeR_hidden");
+            _DO(0, XPLMSetDatai, 0, "aerobask/E1000/reflections_skyview_on");
+            _DO(0, XPLMSetDatai, 0, "aerobask/E1000/reflections_windshield_on");
+            _DO(0, XPLMSetDatai, 1, "aerobask/victory/yokeL_hidden");
+            _DO(0, XPLMSetDatai, 1, "aerobask/victory/yokeR_hidden");
+            _DO(0, XPLMSetDatai, 0, "aerobask/victory/reflections_skyview_on");
+            _DO(0, XPLMSetDatai, 0, "aerobask/victory/reflections_windshield_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");    // Lancair Legacy FG
             // datarefs: Alabeo, Carenado
             _DO(0, XPLMSetDatai,     0, "thranda/views/InstRefl");                  // various aircraft
             _DO(0, XPLMSetDatai,     0, "thranda/views/WindowRefl");                // various aircraft
