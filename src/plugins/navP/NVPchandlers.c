@@ -2689,6 +2689,9 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideR");   // TBM 850 & PC-12
             _DO(0, XPLMSetDataf, -0.5f, "thranda/cockpit/actuators/VisorL");        // TBM 850 & PC-12
             _DO(0, XPLMSetDataf, -0.5f, "thranda/cockpit/actuators/VisorR");        // TBM 850 & PC-12
+            // datarefs: DDenn Challenger 300
+            _DO(0, XPLMSetDatai, 1, "cl300/fms/alt_rep");
+            _DO(0, XPLMSetDatai, 1, "cl300/hide_pilots");
             // datarefs: X-Plane default
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");
