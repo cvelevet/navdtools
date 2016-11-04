@@ -2687,7 +2687,8 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "aerobask/victory/yokeR_hidden");
             _DO(0, XPLMSetDatai, 0, "aerobask/victory/reflections_skyview_on");
             _DO(0, XPLMSetDatai, 0, "aerobask/victory/reflections_windshield_on");
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");    // Lancair Legacy FG
+            // GG, Lancair Legacy FG: it's actually off by default, the switch animation is just stupidly inverted…
+//          _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
             // datarefs: Alabeo, Carenado
             _DO(0, XPLMSetDatai,     0, "thranda/views/InstRefl");                  // various aircraft
             _DO(0, XPLMSetDatai,     0, "thranda/views/WindowRefl");                // various aircraft
