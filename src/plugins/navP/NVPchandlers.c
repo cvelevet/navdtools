@@ -88,16 +88,11 @@ typedef struct
 
 typedef struct
 {
-    int            acftyp;
-    int            status;
-    XPLMCommandRef cmd[2];
-    XPLMDataRef iAutoRst_1;
-    XPLMDataRef iAutoRst_2;
-    XPLMDataRef iQPAC350_O;
-    XPLMDataRef iQPAC350_L;
-    XPLMDataRef iQPAC350_H;
-    XPLMDataRef iArray_Ref;
-    int         iArray_Idx;
+    int            addon_type;
+    int            i_disabled;
+    int            i_value[2];
+    XPLMDataRef    dataref[3];
+    XPLMCommandRef command[2];
 } refcon_cdu_pop;
 
 typedef struct
@@ -1266,16 +1261,8 @@ int nvp_chandlers_update(void *inContext)
             }
         }
     }
-    ctx->mcdu.rc.iAutoRst_1 =
-    ctx->mcdu.rc.iAutoRst_2 =
-    ctx->mcdu.rc.iQPAC350_O =
-    ctx->mcdu.rc.iQPAC350_L =
-    ctx->mcdu.rc.iQPAC350_H =
-    ctx->mcdu.rc.iArray_Ref = NULL;
-    ctx->mcdu.rc.cmd[0]     =
-    ctx->mcdu.rc.cmd[1]     = NULL;
-    ctx->mcdu.rc.acftyp     = ctx->atyp;
-    ctx->mcdu.rc.status     = -1;
+    ctx->mcdu.rc.addon_type = ctx->atyp;
+    ctx->mcdu.rc.i_disabled = -1;
 
     /* all good */
     ndt_log("navP [info]: nvp_chandlers_update OK\n"); XPLMSpeakString("nav P configured"); return 0;
@@ -2114,70 +2101,65 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    refcon_cdu_pop *cdu = inRefcon;
-    XPLMDataRef acft_author = NULL;
-    if (cdu->status == -2)
-    {
-        return 0;
-    }
     if (inPhase == xplm_CommandEnd)
     {
-        if (cdu->status == -1)
+        refcon_cdu_pop *cdu = inRefcon;
+        if (cdu->i_disabled == -1)
         {
             XPLMPluginID sfmc = XPLMFindPluginBySignature("pikitanga.xplane10.SimpleFMC");
             XPLMPluginID x737 = XPLMFindPluginBySignature("FJCC.x737FMC");
             XPLMPluginID xfmc = XPLMFindPluginBySignature("x-fmc.com");
-            switch (cdu->acftyp)
+            switch (cdu->addon_type)
             {
                 case NVP_ACF_A320_JD:
                 case NVP_ACF_A330_JD:
                 case NVP_ACF_B737_XG:
-                    cdu->status = -2; return 0; // custom FMS, but no popup/command
+                    cdu->i_disabled = 1; return 0; // custom FMS, but no popup/command
+
+                case NVP_ACF_EMBE_SS:
+                    cdu->i_disabled = 1; return 0; // handled elsewhere
 
                 case NVP_ACF_B757_FF:
                 case NVP_ACF_B767_FF:
-                    cdu->iAutoRst_1 = XPLMFindDataRef("757Avionics/cdu/popup");
-                    cdu->iAutoRst_2 = XPLMFindDataRef("757Avionics/cdu2/popup");
-                    cdu->status = 1; break;
+                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("757Avionics/cdu/popup" )) ||
+                        NULL == (cdu->dataref[1] = XPLMFindDataRef("757Avionics/cdu2/popup")))
+                    {
+                        cdu->i_disabled = 1; return 0;
+                    }
+                    cdu->i_disabled = 0; break;
 
                 case NVP_ACF_B777_FF:
-                    cdu->iAutoRst_1 = XPLMFindDataRef("T7Avionics/cdu/popup");
-                    cdu->status = 1; break;
+                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("T7Avionics/cdu/popup")))
+                    {
+                        cdu->i_disabled = 1; return 0;
+                    }
+                    cdu->i_disabled = 0; break;
 
                 case NVP_ACF_A320_QP:
                 case NVP_ACF_A330_RW:
-                    cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("AirbusFBW/UndockMCDU1");
-                    cdu->status = 0; break;
+                    if (NULL == (cdu->command[0] = XPLMFindCommand("AirbusFBW/UndockMCDU1")))
+                    {
+                        cdu->i_disabled = 1; return 0;
+                    }
+                    cdu->i_disabled = 0; break;
 
                 case NVP_ACF_A350_FF:
-                    cdu->iQPAC350_O = XPLMFindDataRef("1-sim/misc/popupOis");
-                    cdu->iQPAC350_L = XPLMFindDataRef("1-sim/misc/popupLeft");
-                    cdu->iQPAC350_H = XPLMFindDataRef("1-sim/misc/popupsHide");
-                    cdu->cmd[0]     = XPLMFindCommand("AirbusFBW/UndockMCDU1");
-                    cdu->status     = 0; break;
+                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("1-sim/misc/popupOis"  )) ||
+                        NULL == (cdu->dataref[1] = XPLMFindDataRef("1-sim/misc/popupLeft" )) ||
+                        NULL == (cdu->dataref[2] = XPLMFindDataRef("1-sim/misc/popupsHide")) ||
+                        NULL == (cdu->command[0] = XPLMFindCommand("AirbusFBW/UndockMCDU1")))
+                    {
+                        cdu->i_disabled = 1; return 0;
+                    }
+                    cdu->i_disabled = 0; break;
 
                 case NVP_ACF_EMBE_XC:
-                    cdu->iArray_Ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on");
-                    cdu->iArray_Idx = 16; cdu->status = 0; break;
-
-                case NVP_ACF_EMBE_SS:
-                {
-                    for (int i = 0; i < XPLMCountHotKeys(); i++)
+                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")) ||
+                        NULL == (cdu->command[0] = XPLMFindCommand("sim/operation/slider_17")))
                     {
-                        char outDescr[513];
-                        XPLMPluginID outPl;
-                        XPLMHotKeyID h_key = XPLMGetNthHotKey(i);
-                        XPLMGetHotKeyInfo(h_key, NULL, NULL, outDescr, &outPl);
-                        if (XPLMFindPluginBySignature("FJCC.SSGERJ") == outPl &&
-                            strncasecmp(outDescr, "F8", 2) == 0)
-                        {
-                            /* TODO: remove this awful hack */
-                            XPLMSetHotKeyCombination(h_key, XPLM_VK_ESCAPE, xplm_DownFlag);
-                            break;
-                        }
+                        cdu->i_disabled = 1; return 0;
                     }
-                    cdu->status = -2; return 0;
-                }
+                    cdu->i_disabled = 0; break;
 
                 case NVP_ACF_B737_EA:
                     if (x737 != XPLM_NO_PLUGIN_ID)
@@ -2186,28 +2168,40 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         {
                             XPLMEnablePlugin(x737);
                         }
-                        cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("x737/UFMC/FMC_TOGGLE");
-                        cdu->status = 0; break;
+                        if (NULL == (cdu->command[0] = XPLMFindCommand("x737/UFMC/FMC_TOGGLE")))
+                        {
+                            cdu->i_disabled = 1; return 0;
+                        }
+                        cdu->i_disabled = 0; break;
                     }
                     // fall through
                 default:
-                    if ((acft_author = XPLMFindDataRef("sim/aircraft/view/acf_author")))
+                {
+                    XPLMDataRef acft_author = XPLMFindDataRef("sim/aircraft/view/acf_author");
+                    if (acft_author)
                     {
                         char author_name[41];
                         dataref_read_string(acft_author, author_name,  sizeof(author_name));
                         if (!STRN_CASECMP_AUTO(author_name, "Aerobask"))
                         {
-                            cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("aerobask/skyview/toggle_left");
-                            if (cdu->cmd[0])
+                            if (NULL == (cdu->command[0] = XPLMFindCommand("aerobask/skyview/toggle_left")))
                             {
-                                cdu->status = 0; break; // Dynon SkyView
+                                cdu->i_disabled = 1; return 0; // GNS430, GNS530
                             }
-                            cdu->status = -2; return 0; // GNS430, GNS530
+                            cdu->i_disabled = 0; break; // Dynon SkyView
                         }
                         if (!STRN_CASECMP_AUTO(author_name, "Alabeo") ||
                             !STRN_CASECMP_AUTO(author_name, "Carenado"))
                         {
-                            cdu->status = -2; return 0; // GNS430, GNS530, G1000
+                            cdu->i_disabled = 1; return 0; // GNS430, GNS530, G1000
+                        }
+                        if (!STRN_CASECMP_AUTO(author_name, "Denis 'ddenn' Krupin"))
+                        {
+                            if (NULL == (cdu->command[0] = XPLMFindCommand("sim/operation/slider_12")))
+                            {
+                                cdu->i_disabled = 1; return 0;
+                            }
+                            cdu->i_disabled = 0; break;
                         }
                     }
                     if (sfmc != XPLM_NO_PLUGIN_ID)
@@ -2216,8 +2210,11 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         {
                             XPLMEnablePlugin(sfmc);
                         }
-                        cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("pikitanga/SimpleFMC/ToggleSimpleFMC");
-                        cdu->status = 0; break;
+                        if (NULL == (cdu->command[0] = XPLMFindCommand("pikitanga/SimpleFMC/ToggleSimpleFMC")))
+                        {
+                            cdu->i_disabled = 1; return 0;
+                        }
+                        cdu->i_disabled = 0; break;
                     }
                     if (xfmc != XPLM_NO_PLUGIN_ID)
                     {
@@ -2225,56 +2222,57 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         {
                             XPLMEnablePlugin(xfmc);
                         }
-                        cdu->cmd[0] = cdu->cmd[1] = XPLMFindCommand("xfmc/toggle");
-                        cdu->status = 0; break;
+                        if (NULL == (cdu->command[0] = XPLMFindCommand("xfmc/toggle")))
+                        {
+                            cdu->i_disabled = 1; return 0;
+                        }
+                        cdu->i_disabled = 0; break;
                     }
-                    cdu->status = -2; return 0; // no plugin FMS found
-            }
-        }
-        if (cdu->iArray_Ref)
-        {
-            int v;
-            XPLMGetDatavi(cdu->iArray_Ref, &v, cdu->iArray_Idx, 1); v = !v;
-            XPLMSetDatavi(cdu->iArray_Ref, &v, cdu->iArray_Idx, 1); return 0;
-        }
-        if (cdu->iAutoRst_1)
-        {
-            if (cdu->iAutoRst_2)
-            {
-                XPLMSetDatai(cdu->iAutoRst_1, cdu->status);
-                XPLMSetDatai(cdu->iAutoRst_2, cdu->status); return 0;
-            }
-            else
-            {
-                XPLMSetDatai(cdu->iAutoRst_1, cdu->status); return 0;
-            }
-        }
-        if (cdu->iQPAC350_O && cdu->iQPAC350_L && cdu->iQPAC350_H && cdu->cmd[0])
-        {
-            if (XPLMGetDatai(cdu->iQPAC350_H) == 0)
-            {
-                if (XPLMGetDatai(cdu->iQPAC350_O))
-                {
-                    XPLMSetDatai(cdu->iQPAC350_O, 0);
-                    XPLMSetDatai(cdu->iQPAC350_L, 0);
-                }
-                else
-                {
-                    XPLMSetDatai(cdu->iQPAC350_L, !XPLMGetDatai(cdu->iQPAC350_L));
+                    cdu->i_disabled = 1; return 0; // no plugin FMS found
                 }
             }
-            else
+            if (cdu->i_disabled == -1)
             {
-                XPLMCommandOnce(cdu->cmd[0]);
+                ndt_log("navP [debug]: chandler_mcdup has a BUG\n");
+                cdu->i_disabled = 1; return 0;
             }
+        }
+        if (cdu->i_disabled)
+        {
             return 0;
         }
-        if (cdu->cmd[0] && cdu->cmd[1])
+        switch (cdu->addon_type)
         {
-            XPLMCommandOnce(cdu->cmd[!!cdu->status]);
-            cdu->status  = !cdu->status; return 0;
+            case NVP_ACF_EMBE_XC:
+                cdu->i_value[0] = 1;
+                XPLMCommandOnce(cdu->command[0]);
+                XPLMSetDatavi  (cdu->dataref[0], &cdu->i_value[0], 14, 1); // hide yoke L
+                XPLMSetDatavi  (cdu->dataref[0], &cdu->i_value[0], 15, 1); // hide yoke R
+                XPLMSetDatavi  (cdu->dataref[0], &cdu->i_value[0], 20, 1); // expand popups' toggle buttons
+                return 0;
+
+            case NVP_ACF_B757_FF:
+            case NVP_ACF_B767_FF:
+                XPLMSetDatai(cdu->dataref[1], 1); // auto-reset
+                // fall through
+            case NVP_ACF_B777_FF:
+                XPLMSetDatai(cdu->dataref[0], 1); // auto-reset
+                return 0;
+
+            case NVP_ACF_A350_FF:
+                cdu->i_value[0] = XPLMGetDatai(cdu->dataref[1]);
+                cdu->i_value[1] = XPLMGetDatai(cdu->dataref[2]);
+                if (cdu->i_value[0] == 0) // MFD popups enabled
+                {
+                    XPLMSetDatai(cdu->dataref[0], !cdu->i_value[0]);
+                    XPLMSetDatai(cdu->dataref[1], !cdu->i_value[0]);
+                    return 0;
+                }
+                // fall through
+            default:
+                XPLMCommandOnce(cdu->command[0]); // single command (toggle)
+                return 0;
         }
-        cdu->status = -2; return 0;
     }
     return 0;
 }
@@ -2549,6 +2547,22 @@ static int first_fcall_do(chandler_context *ctx)
             break;
 
         case NVP_ACF_EMBE_SS:
+            for (int i = 0; i < XPLMCountHotKeys(); i++)
+            {
+                char outDescr[513];
+                XPLMHotKeyID h_key = XPLMGetNthHotKey(i);
+                XPLMGetHotKeyInfo(h_key, NULL, NULL, outDescr, NULL);
+                if (strncasecmp(outDescr, "SHIFT F8", 8) == 0)
+                {
+                    XPLMSetHotKeyCombination(h_key, XPLM_VK_F13, xplm_DownFlag);
+                }
+                if (strncasecmp(outDescr, "F8", 2) == 0)
+                {
+                    /* This awful hack ain't going anywhere, GG SSG :-( */
+                    XPLMSetHotKeyCombination(h_key, XPLM_VK_F15, xplm_DownFlag);
+                    break;
+                }
+            }
             _DO(1, XPLMSetDatai, 1, "SSG/EJET/LIGHTS/nav_lights_sw");               // Exter. lighting: navig. (on)
             _DO(1, XPLMSetDatai, 1, "SSG/EJET/ENG/eng_iginit1_sw");                 // m3rm0z: real-world def. auto
             _DO(1, XPLMSetDatai, 1, "SSG/EJET/ENG/eng_iginit2_sw");                 // m3rm0z: real-world def. auto
@@ -2594,13 +2608,6 @@ static int first_fcall_do(chandler_context *ctx)
                 XPLMSetDatavf(d_ref, &generic_lights_switch[0], 15, 1); // pack 2
                 XPLMSetDatavf(d_ref, &generic_lights_switch[0], 28, 1); // bleed1
                 XPLMSetDatavf(d_ref, &generic_lights_switch[0], 29, 1); // bleed2
-            }
-            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
-            {
-                int custom_slider_on[1] = { 1, };
-                XPLMSetDatavi(d_ref, &custom_slider_on[0], 14, 1); // hide yoke L
-                XPLMSetDatavi(d_ref, &custom_slider_on[0], 15, 1); // hide yoke R
-                XPLMSetDatavi(d_ref, &custom_slider_on[0], 20, 1); // show popups' on/off buttons
             }
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
