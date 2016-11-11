@@ -2260,12 +2260,12 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 return 0;
 
             case NVP_ACF_A350_FF:
-                cdu->i_value[0] = XPLMGetDatai(cdu->dataref[1]);
-                cdu->i_value[1] = XPLMGetDatai(cdu->dataref[2]);
-                if (cdu->i_value[0] == 0) // MFD popups enabled
+                cdu->i_value[1] = !XPLMGetDatai(cdu->dataref[2]);
+                cdu->i_value[0] = !XPLMGetDatai(cdu->dataref[1]);
+                if (cdu->i_value[1]) // popupsHide == 0: MFD popups enabled
                 {
-                    XPLMSetDatai(cdu->dataref[0], !cdu->i_value[0]);
-                    XPLMSetDatai(cdu->dataref[1], !cdu->i_value[0]);
+                    XPLMSetDatai(cdu->dataref[1], cdu->i_value[0]); // popupLeft
+                    XPLMSetDatai(cdu->dataref[0],             (0)); // popupOis
                     return 0;
                 }
                 // fall through
