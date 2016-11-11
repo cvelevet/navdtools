@@ -2554,7 +2554,7 @@ static int first_fcall_do(chandler_context *ctx)
                 XPLMGetHotKeyInfo(h_key, NULL, NULL, outDescr, NULL);
                 if (strncasecmp(outDescr, "SHIFT F8", 8) == 0)
                 {
-                    XPLMSetHotKeyCombination(h_key, XPLM_VK_F13, xplm_DownFlag);
+                    XPLMSetHotKeyCombination(h_key, XPLM_VK_F14, xplm_DownFlag);
                 }
                 if (strncasecmp(outDescr, "F8", 2) == 0)
                 {
@@ -2564,18 +2564,18 @@ static int first_fcall_do(chandler_context *ctx)
                 }
             }
             _DO(1, XPLMSetDatai, 1, "SSG/EJET/LIGHTS/nav_lights_sw");               // Exter. lighting: navig. (on)
-            _DO(1, XPLMSetDatai, 1, "SSG/EJET/ENG/eng_iginit1_sw");                 // m3rm0z: real-world def. auto
-            _DO(1, XPLMSetDatai, 1, "SSG/EJET/ENG/eng_iginit2_sw");                 // m3rm0z: real-world def. auto
-            _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys3a_sw");                // m3rm0z: real-world def. off
             _DO(1, XPLMSetDatai, 1, "ssg/EJET/GND/rain_hide_sw");                   // Disable custom rain effects
             _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/stair1_ON");                      // Hide passenger stairs
             _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/seats_hide_sw");                  // Hide captain's seat
             _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/yokes_hide_sw");                  // Hide both yokes
-            // hydraulics seem to draw power from systems 1 & 2 even though engines are off (bug)
-            _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys3b_sw");
-            _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys3a_sw");
-            _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys2_sw");
-            _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys1_sw");
+//          // hydraulics seem to draw power from systems 1 & 2 even though engines are off (bug) (fixed 1.0.2)
+//          _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys3b_sw");
+//          _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys3a_sw");
+//          _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys2_sw");
+//          _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys1_sw");
+//          _DO(1, XPLMSetDatai, 1, "SSG/EJET/ENG/eng_iginit1_sw");  // m3rm0z: real-world def. auto (fixed 1.0.2)
+//          _DO(1, XPLMSetDatai, 1, "SSG/EJET/ENG/eng_iginit2_sw");  // m3rm0z: real-world def. auto (fixed 1.0.2)
+//          _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys3a_sw"); // m3rm0z: real-world def. off  (fixed 1.0.2)
             break;
 
         case NVP_ACF_EMBE_XC:
