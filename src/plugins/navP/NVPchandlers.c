@@ -370,6 +370,7 @@ static const char* _flap_names_DC10[10] = { "up",     "5",    "15",   "25",   "3
 static const char* _flap_names_EMB1[10] = { "up",     "9",    "18",   "22",   "45",   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_EMB2[10] = { "up",     "1",     "2",    "3",    "4",    "5", "full",   NULL,   NULL,   NULL, };
 static const char* _flap_names_FA7X[10] = { "up",     "1",     "2", "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_HA4T[10] = { "up",    "12",    "20",   "35",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_PA32[10] = { "up",    "10",    "25",   "40",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_PC12[10] = { "up",    "15",    "30",   "40",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_TBM8[10] = { NULL,   "up",  "half",  "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, }; // because: Carenado :-(
@@ -1129,6 +1130,12 @@ int nvp_chandlers_update(void *inContext)
             if (!STRN_CASECMP_AUTO(xaircraft_auth_str, "After") && !strnlen(xaircraft_desc_str, 1))
             {
                 sprintf                            (xaircraft_icao_code, "%.4s", "FA7X");
+                dataref_wrte_string(dref_temporary, xaircraft_icao_code, sizeof(xaircraft_icao_code));
+                break;
+            }
+            if (!STRN_CASECMP_AUTO(xaircraft_desc_str, "Hawker 4000"))
+            {
+                sprintf                            (xaircraft_icao_code, "%.4s", "HA4T");
                 dataref_wrte_string(dref_temporary, xaircraft_icao_code, sizeof(xaircraft_icao_code));
                 break;
             }
@@ -2075,6 +2082,11 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 if (!strcasecmp(ctx->icao, "FA7X"))
                 {
                     flap_callout_setst(_flap_names_FA7X, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->icao, "HA4T"))
+                {
+                    flap_callout_setst(_flap_names_HA4T, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
                 if (!strcasecmp(ctx->icao, "PA32"))
