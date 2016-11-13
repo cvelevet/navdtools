@@ -297,6 +297,7 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
             XPLMGetMouseLocation(&x, &y); XPGetWidgetGeometry(yfms->mwindow.screen.subw_id,   NULL, &ymax, NULL, &ymin); break;
 
         // mouse within main window boundaries
+        case YFS_KSM_NUM:
         case YFS_KSM_WIN:
             XPLMGetMouseLocation(&x, &y); XPGetWidgetGeometry(yfms->mwindow.id,             &xmin, &ymax, &xmax, &ymin); break;
 
@@ -364,6 +365,17 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
         case '7':
         case '8':
         case '9':
+            yfs_spad_apndc(yfms, inChar, -1);
+            return 0;
+        default:
+            if (yfms->mwindow.ks_mode == YFS_KSM_NUM)
+            {
+                return 1; // digit-only: pass any letter(s) through
+            }
+            break;
+    }
+    switch (inChar)
+    {
         case 'A':
         case 'B':
         case 'C':

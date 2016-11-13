@@ -84,6 +84,7 @@ typedef struct
         {
             YFS_KSM_OFF,
             YFS_KSM_DSP,
+            YFS_KSM_NUM,
             YFS_KSM_WIN,
             YFS_KSM_ALL,
         }
