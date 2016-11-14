@@ -758,6 +758,12 @@ static void toggle_main_window(yfms_context *yfms)
             yfms->xpl.fb77.anim_25_rotery         = XPLMFindDataRef("anim/25/rotery"                            );
             yfms->xpl.fb77.anim_85_switch         = XPLMFindDataRef("anim/85/switch"                            );
             yfms->xpl.fb77.anim_175_button        = XPLMFindDataRef("anim/175/button"                           );
+            yfms->xpl.tekt.cl3_fms_selector       = XPLMFindDataRef("cl300/fms_selector"                        );
+            yfms->xpl.tekt.CruiseSpeed_Mach       = XPLMFindDataRef("Tekton_FMS/CruiseSpeed_Mach"               );
+            yfms->xpl.tekt.CruiseSpeed_KIAS       = XPLMFindDataRef("Tekton_FMS/CruiseSpeed_KIAS"               );
+            yfms->xpl.tekt.HA4T_shared_KIAS       = XPLMFindDataRef("Hawker4000/shared/KIAS_MACH"               );
+            yfms->xpl.tekt.E175_mouse_x_pos       = XPLMFindDataRef("XCrafts/ERJ_175/mouse_x_pos"               );
+//          yfms->xpl.tekt.E195_mouse_x_pos       = XPLMFindDataRef("XCrafts/ERJ_195/mouse_x_pos"               ); // TODO
 
             if (yfms->xpl.ixeg.xpdr_mode_act       && yfms->xpl.ixeg.xpdr_stby_act       &&
                 yfms->xpl.ixeg.radios_adf1_100_act && yfms->xpl.ixeg.radios_adf2_100_act &&
@@ -799,6 +805,37 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.fb77.anim_85_switch && yfms->xpl.fb77.anim_175_button)
             {
                 yfms->xpl.atyp = YFS_ATYP_FB77; break;
+            }
+            if (yfms->xpl.tekt.cl3_fms_selector)
+            {
+                yfms->xpl.otto.vmax_auto = 1;
+                yfms->xpl.otto.vmax_kias = 290; // Vmo: 320 KIAS
+                yfms->xpl.otto.vmax_mach = 750; // Mmo: .83 MACH
+                ndt_log("YFMS [info]: vmax_auto enabled (%d, .%03d)\n",
+                        yfms->xpl.otto.vmax_kias, yfms->xpl.otto.vmax_mach);
+                yfms->xpl.atyp = YFS_ATYP_XPLN; break;
+            }
+            if (yfms->xpl.tekt.CruiseSpeed_Mach &&
+                yfms->xpl.tekt.CruiseSpeed_KIAS)
+            {
+                if (yfms->xpl.tekt.HA4T_shared_KIAS)
+                {
+                    yfms->xpl.otto.vmax_auto = 1;
+                    yfms->xpl.otto.vmax_kias = 300; // Vmo: 350 KIAS
+                    yfms->xpl.otto.vmax_mach = 760; // Mmo: .84 MACH
+                    ndt_log("YFMS [info]: vmax_auto enabled (%d, .%03d)\n",
+                            yfms->xpl.otto.vmax_kias, yfms->xpl.otto.vmax_mach);
+                    yfms->xpl.atyp = YFS_ATYP_XPLN; break;
+                }
+                if (yfms->xpl.tekt.E175_mouse_x_pos)
+                {
+                    yfms->xpl.otto.vmax_auto = 1;
+                    yfms->xpl.otto.vmax_kias = 290; // Vmo: 320 KIAS
+                    yfms->xpl.otto.vmax_mach = 740; // Mmo: .82 MACH
+                    ndt_log("YFMS [info]: vmax_auto enabled (%d, .%03d)\n",
+                            yfms->xpl.otto.vmax_kias, yfms->xpl.otto.vmax_mach);
+                    yfms->xpl.atyp = YFS_ATYP_XPLN; break;
+                }
             }
 
             /* no custom type found, all default X-Plane systems used */
@@ -967,7 +1004,13 @@ void* yfs_main_init(void)
         (yfms->xpl.nav2_course_deg_mag_pilot       = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav2_course_deg_mag_pilot"      )) == NULL ||
         (yfms->xpl.latitude                        = XPLMFindDataRef("sim/flightmodel/position/latitude"                            )) == NULL ||
         (yfms->xpl.longitude                       = XPLMFindDataRef("sim/flightmodel/position/longitude"                           )) == NULL ||
-        (yfms->xpl.elevation                       = XPLMFindDataRef("sim/flightmodel/position/elevation"                           )) == NULL)
+        (yfms->xpl.elevation                       = XPLMFindDataRef("sim/flightmodel/position/elevation"                           )) == NULL ||
+        (yfms->xpl.machno                          = XPLMFindDataRef("sim/flightmodel/misc/machno"                                  )) == NULL ||
+        (yfms->xpl.vvi_fpm_pilot                   = XPLMFindDataRef("sim/cockpit2/gauges/indicators/vvi_fpm_pilot"                 )) == NULL ||
+        (yfms->xpl.airspeed_is_mach                = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_is_mach"                      )) == NULL ||
+        (yfms->xpl.airspeed_kts_pilot              = XPLMFindDataRef("sim/cockpit2/gauges/indicators/airspeed_kts_pilot"            )) == NULL ||
+        (yfms->xpl.airspeed_dial_kts_mach          = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_dial_kts_mach"                )) == NULL ||
+        (yfms->xpl.knots_mach_toggle               = XPLMFindCommand("sim/autopilot/knots_mach_toggle"                              )) == NULL)
     {
         ndt_log("YFMS [error]: could not load aircraft-related datarefs and commands\n");
         goto fail;

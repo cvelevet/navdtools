@@ -298,6 +298,13 @@ typedef struct
         XPLMDataRef latitude;
         XPLMDataRef longitude;
         XPLMDataRef elevation;
+        // autopilot
+        XPLMDataRef machno;
+        XPLMDataRef vvi_fpm_pilot;
+        XPLMDataRef airspeed_is_mach;
+        XPLMDataRef airspeed_kts_pilot;
+        XPLMDataRef airspeed_dial_kts_mach;
+        XPLMCommandRef knots_mach_toggle;
         // miscellaneous
         XPLMFlightLoop_f fl_callback;
         enum
@@ -382,6 +389,23 @@ typedef struct
             XPLMDataRef anim_175_button;
         }
         fb77;
+        struct
+        {
+            XPLMDataRef cl3_fms_selector;
+            XPLMDataRef CruiseSpeed_Mach;
+            XPLMDataRef CruiseSpeed_KIAS;
+            XPLMDataRef HA4T_shared_KIAS;
+            XPLMDataRef E175_mouse_x_pos;
+//          XPLMDataRef E195_mouse_x_pos; // TODO
+        }
+        tekt;
+        struct
+        {
+            int vmax_kias;
+            int vmax_mach;
+            int vmax_auto;
+        }
+        otto;
         struct
         {
             int frequency_changed;

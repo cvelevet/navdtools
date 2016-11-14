@@ -64,8 +64,9 @@ void yfs_menu_resetall(yfms_context *yfms)
         XPLMRegisterFlightLoopCallback(yfms->xpl.fl_callback = &yfs_flight_loop_cback, -1, yfms);
     }
 
-    /* always reset aircraft type */
+    /* always reset aircraft type (and associated automatic features) */
     yfms->xpl.atyp = YFS_ATYP_NSET;
+    yfms->xpl.otto.vmax_auto = 0;
 
     /* callbacks for page-specific keys */
     yfms->spcs.cback_menu = (YFS_SPC_f)&yfs_menu_pageopen;
@@ -289,6 +290,41 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     /* if main window visible, update currently displayed page */
     yfs_curr_pageupdt(yfms);
 
-    /* every 1/4 second should not be perceivable by users */
+    /* autopilot functions */
+    if (yfms->xpl.otto.vmax_auto)
+    {
+        /*
+         * TODO: check feasibility of fixed changeover altitude.
+         *
+         * FL/Vmo — Transition altitude at which Vmo equals Mmo.
+         */
+        int vspeed_ft_min = XPLMGetDataf(yfms->xpl.vvi_fpm_pilot);
+        int airspeed_mach = XPLMGetDataf(yfms->xpl.machno) * 1000;
+        int airspeed_unit = XPLMGetDatai(yfms->xpl.airspeed_is_mach);
+        int airspeed_kias = XPLMGetDataf(yfms->xpl.airspeed_kts_pilot);
+        if (airspeed_unit != 0 && vspeed_ft_min < -750) // MACH Number Descent
+        {
+            if (airspeed_mach >= yfms->xpl.otto.vmax_mach)
+            {
+                XPLMCommandOnce(yfms->xpl.knots_mach_toggle);
+                XPLMSetDataf(yfms->xpl.airspeed_dial_kts_mach, (float)yfms->xpl.otto.vmax_mach / 1000.0f);
+            }
+        }
+        if (airspeed_unit == 0 && vspeed_ft_min > +750) // Indicated KTS Climb
+        {
+            if (airspeed_kias >= yfms->xpl.otto.vmax_kias)
+            {
+                {
+                    XPLMCommandOnce(yfms->xpl.knots_mach_toggle);
+                }
+                if (yfms->xpl.otto.vmax_kias > (-5 + XPLMGetDataf(yfms->xpl.airspeed_dial_kts_mach)))
+                {
+                    XPLMSetDataf(yfms->xpl.airspeed_dial_kts_mach, (float)yfms->xpl.otto.vmax_kias);
+                }
+            }
+        }
+    }
+
+    /* every 1/4 second should (almost) not be perceivable by users */
     return .25f;
 }
