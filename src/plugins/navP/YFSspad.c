@@ -53,8 +53,8 @@ void yfs_spad_clear(yfms_context *yfms)
         if (yfms->mwindow.screen.spad_reset == 0)
         {
             yfs_spad_reset(yfms, "CLR", -1);
+            yfms->mwindow.screen.spad_backup = 0; return;
         }
-        yfms->mwindow.screen.spad_backup = yfms->mwindow.screen.spad_reset = 0; return;
     }
     for (int i = 0; i < YFS_DISPLAY_NUMC; i++)
     {
@@ -72,16 +72,16 @@ void yfs_spad_remvc(yfms_context *yfms)
     }
     if (yfms->mwindow.screen.spad_reset)
     {
-        if (yfms->mwindow.screen.spad_backup)
+        yfs_spad_clear(yfms);
         {
-            yfs_spad_clear(yfms);
-            sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s",
-                    yfms->mwindow.screen.spad_bupbuf); return;
+            if (yfms->mwindow.screen.spad_backup)
+            {
+                sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s",
+                        yfms->mwindow.screen.spad_bupbuf);
+                yfms->mwindow.screen.spad_backup = 0; return;
+            }
         }
-        else
-        {
-            yfs_spad_clear(yfms); return;
-        }
+        return;
     }
     char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf); size_t l = strlen(buf);
     if (l <= 1)
