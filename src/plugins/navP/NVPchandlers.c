@@ -1200,6 +1200,7 @@ int nvp_chandlers_update(void *inContext)
         default:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+            ctx->athr.toga.cc.name = "sim/autopilot/autothrottle_on";
             break;
     }
 
