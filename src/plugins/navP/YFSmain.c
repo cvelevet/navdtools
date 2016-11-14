@@ -685,13 +685,13 @@ static void toggle_main_window(yfms_context *yfms)
     {
         return;
     }
-    if (yfms->mwindow.win_state == 0) // place window near top left by default
+    if (yfms->mwindow.win_state == 0) // top left, adjusted for XSB & X-IvAp
     {
         int windowTP, windowLT = 0;
         yfms->mwindow.win_state += 1;
         XPLMGetScreenSize(NULL, &windowTP);
-        int inTP = (windowTP - 100); int inBM = (inTP - YFS_MAINWINDOW_H) + 1;
-        int inLT = (windowLT +  50); int inRT = (inLT + YFS_MAINWINDOW_W) - 1;
+        int inTP = (windowTP - 200); int inBM = (inTP - YFS_MAINWINDOW_H) + 1;
+        int inLT = (windowLT +  20); int inRT = (inLT + YFS_MAINWINDOW_W) - 1;
         XPSetWidgetGeometry(yfms->mwindow.id, inLT, inTP, inRT, inBM);
     }
     if (XPIsWidgetVisible(yfms->mwindow.id))
