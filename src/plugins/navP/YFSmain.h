@@ -401,9 +401,10 @@ typedef struct
         tekt;
         struct
         {
+            int vmax_auto;
+            int vmax_flch;
             int vmax_kias;
             int vmax_mach;
-            int vmax_auto;
         }
         otto;
         struct

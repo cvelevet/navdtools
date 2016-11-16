@@ -65,8 +65,8 @@ void yfs_menu_resetall(yfms_context *yfms)
     }
 
     /* always reset aircraft type (and associated automatic features) */
+    yfms->xpl.otto.vmax_auto = yfms->xpl.otto.vmax_flch = 0;
     yfms->xpl.atyp = YFS_ATYP_NSET;
-    yfms->xpl.otto.vmax_auto = 0;
 
     /* callbacks for page-specific keys */
     yfms->spcs.cback_menu = (YFS_SPC_f)&yfs_menu_pageopen;
@@ -304,22 +304,35 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         int airspeed_kias = XPLMGetDataf(yfms->xpl.airspeed_kts_pilot);
         if (airspeed_unit != 0 && vspeed_ft_min < -750) // MACH Number Descent
         {
-            if (airspeed_mach >= yfms->xpl.otto.vmax_mach)
+            if (airspeed_kias >= yfms->xpl.otto.vmax_kias)
             {
-                XPLMCommandOnce(yfms->xpl.knots_mach_toggle);
-                XPLMSetDataf(yfms->xpl.airspeed_dial_kts_mach, (float)yfms->xpl.otto.vmax_mach / 1000.0f);
+                // reached max DES KIAS, switch A/T target to KIAS
+                {
+                    XPLMCommandOnce(yfms->xpl.knots_mach_toggle);
+                    airspeed_kias = XPLMGetDataf(yfms->xpl.airspeed_dial_kts_mach);
+                }
+                if (yfms->xpl.otto.vmax_kias > airspeed_kias - 6 &&
+                    yfms->xpl.otto.vmax_kias < airspeed_kias + 6)
+                {
+                    // close enough, set target speed to vmax
+                    XPLMSetDataf(yfms->xpl.airspeed_dial_kts_mach, (float)yfms->xpl.otto.vmax_kias);
+                }
             }
         }
         if (airspeed_unit == 0 && vspeed_ft_min > +750) // Indicated KTS Climb
         {
-            if (airspeed_kias >= yfms->xpl.otto.vmax_kias)
+            if (airspeed_mach >= yfms->xpl.otto.vmax_mach)
             {
+                // reached max CLB MACH, switch A/T target to MACH
                 {
                     XPLMCommandOnce(yfms->xpl.knots_mach_toggle);
+                    airspeed_mach = XPLMGetDataf(yfms->xpl.airspeed_dial_kts_mach) * 1000;
                 }
-                if (yfms->xpl.otto.vmax_kias > (-5 + XPLMGetDataf(yfms->xpl.airspeed_dial_kts_mach)))
+                if (yfms->xpl.otto.vmax_mach > airspeed_mach - 6 &&
+                    yfms->xpl.otto.vmax_mach < airspeed_mach + 6)
                 {
-                    XPLMSetDataf(yfms->xpl.airspeed_dial_kts_mach, (float)yfms->xpl.otto.vmax_kias);
+                    // close enough, set target speed to vmax
+                    XPLMSetDataf(yfms->xpl.airspeed_dial_kts_mach, (float)yfms->xpl.otto.vmax_mach / 1000.0f);
                 }
             }
         }
