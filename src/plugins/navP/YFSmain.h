@@ -302,6 +302,7 @@ typedef struct
         XPLMDataRef machno;
         XPLMDataRef vvi_fpm_pilot;
         XPLMDataRef airspeed_is_mach;
+        XPLMDataRef altitude_ft_pilot;
         XPLMDataRef airspeed_kts_pilot;
         XPLMDataRef airspeed_dial_kts_mach;
         XPLMCommandRef knots_mach_toggle;
@@ -405,6 +406,7 @@ typedef struct
             int vmax_flch;
             int vmax_kias;
             int vmax_mach;
+            float flt_vmo;
         }
         otto;
         struct

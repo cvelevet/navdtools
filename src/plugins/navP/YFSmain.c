@@ -806,11 +806,20 @@ static void toggle_main_window(yfms_context *yfms)
             {
                 yfms->xpl.atyp = YFS_ATYP_FB77; break;
             }
+            /*
+             * http://www.hochwarth.com/misc/AviationCalculator.html#CrossoverAltitude
+             *
+             * The Crossosver Altitude is the altitude at which a specified
+             * CAS and Mach value represent the same TAS value. The curves
+             * for constant CAS and constant Mach intersect at this point.
+             * Above this altitude, Mach number used to reference speeds.
+             */
             if (yfms->xpl.tekt.cl3_fms_selector)
             {
                 yfms->xpl.otto.vmax_auto = 1;
-                yfms->xpl.otto.vmax_kias = 290; // Vmo: 320 KIAS
-                yfms->xpl.otto.vmax_mach = 750; // Mmo: .83 MACH
+                yfms->xpl.otto.vmax_kias = 310; // Vmo: 320 KIAS
+                yfms->xpl.otto.vmax_mach = 820; // Mmo: .83 MACH
+                yfms->xpl.otto.flt_vmo = 29482.35074f; // FL/Vmo
                 ndt_log("YFMS [info]: vmax_auto enabled (%d, .%03d)\n",
                         yfms->xpl.otto.vmax_kias, yfms->xpl.otto.vmax_mach);
                 yfms->xpl.atyp = YFS_ATYP_XPLN; break;
@@ -821,8 +830,9 @@ static void toggle_main_window(yfms_context *yfms)
                 if (yfms->xpl.tekt.HA4T_shared_KIAS)
                 {
                     yfms->xpl.otto.vmax_auto = 1;
-                    yfms->xpl.otto.vmax_kias = 300; // Vmo: 350 KIAS
-                    yfms->xpl.otto.vmax_mach = 760; // Mmo: .84 MACH
+                    yfms->xpl.otto.vmax_kias = 340; // Vmo: 350 KIAS
+                    yfms->xpl.otto.vmax_mach = 830; // Mmo: .84 MACH
+                    yfms->xpl.otto.flt_vmo = 25839.22806f; // FL/Vmo
                     ndt_log("YFMS [info]: vmax_auto enabled (%d, .%03d)\n",
                             yfms->xpl.otto.vmax_kias, yfms->xpl.otto.vmax_mach);
                     yfms->xpl.atyp = YFS_ATYP_XPLN; break;
@@ -830,8 +840,9 @@ static void toggle_main_window(yfms_context *yfms)
                 if (yfms->xpl.tekt.E175_mouse_x_pos)
                 {
                     yfms->xpl.otto.vmax_auto = 1;
-                    yfms->xpl.otto.vmax_kias = 290; // Vmo: 320 KIAS
-                    yfms->xpl.otto.vmax_mach = 740; // Mmo: .82 MACH
+                    yfms->xpl.otto.vmax_kias = 310; // Vmo: 320 KIAS
+                    yfms->xpl.otto.vmax_mach = 810; // Mmo: .82 MACH
+                    yfms->xpl.otto.flt_vmo = 28858.06702f; // FL/Vmo
                     ndt_log("YFMS [info]: vmax_auto enabled (%d, .%03d)\n",
                             yfms->xpl.otto.vmax_kias, yfms->xpl.otto.vmax_mach);
                     yfms->xpl.atyp = YFS_ATYP_XPLN; break;
@@ -1008,6 +1019,7 @@ void* yfs_main_init(void)
         (yfms->xpl.machno                          = XPLMFindDataRef("sim/flightmodel/misc/machno"                                  )) == NULL ||
         (yfms->xpl.vvi_fpm_pilot                   = XPLMFindDataRef("sim/cockpit2/gauges/indicators/vvi_fpm_pilot"                 )) == NULL ||
         (yfms->xpl.airspeed_is_mach                = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_is_mach"                      )) == NULL ||
+        (yfms->xpl.altitude_ft_pilot               = XPLMFindDataRef("sim/cockpit2/gauges/indicators/altitude_ft_pilot"             )) == NULL ||
         (yfms->xpl.airspeed_kts_pilot              = XPLMFindDataRef("sim/cockpit2/gauges/indicators/airspeed_kts_pilot"            )) == NULL ||
         (yfms->xpl.airspeed_dial_kts_mach          = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_dial_kts_mach"                )) == NULL ||
         (yfms->xpl.knots_mach_toggle               = XPLMFindCommand("sim/autopilot/knots_mach_toggle"                              )) == NULL)
