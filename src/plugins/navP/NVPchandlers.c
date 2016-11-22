@@ -2361,15 +2361,10 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDataf, 270.0f, "1-sim/radio/1/11/rotary");                // RMP1: p. announcements (volume)
             _DO(1, XPLMSetDatai,      1, "1-sim/1/switch");                         // Evac. panel: selector  (capt&purs)
             _DO(1, XPLMSetDatai,      1, "1-sim/2/switch");                         // Ext. lighting: strobe  (auto)
-//          _DO(1, XPLMSetDatai,      1, "1-sim/3/switch");                         // Ext. lighting: beacon  (on)
-            _DO(1, XPLMSetDatai,      1, "1-sim/4/switch");                         // Ext. lighting: navig.  (on)
             _DO(1, XPLMSetDatai,      1, "1-sim/5/switch");                         // Ext. lighting: logo    (auto)
             _DO(1, XPLMSetDatai,      1, "1-sim/20/switch");                        // Ext. lighting: emerg.  (auto)
             _DO(1, XPLMSetDatai,      1, "1-sim/37/switch");                        // Braking: anti-skid sw. (on)
-//          _DO(1, XPLMSetDataf,   1.0f, "1-sim/3/cover");                          // Ground HFreq. datalink (lift cover)
-//          _DO(1, XPLMSetDataf,   1.0f, "1-sim/8/button");                         // Ground HFreq. datalink (off)
             _DO(1, XPLMSetDataf,   1.0f, "1-sim/15/button");                        // Cabin panel: wireless  (auto)
-//          _DO(1, XPLMSetDataf,   1.0f, "1-sim/7/cover");                          // Cabin panel: pas. data (lift cover)
             _DO(1, XPLMSetDataf,   1.0f, "1-sim/16/button");                        // Cabin panel: pas. data (auto)
             _DO(1, XPLMSetDataf,   1.0f, "1-sim/17/button");                        // Cabin panel: sat. com. (auto)
             _DO(1, XPLMSetDataf,   1.0f, "1-sim/18/button");                        // Cabin panel: lan. cam. (auto)
@@ -2438,7 +2433,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");                  // ND m. sel. (cap. side) (arc)
             _DO(1, XPLMSetDatai, 3, "sim/cockpit2/EFIS/map_range");                 // ND r. sel. (cap. side) (20)
             _DO(1, XPLMSetDatai, 1, "com/petersaircraft/aibus/ALT100_1000");        // FCU alt. sel. increm.  (1000ft)
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on");  // Ext. lighting: navig.  (on)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");  // VOR1 on ND2 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");  // VOR2 on ND2 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");    // VOR1 on ND1 off
@@ -2549,7 +2543,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,    1, "anim/116/button");                          // Engine elec. contr. (L) (norm)
             _DO(1, XPLMSetDatai,    1, "anim/117/button");                          // Engine elec. contr. (R) (norm)
             _DO(1, XPLMSetDatai,    1, "anim/154/button");                          // Engine autostart switch (on)
-            _DO(1, XPLMSetDatai,    1, "anim/130/button");                          // Exter. lighting: navig. (on)
             _DO(1, XPLMSetDatai,    1, "anim/134/button");                          // Air: upper recirc. fans (on)
             _DO(1, XPLMSetDatai,    1, "anim/135/button");                          // Air: lower recirc. fans (on)
             _DO(1, XPLMSetDatai,    1, "anim/137/button");                          // Air: L t. air valve sw. (on)
@@ -2583,19 +2576,10 @@ static int first_fcall_do(chandler_context *ctx)
                     break;
                 }
             }
-            _DO(1, XPLMSetDatai, 1, "SSG/EJET/LIGHTS/nav_lights_sw");               // Exter. lighting: navig. (on)
             _DO(1, XPLMSetDatai, 1, "ssg/EJET/GND/rain_hide_sw");                   // Disable custom rain effects
             _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/stair1_ON");                      // Hide passenger stairs
             _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/seats_hide_sw");                  // Hide captain's seat
             _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/yokes_hide_sw");                  // Hide both yokes
-//          // hydraulics seem to draw power from systems 1 & 2 even though engines are off (bug) (fixed 1.0.2)
-//          _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys3b_sw");
-//          _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys3a_sw");
-//          _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys2_sw");
-//          _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys1_sw");
-//          _DO(1, XPLMSetDatai, 1, "SSG/EJET/ENG/eng_iginit1_sw");  // m3rm0z: real-world def. auto (fixed 1.0.2)
-//          _DO(1, XPLMSetDatai, 1, "SSG/EJET/ENG/eng_iginit2_sw");  // m3rm0z: real-world def. auto (fixed 1.0.2)
-//          _DO(1, XPLMSetDatai, 0, "SSG/EJET/HYD/elecpp_sys3a_sw"); // m3rm0z: real-world def. off  (fixed 1.0.2)
             break;
 
         case NVP_ACF_EMBE_XC:
@@ -2629,7 +2613,6 @@ static int first_fcall_do(chandler_context *ctx)
                 XPLMSetDatavf(d_ref, &generic_lights_switch[0], 28, 1); // bleed1
                 XPLMSetDatavf(d_ref, &generic_lights_switch[0], 29, 1); // bleed2
             }
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
             _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
@@ -2684,7 +2667,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDataf, .75f, "lights/brt");
             _DO(1, XPLMSetDataf, 0.5f, "lights/flood");
             _DO(1, XPLMSetDataf, 0.5f, "but/lights/pilot");
-            _DO(1, XPLMSetDatai,    1, "sim/cockpit2/switches/navigation_lights_on");
             if (ctx->first_fcall == -3)
             {
                 XPLMSetDatai(av_pwr_on, 0); // pass 3, avionics back to off
@@ -2695,7 +2677,6 @@ static int first_fcall_do(chandler_context *ctx)
             }
 
             // datarefs: X-Plane default
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");
@@ -2721,7 +2702,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 1, "Hawker4000/gear/anti_skid_button");
             _DO(1, XPLMSetDatai, 1, "Hawker4000/pilot/elec/l_gen_button");
             _DO(1, XPLMSetDatai, 1, "Hawker4000/pilot/elec/r_gen_button");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
             _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
@@ -2757,7 +2737,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "cl300/fms/alt_rep");
             _DO(0, XPLMSetDatai, 1, "cl300/hide_pilots");
             // datarefs: X-Plane default
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");
