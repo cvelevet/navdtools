@@ -1174,7 +1174,9 @@ int nvp_chandlers_update(void *inContext)
     /* plane-specific custom commands for automation disconnects, if any */
     switch (ctx->atyp)
     {
+        case NVP_ACF_A320_JD:
         case NVP_ACF_A320_QP:
+        case NVP_ACF_A323_JD:
         case NVP_ACF_A330_RW:
         case NVP_ACF_A350_FF:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
