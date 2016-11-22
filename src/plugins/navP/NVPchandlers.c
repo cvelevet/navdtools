@@ -1173,6 +1173,13 @@ int nvp_chandlers_update(void *inContext)
     /* plane-specific custom commands for automation disconnects, if any */
     switch (ctx->atyp)
     {
+        case NVP_ACF_A320_QP:
+        case NVP_ACF_A330_RW:
+        case NVP_ACF_A350_FF:
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+            break;
+
         case NVP_ACF_B737_EA:
             ctx->otto.disc.cc.name = "x737/yoke/capt_AP_DISENG_BTN";
             ctx->athr.disc.cc.name = "x737/mcp/ATHR_ARM_TOGGLE";
@@ -1199,9 +1206,9 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case NVP_ACF_EMBE_SS:
-            ctx->otto.disc.cc.name = "SSG/UFMC/AP_discon_Button";
-            ctx->athr.disc.cc.name = "SSG/UFMC/AP_ARM_AT_Switch";
-            ctx->athr.toga.cc.name = "SSG/UFMC/TOGA_Button";
+            ctx->otto.disc.cc.name = "SSG/EJET/MCP/AP_COMM";
+            ctx->athr.disc.cc.name = "SSG/EJET/MCP/AT_COMM";
+            ctx->athr.toga.cc.name = "SSG/EJET/MCP/Toga";
             break;
 
         default:
