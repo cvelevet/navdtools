@@ -232,6 +232,7 @@ typedef struct
             chandler_callback cb;
         } ret;
 
+        XPLMDataRef    ha4t;
         XPLMDataRef    srat;
         XPLMCommandRef sext;
         XPLMCommandRef sret;
@@ -1587,6 +1588,17 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         refcon_eadt738   *x38 = NULL;
         chandler_context *ctx = inRefcon;
         int speak = XPLMGetDatai(ctx->callouts.ref_speedbrake);
+        if (ctx->atyp == NVP_ACF_HA4T_RW)
+        {
+            if (ctx->spbrk.ha4t == NULL)
+            {
+                ctx->spbrk.ha4t = XPLMFindDataRef("Hawker4000/control/speedbrake_b");
+            }
+        }
+        else
+        {
+            ctx->spbrk.ha4t = NULL;
+        }
         switch (ctx->atyp)
         {
             case NVP_ACF_B737_EA:
@@ -1609,7 +1621,16 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             case NVP_ACF_A330_JD:
                 speak = 0; // fall through
             default:
-                XPLMCommandOnce (ctx->spbrk.sext);
+                if (ctx->spbrk.ha4t && XPLMGetDatai(ctx->spbrk.ha4t))
+                {
+                    // spoilers armed, disarm but don't extend
+                    if (speak > 0) XPLMSpeakString("spoilers disarmed");
+                    XPLMSetDatai(ctx->spbrk.ha4t, 0); return 0;
+                }
+//              else
+                {
+                    XPLMCommandOnce(ctx->spbrk.sext);
+                }
                 if (XPLMGetDataf(ctx->spbrk.srat) < +.01f)
                 {
                     if (speak > 0) XPLMSpeakString("spoilers disarmed");
@@ -1661,6 +1682,17 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         refcon_eadt738   *x38 = NULL;
         chandler_context *ctx = inRefcon;
         int speak = XPLMGetDatai(ctx->callouts.ref_speedbrake);
+        if (ctx->atyp == NVP_ACF_HA4T_RW)
+        {
+            if (ctx->spbrk.ha4t == NULL)
+            {
+                ctx->spbrk.ha4t = XPLMFindDataRef("Hawker4000/control/speedbrake_b");
+            }
+        }
+        else
+        {
+            ctx->spbrk.ha4t = NULL;
+        }
         switch (ctx->atyp)
         {
             case NVP_ACF_B737_EA:
@@ -1683,7 +1715,23 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             case NVP_ACF_A330_JD:
                 speak = 0; // fall through
             default:
-                XPLMCommandOnce (ctx->spbrk.sret);
+                if (ctx->atyp == NVP_ACF_EMBE_SS &&
+                    XPLMGetDataf(ctx->spbrk.srat) < +.01f)
+                {
+                    // already retracted, we can't/needn't arm (automatic)
+                    if (speak > 0) XPLMSpeakString("speedbrake retracted");
+                    return 0;
+                }
+                if (ctx->spbrk.ha4t && XPLMGetDataf(ctx->spbrk.srat) < +.01f)
+                {
+                    // already retracted, arm spoilers
+                    if (speak > 0) XPLMSpeakString("spoilers armed");
+                    XPLMSetDatai(ctx->spbrk.ha4t, 1); return 0;
+                }
+//              else
+                {
+                    XPLMCommandOnce(ctx->spbrk.sret);
+                }
                 if (XPLMGetDataf(ctx->spbrk.srat) < -.01f)
                 {
                     if (speak > 0) XPLMSpeakString("spoilers armed");
