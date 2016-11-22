@@ -1176,9 +1176,10 @@ int nvp_chandlers_update(void *inContext)
     {
         case NVP_ACF_A320_JD:
         case NVP_ACF_A320_QP:
-        case NVP_ACF_A323_JD:
+        case NVP_ACF_A330_JD:
         case NVP_ACF_A330_RW:
         case NVP_ACF_A350_FF:
+        case NVP_ACF_A380_PH:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             break;
@@ -2017,7 +2018,9 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         switch (ctx->atyp)
         {
+            case NVP_ACF_A320_JD:
             case NVP_ACF_A320_QP:
+            case NVP_ACF_A330_JD:
             case NVP_ACF_A330_RW:
             case NVP_ACF_A350_FF:
             case NVP_ACF_A380_PH:
@@ -2068,6 +2071,27 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 if (!strcasecmp(ctx->icao, "B52"))
                 {
                     flap_callout_setst(_flap_names_B52G, lroundf(5.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->icao, "A318") || // most Airbus airliner variants
+                    !strcasecmp(ctx->icao, "A319") ||
+                    !strcasecmp(ctx->icao, "A320") ||
+                    !strcasecmp(ctx->icao, "A321") ||
+                    !strcasecmp(ctx->icao, "A330") ||
+                    !strcasecmp(ctx->icao, "A332") ||
+                    !strcasecmp(ctx->icao, "A333") ||
+                    !strcasecmp(ctx->icao, "A340") ||
+                    !strcasecmp(ctx->icao, "A342") ||
+                    !strcasecmp(ctx->icao, "A343") ||
+                    !strcasecmp(ctx->icao, "A345") ||
+                    !strcasecmp(ctx->icao, "A346") ||
+                    !strcasecmp(ctx->icao, "A350") ||
+                    !strcasecmp(ctx->icao, "A358") ||
+                    !strcasecmp(ctx->icao, "A359") ||
+                    !strcasecmp(ctx->icao, "A380") ||
+                    !strcasecmp(ctx->icao, "A388"))
+                {
+                    flap_callout_setst(_flap_names_AIB1, lroundf(8.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
                 if (!strcasecmp(ctx->icao, "B732") || // all Boeing 737 variants
