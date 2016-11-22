@@ -124,6 +124,7 @@ typedef struct
         NVP_ACF_EMBE_XC = 0x0040000,
         NVP_ACF_ERJ1_4D = 0x0080000,
         NVP_ACF_SSJ1_RZ = 0x0100000,
+        NVP_ACF_HA4T_RW = 0x0200000,
     } atyp;
 #define NVP_ACF_MASK_FFR  0x0107010 // all FlightFactor addons
 #define NVP_ACF_MASK_FJS  0x0010140 // all of FlyJSim's addons
@@ -1042,6 +1043,13 @@ int nvp_chandlers_update(void *inContext)
                 ctx->atyp = NVP_ACF_SSJ1_RZ;
                 break;
             }
+            if (!STRN_CASECMP_AUTO(xaircraft_auth_str, "Rob Wilson") &&
+                !STRN_CASECMP_AUTO(xaircraft_desc_str, "Hawker 4000"))
+            {
+                ndt_log("navP [info]: plane is RWDesigns Hawker 4000\n");
+                ctx->atyp = NVP_ACF_HA4T_RW;
+                break;
+            }
             // fall through
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("gizmo.x-plugins.com"))
@@ -1081,6 +1089,11 @@ int nvp_chandlers_update(void *inContext)
 
         case NVP_ACF_SSJ1_RZ:
             sprintf                            (xaircraft_icao_code, "%.4s", "SU95");
+            dataref_wrte_string(dref_temporary, xaircraft_icao_code, sizeof(xaircraft_icao_code));
+            break;
+
+        case NVP_ACF_HA4T_RW:
+            sprintf                            (xaircraft_icao_code, "%.4s", "HA4T");
             dataref_wrte_string(dref_temporary, xaircraft_icao_code, sizeof(xaircraft_icao_code));
             break;
 
@@ -1130,12 +1143,6 @@ int nvp_chandlers_update(void *inContext)
             if (!STRN_CASECMP_AUTO(xaircraft_auth_str, "After") && !strnlen(xaircraft_desc_str, 1))
             {
                 sprintf                            (xaircraft_icao_code, "%.4s", "FA7X");
-                dataref_wrte_string(dref_temporary, xaircraft_icao_code, sizeof(xaircraft_icao_code));
-                break;
-            }
-            if (!STRN_CASECMP_AUTO(xaircraft_desc_str, "Hawker 4000"))
-            {
-                sprintf                            (xaircraft_icao_code, "%.4s", "HA4T");
                 dataref_wrte_string(dref_temporary, xaircraft_icao_code, sizeof(xaircraft_icao_code));
                 break;
             }
@@ -2686,8 +2693,41 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 XPLMCommandOnce(cr);
             }
+
+            // datarefs: X-Plane default
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
+            _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
             break;
         }
+
+        case NVP_ACF_HA4T_RW:
+            _DO(1, XPLMSetDatai, 0, "Hawker4000/hideshow/car");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/yoke/hide_show");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/bleed/l_bleed_b");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/bleed/r_bleed_b");
+            _DO(1, XPLMSetDatai, 0, "Hawker4000/pref/wingflex_b");
+            _DO(1, XPLMSetDatai, 0, "Hawker4000/pref/map_detail_b");
+            _DO(1, XPLMSetDatai, 0, "Hawker4000/hideshow/chockscones");
+            _DO(1, XPLMSetDatai, 0, "Hawker4000/hideshow/engine_cover");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/gear/anti_skid_button");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/pilot/elec/l_gen_button");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/pilot/elec/r_gen_button");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/navigation_lights_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
+            _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+            break;
 
         // Note: path always non-verbose (don't log warnings for unapplicable datarefs)
         case NVP_ACF_GENERIC:
