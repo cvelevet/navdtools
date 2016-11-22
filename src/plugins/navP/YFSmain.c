@@ -490,7 +490,7 @@ static int create_main_window(yfms_context *yfms)
     {
         goto create_button_fail;
     }
-    softkey.desc = "X";
+    softkey.desc = "W";
     softkey._wid = &yfms->mwindow.keys.keyid_al_w;
     if ((r_value = row_prepend_button(&softkey, yfms->mwindow.id)))
     {
