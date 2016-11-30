@@ -29,6 +29,7 @@
 
 #include "lib/flightplan.h"
 
+#include "YFSinit.h"
 #include "YFSmain.h"
 #include "YFSmenu.h"
 #include "YFSprog.h"
@@ -73,6 +74,7 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfms->spcs.cback_atcc = (YFS_SPC_f)&yfs_rad1_pageopen;
     yfms->spcs.cback_radn = (YFS_SPC_f)&yfs_rad2_pageopen;
     yfms->spcs.cback_prog = (YFS_SPC_f)&yfs_prog_pageopen;
+    yfms->spcs.cback_init = (YFS_SPC_f)&yfs_init_pageopen;
 
     /* navigation backend */
     if (yfms->ndt.flp.arr)
@@ -95,6 +97,16 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfms->ndt.flp.dep = ndt_flightplan_init(yfms->ndt.ndb);
     yfms->ndt.flp.iac = ndt_flightplan_init(yfms->ndt.ndb);
     yfms->ndt.flp.rte = ndt_flightplan_init(yfms->ndt.ndb);
+
+    /* user-provided data */
+    yfms->data.init.crz_alt      = ndt_distance_init(0, NDT_ALTUNIT_NA);
+    yfms->data.prog.fix          = NULL;
+    yfms->data.init.to           = NULL;
+    yfms->data.init.from         = NULL;
+    yfms->data.init.aligned      = 0;
+    yfms->data.init.ialized      = 0;
+    yfms->data.init.cost_index   = 0;
+    yfms->data.init.flight_id[0] = 0;
 
     /* all good */
     if (XPIsWidgetVisible(yfms->mwindow.id))
@@ -254,10 +266,13 @@ void yfs_curr_pageupdt(yfms_context *yfms)
 {
     if (yfms && XPIsWidgetVisible(yfms->mwindow.id))
     {
-        /* aircraft position update */
+        /* miscellaneous dataref update */
         yfms->data.aircraft_pos = ndt_position_init(XPLMGetDatad(yfms->xpl.latitude),
                                                     XPLMGetDatad(yfms->xpl.longitude),
                                                     ndt_distance_init((int64_t)(XPLMGetDatad(yfms->xpl.elevation) / .3048), NDT_ALTUNIT_FT));
+//      // not yet used
+//      yfms->data.trp_altitude = ndt_distance_init((int64_t)(XPLMGetDataf(yfms->xpl.tropopause) / .3048), NDT_ALTUNIT_FT);
+
         /* only update visible page */
         switch (yfms->mwindow.current_page)
         {

@@ -38,6 +38,7 @@
 
 #define YFS_DISPLAY_NUMC 24 // number of positions per row
 #define YFS_DISPLAY_NUMR 14 // number of rows
+#define YFS_ROW_BUF_SIZE (YFS_DISPLAY_NUMC + 1)
 
 typedef void (*YFS_SPC_f)(void *yfms                             );
 typedef void (*YFS_LSK_f)(void *yfms, int key[2], intptr_t refcon);
@@ -199,6 +200,7 @@ typedef struct
             PAGE_RAD1 = 3,
             PAGE_RAD2 = 4,
             PAGE_PROG = 5,
+            PAGE_INIT = 6,
         }
         current_page;
     }
@@ -227,15 +229,28 @@ typedef struct
     struct
     {
         ndt_position aircraft_pos;
+        ndt_distance trp_altitude;
+        struct
+        {
+            int          ialized; // valid origin and destination
+            int          aligned; // fake IRS system is aligned
+            int       cost_index; // requested performance
+            char    flight_id[8]; // flight "number"
+            ndt_distance crz_alt; // initial cruise altitude
+            ndt_airport *from;    // depart. airport
+            ndt_airport *to;      // arrival airport
+        } init;
+        struct
+        {
+            ndt_waypoint *fix;
+        } prog;
     }
     data;
 
     struct
     {
         char xsystem_pth[513];
-        char flight_number[9];
         ndt_navdatabase  *ndb;
-        ndt_waypoint *fix_nfo;
         struct
         {
             ndt_flightplan *arr;
@@ -245,8 +260,7 @@ typedef struct
         } flp;
         struct
         {
-            int         unit; // barometric pressure: InHg (0), hPa (1)
-            ndt_distance crz; // initial cruise altitude
+            int unit; // barometric pressure: InHg (0), hPa (1)
         } alt;
     }
     ndt;
@@ -294,10 +308,11 @@ typedef struct
         XPLMDataRef HSI_source_select_copilot;
         XPLMDataRef nav1_course_deg_mag_pilot;
         XPLMDataRef nav2_course_deg_mag_pilot;
-        // PAGE_PROG
+        // miscellaneous
         XPLMDataRef latitude;
         XPLMDataRef longitude;
         XPLMDataRef elevation;
+        XPLMDataRef tropopause;
         // autopilot
         XPLMDataRef machno;
         XPLMDataRef vvi_fpm_pilot;

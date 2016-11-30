@@ -58,15 +58,12 @@ void yfs_prog_pageupdt(yfms_context *yfms)
     /* buffers */
     char buf1[YFS_DISPLAY_NUMC + 1], buf2[YFS_DISPLAY_NUMC + 1];
 
-    /* relevant data */
-    int fl_crz = (int)ndt_distance_get(yfms->ndt.alt.crz, NDT_ALTUNIT_FL);
-
     /* line 0: main header (green, left, offset 3) */
 //  yfs_printf_lft(yfms,  0,  0, COLR_IDX_GREEN, "  PREFLIGHT"); // TODO: phase of flight
     yfs_printf_lft(yfms,  0,  0, COLR_IDX_GREEN, "  PROGRESS");
-    if (yfms->ndt.flight_number[0])
+    if (yfms->data.init.flight_id[0])
     {
-        yfs_printf_rgt(yfms, 0, 2, COLR_IDX_WHITE, yfms->ndt.flight_number);
+        yfs_printf_rgt(yfms, 0, 2, COLR_IDX_WHITE, yfms->data.init.flight_id);
     }
 
     /* line 1: headers (white) */
@@ -85,22 +82,23 @@ void yfs_prog_pageupdt(yfms_context *yfms)
     yfs_printf_lft(yfms, 12,  4, COLR_IDX_WHITE,                       "NM");
 
     /* line 2: flight levels */
-    if (fl_crz < 1)
+    if (ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_NA))
     {
-        yfs_printf_lft(yfms,  2,  0, COLR_IDX_WHITE,   "-----");
-        yfs_printf_lft(yfms,  2,  9, COLR_IDX_GREEN,   "FL---");
-        yfs_printf_rgt(yfms,  2,  1, COLR_IDX_MAGENTA, "FL---");
+        //fixme transition altitude
+//      int crzft = (int)ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FT);
+        int crzfl = (int)ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FL);
+        snprintf              (buf1, 6, "FL%03d", crzfl);
+        yfs_printf_lft(yfms, 2,  0, COLR_IDX_BLUE, buf1);
     }
     else
     {
-        snprintf(buf1, 6, "FL%03d", fl_crz);
-        yfs_printf_lft(yfms,  2,  0, COLR_IDX_BLUE,       buf1);
-        yfs_printf_lft(yfms,  2,  9, COLR_IDX_GREEN,   "FL---");
-        yfs_printf_rgt(yfms,  2,  1, COLR_IDX_MAGENTA, "FL---");
+        yfs_printf_lft(yfms, 2,  0, COLR_IDX_WHITE, "-----");
     }
+    yfs_printf_lft(yfms, 2,  9, COLR_IDX_GREEN,   "FL---");
+    yfs_printf_rgt(yfms, 2,  1, COLR_IDX_MAGENTA, "FL---");
 
     /* line 8: bearing, distance */
-    if (yfms->ndt.fix_nfo == NULL)
+    if (yfms->data.prog.fix == NULL)
     {
         yfs_printf_lft(yfms,  8,  0, COLR_IDX_WHITE, " ---/--.-");
         yfs_printf_lft(yfms,  8, 11, COLR_IDX_WHITE,    "  TO  ");
@@ -111,12 +109,12 @@ void yfs_prog_pageupdt(yfms_context *yfms)
         ndt_date      now = ndt_date_now();
         void         *wmm = yfms->ndt.ndb->wmm;
         ndt_position from = yfms->data.aircraft_pos;
-        ndt_position   to = yfms->ndt.fix_nfo->position;
+        ndt_position   to = yfms->data.prog.fix->position;
         ndt_distance dist = ndt_position_calcdistance(from, to);
         double       trub = ndt_position_calcbearing (from, to);
         double       magb = ndt_wmm_getbearing_mag   (wmm, trub, from, now);
         sprintf(buf1, " %03.0lf/%-6.1lf", round(magb), (double)ndt_distance_get(dist, NDT_ALTUNIT_ME) / 1852.);
-        sprintf(buf2, "%-7s", yfms->ndt.fix_nfo->info.idnt);
+        sprintf(buf2, "%-7s",  yfms->data.prog.fix->info.idnt);
         yfs_printf_lft(yfms,  8,  0, COLR_IDX_GREEN,     buf1);
         yfs_printf_lft(yfms,  8, 11, COLR_IDX_WHITE, "  TO  ");
         yfs_printf_rgt(yfms,  8,  0, COLR_IDX_BLUE,      buf2);
@@ -139,14 +137,14 @@ static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refco
     if (key[0] == 1 && key[1] == 3) // setting the reference fix
     {
         ndt_waypoint *wpt; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
-        if (buf[0] == 0 && yfms->ndt.fix_nfo)
+        if (buf[0] == 0 && yfms->data.prog.fix)
         {
-            snprintf(buf, sizeof(buf), "%s", yfms->ndt.fix_nfo->info.idnt);
+            snprintf(buf, sizeof(buf), "%s", yfms->data.prog.fix->info.idnt);
             yfs_spad_reset(yfms, buf, -1); return; // current fix to scratchpad
         }
         if (!strcmp(buf, "CLR"))
         {
-            yfms->ndt.fix_nfo = NULL; yfs_spad_clear(yfms); yfs_prog_pageupdt(yfms); return;
+            yfms->data.prog.fix = NULL; yfs_spad_clear(yfms); yfs_prog_pageupdt(yfms); return;
         }
         // TODO: place/bearing/distance and others
         // TODO: disambiguation page for duplicates
@@ -154,7 +152,7 @@ static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refco
         {
             yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return;
         }
-        yfms->ndt.fix_nfo = wpt; yfs_spad_clear(yfms); yfs_prog_pageupdt(yfms); return;
+        yfms->data.prog.fix = wpt; yfs_spad_clear(yfms); yfs_prog_pageupdt(yfms); return;
     }
     /* all good */
     return;

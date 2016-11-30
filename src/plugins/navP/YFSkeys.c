@@ -267,6 +267,11 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
     {
         yfms->spcs.cback_prog(yfms);
     }
+    if (yfms->mwindow.keys.keyid_init == key &&
+        yfms->spcs.cback_init)
+    {
+        yfms->spcs.cback_init(yfms);
+    }
 }
 
 int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *inRefcon)
