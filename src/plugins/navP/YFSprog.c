@@ -55,31 +55,28 @@ void yfs_prog_pageupdt(yfms_context *yfms)
         yfs_main_rline(yfms, i, -1);
     }
 
-    /* buffers */
-    char buf1[YFS_DISPLAY_NUMC + 1], buf2[YFS_DISPLAY_NUMC + 1];
-
     /* line 0: main header (green, left, offset 3) */
-//  yfs_printf_lft(yfms,  0,  0, COLR_IDX_GREEN, "  PREFLIGHT"); // TODO: phase of flight
-    yfs_printf_lft(yfms,  0,  0, COLR_IDX_GREEN, "  PROGRESS");
+//  yfs_printf_lft(yfms,  0,  0, COLR_IDX_GREEN, "%s", "  PREFLIGHT"); // TODO: phase of flight
+    yfs_printf_lft(yfms,  0,  0, COLR_IDX_GREEN, "%s", "  PROGRESS");
     if (yfms->data.init.flight_id[0])
     {
-        yfs_printf_rgt(yfms, 0, 2, COLR_IDX_WHITE, yfms->data.init.flight_id);
+        yfs_printf_rgt(yfms, 0, 2, COLR_IDX_WHITE, "%s", yfms->data.init.flight_id);
     }
 
     /* line 1: headers (white) */
-    yfs_printf_lft(yfms,  1,  0, COLR_IDX_WHITE, " CRZ");
-    yfs_printf_lft(yfms,  1,  9, COLR_IDX_WHITE, " OPT");
-    yfs_printf_rgt(yfms,  1,  0, COLR_IDX_WHITE, "REC MAX");
+    yfs_printf_lft(yfms,  1,  0, COLR_IDX_WHITE, "%s", " CRZ");
+    yfs_printf_lft(yfms,  1,  9, COLR_IDX_WHITE, "%s", " OPT");
+    yfs_printf_rgt(yfms,  1,  0, COLR_IDX_WHITE, "%s", "REC MAX");
 
     /* lines 7, 8: headers (white) */
-    yfs_printf_lft(yfms,  7,  0, COLR_IDX_WHITE, " BRG/DIST");
+    yfs_printf_lft(yfms,  7,  0, COLR_IDX_WHITE, "%s", " BRG/DIST");
 
     /* lines 10, 11: headers (green, white) */
-//  yfs_printf_rgt(yfms, 10,  0, COLR_IDX_GREEN,              "GPS PRIMARY"); // we don't simulate any IRS system(s) at this point
-    yfs_printf_ctr(yfms, 11,     COLR_IDX_WHITE, "REQUIRED ACCUR ESTIMATED");
-    yfs_printf_rgt(yfms, 12,  0, COLR_IDX_GREEN,           "----    -.--NM");
-    yfs_printf_lft(yfms, 12,  0, COLR_IDX_BLUE,                      "-.--");
-    yfs_printf_lft(yfms, 12,  4, COLR_IDX_WHITE,                       "NM");
+//  yfs_printf_rgt(yfms, 10,  0, COLR_IDX_GREEN, "%s",              "GPS PRIMARY"); // we don't simulate any IRS system(s) at this point
+    yfs_printf_ctr(yfms, 11,     COLR_IDX_WHITE, "%s", "REQUIRED ACCUR ESTIMATED");
+    yfs_printf_rgt(yfms, 12,  0, COLR_IDX_GREEN, "%s",           "----    -.--NM");
+    yfs_printf_lft(yfms, 12,  0, COLR_IDX_BLUE,  "%s",                     "-.--");
+    yfs_printf_lft(yfms, 12,  4, COLR_IDX_WHITE, "%s",                       "NM");
 
     /* line 2: flight levels */
     if (ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_NA))
@@ -87,22 +84,21 @@ void yfs_prog_pageupdt(yfms_context *yfms)
         //fixme transition altitude
 //      int crzft = (int)ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FT);
         int crzfl = (int)ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FL);
-        snprintf              (buf1, 6, "FL%03d", crzfl);
-        yfs_printf_lft(yfms, 2,  0, COLR_IDX_BLUE, buf1);
+        yfs_printf_lft(yfms, 2,  0, COLR_IDX_BLUE, "FL%03d", crzfl);
     }
     else
     {
-        yfs_printf_lft(yfms, 2,  0, COLR_IDX_WHITE, "-----");
+        yfs_printf_lft(yfms, 2,  0, COLR_IDX_WHITE, "%s", "-----");
     }
-    yfs_printf_lft(yfms, 2,  9, COLR_IDX_GREEN,   "FL---");
-    yfs_printf_rgt(yfms, 2,  1, COLR_IDX_MAGENTA, "FL---");
+    yfs_printf_lft(yfms, 2,  9, COLR_IDX_GREEN,     "%s", "FL---");
+    yfs_printf_rgt(yfms, 2,  1, COLR_IDX_MAGENTA,   "%s", "FL---");
 
     /* line 8: bearing, distance */
     if (yfms->data.prog.fix == NULL)
     {
-        yfs_printf_lft(yfms,  8,  0, COLR_IDX_WHITE, " ---/--.-");
-        yfs_printf_lft(yfms,  8, 11, COLR_IDX_WHITE,    "  TO  ");
-        yfs_printf_rgt(yfms,  8,  0, COLR_IDX_BLUE,    "[    ] ");
+        yfs_printf_lft(yfms,  8,  0, COLR_IDX_WHITE, "%s", " ---/--.-");
+        yfs_printf_lft(yfms,  8, 11, COLR_IDX_WHITE, "%s",    "  TO  ");
+        yfs_printf_rgt(yfms,  8,  0, COLR_IDX_BLUE,  "%s",   "[    ] ");
     }
     else
     {
@@ -113,11 +109,9 @@ void yfs_prog_pageupdt(yfms_context *yfms)
         ndt_distance dist = ndt_position_calcdistance(from, to);
         double       trub = ndt_position_calcbearing (from, to);
         double       magb = ndt_wmm_getbearing_mag   (wmm, trub, from, now);
-        sprintf(buf1, " %03.0lf/%-6.1lf", round(magb), (double)ndt_distance_get(dist, NDT_ALTUNIT_ME) / 1852.);
-        sprintf(buf2, "%-7s",  yfms->data.prog.fix->info.idnt);
-        yfs_printf_lft(yfms,  8,  0, COLR_IDX_GREEN,     buf1);
+        yfs_printf_lft(yfms,  8,  0, COLR_IDX_GREEN, " %03.0lf/%-6.1lf", round(magb), (double)ndt_distance_get(dist, NDT_ALTUNIT_ME) / 1852.);
         yfs_printf_lft(yfms,  8, 11, COLR_IDX_WHITE, "  TO  ");
-        yfs_printf_rgt(yfms,  8,  0, COLR_IDX_BLUE,      buf2);
+        yfs_printf_rgt(yfms,  8,  0, COLR_IDX_BLUE,  "%-7s",  yfms->data.prog.fix->info.idnt);
     }
 
     /* all good */
