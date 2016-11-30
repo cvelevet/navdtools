@@ -140,13 +140,13 @@ void yfs_menu_pageupdt(yfms_context *yfms)
     }
 
     /* line 0: main header (white, centered) */
-    yfs_printf_ctr(yfms, 0,    COLR_IDX_WHITE, "MCDU MENU");
+    yfs_printf_ctr(yfms, 0,    COLR_IDX_WHITE, "%s", "MCDU MENU");
 
     /* line 2 left: ident page (green) */
-    yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "<FMGC");
+    yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%s", "<FMGC");
 
     /* line 2 right: reset (white) */
-    yfs_printf_rgt(yfms, 2, 0, COLR_IDX_WHITE, "RESET>");
+    yfs_printf_rgt(yfms, 2, 0, COLR_IDX_WHITE, "%s", "RESET>");
 
     /* all good */
     return;
@@ -168,9 +168,6 @@ void yfs_idnt_pageupdt(yfms_context *yfms)
         return; // no error
     }
 
-    /* row buffer */
-    char buf[YFS_DISPLAY_NUMC + 1];
-
     /* reset lines before drawing */
     for (int i = 0; i < YFS_DISPLAY_NUMR - 1; i++)
     {
@@ -178,14 +175,13 @@ void yfs_idnt_pageupdt(yfms_context *yfms)
     }
 
     /* line 0: aircraft ICAO identifier (white, centered) */
-    buf[XPLMGetDatab(yfms->xpl.acf_ICAO, buf, 0, sizeof(buf) - 1)] = 0;
-    yfs_printf_ctr(yfms,  0, COLR_IDX_WHITE, buf);
+    char icao[YFS_ROW_BUF_SIZE]; icao[XPLMGetDatab(yfms->xpl.acf_ICAO, icao, 0, sizeof(icao) - 1)] = 0;
+    yfs_printf_ctr(yfms, 0, COLR_IDX_WHITE, "%s", icao);
 
     /* line 1: header (white, offset 1 right) */
-    yfs_main_rline(yfms,  1, COLR_IDX_WHITE); sprintf(yfms->mwindow.screen.text[ 1], "%s", " ENG");
+    yfs_printf_lft(yfms, 1, 0, COLR_IDX_WHITE, "%s", " ENG");
 
     /* line 2: engine count & type (green) */
-    yfs_main_rline(yfms,  2, COLR_IDX_GREEN);
     int engc   = XPLMGetDatai (yfms->xpl.acf_num_engines);
     int engt[8]; XPLMGetDatavi(yfms->xpl.acf_en_type, engt, 0, 8);
     for (int i = 1; i < engc && i < 8; i++)
@@ -198,43 +194,42 @@ void yfs_idnt_pageupdt(yfms_context *yfms)
     switch (engt[0])
     {
         case 2:
-            sprintf(yfms->mwindow.screen.text[2], "%d TURBOPROP", engc);
+            yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%d TURBOPROP", engc);
             break;
         case 5:
-            sprintf(yfms->mwindow.screen.text[2], "%d TURBOFAN",  engc);
+            yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%d TURBOFAN",  engc);
             break;
         default:
-            sprintf(yfms->mwindow.screen.text[2], "%d OTHER",     engc);
+            yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%d OTHER",     engc);
             break;
     }
 
     /* line 3: header (white, offset 1 right) */
-    yfs_main_rline(yfms,  3, COLR_IDX_WHITE); sprintf(yfms->mwindow.screen.text[ 3], "%s", " ACTIVE DATA BASE");
+    yfs_printf_lft(yfms,  3, 0, COLR_IDX_WHITE, "%s", " ACTIVE DATA BASE");
 
     /* line 4: navigation database information (blue) */
-    yfs_main_rline(yfms,  4, COLR_IDX_BLUE);
-    sprintf(yfms->mwindow.screen.text[4], "%.10s", yfms->ndt.ndb->info.idnt);
+    yfs_printf_lft(yfms,  4, 0, COLR_IDX_BLUE, "%.10s", yfms->ndt.ndb->info.idnt);
 
     /* line 5: header (white, offset 1 right) */
-    yfs_main_rline(yfms,  5, COLR_IDX_WHITE); sprintf(yfms->mwindow.screen.text[ 5], "%s", " SECOND DATA BASE");
+    yfs_printf_lft(yfms,  5, 0, COLR_IDX_WHITE, "%s", " SECOND DATA BASE");
 
     /* line 6: navigation database information (blue) */
-    yfs_main_rline(yfms,  6, COLR_IDX_BLUE);  sprintf(yfms->mwindow.screen.text[ 6], "%s", "NONE");
+    yfs_printf_lft(yfms,  6, 0, COLR_IDX_BLUE, "%s", "NONE");
 
 #ifndef NDT_VERSION
 #define NDT_VERSION "Unknown"
 #endif
     /* line 9: header (white, offset 1 right) */
-    yfs_main_rline(yfms,  9, COLR_IDX_WHITE); sprintf(yfms->mwindow.screen.text[ 9], "%s", " VERSION");
+    yfs_printf_lft(yfms, 9, 0, COLR_IDX_WHITE, "%s", " VERSION");
 
     /* line 10: version information (blue) */
-    yfs_main_rline(yfms, 10, COLR_IDX_BLUE);  sprintf(yfms->mwindow.screen.text[10], "%s", NDT_VERSION);
+    yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%s", NDT_VERSION);
 
     /* line 11: header (white, offset 1 right) */
-    yfs_main_rline(yfms, 11, COLR_IDX_WHITE); sprintf(yfms->mwindow.screen.text[11], "%s", " IDLE/PERF");
+    yfs_printf_lft(yfms, 11, 0, COLR_IDX_WHITE, "%s", " IDLE/PERF");
 
     /* line 12: version information (green) */
-    yfs_main_rline(yfms, 12, COLR_IDX_GREEN); sprintf(yfms->mwindow.screen.text[12], "%s", "+0.0/+0.0");
+    yfs_printf_lft(yfms, 12, 0, COLR_IDX_GREEN, "%s", "+0.0/+0.0");
 
     /* all good */
     return;
