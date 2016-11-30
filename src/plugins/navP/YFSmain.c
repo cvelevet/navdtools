@@ -20,6 +20,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -1170,10 +1171,11 @@ int yfs_main_newpg(yfms_context *yfms, int new_page)
     yfms->mwindow.current_page = new_page; return 0;
 }
 
-void yfs_printf_lft(void *context, int index, int offset, int color, char *string)
+void yfs_printf_lft(void *context, int index, int offset, int color, char *fmt, ...)
 {
+    int len; char buf[YFS_ROW_BUF_SIZE];
     yfms_context *yfms = context;
-    if (!yfms || !string)
+    if (!yfms || !fmt)
     {
         return;
     }
@@ -1185,21 +1187,26 @@ void yfs_printf_lft(void *context, int index, int offset, int color, char *strin
     {
         return; // out of room
     }
-    int  len = strnlen(string, YFS_DISPLAY_NUMC - offset);
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+    len = strnlen(buf, YFS_DISPLAY_NUMC - offset);
     for (int i = 0; i < len; i++)
     {
         if (color >= 0)
         {
             yfms->mwindow.screen.colr[index][i + offset] = color;
         }
-        yfms->mwindow.screen.text[index][i + offset] = string[i];
+        yfms->mwindow.screen.text[index][i + offset] = buf[i];
     }
 }
 
-void yfs_printf_rgt(void *context, int index, int offset, int color, char *string)
+void yfs_printf_rgt(void *context, int index, int offset, int color, char *fmt, ...)
 {
+    int len; char buf[YFS_ROW_BUF_SIZE];
     yfms_context *yfms = context;
-    if (!yfms || !string)
+    if (!yfms || !fmt)
     {
         return;
     }
@@ -1211,24 +1218,34 @@ void yfs_printf_rgt(void *context, int index, int offset, int color, char *strin
     {
         return; // out of room
     }
-    int  len = strnlen(string, YFS_DISPLAY_NUMC - offset);
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+    len = strnlen(buf, YFS_DISPLAY_NUMC - offset);
     for (int i = len - 1,  j = YFS_DISPLAY_NUMC - 1; i >= 0; i--, j--)
     {
         if (color >= 0)
         {
             yfms->mwindow.screen.colr[index][j - offset] = color;
         }
-        yfms->mwindow.screen.text[index][j - offset] = string[i];
+        yfms->mwindow.screen.text[index][j - offset] = buf[i];
     }
 }
 
-void yfs_printf_ctr(void *context, int index, int color, char *string)
+void yfs_printf_ctr(void *context, int index, int color, char *fmt, ...)
 {
-    if (!string)
+    int len; char buf[YFS_ROW_BUF_SIZE];
+    if (fmt == NULL)
     {
         return;
     }
-    yfs_printf_lft(context, index, (YFS_DISPLAY_NUMC - strnlen(string, YFS_DISPLAY_NUMC)) / 2, color, string); return;
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, ap);
+    len = strnlen(buf, YFS_DISPLAY_NUMC);
+    va_end(ap);
+    yfs_printf_lft(context, index, (YFS_DISPLAY_NUMC - len) / 2, color, "%s", buf);
 }
 
 static void menu_handler(void *inMenuRef, void *inItemRef)
