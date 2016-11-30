@@ -55,7 +55,7 @@ void yfs_init_pageupdt(yfms_context *yfms)
     {
         yfs_main_rline(yfms, i, -1);
     }
-    yfs_printf_ctr(yfms, 0, COLR_IDX_WHITE,  "INIT");
+    yfs_printf_ctr(yfms, 0, COLR_IDX_WHITE, "%s", "INIT");
 
     /* aircraft GPS position */
     char gps_coodinates_buf[17];
@@ -75,89 +75,85 @@ void yfs_init_pageupdt(yfms_context *yfms)
     }
 
     /* left column */
-    yfs_printf_lft(yfms,  1, 0, COLR_IDX_WHITE, " CO RTE");
-//  yfs_printf_lft(yfms,  3, 0, COLR_IDX_WHITE, "ALTN RTE");
-//  yfs_printf_lft(yfms,  4, 0, COLR_IDX_WHITE, "--------");
-    yfs_printf_lft(yfms,  5, 0, COLR_IDX_WHITE, "FLT NBR");
-    yfs_printf_lft(yfms,  7, 0, COLR_IDX_WHITE, "LAT");
-    yfs_printf_lft(yfms,  9, 0, COLR_IDX_WHITE, "COST INDEX");
-    yfs_printf_lft(yfms, 11, 0, COLR_IDX_WHITE, "CRZ FL"/*"/TEMP"*/);
+    yfs_printf_lft(yfms,  1, 0, COLR_IDX_WHITE, "%s", " CO RTE");
+//  yfs_printf_lft(yfms,  3, 0, COLR_IDX_WHITE, "%s", "ALTN RTE");
+//  yfs_printf_lft(yfms,  4, 0, COLR_IDX_WHITE, "%s", "--------");
+    yfs_printf_lft(yfms,  5, 0, COLR_IDX_WHITE, "%s", "FLT NBR");
+    yfs_printf_lft(yfms,  7, 0, COLR_IDX_WHITE, "%s", "LAT");
+    yfs_printf_lft(yfms,  9, 0, COLR_IDX_WHITE, "%s", "COST INDEX");
+    yfs_printf_lft(yfms, 11, 0, COLR_IDX_WHITE, "%s", "CRZ FL"/*"/TEMP"*/);
     if (yfms->data.init.flight_id[0])
     {
-        yfs_printf_lft(yfms, 6, 0, COLR_IDX_BLUE, yfms->data.init.flight_id);
+        yfs_printf_lft(yfms, 6, 0, COLR_IDX_BLUE, "%s", yfms->data.init.flight_id);
     }
     else
     {
-        yfs_printf_lft(yfms, 6, 0, COLR_IDX_ORANGE, "#######");
+        yfs_printf_lft(yfms, 6, 0, COLR_IDX_ORANGE, "%s", "#######");
     }
     if (yfms->data.init.ialized)
     {
-        char buf08[YFS_ROW_BUF_SIZE]; snprintf(buf08, sizeof(buf08), "%.7s", gps_coodinates_buf);
-        char buf10[YFS_ROW_BUF_SIZE]; snprintf(buf10, sizeof(buf10), "%3d", yfms->data.init.cost_index);
         if (ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_NA))
         {
             //fixme transition altitude
 //          int crzft = (int)ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FT);
             int crzfl = (int)ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FL);
-            char buf12[YFS_ROW_BUF_SIZE]; snprintf(buf12, sizeof(buf12), "FL%03d", crzfl);
-            yfs_printf_lft(yfms, 12, 0, COLR_IDX_BLUE, buf12);                  // cruise FL
+            yfs_printf_lft(yfms, 12, 0, COLR_IDX_BLUE, "FL%03d", crzfl);                // cruise FL
         }
         else
         {
-            yfs_printf_lft(yfms, 12, 0, COLR_IDX_ORANGE, "#####"/*" /###"*/);   // cruise FL
+            yfs_printf_lft(yfms, 12, 0, COLR_IDX_ORANGE, "%s", "#####"/*" /###"*/);     // cruise FL
         }
-        yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE, buf08);                      // latitude
-        yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, buf10);                      // cost index
+        yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE, "%.7s", gps_coodinates_buf);         // latitude
+        yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%3d", yfms->data.init.cost_index);  // cost index
     }
     else
     {
 //      // TODO: implement company route support
-//      yfs_printf_lft(yfms,  2, 0, COLR_IDX_ORANGE, "#######");                // company route
-        yfs_printf_lft(yfms,  2, 0, COLR_IDX_BLUE,   "N/A");                    // company route
-        yfs_printf_lft(yfms,  8, 0, COLR_IDX_WHITE,  "----.--");                // latitude
-        yfs_printf_lft(yfms, 10, 0, COLR_IDX_WHITE,  "---");                    // cost index
-        yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE,  "-----"/*" /---"*/);       // cruise FL
+//      yfs_printf_lft(yfms,  2, 0, COLR_IDX_ORANGE, "%s", "#######");                  // company route
+        yfs_printf_lft(yfms,  2, 0, COLR_IDX_BLUE, "%s",   "N/A");                      // company route
+        yfs_printf_lft(yfms,  8, 0, COLR_IDX_WHITE, "%s",  "----.--");                  // latitude
+        yfs_printf_lft(yfms, 10, 0, COLR_IDX_WHITE, "%s",  "---");                      // cost index
+        yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s",  "-----"/*" /---"*/);         // cruise FL
     }
 
     /* right column */
-    yfs_printf_rgt(yfms,  1, 0, COLR_IDX_WHITE, "FROM/TO  ");
-//  yfs_printf_rgt(yfms,  3, 0, COLR_IDX_WHITE, "ALTN");
-//  yfs_printf_rgt(yfms,  4, 0, COLR_IDX_WHITE, "----");
-    yfs_printf_rgt(yfms,  7, 0, COLR_IDX_WHITE, "LONG");
-//  yfs_printf_rgt(yfms, 11, 0, COLR_IDX_WHITE, "WIND>");
-    yfs_printf_rgt(yfms, 11, 0, COLR_IDX_WHITE, "TROPO");
-    yfs_printf_rgt(yfms,  2, 4, yfms->data.init.ialized ? COLR_IDX_BLUE : COLR_IDX_ORANGE, "/");
+    yfs_printf_rgt(yfms,  1, 0, COLR_IDX_WHITE, "%s", "FROM/TO  ");
+//  yfs_printf_rgt(yfms,  3, 0, COLR_IDX_WHITE, "%s", "ALTN");
+//  yfs_printf_rgt(yfms,  4, 0, COLR_IDX_WHITE, "%s", "----");
+    yfs_printf_rgt(yfms,  7, 0, COLR_IDX_WHITE, "%s", "LONG");
+//  yfs_printf_rgt(yfms, 11, 0, COLR_IDX_WHITE, "%s", "WIND>");
+    yfs_printf_rgt(yfms, 11, 0, COLR_IDX_WHITE, "%s", "TROPO");
+    yfs_printf_rgt(yfms,  2, 4, yfms->data.init.ialized ? COLR_IDX_BLUE : COLR_IDX_ORANGE, "%s", "/");
     if (yfms->data.init.from)
     {
-        yfs_printf_rgt(yfms, 2, 5, COLR_IDX_BLUE, yfms->data.init.from->info.idnt);
+        yfs_printf_rgt(yfms, 2, 5, COLR_IDX_BLUE, "%s", yfms->data.init.from->info.idnt);
     }
     else
     {
-        yfs_printf_rgt(yfms, 2, 5, COLR_IDX_ORANGE, "####");
+        yfs_printf_rgt(yfms, 2, 5, COLR_IDX_ORANGE, "%s", "####");
     }
     if (yfms->data.init.to)
     {
-        yfs_printf_rgt(yfms, 2, 0, COLR_IDX_BLUE, yfms->data.init.to->info.idnt);
+        yfs_printf_rgt(yfms, 2, 0, COLR_IDX_BLUE, "%s", yfms->data.init.to->info.idnt);
     }
     else
     {
-        yfs_printf_rgt(yfms, 2, 0, COLR_IDX_ORANGE, "####");
+        yfs_printf_rgt(yfms, 2, 0, COLR_IDX_ORANGE, "%s", "####");
     }
     if (yfms->data.init.ialized)
     {
         
-        char buf08[YFS_ROW_BUF_SIZE]; snprintf(buf08, sizeof(buf08), "%.8s", gps_coodinates_buf + 8);
-        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, buf08);                       // longitude
         if (yfms->data.init.aligned == 0)
         {
-            yfs_printf_rgt(yfms, 6, 0, COLR_IDX_ORANGE, "ALIGN IRS>");
+            yfs_printf_rgt(yfms, 6, 0, COLR_IDX_ORANGE, "%s", "ALIGN IRS>");
         }
+        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%.8s", gps_coodinates_buf + 8);      // longitude
     }
     else
     {
-        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_WHITE,  "-----.--");                // longitude
+        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_WHITE, "%s", "-----.--");                   // longitude
     }
-    yfs_printf_rgt(yfms, 12, 0, COLR_IDX_BLUE, "N/A");//fixme                   // tropopause
+    yfs_printf_rgt(yfms, 12, 0, COLR_IDX_BLUE, "%s", "N/A");//fixme                     // tropopause
 
     /* all good */
     return;
