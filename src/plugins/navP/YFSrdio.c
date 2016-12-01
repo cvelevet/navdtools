@@ -936,7 +936,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         if (buf[0] == 0)
         {
             snprintf(buf, sizeof(buf), "%.5s", yfms->mwindow.screen.text[10]);
-            buf[4 + !yfms->ndt.alt.unit] = 0; yfs_spad_reset(yfms, buf, -1);
+            buf[4 + !yfms->ndt.alt.unit] = 0;  yfs_spad_reset(yfms, buf, -1);
             return; // current baro to scratchpad
         }
         if ((inhg = (float)get_baro_pressure(buf)) < 0.0f)
