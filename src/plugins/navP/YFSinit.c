@@ -110,10 +110,10 @@ void yfs_init_pageupdt(yfms_context *yfms)
     {
 //      // TODO: implement company route support
 //      yfs_printf_lft(yfms,  2, 0, COLR_IDX_ORANGE, "%s", "#######");                  // company route
-        yfs_printf_lft(yfms,  2, 0, COLR_IDX_BLUE, "%s",   "N/A");                      // company route
-        yfs_printf_lft(yfms,  8, 0, COLR_IDX_WHITE, "%s",  "----.--");                  // latitude
-        yfs_printf_lft(yfms, 10, 0, COLR_IDX_WHITE, "%s",  "---");                      // cost index
-        yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s",  "-----"/*" /---"*/);         // cruise FL
+        yfs_printf_lft(yfms,  2, 0, COLR_IDX_BLUE,   "%s", "N/A");                      // company route
+        yfs_printf_lft(yfms,  8, 0, COLR_IDX_WHITE,  "%s", "----.--");                  // latitude
+        yfs_printf_lft(yfms, 10, 0, COLR_IDX_WHITE,  "%s", "---");                      // cost index
+        yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE,  "%s", "-----"/*" /---"*/);         // cruise FL
     }
 
     /* right column */
