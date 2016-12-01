@@ -274,62 +274,49 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     {
         yfs_main_rline(yfms, i, -1);
     }
-
-    /* row buffer */
-    char buf[YFS_DISPLAY_NUMC + 1];
-
-    /* line 0: main header (white, centered) */
-    yfs_printf_ctr(yfms,  0,    COLR_IDX_WHITE, "ATC COMM");
+    yfs_printf_ctr(yfms, 0, COLR_IDX_WHITE, "%s", "ATC COMM");
 
     /* line 1: headers (white) */
-    yfs_printf_lft(yfms,  1, 0, COLR_IDX_WHITE, "COM 1");
-    yfs_printf_rgt(yfms,  1, 0, COLR_IDX_WHITE, "COM 2");
-
-    /* line 2: active frequencies (green) */
-    snprintf(buf, sizeof(buf), "%03d.%03d", XPLMGetDatai(yfms->xpl.com1_frequency_Mhz),         XPLMGetDatai(yfms->xpl.com1_frequency_khz));
-    yfs_printf_lft(yfms,  2, 0, COLR_IDX_GREEN, buf);
-    snprintf(buf, sizeof(buf), "%03d.%03d", XPLMGetDatai(yfms->xpl.com2_frequency_Mhz),         XPLMGetDatai(yfms->xpl.com2_frequency_khz));
-    yfs_printf_rgt(yfms,  2, 0, COLR_IDX_GREEN, buf);
+    yfs_printf_lft(yfms, 1, 0, COLR_IDX_WHITE, "%s", "COM 1");
+    yfs_printf_rgt(yfms, 1, 0, COLR_IDX_WHITE, "%s", "COM 2");
 
     /* line 3: headers (white) */
-    yfs_printf_lft(yfms,  3, 0, COLR_IDX_WHITE, "STANDBY");
-    yfs_printf_rgt(yfms,  3, 0, COLR_IDX_WHITE, "STANDBY");
+    yfs_printf_lft(yfms, 3, 0, COLR_IDX_WHITE, "%s", "STANDBY");
+    yfs_printf_rgt(yfms, 3, 0, COLR_IDX_WHITE, "%s", "STANDBY");
 
+    /* line 2: active frequencies (green) */
+    yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%03d.%03d", XPLMGetDatai(yfms->xpl.com1_frequency_Mhz),         XPLMGetDatai(yfms->xpl.com1_frequency_khz));
+    yfs_printf_rgt(yfms, 2, 0, COLR_IDX_GREEN, "%03d.%03d", XPLMGetDatai(yfms->xpl.com2_frequency_Mhz),         XPLMGetDatai(yfms->xpl.com2_frequency_khz));
     /* line 4: standby frequencies (blue) */
-    snprintf(buf, sizeof(buf), "%03d.%03d", XPLMGetDatai(yfms->xpl.com1_standby_frequency_Mhz), XPLMGetDatai(yfms->xpl.com1_standby_frequency_khz));
-    yfs_printf_lft(yfms,  4, 0, COLR_IDX_BLUE,  buf);
-    snprintf(buf, sizeof(buf), "%03d.%03d", XPLMGetDatai(yfms->xpl.com2_standby_frequency_Mhz), XPLMGetDatai(yfms->xpl.com2_standby_frequency_khz));
-    yfs_printf_rgt(yfms,  4, 0, COLR_IDX_BLUE,  buf);
+    yfs_printf_lft(yfms, 4, 0, COLR_IDX_BLUE,  "%03d.%03d", XPLMGetDatai(yfms->xpl.com1_standby_frequency_Mhz), XPLMGetDatai(yfms->xpl.com1_standby_frequency_khz));
+    yfs_printf_rgt(yfms, 4, 0, COLR_IDX_BLUE,  "%03d.%03d", XPLMGetDatai(yfms->xpl.com2_standby_frequency_Mhz), XPLMGetDatai(yfms->xpl.com2_standby_frequency_khz));
 
     /* line 7: headers (white) */
-    yfs_printf_ctr(yfms,  7,    COLR_IDX_WHITE, "XPDR");
-    yfs_printf_lft(yfms,  7, 0, COLR_IDX_WHITE, "CODE");
-    yfs_printf_rgt(yfms,  7, 0, COLR_IDX_WHITE, "MODE");
+    yfs_printf_ctr(yfms, 7,    COLR_IDX_WHITE, "%s", "XPDR");
+    yfs_printf_lft(yfms, 7, 0, COLR_IDX_WHITE, "%s", "CODE");
+    yfs_printf_rgt(yfms, 7, 0, COLR_IDX_WHITE, "%s", "MODE");
 
     /* line 8: XPDR information */
     if (yfms->xpl.atyp == YFS_ATYP_IXEG)
     {
         if ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_mode_act)) == 0)
         {
-            yfs_printf_lft(yfms,  8, 0, COLR_IDX_WHITE,  "----");
-            yfs_printf_rgt(yfms,  8, 0, COLR_IDX_WHITE,   "OFF");
+            yfs_printf_lft(yfms, 8, 0, COLR_IDX_WHITE, "%s", "----");
+            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_WHITE, "%s", "OFF");
         }
         else switch ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_stby_act)))
         {
             case 0:
-                snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
-                yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,      buf);
-                yfs_printf_rgt(yfms,  8, 0, COLR_IDX_BLUE,   "STBY");
+                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
+                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "STBY");
                 break;
             case 2:
-                snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
-                yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,      buf);
-                yfs_printf_rgt(yfms,  8, 0, COLR_IDX_BLUE,  "TA/RA");
+                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
+                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA/RA");
                 break;
             default:
-                snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
-                yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,      buf);
-                yfs_printf_rgt(yfms,  8, 0, COLR_IDX_BLUE,   "AUTO");
+                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
+                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "AUTO");
                 break;
         }
     }
@@ -338,69 +325,64 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
         switch (XPLMGetDatai(yfms->xpl.qpac.XPDRPower))
         {
             case 0:
-                snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
-                yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,      buf);
-                yfs_printf_rgt(yfms,  8, 0, COLR_IDX_BLUE,   "STBY");
+                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
+                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "STBY");
                 break;
             case 2:
-                snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
-                yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,      buf);
-                yfs_printf_rgt(yfms,  8, 0, COLR_IDX_BLUE,  "TA/RA");
+                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
+                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA/RA");
                 break;
             default:
-                snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
-                yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,      buf);
-                yfs_printf_rgt(yfms,  8, 0, COLR_IDX_BLUE,   "AUTO");
+                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
+                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "AUTO");
                 break;
         }
     }
     else switch (XPLMGetDatai(yfms->xpl.transponder_mode))
     {
         case 0:
-            yfs_printf_lft(yfms,  8, 0, COLR_IDX_WHITE,  "----");
-            yfs_printf_rgt(yfms,  8, 0, COLR_IDX_WHITE,   "OFF");
+            yfs_printf_lft(yfms, 8, 0, COLR_IDX_WHITE, "%s", "----");
+            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_WHITE, "%s", "OFF");
             break;
         case 1:
-            snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
-            yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,      buf);
-            yfs_printf_rgt(yfms,  8, 0, COLR_IDX_BLUE,   "STBY");
+            yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
+            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "STBY");
             break;
         default:
-            snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
-            yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE,      buf);
-            yfs_printf_rgt(yfms,  8, 0, COLR_IDX_BLUE,  "TA/RA");
+            yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
+            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA/RA");
             break;
     }
 
     /* line 9: headers (white) */
-    yfs_printf_ctr(yfms,  9,    COLR_IDX_WHITE, "PRESSURE");
-    yfs_printf_lft(yfms,  9, 0, COLR_IDX_WHITE, "BARO");
-    yfs_printf_rgt(yfms,  9, 0, COLR_IDX_WHITE, "UNIT");
+    yfs_printf_ctr(yfms, 9,    COLR_IDX_WHITE, "%s", "PRESSURE");
+    yfs_printf_lft(yfms, 9, 0, COLR_IDX_WHITE, "%s", "BARO");
+    yfs_printf_rgt(yfms, 9, 0, COLR_IDX_WHITE, "%s", "UNIT");
 
     /* line 10: barometric altimeter information */
-    float alt, alt_inhg = XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot);
+    char buf[6]; float alt, alt_inhg = XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot);
     switch (yfms->ndt.alt.unit)
     {
         case 1: // hectoPascals
             alt = roundf(alt_inhg * 33.86389f);
             snprintf(buf, sizeof(buf), "%04.0f", alt);
-            yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE,  "hPa");
+            yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s", "hPa");
             break;
         default: // inches of mercury
             alt = roundf(alt_inhg * 100.0f);
             snprintf(buf, sizeof(buf), "%05.2f", alt / 100.0f);
-            yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "InHg");
+            yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s", "InHg");
             break;
     }
     if ((yfms->xpl.atyp == YFS_ATYP_QPAC && XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt)) ||
         (yfms->xpl.atyp == YFS_ATYP_Q380 && XPLMGetDatai(yfms->xpl.q380.BaroStdCapt)) ||
         (yfms->xpl.atyp == YFS_ATYP_Q350 && XPLMGetDatai(yfms->xpl.q350.pressLeftButton)))
     {
-        yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "STD");
+        yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%s", "STD");
     }
     else
     {
-        yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, buf);
+        yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%s", buf);
     }
 
     /* line 12: switches (white) */
@@ -408,7 +390,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     {
         if (!XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt))
         {
-            yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "<ALT STD");
+            yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "<ALT STD");
             yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
         }
         else
@@ -420,7 +402,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     {
         if (!XPLMGetDatai(yfms->xpl.q350.pressLeftButton))
         {
-            yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "<ALT STD");
+            yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "<ALT STD");
             yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
         }
         else
@@ -432,7 +414,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     {
         if (!XPLMGetDatai(yfms->xpl.q380.BaroStdCapt))
         {
-            yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "<ALT STD");
+            yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "<ALT STD");
             yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
         }
         else
@@ -442,7 +424,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     }
     else if (BPRESS_IS_STD(alt_inhg) == 0)
     {
-        yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "<ALT STD");
+        yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "<ALT STD");
         yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
     }
     else
@@ -454,10 +436,10 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
         switch (XPLMGetDatai(yfms->xpl.transponder_id))
         {
             case 1:
-                yfs_printf_rgt(yfms, 12, 0, COLR_IDX_GREEN,  "IDENT");
+                yfs_printf_rgt(yfms, 12, 0, COLR_IDX_GREEN, "%s", "IDENT");
                 break;
             default:
-                yfs_printf_rgt(yfms, 12, 0, COLR_IDX_WHITE, "XPDR ID>");
+                yfs_printf_rgt(yfms, 12, 0, COLR_IDX_WHITE, "%s", "XPDR ID>");
                 break;
         }
     }
@@ -470,9 +452,9 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     {
         yfs_main_rline(yfms, i, -1);
     }
+    yfs_printf_ctr(yfms, 0, COLR_IDX_WHITE, "%s", "RADIO NAV");
 
     /* buffers */
-    char buf1[YFS_DISPLAY_NUMC + 1], buf2[YFS_DISPLAY_NUMC + 1];
     char nav1_nav_id[5];
     char nav2_nav_id[5];
     char adf1_nav_id[4];
@@ -516,28 +498,25 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
         nav2_obs_deg_mag_copilot  = 360;
     }
 
-    /* line 0: main header (white, centered) */
-    yfs_printf_ctr(yfms,  0,    COLR_IDX_WHITE, "RADIO NAV");
-
     /* line 1: headers (white) */
-    yfs_printf_lft(yfms,  1, 0, COLR_IDX_WHITE, "VOR1/FREQ");
-    yfs_printf_rgt(yfms,  1, 0, COLR_IDX_WHITE, "FREQ/VOR2");
+    yfs_printf_lft(yfms, 1, 0, COLR_IDX_WHITE, "%s", "VOR1/FREQ");
+    yfs_printf_rgt(yfms, 1, 0, COLR_IDX_WHITE, "%s", "FREQ/VOR2");
 
     /* line 3: headers (white) */
-    yfs_printf_lft(yfms,  3, 0, COLR_IDX_WHITE, "CRS");
-    yfs_printf_rgt(yfms,  3, 0, COLR_IDX_WHITE, "CRS");
+    yfs_printf_lft(yfms, 3, 0, COLR_IDX_WHITE, "%s", "CRS");
+    yfs_printf_rgt(yfms, 3, 0, COLR_IDX_WHITE, "%s", "CRS");
 
     /* line 5: headers (white) */
-    yfs_printf_lft(yfms,  5, 0, COLR_IDX_WHITE, "ILS1/FREQ");
-//  yfs_printf_rgt(yfms,  5, 0, COLR_IDX_WHITE, "CHANN/MLS");
+    yfs_printf_lft(yfms, 5, 0, COLR_IDX_WHITE, "%s", "ILS1/FREQ");
+//  yfs_printf_rgt(yfms, 5, 0, COLR_IDX_WHITE, "%s", "CHANN/MLS");
 
     /* line 7: headers (white) */
-    yfs_printf_lft(yfms,  7, 0, COLR_IDX_WHITE, "CRS");
-//  yfs_printf_rgt(yfms,  7, 0, COLR_IDX_WHITE, "SLOPE/CRS");
+    yfs_printf_lft(yfms, 7, 0, COLR_IDX_WHITE, "%s", "CRS");
+//  yfs_printf_rgt(yfms, 7, 0, COLR_IDX_WHITE, "%s", "SLOPE/CRS");
 
     /* line 9: headers (white) */
-    yfs_printf_lft(yfms,  9, 0, COLR_IDX_WHITE, "ADF1/FREQ");
-    yfs_printf_rgt(yfms,  9, 0, COLR_IDX_WHITE, "FREQ/ADF2");
+    yfs_printf_lft(yfms, 9, 0, COLR_IDX_WHITE, "%s", "ADF1/FREQ");
+    yfs_printf_rgt(yfms, 9, 0, COLR_IDX_WHITE, "%s", "FREQ/ADF2");
 
     /*
      * lines 2, 4, 6, 8: frequencies & associated courses (blue)
@@ -557,17 +536,15 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
                 XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_copilot, (nav2_obs_deg_mag_copilot = nav2_course_deg_mag_pilot));
             }
             {
-                sprintf(buf1, "%4s/%06.2lf", nav2_nav_id[0] ? nav2_nav_id : " [ ]", nav2_frequency_hz / 100.);
-                yfs_printf_lft(yfms,  6,  0, COLR_IDX_BLUE, buf1);
+                yfs_printf_lft(yfms, 6, 0, COLR_IDX_BLUE, "%4s/%06.2lf", nav2_nav_id[0] ? nav2_nav_id : " [ ]", nav2_frequency_hz / 100.);
             }
             if (NAVTYP_IS_ILS(nav2_type))
             {
-                sprintf(buf2, "%03d",     nav2_obs_deg_mag_pilot);
-                yfs_printf_lft(yfms,  8,  0, COLR_IDX_BLUE, buf2);
+                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%03d", nav2_obs_deg_mag_pilot);
             }
             else // ILS frequency, but no signal, course not reliable
             {
-                yfs_printf_lft(yfms,  8,  0, COLR_IDX_BLUE, " [ ]");
+                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%s", " [ ]");
             }
             ils_in_use = 1;
         }
@@ -584,10 +561,8 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
                 XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot,   (nav2_obs_deg_mag_pilot   = nav2_course_deg_mag_pilot));
                 XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_copilot, (nav2_obs_deg_mag_copilot = nav2_course_deg_mag_pilot));
             }
-            sprintf(buf1, "%4s/%06.2lf", nav2_nav_id[0] ? nav2_nav_id : " [ ]", nav2_frequency_hz / 100.);
-            sprintf(buf2, "%03d",  nav2_course_deg_mag_pilot);
-            yfs_printf_lft(yfms,  6,  0, COLR_IDX_BLUE, buf1);
-            yfs_printf_lft(yfms,  8,  0, COLR_IDX_BLUE, buf2);
+            yfs_printf_lft(yfms, 6, 0, COLR_IDX_BLUE, "%4s/%06.2lf", nav2_nav_id[0] ? nav2_nav_id : " [ ]", nav2_frequency_hz / 100.);
+            yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%03d", nav2_course_deg_mag_pilot);
             ils_in_use = 1;
         }
     }
@@ -602,20 +577,18 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
                 XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot,   (nav2_obs_deg_mag_pilot   = nav1_course_deg_mag_pilot));
                 XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_copilot, (nav2_obs_deg_mag_copilot = nav1_course_deg_mag_pilot));
             }
-            sprintf(buf1, "%4s/%06.2lf", nav1_nav_id[0] ? nav1_nav_id : " [ ]", nav1_frequency_hz / 100.);
-            sprintf(buf2, "%03d",  nav1_course_deg_mag_pilot);
-            yfs_printf_lft(yfms,  6,  0, COLR_IDX_BLUE, buf1);
-            yfs_printf_lft(yfms,  8,  0, COLR_IDX_BLUE, buf2);
+            yfs_printf_lft(yfms, 6, 0, COLR_IDX_BLUE, "%4s/%06.2lf", nav1_nav_id[0] ? nav1_nav_id : " [ ]", nav1_frequency_hz / 100.);
+            yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%03d", nav1_course_deg_mag_pilot);
             ils_in_use = 1;
         }
     }
     if (ils_in_use == 0)
     {
-        yfs_printf_lft(yfms,  6,  0, COLR_IDX_BLUE, " [ ]/[ ] ");
-        yfs_printf_lft(yfms,  8,  0, COLR_IDX_BLUE,      " [ ]");
+        yfs_printf_lft(yfms, 6, 0, COLR_IDX_BLUE, "%s", " [ ]/[ ] ");
+        yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%s", " [ ]");
     }
-//  yfs_printf_rgt(yfms,  6, 0, COLR_IDX_WHITE, "---/---");
-//  yfs_printf_rgt(yfms,  8, 0, COLR_IDX_WHITE, "-.-/---");
+//  yfs_printf_rgt(yfms, 6, 0, COLR_IDX_WHITE, "%s", "---/---");
+//  yfs_printf_rgt(yfms, 8, 0, COLR_IDX_WHITE, "%s", "-.-/---");
 
     /* NAV1/2 information: drawn earlier, but must be computed after ILS */
     if (yfms->xpl.atyp == YFS_ATYP_FB76)
@@ -628,20 +601,14 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
             nav2_obs_deg_mag_copilot = 360;
         }
     }
-    sprintf(buf1,  "%4s/%06.2lf", nav1_nav_id[0] ? nav1_nav_id : " [ ]", nav1_frequency_hz / 100.);
-    sprintf(buf2, "%06.2lf/%-4s", nav2_frequency_hz / 100., nav2_nav_id[0] ? nav2_nav_id : "[ ] ");
-    yfs_printf_lft(yfms,  2, 0, COLR_IDX_BLUE,  buf1);
-    yfs_printf_rgt(yfms,  2, 0, COLR_IDX_BLUE,  buf2);
-    sprintf(buf1, "%03d",     nav1_obs_deg_mag_pilot);
-    sprintf(buf2, "%03d",   nav2_obs_deg_mag_copilot);
-    yfs_printf_lft(yfms,  4, 0, COLR_IDX_BLUE,  buf1);
-    yfs_printf_rgt(yfms,  4, 0, COLR_IDX_BLUE,  buf2);
+    yfs_printf_lft(yfms,  2, 0, COLR_IDX_BLUE,  "%4s/%06.2lf", nav1_nav_id[0] ? nav1_nav_id : " [ ]", nav1_frequency_hz / 100.);
+    yfs_printf_rgt(yfms,  2, 0, COLR_IDX_BLUE, "%06.2lf/%-4s", nav2_frequency_hz / 100., nav2_nav_id[0] ? nav2_nav_id : "[ ] ");
+    yfs_printf_lft(yfms,  4, 0, COLR_IDX_BLUE, "%03d", nav1_obs_deg_mag_pilot);
+    yfs_printf_rgt(yfms,  4, 0, COLR_IDX_BLUE, "%03d", nav2_obs_deg_mag_copilot);
 
     /* line 10: ADF frequencies (blue) */
-    sprintf(buf1,  "%4s/%03d", adf1_nav_id[0] ? adf1_nav_id : " [ ]", adf1_frequency_hz);
-    sprintf(buf2, "%03d/%-4s", adf2_frequency_hz, adf2_nav_id[0] ? adf2_nav_id : "[ ] ");
-    yfs_printf_lft(yfms, 10,  0, COLR_IDX_BLUE, buf1);
-    yfs_printf_rgt(yfms, 10,  0, COLR_IDX_BLUE, buf2);
+    yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE,  "%4s/%03d", adf1_nav_id[0] ? adf1_nav_id : " [ ]", adf1_frequency_hz);
+    yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%03d/%-4s", adf2_frequency_hz, adf2_nav_id[0] ? adf2_nav_id : "[ ] ");
 
     /* all good */
     yfms->xpl.ils.frequency_changed = 0; return;
@@ -854,7 +821,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 }
                 if (yfms->xpl.atyp == YFS_ATYP_QPAC)
                 {
-                    XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    0);
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 0);
                     yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
                 }
                 if (yfms->xpl.atyp == YFS_ATYP_FB76)
