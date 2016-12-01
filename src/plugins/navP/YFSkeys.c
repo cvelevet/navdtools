@@ -274,6 +274,7 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
     }
 }
 
+// TODO: capture or drop letters based on current page ;-)
 int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *inRefcon)
 {
     yfms_context *yfms = inRefcon; int x, xmin, xmax, y, ymin, ymax;
