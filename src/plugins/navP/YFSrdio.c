@@ -645,7 +645,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[1] == 1)
     {
-        int mhz, khz; double freq; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        int mhz, khz; double freq; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             if (key[0] == 0)
@@ -759,7 +759,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         {
             return; // transponder off
         }
-        size_t len; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        size_t len; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
@@ -781,7 +781,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 1 && key[1] == 3)
     {
-        char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if  (strnlen(buf, 1) && !yfms->mwindow.screen.spad_reset)
         {
             if (!strcmp(buf, "OFF"))
@@ -932,7 +932,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 4)
     {
-        float inhg; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        float inhg; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             snprintf(buf, sizeof(buf), "%.5s", yfms->mwindow.screen.text[10]);
@@ -1002,7 +1002,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 1 && key[1] == 4)
     {
-        char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if  (strnlen(buf, 1) && !yfms->mwindow.screen.spad_reset)
         {
             if (!strcasecmp(buf, "InHg"))
@@ -1081,7 +1081,7 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[1] == 0) // NAV 1/2 frequency get/set
     {
-        double freq; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        double freq; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             if (key[0] == 0)
@@ -1119,7 +1119,7 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[1] == 1) // NAV 1/2 course get/set
     {
-        int crs; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        int crs; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             if (key[0] == 0)
@@ -1162,7 +1162,7 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 2) // ILS 1 frequency get/set
     {
-        double freq; int hz10; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        double freq; int hz10; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             if (yfms->mwindow.screen.text[6][5] != '1')
@@ -1196,7 +1196,7 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 3) // ILS 1 course get/set
     {
-        int crs; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        int crs; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             if (yfms->mwindow.screen.text[6][5] != '1')
@@ -1227,7 +1227,7 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[1] == 4) // ADF 1/2 frequency get/set
     {
-        double freq; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        double freq; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             if (key[0] == 0)

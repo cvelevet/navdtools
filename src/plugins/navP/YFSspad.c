@@ -27,7 +27,7 @@
 #define SPAD_IDX (YFS_DISPLAY_NUMR - 1)
 #define SPAD_COL (COLR_IDX_WHITE)
 
-void yfs_spad_copy2(yfms_context *yfms, char buf[YFS_DISPLAY_NUMC + 1])
+void yfs_spad_copy2(yfms_context *yfms, char buf[YFS_ROW_BUF_SIZE])
 {
     if (!yfms || !buf)
     {
@@ -60,7 +60,7 @@ void yfs_spad_clear(yfms_context *yfms)
     {
         yfms->mwindow.screen.colr[SPAD_IDX][i] = SPAD_COL;
     }
-    memset(yfms->mwindow.screen.text[SPAD_IDX], 0, YFS_DISPLAY_NUMC + 1);
+    memset(yfms->mwindow.screen.text[SPAD_IDX], 0, YFS_ROW_BUF_SIZE);
     yfms->mwindow.screen.spad_backup = yfms->mwindow.screen.spad_reset = 0; return;
 }
 
@@ -83,7 +83,7 @@ void yfs_spad_remvc(yfms_context *yfms)
         }
         return;
     }
-    char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf); size_t l = strlen(buf);
+    char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); size_t l = strlen(buf);
     if (l <= 1)
     {
         yfs_spad_clear(yfms); return; // one or fewer character left
@@ -108,7 +108,7 @@ void yfs_spad_apndc(yfms_context *yfms, char c, int color)
 //      }
         yfms->mwindow.screen.spad_backup = yfms->mwindow.screen.spad_reset = 0;
     }
-    char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf); size_t l = strlen(buf);
+    char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); size_t l = strlen(buf);
     if (c == '+' || c == '-')
     {
         if (buf[l - 1] == '+' || buf[l - 1] == '-')
@@ -132,14 +132,14 @@ void yfs_spad_reset(yfms_context *yfms, char *s, int color)
     {
         return; // no error
     }
-    char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+    char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
     if  (strnlen(buf, 1))
     {
         yfms->mwindow.screen.spad_backup = 1;
         sprintf(yfms->mwindow.screen.spad_bupbuf, "%s", buf);
     }
-    memset  (yfms->mwindow.screen.text[SPAD_IDX], 0, YFS_DISPLAY_NUMC + 1);
-    snprintf(yfms->mwindow.screen.text[SPAD_IDX],    YFS_DISPLAY_NUMC + 1, "%s", s);
+    memset  (yfms->mwindow.screen.text[SPAD_IDX], 0, YFS_ROW_BUF_SIZE);
+    snprintf(yfms->mwindow.screen.text[SPAD_IDX],    YFS_ROW_BUF_SIZE, "%s", s);
     for (int i = strlen(s) - 1; i >= 0; i--)
     {
         if (YFS_DISPLAY_NUMC >= i && s[i] == ' ')

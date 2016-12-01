@@ -1055,7 +1055,7 @@ void yfs_main_rline(yfms_context *yfms, int idx, int col)
         {
             yfms->mwindow.screen.colr[idx][i] = col >= 0 ? col : COLR_IDX_BLUE;
         }
-        memset(yfms->mwindow.screen.text[idx], 0, YFS_DISPLAY_NUMC + 1);
+        memset(yfms->mwindow.screen.text[idx], 0, YFS_ROW_BUF_SIZE);
     }
     return;
 }

@@ -130,7 +130,7 @@ static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 1 && key[1] == 3) // setting the reference fix
     {
-        ndt_waypoint *wpt; char buf[YFS_DISPLAY_NUMC + 1]; yfs_spad_copy2(yfms, buf);
+        ndt_waypoint *wpt; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0 && yfms->data.prog.fix)
         {
             snprintf(buf, sizeof(buf), "%s", yfms->data.prog.fix->info.idnt);
