@@ -271,6 +271,9 @@ void yfs_curr_pageupdt(yfms_context *yfms)
         /* only update visible page */
         switch (yfms->mwindow.current_page)
         {
+            case PAGE_INIT:
+                yfs_init_pageupdt(yfms);
+                break;
             case PAGE_PROG:
                 yfs_prog_pageupdt(yfms);
                 break;
