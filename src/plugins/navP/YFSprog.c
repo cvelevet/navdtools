@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "common/common.h"
+#include "lib/navdata.h"
 #include "wmm/wmm.h"
 
 #include "YFSmain.h"

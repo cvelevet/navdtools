@@ -21,9 +21,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//
-//#include "common/common.h"
-//#include "wmm/wmm.h"
+
+#include "common/common.h"
+#include "lib/navdata.h"
 
 #include "YFSinit.h"
 #include "YFSmain.h"
