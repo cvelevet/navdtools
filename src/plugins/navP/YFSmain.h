@@ -238,6 +238,8 @@ typedef struct
             int       cost_index; // requested performance
             char    flight_id[8]; // flight "number"
             ndt_distance crz_alt; // initial cruise altitude
+            ndt_distance trans_a; // transition altitude in climb
+            ndt_distance trans_l; // transition f. level in descent
             ndt_airport *from;    // depart. airport
             ndt_airport *to;      // arrival airport
         } init;

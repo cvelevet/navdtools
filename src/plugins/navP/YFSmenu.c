@@ -93,10 +93,6 @@ void yfs_menu_resetall(yfms_context *yfms)
     {
         ndt_flightplan_close(&yfms->ndt.flp.rte);
     }
-    yfms->ndt.flp.arr = ndt_flightplan_init(yfms->ndt.ndb);
-    yfms->ndt.flp.dep = ndt_flightplan_init(yfms->ndt.ndb);
-    yfms->ndt.flp.iac = ndt_flightplan_init(yfms->ndt.ndb);
-    yfms->ndt.flp.rte = ndt_flightplan_init(yfms->ndt.ndb);
 
     /* user-provided data */
     yfms->data.init.crz_alt      = ndt_distance_init(0, NDT_ALTUNIT_NA);

@@ -82,10 +82,17 @@ void yfs_prog_pageupdt(yfms_context *yfms)
     /* line 2: flight levels */
     if (ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_NA))
     {
-        //fixme transition altitude
-//      int crzft = (int)ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FT);
         int crzfl = (int)ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FL);
-        yfs_printf_lft(yfms, 2,  0, COLR_IDX_BLUE, "FL%03d", crzfl);
+        int crzft = (int)ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FT);
+        int trans = (int)ndt_distance_get(yfms->data.init.trans_a, NDT_ALTUNIT_FT);
+        if (trans < crzft)
+        {
+            yfs_printf_lft(yfms, 2, 0, COLR_IDX_BLUE, "FL%03d", crzfl);
+        }
+        else
+        {
+            yfs_printf_lft(yfms, 2, 0, COLR_IDX_BLUE,    "%5d", crzft);
+        }
     }
     else
     {
