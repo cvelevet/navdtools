@@ -202,6 +202,8 @@ typedef struct
             PAGE_RAD2 = 4,
             PAGE_PROG = 5,
             PAGE_INIT = 6,
+            PAGE_PERF = 7,
+            PAGE_FPLN = 8,
         }
         current_page;
     }
@@ -243,6 +245,12 @@ typedef struct
             ndt_airport *from;    // depart. airport
             ndt_airport *to;      // arrival airport
         } init;
+        struct
+        {
+            int     lg_idx; // currently tracked leg in list
+            int     ln_off; // currently topmost line offset
+            ndt_list *legs; // list of valid legs, if any
+        } fpln;
         struct
         {
             ndt_waypoint *fix;

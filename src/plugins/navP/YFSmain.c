@@ -1158,6 +1158,15 @@ int yfs_main_newpg(yfms_context *yfms, int new_page)
                 return -1;  // MENU is special, cannot open FMGC pages from it
         }
     }
+#if 0
+    if (yfms->mwindow.current_page == PAGE_FPLN)
+    {
+        if (0) // TODO: check if lateral revision sub-page is being displayed
+        {
+            return -1;
+        }
+    }
+#endif
     // some keys' functions are always page-specific, so their callbacks
     // need to be (unconditionally) reset on any and every page change
     yfms->lsks[0][0].cback = yfms->lsks[1][0].cback =

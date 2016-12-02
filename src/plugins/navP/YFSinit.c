@@ -167,7 +167,7 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
             }
             if (dst || src)
             {
-                // departure or arrival changed, reset flight plans
+                // departure or arrival changed, reset flight plans, leg lists
                 if (yfms->ndt.flp.arr)
                 {
                     ndt_flightplan_close(&yfms->ndt.flp.arr);
@@ -184,16 +184,26 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                 {
                     ndt_flightplan_close(&yfms->ndt.flp.rte);
                 }
+                if (ndt_list_count(yfms->data.fpln.legs))
+                {
+                    ndt_list_empty(yfms->data.fpln.legs);
+                }
                 if (yfms->data.init.from && yfms->data.init.to)
                 {
                     // we have both airports, initialize flight plans
+                    if ((yfms->data.fpln.legs == NULL) &&
+                        (yfms->data.fpln.legs = ndt_list_init()) == NULL)
+                    {
+                        yfms->data.init.ialized = 0; yfms->data.init.from = yfms->data.init.to = NULL;
+                        yfs_spad_reset(yfms, "MEMORY ERROR 1", COLR_IDX_ORANGE); yfs_init_pageupdt(yfms); return;
+                    }
                     if ((yfms->ndt.flp.arr = ndt_flightplan_init(yfms->ndt.ndb)) == NULL ||
                         (yfms->ndt.flp.dep = ndt_flightplan_init(yfms->ndt.ndb)) == NULL ||
                         (yfms->ndt.flp.iac = ndt_flightplan_init(yfms->ndt.ndb)) == NULL ||
                         (yfms->ndt.flp.rte = ndt_flightplan_init(yfms->ndt.ndb)) == NULL)
                     {
                         yfms->data.init.ialized = 0; yfms->data.init.from = yfms->data.init.to = NULL;
-                        yfs_spad_reset(yfms, "MEMORY ERROR", COLR_IDX_ORANGE); yfs_init_pageupdt(yfms); return;
+                        yfs_spad_reset(yfms, "MEMORY ERROR 2", COLR_IDX_ORANGE); yfs_init_pageupdt(yfms); return;
                     }
                     if (ndt_flightplan_set_departure(yfms->ndt.flp.arr, yfms->data.init.from->info.idnt, NULL) ||
                         ndt_flightplan_set_departure(yfms->ndt.flp.dep, yfms->data.init.from->info.idnt, NULL) ||
@@ -234,6 +244,7 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                         yfms->data.init.trans_l = ndt_distance_init (10000, NDT_ALTUNIT_FT);
                     }
                     yfms->data.init.ialized = 1;
+                    yfms->data.fpln.lg_idx = 0;
                 }
                 yfs_spad_clear(yfms); yfs_init_pageupdt(yfms); return;
             }

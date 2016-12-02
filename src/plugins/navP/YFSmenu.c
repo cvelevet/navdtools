@@ -29,6 +29,7 @@
 
 #include "lib/flightplan.h"
 
+#include "YFSfpln.h"
 #include "YFSinit.h"
 #include "YFSmain.h"
 #include "YFSmenu.h"
@@ -75,6 +76,7 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfms->spcs.cback_radn = (YFS_SPC_f)&yfs_rad2_pageopen;
     yfms->spcs.cback_prog = (YFS_SPC_f)&yfs_prog_pageopen;
     yfms->spcs.cback_init = (YFS_SPC_f)&yfs_init_pageopen;
+    yfms->spcs.cback_fpln = (YFS_SPC_f)&yfs_fpln_pageopen;
 
     /* navigation backend */
     if (yfms->ndt.flp.arr)
@@ -92,6 +94,10 @@ void yfs_menu_resetall(yfms_context *yfms)
     if (yfms->ndt.flp.rte)
     {
         ndt_flightplan_close(&yfms->ndt.flp.rte);
+    }
+    if (ndt_list_count(yfms->data.fpln.legs))
+    {
+        ndt_list_empty(yfms->data.fpln.legs);
     }
 
     /* user-provided data */
@@ -267,6 +273,9 @@ void yfs_curr_pageupdt(yfms_context *yfms)
         /* only update visible page */
         switch (yfms->mwindow.current_page)
         {
+            case PAGE_FPLN:
+                yfs_fpln_pageupdt(yfms);
+                break;
             case PAGE_INIT:
                 yfs_init_pageupdt(yfms);
                 break;
