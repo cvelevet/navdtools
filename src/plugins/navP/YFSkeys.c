@@ -350,10 +350,29 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
             yfs_spad_apndc(yfms, '_', -1); // cf. YFSmain.c, draw_display()
             return 0;
         case XPLM_VK_UP:
+            if (yfms->spcs.cback_lnup)
+            {
+                yfms->spcs.cback_lnup(yfms);
+            }
+            return 0;
         case XPLM_VK_DOWN:
+            if (yfms->spcs.cback_lndn)
+            {
+                yfms->spcs.cback_lndn(yfms);
+            }
+            return 0;
         case XPLM_VK_LEFT:
+            if (yfms->spcs.cback_left)
+            {
+                yfms->spcs.cback_left(yfms);
+            }
+            return 0;
         case XPLM_VK_RIGHT:
-            return 1; // TODO (lnup, lndn, left, rigt)
+            if (yfms->spcs.cback_rigt)
+            {
+                yfms->spcs.cback_rigt(yfms);
+            }
+            return 0;
         default:
             break;
     }

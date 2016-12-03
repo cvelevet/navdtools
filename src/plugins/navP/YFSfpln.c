@@ -32,6 +32,8 @@
 #include "YFSspad.h"
 
 static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2],                intptr_t refcon);
+static void fpl_spc_callback_lnup(yfms_context *yfms                                            );
+static void fpl_spc_callback_lndn(yfms_context *yfms                                            );
 static void fpl_print_leg_generic(yfms_context *yfms, int row,                ndt_route_leg *leg);
 static void fpl_print_airport_rwy(yfms_context *yfms, int row, ndt_airport *apt, ndt_runway *rwy);
 static int  fpl_getindex_for_line(yfms_context *yfms, int line                                  );
@@ -53,6 +55,8 @@ void yfs_fpln_pageopen(yfms_context *yfms)
     yfms->lsks[0][3].cback = yfms->lsks[1][3].cback =
     yfms->lsks[0][4].cback = yfms->lsks[1][4].cback =
     yfms->lsks[0][5].cback/*yfms->lsks[1][5].cback*/= (YFS_LSK_f)&yfs_lsk_callback_fpln;
+    yfms->spcs. cback_lnup = (YFS_SPC_f)&fpl_spc_callback_lnup;
+    yfms->spcs. cback_lndn = (YFS_SPC_f)&fpl_spc_callback_lndn;
     yfs_fpln_pageupdt(yfms); return;
 }
 
@@ -65,7 +69,7 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
     }
 
     /* mostly static data */
-    if (yfms->data.fpln.ln_off == 0)
+    if (fpl_getindex_for_line(yfms, 0) == yfms->data.fpln.lg_idx - 1)
     {
         yfs_printf_lft(yfms, 0, 0, COLR_IDX_WHITE, "%s", " FROM");
     }
@@ -169,6 +173,16 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
     }
     /* all good */
     return;
+}
+
+static void fpl_spc_callback_lnup(yfms_context *yfms)
+{
+    yfms->data.fpln.ln_off++; yfs_fpln_pageupdt(yfms); return;
+}
+
+static void fpl_spc_callback_lndn(yfms_context *yfms)
+{
+    yfms->data.fpln.ln_off--; yfs_fpln_pageupdt(yfms); return;
 }
 
 static void fpl_print_leg_generic(yfms_context *yfms, int row, ndt_route_leg *leg)
