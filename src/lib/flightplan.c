@@ -249,8 +249,9 @@ end:
                 icao ? icao : "",
                 rwid ? ", " : "",
                 rwid ? rwid : "", errbuf);
+        return err;
     }
-    return err;
+    return route_leg_update(flp);
 }
 
 int ndt_flightplan_set_departsid(ndt_flightplan *flp, const char *name, const char *trans)
@@ -428,8 +429,9 @@ end:
                 icao ? icao : "",
                 rwid ? ", " : "",
                 rwid ? rwid : "", errbuf);
+        return err;
     }
-    return err;
+    return route_leg_update(flp);
 }
 
 int ndt_flightplan_set_arrivstar(ndt_flightplan *flp, const char *name, const char *trans)
@@ -3055,6 +3057,7 @@ static int route_leg_update(ndt_flightplan *flp)
         }
         if (leg->src && leg->dst && !ndt_list_count(leg->xpfms))
         {
+            // TODO: set distance even with xpfms dummies
             leg->dis = ndt_position_calcdistance(leg->src->position, leg->dst->position);
             leg->trb = ndt_position_calcbearing (leg->src->position, leg->dst->position);
             leg->imb = ndt_wmm_getbearing_mag   (wmm, leg->trb, leg->dst->position, now);
