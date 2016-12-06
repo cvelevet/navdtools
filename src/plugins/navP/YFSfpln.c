@@ -148,12 +148,14 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
 //                      switch (leg->type)
                         break;
                     case NDT_RSTYPE_AWY://fixme also print bearing next to airway identifier???
-                        yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_WHITE, " C%03.0lf", leg->awyleg->awy->info.idnt);
+                        yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_WHITE, " %5s", leg->awyleg->awy->info.idnt);
                         yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_GREEN, "%.0lf     ", distance_nmile);
                         if (i == 4) yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 3, COLR_IDX_WHITE, "%s", "NM");
                         break;
                     default:
-                        yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_WHITE, " C%03.0lf", leg->imb);
+                        // note: we don't prepend 'C' to the course to e.g. prevent
+                        //       confusion with a procedure or an airway identifier
+                        yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_WHITE, " %03.0lf", leg->imb);
                         yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_GREEN, "%.0lf     ", distance_nmile);
                         if (i == 4) yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 3, COLR_IDX_WHITE, "%s", "NM");
                         break;
@@ -172,7 +174,7 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
 
 static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refcon)//fixme
 {
-    if (key[0] == 0) // insert waypoint or open lateral rev. page
+    if (key[0] == 0) // insert a waypoint, or open the lateral rev. page
     {
         ndt_waypoint      *cur_wpt, *new_wpt;
         ndt_route_leg     *cur_leg, *new_leg;
@@ -188,6 +190,10 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         {
             // TODO: lateral revision page
         }
+        //fixme
+    }
+    if (key[0] == 1 && key[1] != 5) // constraints or vertical rev. page
+    {
         //fixme
     }
     /* all good */
