@@ -98,8 +98,8 @@ void yfs_prog_pageupdt(yfms_context *yfms)
     {
         yfs_printf_lft(yfms, 2,  0, COLR_IDX_WHITE, "%s", "-----");
     }
-    yfs_printf_lft(yfms, 2,  9, COLR_IDX_GREEN,     "%s", "FL---");
-    yfs_printf_rgt(yfms, 2,  1, COLR_IDX_MAGENTA,   "%s", "FL---");
+    yfs_printf_lft(yfms, 2,  9, COLR_IDX_WHITE,     "%s", "-----");
+    yfs_printf_rgt(yfms, 2,  1, COLR_IDX_WHITE,     "%s", "-----");
 
     /* line 8: bearing, distance */
     if (yfms->data.prog.fix == NULL)

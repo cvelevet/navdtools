@@ -76,12 +76,13 @@ void yfs_init_pageupdt(yfms_context *yfms)
     }
 
     /* left column */
-    yfs_printf_lft(yfms,  1, 0, COLR_IDX_WHITE,  "%s", "  CO RTE"); // TODO: implement company route support
+//  yfs_printf_lft(yfms,  2, 0, COLR_IDX_ORANGE, "%s", "##########"); // TODO: implement company route support
+    yfs_printf_lft(yfms,  1, 0, COLR_IDX_WHITE,  "%s", " CO RTE");
     yfs_printf_lft(yfms,  2, 0, COLR_IDX_BLUE,   "%s", "N/A");
 //  yfs_printf_lft(yfms,  3, 0, COLR_IDX_WHITE,  "%s", "ALTN RTE");
 //  yfs_printf_lft(yfms,  4, 0, COLR_IDX_WHITE,  "%s", "--------");
     yfs_printf_lft(yfms,  5, 0, COLR_IDX_WHITE,  "%s", "FLT NBR");
-    yfs_printf_lft(yfms,  6, 0, COLR_IDX_ORANGE, "%s", "#######");
+    yfs_printf_lft(yfms,  6, 0, COLR_IDX_ORANGE, "%s", "########");
     yfs_printf_lft(yfms,  7, 0, COLR_IDX_WHITE,  "%s", "LAT");
     yfs_printf_lft(yfms,  8, 0, COLR_IDX_WHITE,  "%s", "----.--");
     yfs_printf_lft(yfms,  9, 0, COLR_IDX_WHITE,  "%s", "COST INDEX");
@@ -90,7 +91,7 @@ void yfs_init_pageupdt(yfms_context *yfms)
     yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE,  "%s", "-----"/*" /---"*/);
     if (yfms->data.init.flight_id[0])
     {
-        yfs_printf_lft(yfms, 6, 0, COLR_IDX_BLUE, "%-7s", yfms->data.init.flight_id);
+        yfs_printf_lft(yfms, 6, 0, COLR_IDX_BLUE, "%-8s", yfms->data.init.flight_id);
     }
     if (yfms->data.init.ialized)
     {
@@ -125,7 +126,7 @@ void yfs_init_pageupdt(yfms_context *yfms)
     yfs_printf_rgt(yfms,  8, 0, COLR_IDX_WHITE,  "%s",  "-----.--");
 //  yfs_printf_rgt(yfms, 11, 0, COLR_IDX_WHITE,  "%s",     "WIND>");
     yfs_printf_rgt(yfms, 11, 0, COLR_IDX_WHITE,  "%s",     "TROPO");
-    yfs_printf_rgt(yfms, 12, 0, COLR_IDX_BLUE,   "%s",       "N/A"); // TODO: implement tropopause setting and temperature at cruise altitude
+    yfs_printf_rgt(yfms, 12, 0, COLR_IDX_BLUE,   "%s",     "36090"); // TODO: implement tropopause setting and temperature at cruise altitude
     if (yfms->data.init.from)
     {
         yfs_printf_rgt(yfms, 2, 5, COLR_IDX_BLUE, "%s", yfms->data.init.from->info.idnt);
@@ -310,6 +311,15 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
             }
         }
         yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); yfs_init_pageupdt(yfms); return;
+    }
+    if (key[0] == 1 && key[1] == 5) // tropopause
+    {
+        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
+        if  (strnlen(buf, 1))
+        {
+            yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); yfs_init_pageupdt(yfms); return;
+        }
+        yfs_spad_reset(yfms, "36090", -1); yfs_init_pageupdt(yfms); return;
     }
     /* all good */
     return;
