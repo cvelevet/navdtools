@@ -285,32 +285,40 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 4) // cost index
     {
-        int ci; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
-        if (strnlen(buf, 1) && sscanf(buf, "%d", &ci) == 1 && ci >= 0 && ci <= 999)
+        if (yfms->data.init.ialized)
         {
-            yfms->data.init.cost_index = ci; yfs_spad_clear(yfms); yfs_init_pageupdt(yfms); return;
+            int ci; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
+            if (strnlen(buf, 1) && sscanf(buf, "%d", &ci) == 1 && ci >= 0 && ci <= 999)
+            {
+                yfms->data.init.cost_index = ci; yfs_spad_clear(yfms); yfs_init_pageupdt(yfms); return;
+            }
+            yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); yfs_init_pageupdt(yfms); return;
         }
-        yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); yfs_init_pageupdt(yfms); return;
+        return;
     }
     if (key[0] == 0 && key[1] == 5) // initial cruise altitude
     {
-        int crz_alt; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
-        if (strnlen(buf, 1) && sscanf(buf, "%d", &crz_alt) == 1)
+        if (yfms->data.init.ialized)
         {
-            // Lockheed SR-71 Blackbird can go up to FL850 ;-)
-            if (crz_alt >= (1600 - 50) && crz_alt <= 85000)
+            int crz_alt; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
+            if (strnlen(buf, 1) && sscanf(buf, "%d", &crz_alt) == 1)
             {
-                crz_alt = ((crz_alt + 50) / 100); // round to nearest flight level
-                yfms->data.init.crz_alt = ndt_distance_init(crz_alt, NDT_ALTUNIT_FL);
-                yfs_spad_clear(yfms); yfs_init_pageupdt(yfms); return;
+                // Lockheed SR-71 Blackbird can go up to FL850 ;-)
+                if (crz_alt >= (1600 - 50) && crz_alt <= 85000)
+                {
+                    crz_alt = ((crz_alt + 50) / 100); // round to nearest flight level
+                    yfms->data.init.crz_alt = ndt_distance_init(crz_alt, NDT_ALTUNIT_FL);
+                    yfs_spad_clear(yfms); yfs_init_pageupdt(yfms); return;
+                }
+                if (crz_alt >= 16 && crz_alt <= 850)
+                {
+                    yfms->data.init.crz_alt = ndt_distance_init(crz_alt, NDT_ALTUNIT_FL);
+                    yfs_spad_clear(yfms); yfs_init_pageupdt(yfms); return;
+                }
             }
-            if (crz_alt >= 16 && crz_alt <= 850)
-            {
-                yfms->data.init.crz_alt = ndt_distance_init(crz_alt, NDT_ALTUNIT_FL);
-                yfs_spad_clear(yfms); yfs_init_pageupdt(yfms); return;
-            }
+            yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); yfs_init_pageupdt(yfms); return;
         }
-        yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); yfs_init_pageupdt(yfms); return;
+        return;
     }
     if (key[0] == 1 && key[1] == 5) // tropopause
     {
