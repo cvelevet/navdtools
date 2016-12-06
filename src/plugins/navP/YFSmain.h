@@ -247,9 +247,13 @@ typedef struct
         } init;
         struct
         {
-            int     lg_idx; // currently tracked leg in list
-            int     ln_off; // currently topmost line offset
-            ndt_list *legs; // list of valid legs, if any
+            int               lg_idx; // currently tracked leg in list
+            int               ln_off; // currently topmost line offset
+            int               cuswpt; // custom waypoint index, 01->99
+            int               dindex; // index of d_leg (in legs list)
+            ndt_route_segment *l_rsg; // last segment (in flight plan)
+            ndt_route_leg     *d_leg; // leg to the arrival airport or runway
+            ndt_list           *legs; // list of main flightplan legs, if any
         } fpln;
         struct
         {

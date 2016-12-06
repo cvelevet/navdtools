@@ -243,8 +243,13 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                     {
                         yfms->data.init.trans_l = ndt_distance_init (10000, NDT_ALTUNIT_FT);
                     }
-                    yfms->data.init.ialized = 1;
-                    yfms->data.fpln.lg_idx = 0;
+                    ndt_list_add(yfms->data.fpln.legs, yfms->ndt.flp.rte->arr.last.rleg);
+                    yfms->data.fpln.d_leg            = yfms->ndt.flp.rte->arr.last.rleg;
+                    yfms->data.fpln.l_rsg            = NULL; //arr.last.rsgt not in rte
+                    yfms->data.fpln.dindex           = 0;
+                    yfms->data.fpln.lg_idx           = 0;
+                    yfms->data.fpln.cuswpt           = 1;
+                    yfms->data.init.ialized          = 1;
                 }
                 yfs_spad_clear(yfms); yfs_init_pageupdt(yfms); return;
             }

@@ -18,9 +18,9 @@
  *     Timothy D. Walker
  */
 
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "common/common.h"
 #include "lib/airport.h"
@@ -101,24 +101,33 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
     /* two lines per leg (header/course/distance, then name/constraints) */
     for (int i = 0; i < 5; i++)
     {
+        ndt_route_leg *leg = NULL;
         int have_waypt = 0, index;
         switch ((index = fpl_getindex_for_line(yfms, i)))
         {
             case -3:
-                yfs_printf_lft       (yfms, (2 * (i + 1)), 0, COLR_IDX_WHITE, "%s",    "----- END OF F-PLN -----");
+                yfs_printf_lft(yfms, (2 * (i + 1)), 0, COLR_IDX_WHITE, "%s", "----- END OF F-PLN -----");
                 break;
             case -2:
-                yfs_printf_lft       (yfms, (2 * (i + 1)), 0, COLR_IDX_WHITE, "%s",    "----- NO ALTN FPLN -----");
+                yfs_printf_lft(yfms, (2 * (i + 1)), 0, COLR_IDX_WHITE, "%s", "----- NO ALTN FLPN -----");
                 break;
             case -1: // departure airport
                 fpl_print_airport_rwy(yfms, (2 * (i + 1)), yfms->ndt.flp.rte->dep.apt, yfms->ndt.flp.rte->dep.rwy);
-                have_waypt = 1; break;
-            case -4: // arrival airport
-                fpl_print_airport_rwy(yfms, (2 * (i + 1)), yfms->ndt.flp.rte->arr.apt, yfms->ndt.flp.rte->arr.rwy);
-                have_waypt = 1; break;
+                have_waypt = i == 0; break;
             default: // regular leg
-                fpl_print_leg_generic(yfms, (2 * (i + 1)),             ndt_list_item(yfms->data.fpln.legs, index));
-                have_waypt = 1; break; // TODO: check for discontinuity legs too
+                if (index == yfms->data.fpln.dindex)
+                {
+                    fpl_print_airport_rwy(yfms, (2 * (i + 1)), yfms->ndt.flp.rte->arr.apt, yfms->ndt.flp.rte->arr.rwy);
+                    leg = yfms->data.fpln.d_leg; have_waypt = 1;
+                    break;
+                }
+                if ((leg = ndt_list_item(yfms->data.fpln.legs, index)) && (leg->type == NDT_LEGTYPE_ZZ))
+                {
+                    yfs_printf_lft(yfms, (2 * (i + 1)), 0, COLR_IDX_WHITE, "%s", "-- FLPN DISCONTINUITY --");
+                    break;
+                }
+                fpl_print_leg_generic(yfms, (2 * (i + 1)), leg); have_waypt = 1;
+                break;
         }
         if (have_waypt)
         {
@@ -129,30 +138,22 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
                     break;
                 default: // course, distance
                 {
-                    if (index == -1)
+                    double  distance_nmile = (double)ndt_distance_get(leg->dis, NDT_ALTUNIT_ME) / 1852.;
+                    switch (leg->rsg->type)
                     {
-                        break; // departure: we have a waypoint, but no leg
-                    }
-                    ndt_route_leg *leg = index == -4 ? yfms->ndt.flp.rte->arr.last.rleg : ndt_list_item(yfms->data.fpln.legs, index);
-                    double distance_nm = (double)ndt_distance_get(leg->dis, NDT_ALTUNIT_ME) / 1852.;
-                    switch(leg->rsg->type)
-                    {
-                        case NDT_RSTYPE_PRC://fixme
-//                          if (leg->src && leg->dst) // we have bearing information, should we use it???
+                        case NDT_RSTYPE_PRC: // TODO
+//                          switch (leg->type)
                             break;
-                        case NDT_RSTYPE_AWY: // TODO: also print bearing next to airway identifier???
+                        case NDT_RSTYPE_AWY://fixme also print bearing next to airway identifier???
                             yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_WHITE, " C%03.0lf", leg->awyleg->awy->info.idnt);
-                            yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_WHITE, "%.0lf     ", distance_nm);
+                            yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_WHITE, "%.0lf     ", distance_nmile);
+                            if (i == 1) yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 3, COLR_IDX_WHITE, "%s", "NM");
                             break;
-                        case NDT_RSTYPE_DCT:
                         default:
                             yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_WHITE, " C%03.0lf", leg->imb);
-                            yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_WHITE, "%.0lf     ", distance_nm);
+                            yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_WHITE, "%.0lf     ", distance_nmile);
+                            if (i == 1) yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 3, COLR_IDX_WHITE, "%s", "NM");
                             break;
-                    }
-                    if (i == 1)
-                    {
-                        yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 3, COLR_IDX_WHITE, "%s", "NM");
                     }
                     break;
                 }
@@ -166,9 +167,22 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
 
 static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refcon)//fixme
 {
-    if (key[0] == 0 && key[1] != 5) // insert waypoint or open lateral rev. page
+    if (key[0] == 0) // insert waypoint or open lateral rev. page
     {
-        int index = fpl_getindex_for_line(yfms, key[1]);
+        ndt_waypoint      *cur_wpt, *new_wpt;
+        ndt_route_leg     *cur_leg, *new_leg;
+        ndt_route_segment *cur_rsg, *new_wrsg;
+        int legct = ndt_list_count(yfms->data.fpln.legs);
+        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
+        int index = key[1] == 5 ? yfms->data.fpln.dindex : fpl_getindex_for_line(yfms, key[1]);
+        if (index < 0) // next waypoint is origin or invalid
+        {
+            yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
+        }
+        if (key[1] == 5 || strnlen(buf, 1) == 0) // open lateral revision page
+        {
+            // TODO: lateral revision page
+        }
         //fixme
     }
     /* all good */
@@ -187,7 +201,71 @@ static void fpl_spc_callback_lndn(yfms_context *yfms)
 
 static void fpl_print_leg_generic(yfms_context *yfms, int row, ndt_route_leg *leg)
 {
-    //fixme
+    ndt_restriction restrs = leg->constraints;
+    int             altmin = (int)ndt_distance_get(restrs.altitude.min, NDT_ALTUNIT_FT);
+    int             fl_min = (int)ndt_distance_get(restrs.altitude.min, NDT_ALTUNIT_FL);
+    int             altmax = (int)ndt_distance_get(restrs.altitude.max, NDT_ALTUNIT_FT);
+    int             fl_max = (int)ndt_distance_get(restrs.altitude.max, NDT_ALTUNIT_FL);
+    int             tr_alt = (int)ndt_distance_get(yfms->data.init.trans_a, NDT_ALTUNIT_FT);
+//  int             tr_lvl = (int)ndt_distance_get(yfms->data.init.trans_l, NDT_ALTUNIT_FT); // TODO: descent
+    int             spdmax = (int)ndt_airspeed_get(restrs.airspeed.max, NDT_SPDUNIT_KTS, NDT_MACH_DEFAULT);
+    yfs_printf_lft(yfms, row, 0, COLR_IDX_GREEN, "%-7s", leg->dst ? leg->dst->info.idnt : leg->info.idnt);
+    if (restrs.airspeed.acf == NDT_ACFTYPE_ALL || restrs.airspeed.acf == NDT_ACFTYPE_JET)
+    {
+        switch (restrs.airspeed.typ)
+        {   // note: we only support at or below constraints
+            case NDT_RESTRICT_BL: // at or below
+            case NDT_RESTRICT_AT: // at airspeed
+            case NDT_RESTRICT_BT: // min and max
+                yfs_printf_lft(yfms, row, 7, COLR_IDX_MAGENTA, "%.3d", spdmax);
+                break;
+
+            default:
+                break;
+        }
+    }
+    if (restrs.altitude.typ != NDT_RESTRICT_NO)//fixme check format in FMS doc.
+    {
+        switch (restrs.altitude.typ)
+        {
+            case NDT_RESTRICT_AT:
+                if (tr_alt <= altmin)
+                {
+                    yfs_printf_lft(yfms, row, 0, COLR_IDX_MAGENTA,  "FL%03d", fl_min);
+                }
+                else
+                {
+                    yfs_printf_lft(yfms, row, 0, COLR_IDX_MAGENTA,   "%5.5d", altmin);
+                }
+                break;
+
+            case NDT_RESTRICT_BT: // TODO: print both constraints
+            case NDT_RESTRICT_AB:
+                if (tr_alt <= altmin)
+                {
+                    yfs_printf_lft(yfms, row, 0, COLR_IDX_MAGENTA, "+FL%03d", fl_min);
+                }
+                else
+                {
+                    yfs_printf_lft(yfms, row, 0, COLR_IDX_MAGENTA,  "+%5.5d", altmin);
+                }
+                break;
+
+            case NDT_RESTRICT_BL:
+                if (tr_alt <= altmax)
+                {
+                    yfs_printf_lft(yfms, row, 0, COLR_IDX_MAGENTA, "-FL%03d", fl_max);
+                }
+                else
+                {
+                    yfs_printf_lft(yfms, row, 0, COLR_IDX_MAGENTA,  "-%5.5d", altmax);
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
 }
 
 static void fpl_print_airport_rwy(yfms_context *yfms, int row, ndt_airport *apt, ndt_runway *rwy)
@@ -207,17 +285,13 @@ static int fpl_getindex_for_line(yfms_context *yfms, int line)
     int index = yfms->data.fpln.lg_idx + yfms->data.fpln.ln_off + line - 1;
     if (index < -1 || index >= legct)
     {
-        while (index > legct)
+        while (index > legct - 1)
         {
-            index -= legct + 4; // legct + 1 == -3, legct + 2 == -2, etc.
+            index -= legct + 3; // legct == -3, legct + 1 == -2, etc.
         }
-        while (index < -4)
+        while (index < -3)
         {
-            index += legct + 4; // -5 == legct - 1, -6 == legct - 2, etc.
-        }
-        if (index == legct)
-        {
-            index = -4;
+            index += legct + 3; // -4 == legct-1, -5 == legct-2, etc.
         }
     }
     return index;
