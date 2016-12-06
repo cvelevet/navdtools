@@ -50,17 +50,26 @@ void yfs_spad_clear(yfms_context *yfms)
     if (yfms->mwindow.screen.text[SPAD_IDX][0] == 0 ||
         yfms->mwindow.screen.text[SPAD_IDX][0] == ' ')
     {
-        if (yfms->mwindow.screen.spad_reset == 0)
+        if (yfms->mwindow.screen.spad_reset  == 0 ||
+            yfms->mwindow.screen.spad_backup == 0) // alternative handled below
         {
-            yfs_spad_reset(yfms, "CLR", -1);
-            yfms->mwindow.screen.spad_backup = 0; return;
+            // empty scratchpad, reset to "CLR"
+            yfs_spad_reset(yfms, "CLR", -1); return;
         }
     }
     for (int i = 0; i < YFS_DISPLAY_NUMC; i++)
     {
         yfms->mwindow.screen.colr[SPAD_IDX][i] = SPAD_COL;
     }
-    memset(yfms->mwindow.screen.text[SPAD_IDX], 0, YFS_ROW_BUF_SIZE);
+    {
+        memset(yfms->mwindow.screen.text[SPAD_IDX], 0, YFS_ROW_BUF_SIZE);
+    }
+    if (yfms->mwindow.screen.spad_reset && yfms->mwindow.screen.spad_backup)
+    {
+        // we cleared an FMS message, now restore backup
+        sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s",
+                yfms->mwindow.screen.spad_bupbuf);
+    }
     yfms->mwindow.screen.spad_backup = yfms->mwindow.screen.spad_reset = 0; return;
 }
 
@@ -72,16 +81,8 @@ void yfs_spad_remvc(yfms_context *yfms)
     }
     if (yfms->mwindow.screen.spad_reset)
     {
-        yfs_spad_clear(yfms);
-        {
-            if (yfms->mwindow.screen.spad_backup)
-            {
-                sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s",
-                        yfms->mwindow.screen.spad_bupbuf);
-                yfms->mwindow.screen.spad_backup = 0; return;
-            }
-        }
-        return;
+        // not from by user, clear it
+        yfs_spad_clear(yfms); return;
     }
     char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); size_t l = strlen(buf);
     if (l <= 1)
@@ -99,14 +100,8 @@ void yfs_spad_apndc(yfms_context *yfms, char c, int color)
     }
     if (yfms->mwindow.screen.spad_reset)
     {
-        {
-            yfs_spad_clear(yfms);
-        }
-//      if (yfms->mwindow.screen.spad_backup)
-//      {
-//          sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s", yfms->mwindow.screen.spad_bupbuf);
-//      }
-        yfms->mwindow.screen.spad_backup = yfms->mwindow.screen.spad_reset = 0;
+        // clear FMS message, and overwrite (don't restore backup)
+        yfms->mwindow.screen.spad_backup = 0; yfs_spad_clear(yfms);
     }
     char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); size_t l = strlen(buf);
     if (c == '+' || c == '-')
@@ -133,8 +128,9 @@ void yfs_spad_reset(yfms_context *yfms, char *s, int color)
         return; // no error
     }
     char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
-    if  (strnlen(buf, 1))
+    if (*buf && *buf != ' ') // don't trust strlen here (spaces count as empty)
     {
+        // save scratchpad before resetting
         yfms->mwindow.screen.spad_backup = 1;
         sprintf(yfms->mwindow.screen.spad_bupbuf, "%s", buf);
     }
