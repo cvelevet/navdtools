@@ -1098,6 +1098,7 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
             }
             yfs_spad_reset(yfms, buf, -1); return; // frequency to scratchpad
         }
+        //fixme looking up VOR/ADF/ILS by navaid identifier should actually be fairly trivial
         if ((freq = get_nav_frequency(buf)) < 0.)
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
@@ -1172,6 +1173,7 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
             strncpy(&buf[0], &yfms->mwindow.screen.text[6][5], 6); buf[6] = 0;
             yfs_spad_reset(yfms, buf, -1); return; // frequency to scratchpad
         }
+        //fixme looking up VOR/ADF/ILS by navaid identifier should actually be fairly trivial
         if ((freq = get_nav_frequency(buf)) < 0.)
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
@@ -1240,6 +1242,7 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
             }
             yfs_spad_reset(yfms, buf, -1); return; // frequency to scratchpad
         }
+        //fixme looking up VOR/ADF/ILS by navaid identifier should actually be fairly trivial
         if ((freq = get_adf_frequency(buf)) < 0.)
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
