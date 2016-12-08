@@ -2525,7 +2525,6 @@ static int first_fcall_do(chandler_context *ctx)
             break;
 
         case NVP_ACF_B737_EA:
-            _DO(1, XPLMSetDatai, 1, "x737/systems/exteriorLights/positionLightSwitch");
             _DO(1, XPLMSetDatai, 0, "x737/cockpit/yoke/captYokeVisible");
             _DO(1, XPLMSetDatai, 0, "x737/cockpit/yoke/foYokeVisible");
             break;
@@ -2540,7 +2539,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDataf,   3.0f, "ixeg/733/ehsi/ehsi_mode_cpt_act");                // HSI m.sel. (f/o. side) (ctr)
             _DO(1, XPLMSetDataf,   1.0f, "ixeg/733/ehsi/ehsi_range_pt_act");                // HSI r.sel. (cap. side) (20)
             _DO(1, XPLMSetDataf,   3.0f, "ixeg/733/ehsi/ehsi_range_cpt_act");               // HSI r.sel. (f/o. side) (80)
-            _DO(1, XPLMSetDataf,   1.0f, "ixeg/733/lighting/position_lt_act");              // Exte. lighting: posit. (on)
             _DO(1, XPLMSetDataf,   0.0f, "ixeg/733/rheostats/light_breakers_act");          // Circuit breakers light (off)
             _DO(1, XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_pedpanel_act");          // Panel light (pedestal) (daylight)
             _DO(1, XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_overhead_act");          // Panel light (overhead) (daylight)
@@ -2595,7 +2593,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,    1, "anim/4/button");                            // Engine elec. contr. (R) (on)
             _DO(1, XPLMSetDatai,    1, "anim/8/button");                            // Engine-dr. hy. pump (L) (on)
             _DO(1, XPLMSetDatai,    1, "anim/11/button");                           // Engine-dr. hy. pump (R) (on)
-            _DO(1, XPLMSetDatai,    1, "anim/43/button");                           // Exter. lighting: posit. (on)
             _DO(1, XPLMSetDatai,    1, "anim/54/button");                           // Air: trim air valve sw. (on)
             _DO(1, XPLMSetDatai,    1, "anim/55/button");                           // Air: L recirc. fans sw. (on)
             _DO(1, XPLMSetDatai,    1, "anim/56/button");                           // Air: R recirc. fans sw. (on)
