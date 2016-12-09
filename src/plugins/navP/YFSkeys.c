@@ -403,7 +403,8 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
                 /* XXX: non-configurable page-psecific */
                 if (yfms->mwindow.current_page == PAGE_PROG ||
                     yfms->mwindow.current_page == PAGE_INIT ||
-                    yfms->mwindow.current_page == PAGE_FPLN)
+                    yfms->mwindow.current_page == PAGE_FPLN ||
+                    yfms->mwindow.current_page == PAGE_RAD2)
                 {
                     break;
                 }

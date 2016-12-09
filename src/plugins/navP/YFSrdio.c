@@ -53,6 +53,14 @@
 #define YVP_FLOORFLT (0.005f)
 #define YVP_CEIL_FLT (-.005f)
 
+/*
+ * navaid type aliases that can be used in a bitmask
+ */
+#define YVP_NAV_NDB 1
+#define YVP_NAV_VOR 2
+#define YVP_NAV_LOC 4
+#define YVP_NAV_DME 8
+
 static void yfs_rad1_pageupdt    (yfms_context *yfms);
 static void yfs_rad2_pageupdt    (yfms_context *yfms);
 static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refcon);
@@ -173,6 +181,67 @@ static double get_adf_frequency(const char *string)
     }
     /* For X-Plane purposes, we must floor the frequency to 1.0 kHz */
     return (floor(freq + YVP_FLOORDBL));
+}
+
+static double get_frequency4idt(const char *idt, yfms_context *yfms, int navaid_types)
+{
+    int idx = strlen(idt) - 1;
+    if (idt[idx] < 'A' || idt[idx] > 'Z')
+    {
+        return -1.; // not an identifier
+    }
+    ndt_distance  distce, newdis;
+    ndt_waypoint *navaid = NULL, *currnt;
+    ndt_position  acfpos = yfms->data.aircraft_pos;
+    for (size_t i = 0; (currnt = ndt_navdata_get_waypoint(yfms->ndt.ndb, idt, &i)); i++)
+    {
+        switch (currnt->type)
+        {
+            case NDT_WPTYPE_NDB:
+                if (navaid_types & YVP_NAV_NDB) break;
+                continue;
+            case NDT_WPTYPE_VOR:
+                if (navaid_types & YVP_NAV_VOR) break;
+                continue;
+            case NDT_WPTYPE_LOC:
+                if (navaid_types & YVP_NAV_LOC) break;
+                continue;
+            case NDT_WPTYPE_DME:
+                if (navaid_types & YVP_NAV_DME) break;
+                continue;
+            default:
+                continue;
+        }
+        if (navaid == NULL)
+        {
+            distce = ndt_position_calcdistance(acfpos, currnt->position);
+            navaid = currnt;
+            continue;
+        }
+        if (ndt_distance_get((newdis = ndt_position_calcdistance(acfpos, currnt->position)), NDT_ALTUNIT_NA) <
+            ndt_distance_get((distce), NDT_ALTUNIT_NA))
+        {
+            distce = newdis;
+            navaid = currnt;
+            continue;
+        }
+    }
+    if (navaid)
+    {
+        double freq = ndt_frequency_get(navaid->frequency);
+        switch(navaid->type)
+        {
+            case NDT_WPTYPE_NDB: // floor frequency (1.0 kHz, required by X-Plane)
+                return (floor(freq + YVP_FLOORDBL));
+            case NDT_WPTYPE_VOR:
+            case NDT_WPTYPE_LOC:
+            case NDT_WPTYPE_DME: // for display purposes, floor frequency (10.0 kHz)
+                return (floor(freq * 100. + YVP_FLOORDBL) / 100.);
+            default:
+                return -1.;
+        }
+    }
+    return -1.;
 }
 
 static double get_baro_pressure(const char *string)
@@ -1098,8 +1167,8 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
             }
             yfs_spad_reset(yfms, buf, -1); return; // frequency to scratchpad
         }
-        //fixme looking up VOR/ADF/ILS by navaid identifier should actually be fairly trivial
-        if ((freq = get_nav_frequency(buf)) < 0.)
+        if ((freq = get_frequency4idt(buf, yfms, YVP_NAV_VOR|YVP_NAV_LOC|YVP_NAV_DME)) < 0. &&
+            (freq = get_nav_frequency(buf)) < 0.)
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
@@ -1173,8 +1242,8 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
             strncpy(&buf[0], &yfms->mwindow.screen.text[6][5], 6); buf[6] = 0;
             yfs_spad_reset(yfms, buf, -1); return; // frequency to scratchpad
         }
-        //fixme looking up VOR/ADF/ILS by navaid identifier should actually be fairly trivial
-        if ((freq = get_nav_frequency(buf)) < 0.)
+        if ((freq = get_frequency4idt(buf, yfms, YVP_NAV_VOR|YVP_NAV_LOC|YVP_NAV_DME)) < 0. &&
+            (freq = get_nav_frequency(buf)) < 0.)
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
@@ -1242,8 +1311,8 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
             }
             yfs_spad_reset(yfms, buf, -1); return; // frequency to scratchpad
         }
-        //fixme looking up VOR/ADF/ILS by navaid identifier should actually be fairly trivial
-        if ((freq = get_adf_frequency(buf)) < 0.)
+        if ((freq = get_frequency4idt(buf, yfms, YVP_NAV_NDB)) < 0. &&
+            (freq = get_adf_frequency(buf)) < 0.)
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
