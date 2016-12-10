@@ -790,6 +790,11 @@ end:
     return err;
 }
 
+int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_leg, int after)//fixme
+{
+    return 0;//fixme
+}
+
 #define NDTPROCINITLIST(l) { l = ndt_list_init(); if (!l) goto fail; }
 
 ndt_procedure* ndt_procedure_init(enum ndt_procedure_type typ)

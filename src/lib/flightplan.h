@@ -132,6 +132,7 @@ int             ndt_flightplan_set_arrivstar(ndt_flightplan   *flightplan, const
 int             ndt_flightplan_set_arrivapch(ndt_flightplan   *flightplan, const char *name,  const char   *transition);
 int             ndt_flightplan_set_route    (ndt_flightplan   *flightplan, const char *route, ndt_fltplanformat format);
 int             ndt_flightplan_write        (ndt_flightplan   *flightplan, FILE *file,        ndt_fltplanformat format);
+int             ndt_flightplan_insert_direct(ndt_flightplan   *flightplan, ndt_waypoint *wpt, void *leg, int after_leg);
 
 typedef struct ndt_procedure
 {
