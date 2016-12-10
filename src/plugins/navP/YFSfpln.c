@@ -172,29 +172,90 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
     return;
 }
 
-static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refcon)//fixme
+static void yfs_fpln_fplnupdt(yfms_context *yfms)//fixme
+{
+    int tracking_destination = yfms->data.fpln.lg_idx == yfms->data.fpln.dindex;
+    yfs_fpln_pageupdt(yfms); return;//fixme
+}
+
+static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refcon)
 {
     if (key[0] == 0) // insert a waypoint, or open the lateral rev. page
     {
-        ndt_waypoint      *cur_wpt, *new_wpt;
-        ndt_route_leg     *cur_leg, *new_leg;
-        ndt_route_segment *cur_rsg, *new_wrsg;
-        int legct = ndt_list_count(yfms->data.fpln.legs);
-        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
+        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); ndt_route_leg *leg;
         int index = key[1] == 5 ? yfms->data.fpln.dindex : fpl_getindex_for_line(yfms, key[1]);
         if (index < 0) // next waypoint is origin or invalid
         {
             yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
         }
+        if ((leg = ndt_list_item(yfms->data.fpln.legs, index)) == NULL)
+        {
+            yfs_spad_reset(yfms, "UNKNOWN ERROR 1", COLR_IDX_ORANGE); return;
+        }
         if (key[1] == 5 || strnlen(buf, 1) == 0) // open lateral revision page
         {
-            // TODO: lateral revision page
+            // TODO
         }
-        //fixme
+        if (strcmp(buf, "CLR") == 0)
+        {
+            if (index == ndt_list_count(yfms->data.fpln.legs) ||
+                index == yfms->data.fpln.dindex)
+            {
+                // can't clear destination or last leg
+                yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
+            }
+            // TODO
+        }
+        char *suffix = buf, *prefix = strsep(&suffix, "/-"); ndt_waypoint *wpt;
+        if   (prefix == NULL || strnlen(prefix, 1) == 0)
+        {
+            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+        }
+        // TODO: place/bearing/distance, place-bearing/place-bearing, along route, etc.
+        // TODO: disambiguation page
+        if ((wpt = ndt_navdata_get_wptnear2(yfms->ndt.ndb, prefix, NULL, yfms->data.aircraft_pos)) == NULL)
+        {
+            yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return;
+        }
+        // TODO: latitude/longitude (after fixes, because 1234N etc.)
+        if (leg->rsg == yfms->ndt.flp.dep->dep.sid.enroute.rsgt ||
+            leg->rsg == yfms->ndt.flp.dep->dep.sid.rsgt)
+        {
+            if (ndt_flightplan_insert_direct(yfms->ndt.flp.dep, wpt, leg, 0))
+            {
+               yfs_spad_reset(yfms, "UNKNOWN ERROR 2 A", COLR_IDX_ORANGE); return;
+            }
+            yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
+        }
+        if (leg->rsg == yfms->ndt.flp.arr->arr.star.enroute.rsgt ||
+            leg->rsg == yfms->ndt.flp.arr->arr.star.rsgt         ||
+            leg->rsg == yfms->ndt.flp.arr->arr.last.rsgt)
+        {
+            if (ndt_flightplan_insert_direct(yfms->ndt.flp.arr, wpt, leg, 0))
+            {
+                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 B", COLR_IDX_ORANGE); return;
+            }
+            yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
+        }
+        if (leg->rsg == yfms->ndt.flp.iac->arr.apch.transition.rsgt ||
+            leg->rsg == yfms->ndt.flp.iac->arr.apch.rsgt            ||
+            leg->rsg == yfms->ndt.flp.iac->arr.last.rsgt)
+        {
+            if (ndt_flightplan_insert_direct(yfms->ndt.flp.iac, wpt, leg, 0))
+            {
+                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 C", COLR_IDX_ORANGE); return;
+            }
+            yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
+        }
+        if (ndt_flightplan_insert_direct(yfms->ndt.flp.rte, wpt, leg, 0))
+        {
+            yfs_spad_reset(yfms, "UNKNOWN ERROR 2 D", COLR_IDX_ORANGE); return;
+        }
+        yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
     }
     if (key[0] == 1 && key[1] != 5) // constraints or vertical rev. page
     {
-        //fixme
+        // TODO
     }
     /* all good */
     return;
