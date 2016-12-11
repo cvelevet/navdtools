@@ -175,6 +175,13 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
 static void yfs_fpln_fplnupdt(yfms_context *yfms)//fixme
 {
     int tracking_destination = yfms->data.fpln.lg_idx == yfms->data.fpln.dindex;
+    // note: if clearing a leg, there's no need to sync our leg list at all
+    //       removing the relevant leg from our list is all that's required
+    //       if it's the currently tracked leg - don't forget direct next leg
+    // caveat: if we're clearing more than one leg at once (maybe not allowed)?
+    // note 2: if inserting leg(s) before the currently tracked leg, we need to
+    //         sync but also ensure we're still tracking the same leg as before
+    //         else we still need to sync but it should be more straightforward
     yfs_fpln_pageupdt(yfms); return;//fixme
 }
 
