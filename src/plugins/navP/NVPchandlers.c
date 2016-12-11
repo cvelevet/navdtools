@@ -2405,7 +2405,6 @@ static int first_fcall_do(chandler_context *ctx)
             if ((d_ref = XPLMFindDataRef("AirbusFBW/OHPLightSwitches")))
             {
                 int OHPLightSwitches[1] = { 1, };
-                XPLMSetDatavi(d_ref, &OHPLightSwitches[0], 2, 1);                   // nav&logo: system 1
                 XPLMSetDatavi(d_ref, &OHPLightSwitches[0], 7, 1);                   // strobes: automatic
             }
             _DO(1, XPLMSetDatai, 1, "AirbusFBW/ALT100_1000");                       // FCU alt. sel. increm.  (1000ft)
