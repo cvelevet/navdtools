@@ -69,6 +69,8 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
     }
 
     /* TODO: sync yfms->data.fpln.lg_idx w/X-Plane Navigation API */
+    /* TODO: check plan integrity if possible, resync if required */
+    /* TODO: a forced sync may fuck things when avionics == X-GNS */
 
     /* mostly static data */
     if (fpl_getindex_for_line(yfms, 0) == yfms->data.fpln.lg_idx - 1)
@@ -178,7 +180,9 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)//fixme
 {
     int tracking_destination = yfms->data.fpln.lg_idx == yfms->data.fpln.dindex;
     int element_leg_count[4] = { 0, 0, 0, 0, }; ndt_list *l; ndt_route_leg *leg;
-    /* case 1: full reset */
+    /* TODO: case 1: leg removal */
+    /* TODO: case 2: leg insertion */
+    /* case 3: full resync (first call, procedures changed, airway insertion) */
     if (ndt_list_count(yfms->data.fpln.legs))
     {
         ndt_list_empty(yfms->data.fpln.legs);
@@ -344,10 +348,14 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)//fixme
     {
         yfms->data.fpln.lg_idx = yfms->data.fpln.dindex;
     }
+    else
+    {
+        //fixme the leg we were tracking may be NULL, or worse, invalid pointer
+        //      what should we do to make sure we can track the correct leg????
+    }
     /* TODO: missed approach legs */
-    /* TODO: case 2: leg insertion */
-    /* TODO: case 3: leg removal */
     yfs_fpln_pageupdt(yfms); return; /* TODO: resync w/X-Plane Navigation API */
+    /* TODO: a forced re-sync may fuck things up when avionics are the XP GNS */
     // note: if clearing a leg, there's no need to sync our leg list at all
     //       removing the relevant leg from our list is all that's required
     //       if it's the currently tracked leg - don't forget direct next leg
