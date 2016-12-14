@@ -172,9 +172,180 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
     return;
 }
 
-static void yfs_fpln_fplnupdt(yfms_context *yfms)//fixme
+void yfs_fpln_fplnupdt(yfms_context *yfms)//fixme
 {
     int tracking_destination = yfms->data.fpln.lg_idx == yfms->data.fpln.dindex;
+    int element_leg_count[4] = { 0, 0, 0, 0, }; ndt_list *l; ndt_route_leg *leg;
+    /* case 1: full reset */
+    if (ndt_list_count(yfms->data.fpln.legs))
+    {
+        ndt_list_empty(yfms->data.fpln.legs);
+    }
+    if (yfms->ndt.flp.dep->dep.sid.rsgt)
+    {
+        if ((l = yfms->ndt.flp.dep->dep.sid.rsgt->legs))
+        {
+            for (int i = 0, j = ndt_list_count(l); i < j; i++)
+            {
+                if ((leg = ndt_list_item(l, i)))
+                {
+                    switch (leg->type)
+                    {
+                        default:
+                            ndt_list_add(yfms->data.fpln.legs, leg);
+                            element_leg_count[0]++;
+                            break;
+                    }
+                }
+            }
+        }
+        if (yfms->ndt.flp.dep->dep.sid.enroute.rsgt)
+        {
+            if ((l = yfms->ndt.flp.dep->dep.sid.enroute.rsgt->legs))
+            {
+                for (int i = 0, j = ndt_list_count(l); i < j; i++)
+                {
+                    if ((leg = ndt_list_item(l, i)))
+                    {
+                        switch (leg->type)
+                        {
+                            default:
+                                ndt_list_add(yfms->data.fpln.legs, leg);
+                                element_leg_count[0]++;
+                                break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if ((l = yfms->ndt.flp.rte->legs))
+    {
+        for (int i = 0, j = ndt_list_count(l); i < j; i++)
+        {
+            if ((leg = ndt_list_item(l, i)))
+            {
+                if (i == 0 && ndt_list_count(yfms->data.fpln.legs))
+                {
+                    // TODO: link with preceding element
+                }
+                switch (leg->type)
+                {
+                    default:
+                        ndt_list_add(yfms->data.fpln.legs, leg);
+                        element_leg_count[1]++;
+                        break;
+                }
+            }
+        }
+    }
+    if (yfms->ndt.flp.arr->arr.star.rsgt)
+    {
+        if (yfms->ndt.flp.arr->arr.star.enroute.rsgt)
+        {
+            if ((l = yfms->ndt.flp.arr->arr.star.enroute.rsgt->legs))
+            {
+                for (int i = 0, j = ndt_list_count(l); i < j; i++)
+                {
+                    if ((leg = ndt_list_item(l, i)))
+                    {
+                        if (i == 0 && ndt_list_count(yfms->data.fpln.legs))
+                        {
+                            // TODO: link with preceding element
+                        }
+                        switch (leg->type)
+                        {
+                            default:
+                                ndt_list_add(yfms->data.fpln.legs, leg);
+                                element_leg_count[2]++;
+                                break;
+                        }
+                    }
+                }
+            }
+        }
+        if ((l = yfms->ndt.flp.arr->arr.star.rsgt->legs))
+        {
+            for (int i = 0, j = ndt_list_count(l); i < j; i++)
+            {
+                if ((leg = ndt_list_item(l, i)))
+                {
+                    if (i == 0 && !element_leg_count[2] && ndt_list_count(yfms->data.fpln.legs))
+                    {
+                        // TODO: link with preceding element
+                    }
+                    switch (leg->type)
+                    {
+                        default:
+                            ndt_list_add(yfms->data.fpln.legs, leg);
+                            element_leg_count[2]++;
+                            break;
+                    }
+                }
+            }
+        }
+    }
+    if (yfms->ndt.flp.iac->arr.apch.rsgt)
+    {
+        if (yfms->ndt.flp.iac->arr.apch.transition.rsgt)
+        {
+            if ((l = yfms->ndt.flp.iac->arr.apch.transition.rsgt->legs))
+            {
+                for (int i = 0, j = ndt_list_count(l); i < j; i++)
+                {
+                    if ((leg = ndt_list_item(l, i)))
+                    {
+                        if (i == 0 && ndt_list_count(yfms->data.fpln.legs))
+                        {
+                            // TODO: link with preceding element
+                        }
+                        switch (leg->type)
+                        {
+                            default:
+                                ndt_list_add(yfms->data.fpln.legs, leg);
+                                element_leg_count[3]++;
+                                break;
+                        }
+                    }
+                }
+            }
+        }
+        if ((l = yfms->ndt.flp.iac->arr.apch.rsgt->legs))
+        {
+            for (int i = 0, j = ndt_list_count(l); i < j; i++)
+            {
+                if ((leg = ndt_list_item(l, i)))
+                {
+                    if (i == 0 && !element_leg_count[3] && ndt_list_count(yfms->data.fpln.legs))
+                    {
+                        // TODO: link with preceding element
+                    }
+                    switch (leg->type)
+                    {
+                        default:
+                            ndt_list_add(yfms->data.fpln.legs, leg);
+                            element_leg_count[3]++;
+                            break;
+                    }
+                }
+            }
+        }
+    }
+    /* last leg (arrival runway or airport) */
+    yfms->data.fpln.d_leg = (element_leg_count[3] ? yfms->ndt.flp.iac->arr.last.rleg :
+                             element_leg_count[2] ? yfms->ndt.flp.arr->arr.last.rleg :
+                             element_leg_count[1] ? yfms->ndt.flp.rte->arr.last.rleg :
+                             yfms->ndt.flp.dep->arr.last.rleg);
+    yfms->data.fpln.dindex = ndt_list_count(yfms->data.fpln.legs);
+    ndt_list_add(yfms->data.fpln.legs, yfms->data.fpln.d_leg);
+    if (tracking_destination)
+    {
+        yfms->data.fpln.lg_idx = yfms->data.fpln.dindex;
+    }
+    /* TODO: missed approach legs */
+    /* TODO: case 2: leg insertion */
+    /* TODO: case 3: leg removal */
+    yfs_fpln_pageupdt(yfms); return;
     // note: if clearing a leg, there's no need to sync our leg list at all
     //       removing the relevant leg from our list is all that's required
     //       if it's the currently tracked leg - don't forget direct next leg
@@ -182,7 +353,6 @@ static void yfs_fpln_fplnupdt(yfms_context *yfms)//fixme
     // note 2: if inserting leg(s) before the currently tracked leg, we need to
     //         sync but also ensure we're still tracking the same leg as before
     //         else we still need to sync but it should be more straightforward
-    yfs_fpln_pageupdt(yfms); return;//fixme
 }
 
 static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refcon)

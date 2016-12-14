@@ -26,6 +26,7 @@
 #include "lib/flightplan.h"
 #include "lib/navdata.h"
 
+#include "YFSfpln.h"
 #include "YFSinit.h"
 #include "YFSmain.h"
 #include "YFSspad.h"
@@ -185,10 +186,6 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                 {
                     ndt_flightplan_close(&yfms->ndt.flp.rte);
                 }
-                if (ndt_list_count(yfms->data.fpln.legs))
-                {
-                    ndt_list_empty(yfms->data.fpln.legs);
-                }
                 if (yfms->data.init.from && yfms->data.init.to)
                 {
                     // we have both airports, initialize flight plans
@@ -244,13 +241,10 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                     {
                         yfms->data.init.trans_l = ndt_distance_init (10000, NDT_ALTUNIT_FT);
                     }
-                    ndt_list_add(yfms->data.fpln.legs, yfms->ndt.flp.rte->arr.last.rleg);
-                    yfms->data.fpln.d_leg            = yfms->ndt.flp.rte->arr.last.rleg;
-                    yfms->data.fpln.l_rsg            = NULL; //arr.last.rsgt not in rte
-                    yfms->data.fpln.dindex           = 0;
-                    yfms->data.fpln.lg_idx           = 0;
-                    yfms->data.fpln.cuswpt           = 1;
-                    yfms->data.init.ialized          = 1;
+                    yfms->data.init.ialized = 1;
+                    yfms->data.fpln.cuswpt  = 1;
+                    yfms->data.fpln.lg_idx  = 0;
+                    yfs_fpln_fplnupdt(yfms);
                 }
                 yfs_spad_clear(yfms); yfs_init_pageupdt(yfms); return;
             }
