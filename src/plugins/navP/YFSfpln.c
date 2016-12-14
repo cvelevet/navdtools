@@ -68,6 +68,8 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
         yfs_main_rline(yfms, i, -1);
     }
 
+    /* TODO: sync yfms->data.fpln.lg_idx w/X-Plane Navigation API */
+
     /* mostly static data */
     if (fpl_getindex_for_line(yfms, 0) == yfms->data.fpln.lg_idx - 1)
     {
@@ -345,7 +347,7 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)//fixme
     /* TODO: missed approach legs */
     /* TODO: case 2: leg insertion */
     /* TODO: case 3: leg removal */
-    yfs_fpln_pageupdt(yfms); return;
+    yfs_fpln_pageupdt(yfms); return; /* TODO: resync w/X-Plane Navigation API */
     // note: if clearing a leg, there's no need to sync our leg list at all
     //       removing the relevant leg from our list is all that's required
     //       if it's the currently tracked leg - don't forget direct next leg
