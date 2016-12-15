@@ -219,7 +219,7 @@ typedef struct ndt_route_segment
 {
     ndt_info      info;        // identification information
     ndt_waypoint *src;         // segment's entry point (NULL for discontinuities)
-    ndt_waypoint *dst;         // segment's exit  point (always set)
+    ndt_waypoint *dst;         // segment's exit  point (may be NULL)
 
     enum
     {

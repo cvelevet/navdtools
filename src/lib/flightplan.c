@@ -799,7 +799,7 @@ static ndt_route_leg* route_leg_direct(ndt_waypoint *src, ndt_waypoint *dst)
     return leg;
 }
 
-int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_leg, int insert_after)//fixme
+int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_leg, int insert_after)
 {
     /*
      * Note: next_ fields currently unused, but may be usedful for inserting
@@ -807,10 +807,10 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
      */
     int insert_at_indx = 0, err = 0;
     ndt_waypoint      *prev_dst = NULL, *next_src = NULL;
-    ndt_route_leg     *curr_leg = _leg; ndt_route_segment *rsg[6];
+    ndt_route_leg     *curr_leg = _leg; ndt_route_segment *prc[6];
     ndt_route_segment *curr_rsg = curr_leg ? curr_leg->rsg : NULL;
-    ndt_route_segment *prev_rsg = NULL, *next_rsg = NULL, *new_rsg = NULL;
-    ndt_route_leg     *prev_leg = NULL, *next_leg = NULL, *new_leg = NULL, *tmp;
+    ndt_route_segment *prev_rsg = NULL, *next_rsg = NULL, *new_rsg = NULL, *rsg;
+    ndt_route_leg     *prev_leg = NULL, *next_leg = NULL, *new_leg = NULL, *leg;
 
     /*
      * Check and save whether any given procedure segment is present:
@@ -822,12 +822,12 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
      * [4] STAR     -> approach
      * [5] approach -> runway
      */
-    rsg[0] = flp->dep.sid. rsgt;
-    rsg[1] = flp->dep.sid. rsgt ? flp->dep.sid.    enroute.rsgt : NULL;
-    rsg[2] = flp->arr.star.rsgt ? flp->arr.star.   enroute.rsgt : NULL;
-    rsg[3] = flp->arr.star.rsgt;
-    rsg[4] = flp->arr.apch.rsgt ? flp->arr.apch.transition.rsgt : NULL;
-    rsg[5] = flp->arr.apch.rsgt;
+    prc[0] = flp->dep.sid. rsgt;
+    prc[1] = flp->dep.sid. rsgt ? flp->dep.sid.    enroute.rsgt : NULL;
+    prc[2] = flp->arr.star.rsgt ? flp->arr.star.   enroute.rsgt : NULL;
+    prc[3] = flp->arr.star.rsgt;
+    prc[4] = flp->arr.apch.rsgt ? flp->arr.apch.transition.rsgt : NULL;
+    prc[5] = flp->arr.apch.rsgt;
 
     /*
      * No leg provided: insert_after has no meaning; append direct to main route
@@ -866,7 +866,7 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
         // if we have a segment coming after main route, append new leg to it
         for (int i = 5; i >= 2; i--)
         {
-            if ((prev_rsg = rsg[i]))
+            if ((prev_rsg = prc[i]))
             {
                 if ((prev_leg = ndt_list_item(prev_rsg->legs, -1)))
                 {
@@ -912,11 +912,11 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
     }
     if (curr_rsg->type == NDT_RSTYPE_PRC)
     {
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 6; i++)
         {
-            if (rsg[i])
+            if (prc[i])
             {
-                if (curr_rsg == rsg[i])
+                if (curr_rsg == prc[i])
                 {
                     if (insert_after)
                     {
@@ -945,9 +945,9 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
                         }
                         if (next_leg == NULL) // next segment can be other procedure
                         {
-                            for (int k = i + 1; k < 5; k++)
+                            for (int k = i + 1; k < 6; k++)
                             {
-                                if ((next_rsg = rsg[k]))
+                                if ((next_rsg = prc[k]))
                                 {
                                     if ((next_leg = ndt_list_item(next_rsg->legs, 0)))
                                     {
@@ -971,7 +971,7 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
                 }
                 if (insert_after == 0)
                 {
-                    if ((prev_rsg = rsg[i])) // update previous segment on each turn
+                    if ((prev_rsg = prc[i])) // update previous segment on each turn
                     {
                         if ((prev_leg = ndt_list_item(prev_rsg->legs, -1)))
                         {
@@ -983,9 +983,9 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
         }
         for (int i = 0, j = ndt_list_count(curr_rsg->legs); i < j; i++)
         {
-            if ((tmp = ndt_list_item(curr_rsg->legs, i)))
+            if ((leg = ndt_list_item(curr_rsg->legs, i)))
             {
-                if (curr_leg == tmp)
+                if (curr_leg == leg)
                 {
                     if (insert_after)
                     {
@@ -1001,7 +1001,7 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
                 }
                 if (insert_after == 0)
                 {
-                    if ((prev_leg = tmp)) // pr. leg is found in current segment
+                    if ((prev_leg = leg)) // pr. leg is found in current segment
                     {
                         (prev_dst = prev_leg->dst);
                     }
@@ -1026,8 +1026,76 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
         ndt_list_insert(curr_rsg->legs, new_leg, insert_at_indx);
         goto end;
     }
-
-    //fixme curr_leg in main route
+    for (int i = 0, j = ndt_list_count(flp->rte); i < j; i++)
+    {
+        if ((rsg = ndt_list_item(flp->rte, i)))
+        {
+            if (curr_rsg == rsg)
+            {
+                if (insert_after)
+                {
+                    if ((i + 1) < j) // next segment still in main route
+                    {
+                        if ((next_rsg = ndt_list_item(flp->rte, i + 1)))
+                        {
+                            if ((next_leg = ndt_list_item(next_rsg->legs, 0)))
+                            {
+                                (next_src = next_leg->src);
+                            }
+                        }
+                    }
+                }
+                insert_at_indx = i + !!insert_after; break;
+            }
+            if (insert_after == 0)
+            {
+                if ((prev_rsg = ndt_list_item(flp->rte, i))) // update previous segment on each turn
+                {
+                    if ((prev_leg = ndt_list_item(prev_rsg->legs, -1)))
+                    {
+                        (prev_dst = prev_leg->dst);
+                    }
+                }
+            }
+        }
+    }
+    if (curr_rsg->type == NDT_RSTYPE_AWY)
+    {
+        err = EINVAL; goto end;//fixme
+    }
+    if (prev_rsg == NULL)
+    {
+        for (int i = 1; i >= 0; i--) // previous segment is part of a SID
+        {
+            if ((prev_rsg = prc[i]))
+            {
+                if ((prev_leg = ndt_list_item(prev_rsg->legs, -1)))
+                {
+                    (prev_dst = prev_leg->dst); break;
+                }
+            }
+        }
+    }
+    if (next_rsg == NULL)
+    {
+        for (int i = 2; i < 6; i++) // next segment is part of a STAR/approach
+        {
+            if ((next_rsg = prc[i]))
+            {
+                if ((next_leg = ndt_list_item(next_rsg->legs, 0)))
+                {
+                    (next_src = next_leg->src); break;
+                }
+            }
+        }
+    }
+    if ((new_rsg = ndt_route_segment_direct(prev_dst, wpt)) == NULL)
+    {
+        err = ENOMEM;
+        goto end;
+    }
+    ndt_list_insert(flp->rte, new_rsg, insert_at_indx);
+    goto end;
 
 end:
     if (err)
