@@ -254,6 +254,25 @@ typedef struct
             ndt_flightplan    *d_fpl; // last non-empty flight plan element
             ndt_route_leg     *d_leg; // leg to the arrival airport or runway
             ndt_list           *legs; // list of all flight plan legs, if any
+            struct
+            {
+                ndt_route_leg *source; // may be invalid + non-NULL (closed leg)
+                void          *opaque;
+                int             index;
+                enum
+                {
+                    YFS_FPLN_MOD_NONE = 0,
+                    YFS_FPLN_MOD_INIT, // flight plan (re-)initialized
+                    YFS_FPLN_MOD_REMV, // remove a single old leg
+                    YFS_FPLN_MOD_NSRT, // insert a single new leg
+                    YFS_FPLN_MOD_SIDP, // changed SID, or transition
+                    YFS_FPLN_MOD_STAR, // changed STAR or transition
+                    YFS_FPLN_MOD_APPR, // changed final appr./trans.
+                    YFS_FPLN_MOD_OTHR, // other, must check anything
+                }
+                operation;
+            }
+            mod;
         } fpln;
         struct
         {

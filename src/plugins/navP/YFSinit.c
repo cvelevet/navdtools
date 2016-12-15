@@ -241,10 +241,10 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                     {
                         yfms->data.init.trans_l = ndt_distance_init (10000, NDT_ALTUNIT_FT);
                     }
-                    yfms->data.init.ialized = 1;
-                    yfms->data.fpln.cuswpt  = 1;
-                    yfms->data.fpln.lg_idx  = 0;
-                    yfs_fpln_fplnupdt(yfms);
+                    yfms->data.init.ialized       = 1;
+                    yfms->data.fpln.cuswpt        = 1;
+                    yfms->data.fpln.lg_idx        = 0;
+                    yfms->data.fpln.mod.operation = YFS_FPLN_MOD_INIT; yfs_fpln_fplnupdt(yfms);
                 }
                 yfs_spad_clear(yfms); yfs_init_pageupdt(yfms); return;
             }
