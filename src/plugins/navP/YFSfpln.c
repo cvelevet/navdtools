@@ -187,6 +187,8 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)//fixme
     {
         ndt_list_empty(yfms->data.fpln.legs);
     }
+    //fixme flp->legs contains all legs, not just enroute ones: simplify procedure cases below
+    //fixme filter out leg 0 (departure to first wpt) when we have legs already, even for enroute and arrival plans (test this test this test this)
     if (yfms->ndt.flp.dep->dep.sid.rsgt)
     {
         if ((l = yfms->ndt.flp.dep->dep.sid.rsgt->legs))
@@ -338,6 +340,7 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)//fixme
         }
     }
     /* last leg (arrival runway or airport) */
+    //fixme we need to store the corresponding flight plan pointer
     yfms->data.fpln.d_leg = (element_leg_count[3] ? yfms->ndt.flp.iac->arr.last.rleg :
                              element_leg_count[2] ? yfms->ndt.flp.arr->arr.last.rleg :
                              element_leg_count[1] ? yfms->ndt.flp.rte->arr.last.rleg :
@@ -381,7 +384,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (key[1] == 5 || strnlen(buf, 1) == 0) // open lateral revision page
         {
-            // TODO
+            return; // TODO
         }
         if (strcmp(buf, "CLR") == 0)
         {
@@ -415,8 +418,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
         }
         if (leg->rsg == yfms->ndt.flp.arr->arr.star.enroute.rsgt ||
-            leg->rsg == yfms->ndt.flp.arr->arr.star.rsgt         ||
-            leg->rsg == yfms->ndt.flp.arr->arr.last.rsgt)
+            leg->rsg == yfms->ndt.flp.arr->arr.star.rsgt)
         {
             if (ndt_flightplan_insert_direct(yfms->ndt.flp.arr, wpt, leg, 0))
             {
@@ -425,14 +427,17 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
         }
         if (leg->rsg == yfms->ndt.flp.iac->arr.apch.transition.rsgt ||
-            leg->rsg == yfms->ndt.flp.iac->arr.apch.rsgt            ||
-            leg->rsg == yfms->ndt.flp.iac->arr.last.rsgt)
+            leg->rsg == yfms->ndt.flp.iac->arr.apch.rsgt)
         {
             if (ndt_flightplan_insert_direct(yfms->ndt.flp.iac, wpt, leg, 0))
             {
                 yfs_spad_reset(yfms, "UNKNOWN ERROR 2 C", COLR_IDX_ORANGE); return;
             }
             yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
+        }
+        if (index == yfms->data.fpln.dindex)
+        {
+            //fixme
         }
         if (ndt_flightplan_insert_direct(yfms->ndt.flp.rte, wpt, leg, 0))
         {
