@@ -182,49 +182,29 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)//fixme
 {
     int tracking_destination = yfms->data.fpln.lg_idx == yfms->data.fpln.dindex;
     int element_leg_count[4] = { 0, 0, 0, 0, }; ndt_list *l; ndt_route_leg *leg;
-    /* TODO: case 1: leg removal */
-    /* TODO: case 2: leg insertion */
-    /* case 3: full resync (first call, procedures changed, airway insertion) */
+    /* TODO: Case 1: leg removal */
+    /* TODO: Case 2: leg insertion */
+    /* Case 3: full resync (first call, procedures changed, airway insertion) */
     if (ndt_list_count(yfms->data.fpln.legs))
     {
         ndt_list_empty(yfms->data.fpln.legs);
     }
-    //fixme flp->legs contains all legs, not just enroute ones: simplify procedure cases below
-    //fixme filter out leg 0 (departure to first wpt) when we have legs already, even for enroute and arrival plans (test this test this test this)
-    if (yfms->ndt.flp.dep->dep.sid.rsgt)
     {
-        if ((l = yfms->ndt.flp.dep->dep.sid.rsgt->legs))
+        yfms->data.fpln.d_fpl = yfms->ndt.flp.rte; // default plan if all empty
+    }
+    //fixme filter out leg 0 (departure to first wpt) when we have legs already, even for enroute and arrival plans (test this test this test this)
+    if ((l = yfms->ndt.flp.dep->legs))
+    {
+        for (int i = 0, j = ndt_list_count(l); i < j; i++)
         {
-            for (int i = 0, j = ndt_list_count(l); i < j; i++)
+            if ((leg = ndt_list_item(l, i)))
             {
-                if ((leg = ndt_list_item(l, i)))
+                switch (leg->type)
                 {
-                    switch (leg->type)
-                    {
-                        default:
-                            ndt_list_add(yfms->data.fpln.legs, leg);
-                            element_leg_count[0]++;
-                            break;
-                    }
-                }
-            }
-        }
-        if (yfms->ndt.flp.dep->dep.sid.enroute.rsgt)
-        {
-            if ((l = yfms->ndt.flp.dep->dep.sid.enroute.rsgt->legs))
-            {
-                for (int i = 0, j = ndt_list_count(l); i < j; i++)
-                {
-                    if ((leg = ndt_list_item(l, i)))
-                    {
-                        switch (leg->type)
-                        {
-                            default:
-                                ndt_list_add(yfms->data.fpln.legs, leg);
-                                element_leg_count[0]++;
-                                break;
-                        }
-                    }
+                    default:
+                        yfms->data.fpln.d_fpl = yfms->ndt.flp.dep;
+                        ndt_list_add(yfms->data.fpln.legs, leg);
+                        break;
                 }
             }
         }
@@ -242,113 +222,58 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)//fixme
                 switch (leg->type)
                 {
                     default:
+                        yfms->data.fpln.d_fpl = yfms->ndt.flp.rte;
                         ndt_list_add(yfms->data.fpln.legs, leg);
-                        element_leg_count[1]++;
                         break;
                 }
             }
         }
     }
-    if (yfms->ndt.flp.arr->arr.star.rsgt)
+    if ((l = yfms->ndt.flp.arr->legs))
     {
-        if (yfms->ndt.flp.arr->arr.star.enroute.rsgt)
+        for (int i = 0, j = ndt_list_count(l); i < j; i++)
         {
-            if ((l = yfms->ndt.flp.arr->arr.star.enroute.rsgt->legs))
+            if ((leg = ndt_list_item(l, i)))
             {
-                for (int i = 0, j = ndt_list_count(l); i < j; i++)
+                if (i == 0 && ndt_list_count(yfms->data.fpln.legs))
                 {
-                    if ((leg = ndt_list_item(l, i)))
-                    {
-                        if (i == 0 && ndt_list_count(yfms->data.fpln.legs))
-                        {
-                            // TODO: link with preceding element
-                        }
-                        switch (leg->type)
-                        {
-                            default:
-                                ndt_list_add(yfms->data.fpln.legs, leg);
-                                element_leg_count[2]++;
-                                break;
-                        }
-                    }
+                    // TODO: link with preceding element
                 }
-            }
-        }
-        if ((l = yfms->ndt.flp.arr->arr.star.rsgt->legs))
-        {
-            for (int i = 0, j = ndt_list_count(l); i < j; i++)
-            {
-                if ((leg = ndt_list_item(l, i)))
+                switch (leg->type)
                 {
-                    if (i == 0 && !element_leg_count[2] && ndt_list_count(yfms->data.fpln.legs))
-                    {
-                        // TODO: link with preceding element
-                    }
-                    switch (leg->type)
-                    {
-                        default:
-                            ndt_list_add(yfms->data.fpln.legs, leg);
-                            element_leg_count[2]++;
-                            break;
-                    }
+                    default:
+                        yfms->data.fpln.d_fpl = yfms->ndt.flp.arr;
+                        ndt_list_add(yfms->data.fpln.legs, leg);
+                        break;
                 }
             }
         }
     }
-    if (yfms->ndt.flp.iac->arr.apch.rsgt)
+    if ((l = yfms->ndt.flp.iac->legs))
     {
-        if (yfms->ndt.flp.iac->arr.apch.transition.rsgt)
+        for (int i = 0, j = ndt_list_count(l); i < j; i++)
         {
-            if ((l = yfms->ndt.flp.iac->arr.apch.transition.rsgt->legs))
+            if ((leg = ndt_list_item(l, i)))
             {
-                for (int i = 0, j = ndt_list_count(l); i < j; i++)
+                if (i == 0 && ndt_list_count(yfms->data.fpln.legs))
                 {
-                    if ((leg = ndt_list_item(l, i)))
-                    {
-                        if (i == 0 && ndt_list_count(yfms->data.fpln.legs))
-                        {
-                            // TODO: link with preceding element
-                        }
-                        switch (leg->type)
-                        {
-                            default:
-                                ndt_list_add(yfms->data.fpln.legs, leg);
-                                element_leg_count[3]++;
-                                break;
-                        }
-                    }
+                    // TODO: link with preceding element
                 }
-            }
-        }
-        if ((l = yfms->ndt.flp.iac->arr.apch.rsgt->legs))
-        {
-            for (int i = 0, j = ndt_list_count(l); i < j; i++)
-            {
-                if ((leg = ndt_list_item(l, i)))
+                switch (leg->type)
                 {
-                    if (i == 0 && !element_leg_count[3] && ndt_list_count(yfms->data.fpln.legs))
-                    {
-                        // TODO: link with preceding element
-                    }
-                    switch (leg->type)
-                    {
-                        default:
-                            ndt_list_add(yfms->data.fpln.legs, leg);
-                            element_leg_count[3]++;
-                            break;
-                    }
+                    default:
+                        yfms->data.fpln.d_fpl = yfms->ndt.flp.iac;
+                        ndt_list_add(yfms->data.fpln.legs, leg);
+                        break;
                 }
             }
         }
     }
-    /* last leg (arrival runway or airport) */
-    //fixme we need to store the corresponding flight plan pointer
-    yfms->data.fpln.d_leg = (element_leg_count[3] ? yfms->ndt.flp.iac->arr.last.rleg :
-                             element_leg_count[2] ? yfms->ndt.flp.arr->arr.last.rleg :
-                             element_leg_count[1] ? yfms->ndt.flp.rte->arr.last.rleg :
-                             yfms->ndt.flp.dep->arr.last.rleg);
-    yfms->data.fpln.dindex = ndt_list_count(yfms->data.fpln.legs);
-    ndt_list_add(yfms->data.fpln.legs, yfms->data.fpln.d_leg);
+    /* Last leg (arrival runway or airport) */
+    ndt_list_add(yfms->data.fpln.legs, (yfms->data.fpln.d_leg = yfms->data.fpln.d_fpl->arr.last.rleg));
+    yfms->data.fpln.dindex = ndt_list_count(yfms->data.fpln.legs) - 1;
+    /* Future: missed approach legs */
+    /* Update index to tracked leg as required */
     if (tracking_destination)
     {
         yfms->data.fpln.lg_idx = yfms->data.fpln.dindex;
@@ -358,7 +283,8 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)//fixme
         //fixme the leg we were tracking may be NULL, or worse, invalid pointer
         //      what should we do to make sure we can track the correct leg????
     }
-    /* TODO: missed approach legs */
+    yfms->data.fpln.lg_idx = 0;//debug
+//  char tmps[1024]; sprintf(tmps, "IDX %d, OFF %d", yfms->data.fpln.lg_idx, yfms->data.fpln.ln_off); yfs_spad_reset(yfms, tmps, COLR_IDX_YELLOW);//debug
     yfs_fpln_pageupdt(yfms); return; /* TODO: resync w/X-Plane Navigation API */
     /* TODO: a forced re-sync may fuck things up when avionics are the XP GNS */
     // note: if clearing a leg, there's no need to sync our leg list at all
@@ -410,12 +336,20 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return;
         }
         // TODO: latitude/longitude (after fixes, because 1234N etc.)
+        if (index == yfms->data.fpln.dindex)
+        {
+            if (ndt_flightplan_insert_direct(yfms->data.fpln.d_fpl, wpt, leg, 0))
+            {
+                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 A", COLR_IDX_ORANGE); return;
+            }
+            yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
+        }
         if (leg->rsg == yfms->ndt.flp.dep->dep.sid.enroute.rsgt ||
             leg->rsg == yfms->ndt.flp.dep->dep.sid.rsgt)
         {
             if (ndt_flightplan_insert_direct(yfms->ndt.flp.dep, wpt, leg, 0))
             {
-               yfs_spad_reset(yfms, "UNKNOWN ERROR 2 A", COLR_IDX_ORANGE); return;
+                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 B", COLR_IDX_ORANGE); return;
             }
             yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
         }
@@ -424,7 +358,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         {
             if (ndt_flightplan_insert_direct(yfms->ndt.flp.arr, wpt, leg, 0))
             {
-                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 B", COLR_IDX_ORANGE); return;
+                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 C", COLR_IDX_ORANGE); return;
             }
             yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
         }
@@ -433,17 +367,13 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         {
             if (ndt_flightplan_insert_direct(yfms->ndt.flp.iac, wpt, leg, 0))
             {
-                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 C", COLR_IDX_ORANGE); return;
+                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 D", COLR_IDX_ORANGE); return;
             }
             yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
         }
-        if (index == yfms->data.fpln.dindex)
-        {
-            //fixme
-        }
         if (ndt_flightplan_insert_direct(yfms->ndt.flp.rte, wpt, leg, 0))
         {
-            yfs_spad_reset(yfms, "UNKNOWN ERROR 2 D", COLR_IDX_ORANGE); return;
+            yfs_spad_reset(yfms, "UNKNOWN ERROR 2 E", COLR_IDX_ORANGE); return;
         }
         yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
     }
