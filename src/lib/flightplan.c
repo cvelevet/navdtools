@@ -787,6 +787,140 @@ end:
     return err;
 }
 
+/*
+ * This would be a shitload easier if we could have one route segment per airway
+ * leg, and the Airbus interface actually allows it. But the Boeing RTE page has
+ * consolidated airways (one route segment for all airway legs), kudos :-(
+ */
+static int split_airway(ndt_route_segment **_head, ndt_route_segment **_tail, ndt_route_leg *split, int split_after)
+{
+    if (_head == NULL || _tail == NULL || split == NULL)
+    {
+        return ENOMEM;
+    }
+    ndt_route_segment *head = *_head, *tail = *_tail; ndt_route_leg *leg;
+    int split_at_index = 0;
+    if (tail != NULL)
+    {
+        return EADDRINUSE;
+    }
+    if (head == NULL || head->type != NDT_RSTYPE_AWY)
+    {
+        return EINVAL;
+    }
+    /*
+     * We can't split single-leg airways, convert them to a direct instead.
+     */
+    if (ndt_list_count(head->legs) == 1)
+    {
+        head->type    = NDT_RSTYPE_DCT;
+        head->awy.awy = NULL;
+        head->awy.src = NULL;
+        head->awy.dst = NULL;
+        if (split_after) // all in head
+        {
+            head->src = head->src;
+            *_head    = head;
+            *_tail    = NULL;
+            return 0;
+        }
+        else // all in tail
+        {
+            head->src = NULL;
+            *_head    = NULL;
+            *_tail    = head;
+            return 0;
+        }
+    }
+    for (int i = 0, j = ndt_list_count(head->legs); i < j; i++)
+    {
+        if ((leg = ndt_list_item(head->legs, i)))
+        {
+            if (leg == split)
+            {
+                split_at_index = i + !!split_after; break;
+            }
+        }
+    }
+    if (split_at_index <= 0) // all in tail
+    {
+        ndt_list_rem(head->legs, split); // remove split
+        if ((leg = ndt_list_item(head->legs, 0)) == NULL)
+        {
+            return ENOMEM;
+        }
+        head->awy.src = leg->awyleg;
+        head->    src = leg->src;
+        *_head = NULL;
+        *_tail = head;
+        return 0;
+    }
+    if (split_at_index >= ndt_list_count(head->legs) - 1) // all in head
+    {
+        if (split_after == 0) // splitting after last item != actually splitting
+        {
+            ndt_list_rem(head->legs, split); // remove split
+        }
+        if ((leg = ndt_list_item(head->legs, -1)) == NULL)
+        {
+            return ENOMEM;
+        }
+        head->awy.dst = leg->awyleg;
+        head->    dst = leg->dst;
+        *_head = head;
+        *_tail = NULL;
+        return 0;
+    }
+    if ((tail = ndt_route_segment_init()) == NULL)
+    {
+        return ENOMEM;
+    }
+    for (int i = split_at_index - !!split_after, j = ndt_list_count(head->legs); i < j; i++)
+    {
+        if ((leg = ndt_list_item(head->legs, i)))
+        {
+            if (leg == split) // split is dropped, caller handles dincontinuity
+            {
+                ndt_list_rem(head->legs, leg);
+                ndt_route_leg_close    (&leg);
+                continue;
+            }
+            ndt_list_rem(head->legs, leg);
+            ndt_list_add(tail->legs, leg);
+        }
+    }
+    if ((leg = ndt_list_item(head->legs, -1)) == NULL)
+    {
+        return ENOMEM;
+    }
+    else
+    {
+        head->awy.dst = leg->awyleg;
+        head->    dst = leg->dst;
+    }
+    if ((leg = ndt_list_item(tail->legs, -1)) == NULL)
+    {
+        return ENOMEM;
+    }
+    else
+    {
+        tail->awy.dst = leg->awyleg;
+        tail->    dst = leg->dst;
+    }
+    if ((leg = ndt_list_item(tail->legs, 0)) == NULL)
+    {
+        return ENOMEM;
+    }
+    else
+    {
+        tail->awy.src = leg->awyleg;
+        tail->    src = leg->src;
+    }
+    tail->awy.awy = head->awy.awy;
+    tail->type    = head->type;
+    return 0;
+}
+
 static ndt_route_leg* route_leg_direct(ndt_waypoint *src, ndt_waypoint *dst)
 {
     ndt_route_leg *leg = ndt_route_leg_init();
@@ -1026,6 +1160,146 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
         ndt_list_insert(curr_rsg->legs, new_leg, insert_at_indx);
         goto end;
     }
+    if (curr_rsg->type == NDT_RSTYPE_AWY)
+    {
+        if ((prev_rsg = curr_rsg) == NULL ||
+            (err = split_airway(&prev_rsg, &next_rsg, curr_leg, insert_after)))
+        {
+            goto end;
+        }
+        if (prev_rsg == NULL) // next_rsg == curr_rsg
+        {
+            if ((next_leg = ndt_list_item(next_rsg->legs, 0)))
+            {
+                (next_src = next_leg->src);
+            }
+            for (int i = 0, j = ndt_list_count(flp->rte); i < j; i++)
+            {
+                if ((rsg = ndt_list_item(flp->rte, i)))
+                {
+                    if (curr_rsg == rsg)
+                    {
+                        if (prev_leg == NULL)
+                        {
+                            for (int i = 1; i >= 0; i--) // previous segment is part of a SID
+                            {
+                                if ((prev_rsg = prc[i]))
+                                {
+                                    if ((prev_leg = ndt_list_item(prev_rsg->legs, -1)))
+                                    {
+                                        (prev_dst = prev_leg->dst); break;
+                                    }
+                                }
+                            }
+                        }
+                        if ((new_rsg = ndt_route_segment_direct(prev_dst, wpt)) == NULL)
+                        {
+                            err = ENOMEM;
+                            goto end;
+                        }
+                        else
+                        {
+                            ndt_list_insert(flp->rte, new_rsg, i);
+                        }
+                        if (next_src)
+                        {
+                            // future: replace direct below with discontinuity instead
+                            if ((new_rsg = ndt_route_segment_direct(wpt, next_src)) == NULL)
+                            {
+                                err = ENOMEM;
+                                goto end;
+                            }
+                            ndt_list_insert(flp->rte, new_rsg, i + 1);
+                        }
+                        goto end;
+                    }
+                    if ((prev_rsg = ndt_list_item(flp->rte, i))) // update previous segment on each turn
+                    {
+                        if ((prev_leg = ndt_list_item(prev_rsg->legs, -1)))
+                        {
+                            (prev_dst = prev_leg->dst);
+                        }
+                    }
+                }
+            }
+        }
+        if (next_rsg == NULL) // curr_rsg == prev_rsg
+        {
+            if ((prev_leg = ndt_list_item(prev_rsg->legs, -1)))
+            {
+                (prev_dst = prev_leg->dst);
+            }
+            for (int i = 0, j = ndt_list_count(flp->rte); i < j; i++)
+            {
+                if ((rsg = ndt_list_item(flp->rte, i)))
+                {
+                    if (curr_rsg == rsg)
+                    {
+                        if ((new_rsg = ndt_route_segment_direct(prev_dst, wpt)) == NULL)
+                        {
+                            err = ENOMEM;
+                            goto end;
+                        }
+                        else
+                        {
+                            ndt_list_insert(flp->rte, new_rsg, i + 1);
+                        }
+                        if (next_src)
+                        {
+                            // future: replace direct below with discontinuity instead
+                            if ((new_rsg = ndt_route_segment_direct(wpt, next_src)) == NULL)
+                            {
+                                err = ENOMEM;
+                                goto end;
+                            }
+                            ndt_list_insert(flp->rte, new_rsg, i + 2);
+                        }
+                        goto end;
+                    }
+                }
+            }
+        }
+        // we're actually splitting the airway
+        if ((prev_leg = ndt_list_item(prev_rsg->legs, -1)))
+        {
+            (prev_dst = prev_leg->dst);
+        }
+        if ((next_leg = ndt_list_item(next_rsg->legs, 0)))
+        {
+            (next_src = next_leg->src);
+        }
+        for (int i = 0, j = ndt_list_count(flp->rte); i < j; i++)
+        {
+            if ((rsg = ndt_list_item(flp->rte, i)))
+            {
+                if (prev_rsg == rsg)
+                {
+                    if ((new_rsg = ndt_route_segment_direct(prev_dst, wpt)) == NULL)
+                    {
+                        err = ENOMEM;
+                        goto end;
+                    }
+                    else
+                    {
+                        ndt_list_insert(flp->rte, new_rsg, i + 1);
+                    }
+                    if (next_src)
+                    {
+                        // future: replace direct below with discontinuity instead
+                        if ((new_rsg = ndt_route_segment_direct(wpt, next_src)) == NULL)
+                        {
+                            err = ENOMEM;
+                            goto end;
+                        }
+                        ndt_list_insert(flp->rte, new_rsg, i + 2);
+                    }
+                    ndt_list_insert(flp->rte, next_rsg, i + 3);
+                    goto end;
+                }
+            }
+        }
+        err = ENOSYS; goto end;
+    }
     for (int i = 0, j = ndt_list_count(flp->rte); i < j; i++)
     {
         if ((rsg = ndt_list_item(flp->rte, i)))
@@ -1058,10 +1332,6 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
                 }
             }
         }
-    }
-    if (curr_rsg->type == NDT_RSTYPE_AWY)
-    {
-        err = EINVAL; goto end;//fixme
     }
     if (prev_rsg == NULL)
     {
