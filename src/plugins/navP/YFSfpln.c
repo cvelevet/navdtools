@@ -71,6 +71,8 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
     /* TODO: sync yfms->data.fpln.lg_idx w/X-Plane Navigation API */
     /* TODO: check plan integrity if possible, resync if required */
     /* TODO: a forced sync may fuck things when avionics == X-GNS */
+    //fixme lg_idx may correspond to more than a single waypoint (xpfms dummies)
+    //fixme will require a table to sync this somewhere, or yet some more loops… 
 
     /* mostly static data */
     if (fpl_getindex_for_line(yfms, 0) == yfms->data.fpln.lg_idx - 1)
