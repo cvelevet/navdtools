@@ -189,6 +189,7 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)
     /* Flight plan changed: full resync with navdlib */
     int tracking_destination = yfms->data.fpln.lg_idx == yfms->data.fpln.dindex;
     int just_before_destn = yfms->data.fpln.mod.index == yfms->data.fpln.dindex;
+    int index_for_ln_zero = fpl_getindex_for_line(yfms, 0);
     if (ndt_list_count(yfms->data.fpln.legs))
     {
         ndt_list_empty(yfms->data.fpln.legs);
@@ -356,8 +357,23 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)
         goto end;
     }
 
-    /* We should be fully in sync with navdlib now */
-end:
+end:/* We should be fully in sync with navdlib now */
+    /* Adjust line offset after line count change */
+    switch (yfms->data.fpln.mod.operation)
+    {
+        case YFS_FPLN_MOD_NONE:
+            break;
+        case YFS_FPLN_MOD_REMV:
+        case YFS_FPLN_MOD_NSRT:
+            if ((index_for_ln_zero -= fpl_getindex_for_line(yfms, 0)))
+            {
+                yfms->data.fpln.ln_off += index_for_ln_zero;
+            }
+            break;
+        default: // major modifications, reset
+            yfms->data.fpln.ln_off = 0;
+            break;
+    }
     /* TODO: re-sync with the X-Plane Navigation API */
     /* TODO: a forced re-sync may fuck things up when avionics are the XP GNS */
     yfms->data.fpln.mod.index     = 0;
