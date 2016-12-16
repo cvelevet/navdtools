@@ -451,6 +451,10 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         {
             yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return;
         }
+        if (wpt == leg->src || wpt == leg->dst) // duplicates easy to check here
+        {
+            yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
+        }
         // TODO: latitude/longitude (after fixes, because 1234N etc.)
         if (index == yfms->data.fpln.dindex)
         {
