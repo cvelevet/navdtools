@@ -392,11 +392,53 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
                 // can't clear destination or last leg
                 yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
             }
+            if (leg->rsg == NULL)
+            {
+                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 A", COLR_IDX_ORANGE); return;
+            }
+            if (leg->rsg->type == NDT_RSTYPE_MAP)
+            {
+                yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return;
+            }
+            if (leg->rsg->type == NDT_RSTYPE_PRC)
+            {
+                ndt_flightplan *flp = NULL; // remove from correct sub-plan
+                if (leg->rsg == yfms->ndt.flp.dep->dep.sid.enroute.rsgt     ||
+                    leg->rsg == yfms->ndt.flp.dep->dep.sid.rsgt)
+                {
+                    flp = yfms->ndt.flp.dep;
+                }
+                if (leg->rsg == yfms->ndt.flp.arr->arr.star.enroute.rsgt    ||
+                    leg->rsg == yfms->ndt.flp.arr->arr.star.rsgt)
+                {
+                    flp = yfms->ndt.flp.arr;
+                }
+                if (leg->rsg == yfms->ndt.flp.iac->arr.apch.transition.rsgt ||
+                    leg->rsg == yfms->ndt.flp.iac->arr.apch.rsgt)
+                {
+                    flp = yfms->ndt.flp.iac;
+                }
+                if (flp == NULL)
+                {
+                    yfs_spad_reset(yfms, "UNKNOWN ERROR 2 B", COLR_IDX_ORANGE); return;
+                }
+                if (ndt_flightplan_remove_leg(flp, leg))
+                {
+                    yfs_spad_reset(yfms, "UNKNOWN ERROR 2 C", COLR_IDX_ORANGE); return;
+                }
+            }
+            else
+            {
+                if (ndt_flightplan_remove_leg(yfms->ndt.flp.rte, leg))
+                {
+                    yfs_spad_reset(yfms, "UNKNOWN ERROR 2 D", COLR_IDX_ORANGE); return;
+                }
+            }
             yfms->data.fpln.mod.source    = leg;
             yfms->data.fpln.mod.opaque    = NULL;
             yfms->data.fpln.mod.index     = index;
             yfms->data.fpln.mod.operation = YFS_FPLN_MOD_REMV;
-            yfs_spad_clear(yfms); /* yfs_fpln_fplnupdt(yfms); */ return; // TODO
+            yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
         }
         char *suffix = buf, *prefix = strsep(&suffix, "/-"); ndt_waypoint *wpt;
         if   (prefix == NULL || strnlen(prefix, 1) == 0)
@@ -414,7 +456,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         {
             if (ndt_flightplan_insert_direct(yfms->data.fpln.d_fpl, wpt, leg, 0))
             {
-                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 A", COLR_IDX_ORANGE); return;
+                yfs_spad_reset(yfms, "UNKNOWN ERROR 3 A", COLR_IDX_ORANGE); return;
             }
             yfms->data.fpln.mod.source    = leg;
             yfms->data.fpln.mod.index     = index;
@@ -427,7 +469,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         {
             if (ndt_flightplan_insert_direct(yfms->ndt.flp.dep, wpt, leg, 0))
             {
-                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 B", COLR_IDX_ORANGE); return;
+                yfs_spad_reset(yfms, "UNKNOWN ERROR 3 B", COLR_IDX_ORANGE); return;
             }
             yfms->data.fpln.mod.source    = leg;
             yfms->data.fpln.mod.index     = index;
@@ -440,7 +482,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         {
             if (ndt_flightplan_insert_direct(yfms->ndt.flp.arr, wpt, leg, 0))
             {
-                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 C", COLR_IDX_ORANGE); return;
+                yfs_spad_reset(yfms, "UNKNOWN ERROR 3 C", COLR_IDX_ORANGE); return;
             }
             yfms->data.fpln.mod.source    = leg;
             yfms->data.fpln.mod.index     = index;
@@ -453,7 +495,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         {
             if (ndt_flightplan_insert_direct(yfms->ndt.flp.iac, wpt, leg, 0))
             {
-                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 D", COLR_IDX_ORANGE); return;
+                yfs_spad_reset(yfms, "UNKNOWN ERROR 3 D", COLR_IDX_ORANGE); return;
             }
             yfms->data.fpln.mod.source    = leg;
             yfms->data.fpln.mod.index     = index;
@@ -463,7 +505,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (ndt_flightplan_insert_direct(yfms->ndt.flp.rte, wpt, leg, 0))
         {
-            yfs_spad_reset(yfms, "UNKNOWN ERROR 2 E", COLR_IDX_ORANGE); return;
+            yfs_spad_reset(yfms, "UNKNOWN ERROR 3 E", COLR_IDX_ORANGE); return;
         }
         yfms->data.fpln.mod.source    = leg;
         yfms->data.fpln.mod.index     = index;
