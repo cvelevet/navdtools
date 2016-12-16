@@ -995,7 +995,7 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
     {
         if (insert_after) // future: prepend to the missed approach's leglist
         {
-            err = EINVAL; goto end;
+            err = ENOSYS; goto end;
         }
         // if we have a segment coming after main route, append new leg to it
         for (int i = 5; i >= 2; i--)
@@ -1042,7 +1042,7 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
     }
     if (curr_rsg->type == NDT_RSTYPE_MAP) // future
     {
-        err = EINVAL; goto end;
+        err = ENOSYS; goto end;
     }
     if (curr_rsg->type == NDT_RSTYPE_PRC)
     {
@@ -1380,6 +1380,163 @@ end:
         return route_leg_update(flp);
     }
     return err;
+}
+
+int ndt_flightplan_remove_leg(ndt_flightplan *flp, void *_leg)
+{
+    int err = 0;
+    if (flp == NULL || _leg == NULL)
+    {
+        err = ENOMEM; goto end;
+    }
+    ndt_route_segment *rsg, *tmp; ndt_route_leg *leg = _leg, *item;
+    if ((rsg = leg->rsg) == NULL)
+    {
+        err = EINVAL; goto end;
+    }
+    if (rsg->type == NDT_RSTYPE_MAP) // future
+    {
+        err = ENOSYS; goto end;
+    }
+    if (rsg->type == NDT_RSTYPE_AWY)
+    {
+        if (ndt_list_count(rsg->legs) == 1) // single leg - remove whole segment
+        {
+            if ((item = ndt_list_item(rsg->legs, 0)) != leg)
+            {
+                err = EINVAL; goto end;
+            }
+            // future: convert to discontinuity, instead of emptying segment
+            // currnt: route_leg_update should be able to sanitize correctly
+            ndt_list_empty(rsg->legs);
+            ndt_route_leg_close(&leg);
+            goto empty;
+        }
+        ndt_route_segment *head = rsg, *tail = NULL;
+        if ((err = split_airway(&head, &tail, leg, 0)))
+        {
+            goto end;
+        }
+        if (head && tail) // we have at least one remaining on both sides of leg
+        {
+            // future: insert discontinuity
+            // currnt: must add a direct to
+            for (int i = 0, j = ndt_list_count(flp->rte); i < j; i++)
+            {
+                if ((tmp = ndt_list_item(flp->rte, i)))
+                {
+                    if (head == tmp)
+                    {
+                        if (tail->src)
+                        {
+                            if ((tmp = ndt_route_segment_direct(head->dst, tail->src)) == NULL)
+                            {
+                                err = ENOMEM; goto end;
+                            }
+                            ndt_list_insert(flp->rte, tmp, i + 1);
+                        }
+                        ndt_list_insert   (flp->rte, tail, i + 2);
+                    }
+                }
+                if (i == j - 1) // last iteration, head not found
+                {
+                    err = EINVAL; goto end;
+                }
+            }
+        }
+        goto end;
+    }
+    for (int i = 0, j ; i < j; i++)
+    {
+        if ((item = ndt_list_item(rsg->legs, i)))
+        {
+            if (leg == item)
+            {
+                // future: insert discontinuity
+                // currnt: route_leg_update should be able to sanitize correctly
+                ndt_list_rem(rsg->legs, leg);
+                ndt_route_leg_close   (&leg);
+                break;
+            }
+        }
+        if (i == j - 1) // last iteration, leg not found
+        {
+            err = EINVAL; goto end;
+        }
+    }
+
+empty:
+    if (ndt_list_count(rsg->legs) == 0) // segment had single leg, is now empty
+    {
+        if (rsg->type == NDT_RSTYPE_PRC)
+        {
+            if (rsg == flp->dep.sid.rsgt)
+            {
+                ndt_route_segment_close(&flp->dep.sid.rsgt);            goto end;
+            }
+            if (rsg == flp->dep.sid.enroute.rsgt)
+            {
+                ndt_route_segment_close(&flp->dep.sid.enroute.rsgt);    goto end;
+            }
+            if (rsg == flp->arr.star.enroute.rsgt)
+            {
+                ndt_route_segment_close(&flp->arr.star.enroute.rsgt);   goto end;
+            }
+            if (rsg == flp->arr.star.rsgt)
+            {
+                ndt_route_segment_close(&flp->arr.star.rsgt);           goto end;
+            }
+            if (rsg == flp->arr.apch.transition.rsgt)
+            {
+                ndt_route_segment_close(&flp->arr.apch.transition.rsgt);goto end;
+            }
+            if (rsg == flp->arr.apch.rsgt)
+            {
+                ndt_route_segment_close(&flp->arr.apch.rsgt);           goto end;
+            }
+            err = EINVAL; goto end;
+        }
+        for (int i = 0, j = ndt_list_count(flp->rte); i < j; i++)
+        {
+            if ((tmp = ndt_list_item(flp->rte, i)))
+            {
+                if (rsg == tmp)
+                {
+                    ndt_list_rem  (flp->rte, rsg);
+                    ndt_route_segment_close(&rsg);
+                    break;
+                }
+            }
+            if (i == j - 1) // last iteration, rsg not found
+            {
+                err = EINVAL; goto end;
+            }
+        }
+    }
+    if (ndt_list_count(rsg->legs) == 1) // segment has single leg remaining
+    {
+        if (rsg->type == NDT_RSTYPE_PRC)// future
+        {
+            err = ENOSYS; goto end;
+        }
+        if ((item = ndt_list_item(rsg->legs, 0)))
+        {
+            if (item->type == NDT_LEGTYPE_ZZ)
+            {
+                rsg->type = NDT_RSTYPE_DSC; // segment became discontinuity-only
+            }
+        }
+    }
+
+end:
+    if (err)
+    {
+        char error[64];
+        strerror_r(err, error, sizeof(error));
+        ndt_log("ndt_flightplan_remove_leg: failure (%s)\n", error);
+        return err;
+    }
+    return route_leg_update(flp);
 }
 
 #define NDTPROCINITLIST(l) { l = ndt_list_init(); if (!l) goto fail; }
