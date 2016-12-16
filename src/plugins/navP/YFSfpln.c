@@ -357,7 +357,7 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)
         goto end;
     }
 
-end:/* We should be fully in sync with navdlib now */
+end:/* We should be fully synced with navdlib now */
     /* Adjust line offset after line count change */
     switch (yfms->data.fpln.mod.operation)
     {
