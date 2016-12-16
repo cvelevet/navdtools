@@ -1446,7 +1446,7 @@ int ndt_flightplan_remove_leg(ndt_flightplan *flp, void *_leg)
         }
         goto end;
     }
-    for (int i = 0, j ; i < j; i++)
+    for (int i = 0, j = ndt_list_count(flp->rte); i < j; i++)
     {
         if ((item = ndt_list_item(rsg->legs, i)))
         {
@@ -1466,7 +1466,21 @@ int ndt_flightplan_remove_leg(ndt_flightplan *flp, void *_leg)
     }
 
 empty:
-    if (ndt_list_count(rsg->legs) == 0) // segment had single leg, is now empty
+    if (ndt_list_count(rsg->legs) == 1)  // segment has one single leg remaining
+    {
+        if (rsg->type == NDT_RSTYPE_PRC) // future
+        {
+            err = ENOSYS; goto end;
+        }
+        if ((item = ndt_list_item(rsg->legs, 0)))
+        {
+            if (item->type == NDT_LEGTYPE_ZZ)
+            {
+                rsg->type = NDT_RSTYPE_DSC; // segment became discontinuity-only
+            }
+        }
+    }
+    if (ndt_list_count(rsg->legs) == 0) // segment had single leg, but now empty
     {
         if (rsg->type == NDT_RSTYPE_PRC)
         {
@@ -1504,26 +1518,12 @@ empty:
                 {
                     ndt_list_rem  (flp->rte, rsg);
                     ndt_route_segment_close(&rsg);
-                    break;
+                    goto end;
                 }
             }
             if (i == j - 1) // last iteration, rsg not found
             {
                 err = EINVAL; goto end;
-            }
-        }
-    }
-    if (ndt_list_count(rsg->legs) == 1) // segment has single leg remaining
-    {
-        if (rsg->type == NDT_RSTYPE_PRC)// future
-        {
-            err = ENOSYS; goto end;
-        }
-        if ((item = ndt_list_item(rsg->legs, 0)))
-        {
-            if (item->type == NDT_LEGTYPE_ZZ)
-            {
-                rsg->type = NDT_RSTYPE_DSC; // segment became discontinuity-only
             }
         }
     }
