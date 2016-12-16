@@ -111,6 +111,15 @@ typedef struct ndt_waypoint
         } pbpd;
     };
 
+    union
+    {
+        struct
+        {
+            int navRef; // http://www.xsquawkbox.net/xpsdk/mediawiki/XPLMNavRef
+            int refSet;
+        } xplm;
+    };
+
     // sorted as per X-Plane earth_nav.dat format
     enum
     {
