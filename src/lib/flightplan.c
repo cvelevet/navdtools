@@ -2263,7 +2263,7 @@ fail:
     return NULL;
 }
 
-static ndt_restriction leg_constraints_init(void)
+ndt_restriction ndt_leg_const_init(void)
 {
     ndt_restriction constraints;
     constraints.altitude.min =
@@ -2286,7 +2286,7 @@ ndt_route_leg* ndt_route_leg_init()
         goto end;
     }
 
-    leg->constraints = leg_constraints_init();
+    leg->constraints = ndt_leg_const_init();
     leg->type        = NDT_LEGTYPE_ZZ;
 
 end:

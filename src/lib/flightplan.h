@@ -397,8 +397,9 @@ typedef struct ndt_route_leg
     };
 } ndt_route_leg;
 
-ndt_route_leg* ndt_route_leg_init    (                                                 );
-void           ndt_route_leg_close   (ndt_route_leg **_leg                             );
-int            ndt_route_leg_restrict(ndt_route_leg   *leg, ndt_restriction constraints);
+ndt_restriction ndt_leg_const_init    (void                                             );
+ndt_route_leg*  ndt_route_leg_init    (                                                 );
+void            ndt_route_leg_close   (ndt_route_leg **_leg                             );
+int             ndt_route_leg_restrict(ndt_route_leg   *leg, ndt_restriction constraints);
 
 #endif /* NDT_FLIGHTPLAN_H */
