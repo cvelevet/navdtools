@@ -38,6 +38,251 @@ static void fpl_print_leg_generic(yfms_context *yfms, int row,                nd
 static void fpl_print_airport_rwy(yfms_context *yfms, int row, ndt_airport *apt, ndt_runway *rwy);
 static int  fpl_getindex_for_line(yfms_context *yfms, int line                                  );
 
+static void yfs_fpln_fplnsync(yfms_context *yfms)
+{
+    /*
+     * There may be more than 100 waypoints in our plan, we need to determine
+     * the first and last legs so our waypoint count is limited to 99 or less.
+     */
+    int total_wpnts_count = 0, first_leg_idx = -1, last_leg_idx = 0;
+    ndt_route_leg *leg; ndt_waypoint *wpt;yfms->data.fpln.xplm_last = -1;
+    for (int i = 0, j = ndt_list_count(yfms->data.fpln.legs); i < j; i++)
+    {
+        if (i < yfms->data.fpln.lg_idx)
+        {
+            continue;
+        }
+        if ((leg = ndt_list_item(yfms->data.fpln.legs, i)))
+        {
+            if (99 <= total_wpnts_count + 1)
+            {
+                break;
+            }
+            total_wpnts_count += ndt_list_count(leg->xpfms) + !!leg->dst + !!leg->xpovf;
+            last_leg_idx = i;
+        }
+    }
+    for (int i = last_leg_idx, total_wpnts_count = 0; i >= 0; i--)
+    {
+        if ((leg = ndt_list_item(yfms->data.fpln.legs, i)))
+        {
+            if (99 <= total_wpnts_count + 1)
+            {
+                break;
+            }
+            total_wpnts_count += ndt_list_count(leg->xpfms) + !!leg->dst + !!leg->xpovf;
+            first_leg_idx = i - 1;
+        }
+    }
+    if (first_leg_idx > yfms->data.fpln.lg_idx - 1)
+    {
+        first_leg_idx = yfms->data.fpln.lg_idx - 1;
+    }
+    if (last_leg_idx  < yfms->data.fpln.lg_idx + 1)
+    {
+        last_leg_idx  = yfms->data.fpln.lg_idx + 1;
+    }
+
+    /* Now we must fill our internal backend with the selected legs */
+    for (int i = first_leg_idx; i <= last_leg_idx; i++)
+    {
+        if (i < 0)
+        {
+            /* Store this leg twice - XPLM list 0-based but doesn't display/track item 0 */
+            if (yfms->ndt.flp.rte->dep.apt && (wpt = yfms->ndt.flp.rte->dep.apt->waypoint))
+            {
+                if (yfms->data.fpln.xplm_last >= 99)
+                {
+                    break;
+                }
+                yfms->data.fpln.xplm_last++;
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud = (float)ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG);
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude = (float)ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG);
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = XPLM_NAV_NOT_FOUND;
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].cst = ndt_leg_const_init();
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].legindex = i;
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].altitude = 0;
+                if (wpt->xplm.refSet)
+                {
+                    yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = wpt->xplm.navRef;
+                }
+                else
+                {
+                    XPLMNavRef waypnt;
+                    if (XPLM_NAV_NOT_FOUND != (waypnt = XPLMFindNavAid(NULL, wpt->info.idnt,
+                                                                       &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude,
+                                                                       &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud, NULL, xplm_Nav_Airport)))
+                    {
+                        float la, lo; XPLMGetNavAidInfo(waypnt, NULL, &la, &lo, NULL, NULL, NULL, NULL, NULL, NULL);
+                        ndt_distance dist = ndt_position_calcdistance(wpt->position, ndt_position_init((double)la, (double)lo, NDT_DISTANCE_ZERO));
+                        if (INT64_C(3) > ndt_distance_get(dist, NDT_ALTUNIT_NM))
+                        {
+                            yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = waypnt; // a furlong (660ft) or less from waypoint
+                        }
+                    }
+                    wpt->xplm.navRef = yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint;
+                    wpt->xplm.refSet = 1;
+                }
+            }
+            if ((yfms->ndt.flp.rte->dep.rwy && (wpt = yfms->ndt.flp.rte->dep.rwy->waypoint)) ||
+                (yfms->ndt.flp.rte->dep.apt && (wpt = yfms->ndt.flp.rte->dep.apt->waypoint)))
+            {
+                if (yfms->data.fpln.xplm_last >= 99)
+                {
+                    break;
+                }
+                yfms->data.fpln.xplm_last++;
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud = (float)ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG);
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude = (float)ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG);
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = wpt->xplm.refSet ? wpt->xplm.navRef : XPLM_NAV_NOT_FOUND;
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].cst = ndt_leg_const_init();
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].legindex = i;
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].altitude = 0;
+            }
+        }
+        else if ((leg = ndt_list_item(yfms->data.fpln.legs, i)))
+        {
+            for (int j = 0, k = ndt_list_count(leg->xpfms); j < k; j++)
+            {
+                if ((wpt = ndt_list_item(leg->xpfms, i)))
+                {
+                    if (yfms->data.fpln.xplm_last >= 99)
+                    {
+                        break;
+                    }
+                    yfms->data.fpln.xplm_last++;
+                    yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud = (float)ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG);
+                    yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude = (float)ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG);
+                    yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = XPLM_NAV_NOT_FOUND;
+                    yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].cst = leg->constraints;
+                    yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].legindex = i;
+                    yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].altitude = 0;
+                }
+            }
+            if ((wpt = leg->dst))
+            {
+                if (yfms->data.fpln.xplm_last >= 99)
+                {
+                    break;
+                }
+                yfms->data.fpln.xplm_last++;
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud = (float)ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG);
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude = (float)ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG);
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = XPLM_NAV_NOT_FOUND;
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].cst = leg->constraints;
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].legindex = i;
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].altitude = 0;
+                if (wpt->xplm.refSet)
+                {
+                    yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = wpt->xplm.navRef;
+                }
+                else
+                {
+                    XPLMNavRef waypnt;
+                    switch (wpt->type)
+                    {
+                        case NDT_WPTYPE_APT:
+                            waypnt = XPLMFindNavAid(NULL, wpt->info.idnt,
+                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude,
+                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud, NULL, xplm_Nav_Airport);
+                            break;
+                        case NDT_WPTYPE_NDB:
+                            waypnt = XPLMFindNavAid(NULL, wpt->info.idnt,
+                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude,
+                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud, NULL, xplm_Nav_NDB);
+                            break;
+                        case NDT_WPTYPE_VOR:
+                            waypnt = XPLMFindNavAid(NULL, wpt->info.idnt,
+                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude,
+                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud, NULL, xplm_Nav_VOR);
+                            break;
+                        case NDT_WPTYPE_LOC:
+                            waypnt = XPLMFindNavAid(NULL, wpt->info.idnt,
+                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude,
+                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud, NULL, xplm_Nav_ILS|xplm_Nav_Localizer);
+                            break;
+                        case NDT_WPTYPE_FIX:
+                            waypnt = XPLMFindNavAid(NULL, wpt->info.idnt,
+                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude,
+                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud, NULL, xplm_Nav_Fix);
+                            break;
+                        case NDT_WPTYPE_DME:
+                            waypnt = XPLMFindNavAid(NULL, wpt->info.idnt,
+                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude,
+                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud, NULL, xplm_Nav_DME);
+                            break;
+                        default:
+                            waypnt = XPLM_NAV_NOT_FOUND;
+                            break;
+                    }
+                    if (waypnt != XPLM_NAV_NOT_FOUND)
+                    {
+                        float la, lo; XPLMGetNavAidInfo(waypnt, NULL, &la, &lo, NULL, NULL, NULL, NULL, NULL, NULL);
+                        ndt_distance d = ndt_position_calcdistance(wpt->position, ndt_position_init((double)la, (double)lo, NDT_DISTANCE_ZERO));
+                        if ((INT64_C(003) > ndt_distance_get(d, NDT_ALTUNIT_NM) && wpt->type == NDT_WPTYPE_APT) ||
+                            (INT64_C(660) > ndt_distance_get(d, NDT_ALTUNIT_FT)))
+                        {
+                            yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = waypnt; // a furlong (660ft) or less from waypoint
+                        }
+                    }
+                    wpt->xplm.navRef = yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint;
+                    wpt->xplm.refSet = 1;
+                }
+            }
+            if ((wpt = leg->xpovf))
+            {
+                if (yfms->data.fpln.xplm_last >= 99)
+                {
+                    break;
+                }
+                yfms->data.fpln.xplm_last++;
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud = (float)ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG);
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude = (float)ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG);
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].legindex = i == last_leg_idx ? i : i + 1; // not 100% part of this leg
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = XPLM_NAV_NOT_FOUND;
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].cst = leg->constraints;
+                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].altitude = 0;
+            }
+        }
+    }
+
+    /* TODO: VNAV */
+
+    /* Clear all FMS entries - replace them w/our own */
+    for (int i = XPLMCountFMSEntries() - 1; i >= 0; i--)
+    {
+        XPLMClearFMSEntry(i);
+    }
+    for (int i = 0, j = 1; i <= yfms->data.fpln.xplm_last; i++)
+    {
+        if (yfms->data.fpln.xplm_info[i].waypoint != XPLM_NAV_NOT_FOUND)
+        {
+            XPLMSetFMSEntryInfo(i,
+                                yfms->data.fpln.xplm_info[i].waypoint,
+                                yfms->data.fpln.xplm_info[i].altitude);
+        }
+        else
+        {
+            XPLMSetFMSEntryLatLon(i,
+                                  yfms->data.fpln.xplm_info[i].latitude,
+                                  yfms->data.fpln.xplm_info[i].longitud,
+                                  yfms->data.fpln.xplm_info[i].altitude);
+        }
+        if (i && j && yfms->data.fpln.xplm_info[i].legindex >= yfms->data.fpln.lg_idx)
+        {
+            if (yfms->data.fpln.xplm_info[i].legindex > yfms->data.fpln.lg_idx)
+            {
+                j = 0; // destination now set to last waypoint of previous leg
+            }
+            if (j)
+            {
+                XPLMSetDestinationFMSEntry(i);
+            }
+        }
+    }
+    return; // should be fully synced now
+}
+
 void yfs_fpln_pageopen(yfms_context *yfms)
 {
     if (yfms == NULL)
@@ -68,11 +313,30 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
         yfs_main_rline(yfms, i, -1);
     }
 
-    /* TODO: sync yfms->data.fpln.lg_idx w/X-Plane Navigation API */
-    /* TODO: check plan integrity if possible, resync if required */
-    /* TODO: a forced sync may fuck things when avionics == X-GNS */
-    //fixme lg_idx may correspond to more than a single waypoint (xpfms dummies)
-    //fixme will require a table to sync this somewhere, or yet some more loops… 
+    /* ensure we're still synced w/navdlib, reset if necessary */
+    if (yfms->data.init.ialized)
+    {
+        if (yfms->data.fpln.xplm_last != XPLMCountFMSEntries() - 1)
+        {
+            yfs_fpln_fplnsync(yfms);
+        }
+        int t = XPLMGetDestinationFMSEntry(),s = fpl_getindex_for_line(yfms, 1);
+        if (t < yfms->data.fpln.xplm_last + 1)
+        {
+            yfms->data.fpln.lg_idx = yfms->data.fpln.xplm_info[t].legindex;     // track
+        }
+        for (int i = 1, set = 0; i <= yfms->data.fpln.xplm_last; i++)
+        {
+            if (set && yfms->data.fpln.xplm_info[i].legindex > s)
+            {
+                break;
+            }
+            if (yfms->data.fpln.xplm_info[i].legindex >= s)
+            {
+                XPLMSetDisplayedFMSEntry(i); set = 1;                           // display
+            }
+        }
+    }
 
     /* mostly static data */
     if (fpl_getindex_for_line(yfms, 0) == yfms->data.fpln.lg_idx - 1)
@@ -188,8 +452,7 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)
 
     /* Flight plan changed: full resync with navdlib */
     int tracking_destination = yfms->data.fpln.lg_idx == yfms->data.fpln.dindex;
-    int just_before_destn = yfms->data.fpln.mod.index == yfms->data.fpln.dindex;
-    int index_for_ln_zero = fpl_getindex_for_line(yfms, 0);
+    int index_for_ln_zero    = fpl_getindex_for_line(yfms, 0);
     if (ndt_list_count(yfms->data.fpln.legs))
     {
         ndt_list_empty(yfms->data.fpln.legs);
@@ -299,14 +562,6 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)
             }
             goto end;
         }
-        if (just_before_destn)
-        {
-            yfms->data.fpln.lg_idx = yfms->data.fpln.dindex - 1; goto end;
-        }
-        if (tracking_destination)
-        {
-            yfms->data.fpln.lg_idx = yfms->data.fpln.dindex + 0; goto end;
-        }
         if (yfms->data.fpln.mod.operation == YFS_FPLN_MOD_NSRT)
         {
             if (yfms->data.fpln.mod.index < yfms->data.fpln.lg_idx)
@@ -314,6 +569,10 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)
                 yfms->data.fpln.lg_idx++;
             }
             goto end;
+        }
+        if (tracking_destination)
+        {
+            yfms->data.fpln.lg_idx = yfms->data.fpln.dindex; goto end;
         }
         for (int i = 0, j = ndt_list_count(yfms->data.fpln.legs); i < j; i++)
         {
@@ -374,12 +633,11 @@ end:/* We should be fully synced with navdlib now */
             yfms->data.fpln.ln_off = 0;
             break;
     }
-    /* TODO: re-sync with the X-Plane Navigation API */
-    /* TODO: a forced re-sync may fuck things up when avionics are the XP GNS */
     yfms->data.fpln.mod.index     = 0;
     yfms->data.fpln.mod.opaque    = NULL;
     yfms->data.fpln.mod.source    = NULL;
-    yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NONE; yfs_fpln_pageupdt(yfms); return;
+    yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NONE;
+    yfs_fpln_fplnsync(yfms); yfs_fpln_pageupdt(yfms); return;
 }
 
 static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refcon)

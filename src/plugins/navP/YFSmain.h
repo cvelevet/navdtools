@@ -28,6 +28,7 @@
 #include "XPLM/XPLMDataAccess.h"
 #include "XPLM/XPLMMenus.h"
 #include "XPLM/XPLMProcessing.h"
+#include "XPLM/XPLMNavigation.h"
 #include "XPLM/XPLMUtilities.h"
 
 #include "common/common.h"
@@ -273,6 +274,17 @@ typedef struct
                 operation;
             }
             mod;
+            struct
+            {
+                XPLMNavRef waypoint;
+                int        altitude;
+                float      latitude;
+                float      longitud;
+                int        legindex;
+                ndt_restriction cst;
+            }
+            xplm_info[99];
+            int xplm_last;
         } fpln;
         struct
         {
