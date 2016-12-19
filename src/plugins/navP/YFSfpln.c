@@ -817,14 +817,12 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         {
             if (sscanf(prefix, "%d", &airspeed) != 1)
             {
-                ndt_log("TIM314: prefix \"%s\"\n", prefix);//debug
                 yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
             }
             if (airspeed)
             {
                 if (airspeed < 150 || airspeed > 300)
                 {
-                    ndt_log("TIM314: prefix \"%s\"\n", prefix);//debug
                     yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); return;
                 }
                 constraints.airspeed.max = ndt_airspeed_init(airspeed, NDT_SPDUNIT_KTS);
@@ -850,7 +848,6 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             {
                 constraints.altitude.typ = NDT_RESTRICT_AB;
                 alti = ndt_distance_init(altitude, NDT_ALTUNIT_FL);
-                ndt_log("TIM314: leg %2d: above FL%d\n", index, altitude);//debug
                 goto check_altitude;
             }
             if (sscanf(sufx, "%1[-]FL%3d", tmp, &altitude) == 2 ||
@@ -858,7 +855,6 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             {
                 constraints.altitude.typ = NDT_RESTRICT_BL;
                 alti = ndt_distance_init(altitude, NDT_ALTUNIT_FL);
-                ndt_log("TIM314: leg %2d: below FL%d\n", index, altitude);//debug
                 goto check_altitude;
             }
             if (sscanf(sufx, "FL%3d", &altitude) == 1 ||
@@ -866,7 +862,6 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             {
                 constraints.altitude.typ = NDT_RESTRICT_AT;
                 alti = ndt_distance_init(altitude, NDT_ALTUNIT_FL);
-                ndt_log("TIM314: leg %2d: at    FL%d\n", index, altitude);//debug
                 goto check_altitude;
             }
             if (sscanf(sufx, "%1[+]%5d", tmp, &altitude) == 2 ||
@@ -874,7 +869,6 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             {
                 constraints.altitude.typ = NDT_RESTRICT_AB;
                 alti = ndt_distance_init(altitude, NDT_ALTUNIT_FT);
-                ndt_log("TIM314: leg %2d: above %d feet\n", index, altitude);//debug
                 goto check_altitude;
             }
             if (sscanf(sufx, "%1[-]%5d", tmp, &altitude) == 2 ||
@@ -882,7 +876,6 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             {
                 constraints.altitude.typ = NDT_RESTRICT_BL;
                 alti = ndt_distance_init(altitude, NDT_ALTUNIT_FT);
-                ndt_log("TIM314: leg %2d: below %d feet\n", index, altitude);//debug
                 goto check_altitude;
             }
             if (sscanf(sufx, "%5d", &altitude) == 1 ||
@@ -890,21 +883,17 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             {
                 constraints.altitude.typ = NDT_RESTRICT_AT;
                 alti = ndt_distance_init(altitude, NDT_ALTUNIT_FT);
-                ndt_log("TIM314: leg %2d: at    %d feet\n", index, altitude);//debug
                 goto check_altitude;
             }
-            ndt_log("TIM314: sufx \"%s\"\n", sufx);//debug
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         check_altitude:
-            if (altitude)
+            if (ndt_distance_get(alti, NDT_ALTUNIT_NA))
             {
                 if (ndt_distance_get(alti, NDT_ALTUNIT_NA) < ndt_distance_get(min, NDT_ALTUNIT_NA) ||
                     ndt_distance_get(alti, NDT_ALTUNIT_NA) > ndt_distance_get(max, NDT_ALTUNIT_NA))
                 {
-                    ndt_log("TIM314: sufx \"%s\"\n", sufx);//debug
                     yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); return;
                 }
-                ndt_log("TIM314: altitude %d, alti %d\n", altitude, ndt_distance_get(alti, NDT_ALTUNIT_FT));//debug
                 constraints.altitude.min = alti;
                 constraints.altitude.max = alti;
             }
@@ -964,16 +953,16 @@ static void fpl_print_leg_generic(yfms_context *yfms, int row, ndt_route_leg *le
     {
         switch (restrs.altitude.typ)
         {
+            case NDT_RESTRICT_BL:
+                alt_const_ft = ndt_distance_get(restrs.altitude.max, NDT_ALTUNIT_FT);
+                alt_const_fl = ndt_distance_get(restrs.altitude.max, NDT_ALTUNIT_FL);
+                restr_type = "-";
+                break;
+            case NDT_RESTRICT_BT: // not fully supported (ignores below max part)
             case NDT_RESTRICT_AB:
-            case NDT_RESTRICT_BT: // not fully supported
                 alt_const_ft = ndt_distance_get(restrs.altitude.min, NDT_ALTUNIT_FT);
                 alt_const_fl = ndt_distance_get(restrs.altitude.min, NDT_ALTUNIT_FL);
                 restr_type = "+";
-                break;
-            case NDT_RESTRICT_BL:
-                alt_const_ft = ndt_distance_get(restrs.altitude.min, NDT_ALTUNIT_FT);
-                alt_const_fl = ndt_distance_get(restrs.altitude.min, NDT_ALTUNIT_FL);
-                restr_type = "-";
                 break;
             case NDT_RESTRICT_AT:
             default:
@@ -988,7 +977,7 @@ static void fpl_print_leg_generic(yfms_context *yfms, int row, ndt_route_leg *le
         }
         else
         {
-            yfs_printf_rgt(yfms, row, 0, COLR_IDX_MAGENTA,  "%5.5d%s", alt_const_ft, restr_type);//fixme
+            yfs_printf_rgt(yfms, row, 0, COLR_IDX_MAGENTA,    "%5d%s", alt_const_ft, restr_type);
         }
     }
 }
