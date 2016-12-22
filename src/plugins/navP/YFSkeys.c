@@ -400,14 +400,6 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
         default:
             if (yfms->mwindow.ks_mode == YFS_KSM_NUM)
             {
-                /* XXX: non-configurable page-psecific */
-                if (yfms->mwindow.current_page == PAGE_PROG ||
-                    yfms->mwindow.current_page == PAGE_INIT ||
-                    yfms->mwindow.current_page == PAGE_FPLN ||
-                    yfms->mwindow.current_page == PAGE_RAD2)
-                {
-                    break;
-                }
                 return 1; // digit-only: pass any letter(s) through
             }
             break;

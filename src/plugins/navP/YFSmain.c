@@ -1035,9 +1035,7 @@ void* yfs_main_init(void)
     {
         ndt_log("YFMS [warning]: failed to register key sniffer\n");
     }
-//  yfms->mwindow.ks_mode = YFS_KSM_WIN; // default: when mouse over main window
-//  yfms->mwindow.ks_mode = YFS_KSM_DSP; // default: when mouse over screen only
-    yfms->mwindow.ks_mode = YFS_KSM_NUM; // default: window, capture digits only
+    yfms->mwindow.ks_mode = YFS_KSM_WIN; // default: when mouse over main window
 
     /* all good */
     yfs_menu_resetall(yfms); return yfms;
