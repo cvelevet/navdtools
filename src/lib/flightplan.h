@@ -132,6 +132,8 @@ int             ndt_flightplan_set_arrivstar(ndt_flightplan   *flightplan, const
 int             ndt_flightplan_set_arrivapch(ndt_flightplan   *flightplan, const char *name,  const char   *transition);
 int             ndt_flightplan_set_route    (ndt_flightplan   *flightplan, const char *route, ndt_fltplanformat format);
 int             ndt_flightplan_write        (ndt_flightplan   *flightplan, FILE *file,        ndt_fltplanformat format);
+int             ndt_flightplan_insert_direct(ndt_flightplan   *flightplan, ndt_waypoint *wpt, void *leg, int after_leg);
+int             ndt_flightplan_remove_leg   (ndt_flightplan   *flightplan,                    void *leg               );
 
 typedef struct ndt_procedure
 {
@@ -218,7 +220,7 @@ typedef struct ndt_route_segment
 {
     ndt_info      info;        // identification information
     ndt_waypoint *src;         // segment's entry point (NULL for discontinuities)
-    ndt_waypoint *dst;         // segment's exit  point (always set)
+    ndt_waypoint *dst;         // segment's exit  point (may be NULL)
 
     enum
     {
