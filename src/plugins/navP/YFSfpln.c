@@ -1,5 +1,5 @@
 /*
- * YFSinit.c
+ * YFSfpln.c
  *
  * This file is part of the navdtools source code.
  *
@@ -38,7 +38,7 @@ static void fpl_print_leg_generic(yfms_context *yfms, int row,                nd
 static void fpl_print_airport_rwy(yfms_context *yfms, int row, ndt_airport *apt, ndt_runway *rwy);
 static int  fpl_getindex_for_line(yfms_context *yfms, int line                                  );
 
-static void yfs_fpln_fplnsync(yfms_context *yfms)
+static void xplm_flpn_sync(yfms_context *yfms)
 {
     /*
      * There may be more than 100 waypoints in our plan, we need to determine
@@ -314,12 +314,11 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
     }
 
     /* ensure we're still synced w/navdlib, reset if necessary */
+    yfs_fpln_fplnsync(yfms);
+
+    /* update indexes for tracked and displayed legs */
     if (yfms->data.init.ialized)
     {
-        if (yfms->data.fpln.xplm_last != XPLMCountFMSEntries() - 1)
-        {
-            yfs_fpln_fplnsync(yfms);
-        }
         int t = XPLMGetDestinationFMSEntry(),s = fpl_getindex_for_line(yfms, 1);
         if (t < yfms->data.fpln.xplm_last + 1)
         {
@@ -440,6 +439,17 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
 
     /* all good */
     return;
+}
+
+void yfs_fpln_fplnsync(yfms_context *yfms)
+{
+    if (yfms->data.init.ialized)
+    {
+        if (yfms->data.fpln.xplm_last != XPLMCountFMSEntries() - 1)
+        {
+            xplm_flpn_sync(yfms);
+        }
+    }
 }
 
 void yfs_fpln_fplnupdt(yfms_context *yfms)
@@ -637,7 +647,7 @@ end:/* We should be fully synced with navdlib now */
     yfms->data.fpln.mod.opaque    = NULL;
     yfms->data.fpln.mod.source    = NULL;
     yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NONE;
-    yfs_fpln_fplnsync(yfms); yfs_fpln_pageupdt(yfms); return;
+    xplm_flpn_sync(yfms); yfs_fpln_pageupdt(yfms); return;
 }
 
 static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refcon)

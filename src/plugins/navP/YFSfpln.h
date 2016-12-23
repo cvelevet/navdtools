@@ -1,5 +1,5 @@
 /*
- * YFSinit.h
+ * YFSfpln.h
  *
  * This file is part of the navdtools source code.
  *
@@ -25,6 +25,7 @@
 
 void yfs_fpln_pageopen(yfms_context *yfms);
 void yfs_fpln_pageupdt(yfms_context *yfms);
+void yfs_fpln_fplnsync(yfms_context *yfms);
 void yfs_fpln_fplnupdt(yfms_context *yfms);
 
 #endif /* YFS_FPLN_H */
