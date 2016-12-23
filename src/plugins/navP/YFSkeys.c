@@ -277,6 +277,11 @@ void yfs_keypressed(yfms_context *yfms, XPWidgetID key)
     {
         yfms->spcs.cback_fpln(yfms);
     }
+    if (yfms->mwindow.keys.keyid_drto == key &&
+        yfms->spcs.cback_drto)
+    {
+        yfms->spcs.cback_drto(yfms);
+    }
 }
 
 // TODO: capture or drop letters based on current page ;-)

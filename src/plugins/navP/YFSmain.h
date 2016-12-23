@@ -50,7 +50,7 @@ typedef struct
     // callbacks for each special key: ensure we can switch to page, then do it
     struct
     {
-        YFS_SPC_f cback_dirt;
+        YFS_SPC_f cback_drto;
         YFS_SPC_f cback_prog;
         YFS_SPC_f cback_perf;
         YFS_SPC_f cback_init;
@@ -142,7 +142,7 @@ typedef struct
             XPWidgetID keyid_spce;
             XPWidgetID keyid_slsh;
             // FMS pages
-            XPWidgetID keyid_dirt;
+            XPWidgetID keyid_drto;
             XPWidgetID keyid_prog;
             XPWidgetID keyid_perf;
             XPWidgetID keyid_init;
@@ -205,6 +205,7 @@ typedef struct
             PAGE_INIT = 6,
             PAGE_PERF = 7,
             PAGE_FPLN = 8,
+            PAGE_DRTO = 9,
         }
         current_page;
     }

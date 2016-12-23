@@ -29,6 +29,7 @@
 
 #include "lib/flightplan.h"
 
+#include "YFSdrto.h"
 #include "YFSfpln.h"
 #include "YFSinit.h"
 #include "YFSmain.h"
@@ -77,6 +78,7 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfms->spcs.cback_prog = (YFS_SPC_f)&yfs_prog_pageopen;
     yfms->spcs.cback_init = (YFS_SPC_f)&yfs_init_pageopen;
     yfms->spcs.cback_fpln = (YFS_SPC_f)&yfs_fpln_pageopen;
+    yfms->spcs.cback_drto = (YFS_SPC_f)&yfs_drto_pageopen;
 
     /* navigation backend */
     if (yfms->ndt.flp.arr)
