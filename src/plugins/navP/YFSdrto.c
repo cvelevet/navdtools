@@ -32,10 +32,11 @@
 #include "YFSmain.h"
 #include "YFSspad.h"
 
-static void dct_spc_callback_lnup(yfms_context *yfms);
-static void dct_spc_callback_lndn(yfms_context *yfms);
+static void dct_spc_callback_lnup(yfms_context *yfms                             );
+static void dct_spc_callback_lndn(yfms_context *yfms                             );
+static void yfs_lsk_callback_drto(yfms_context *yfms, int key[2], intptr_t refcon);
 
-void yfs_drto_pageopen(yfms_context *yfms)//fixme
+void yfs_drto_pageopen(yfms_context *yfms)
 {
     if (yfms == NULL)
     {
@@ -52,14 +53,21 @@ void yfs_drto_pageopen(yfms_context *yfms)//fixme
     {
         return; // don't open this page unless we already have a flight plan
     }
-    yfms->data.drto.ln_off = 0;
-    //fixme
+    yfms->lsks[0][0].cback =
+    yfms->lsks[0][1].cback =
+    yfms->lsks[0][2].cback =
+    yfms->lsks[0][3].cback =
+    yfms->lsks[0][4].cback =
+    yfms->lsks[0][5].cback = yfms->lsks[1][5].cback= (YFS_LSK_f)&yfs_lsk_callback_drto;
     yfms->spcs. cback_lnup = (YFS_SPC_f)&dct_spc_callback_lnup;
     yfms->spcs. cback_lndn = (YFS_SPC_f)&dct_spc_callback_lndn;
+    yfms->data.drto.ln_off = 0;
+    yfms->data.drto.dctlg  = NULL;
+    yfms->data.drto.dctwp  = NULL;//fixme close instead?
     yfs_drto_pageupdt(yfms); return;
 }
 
-void yfs_drto_pageupdt(yfms_context *yfms)//fixme
+void yfs_drto_pageupdt(yfms_context *yfms)
 {
     /* reset lines, set page title */
     for (int i = 0; i < YFS_DISPLAY_NUMR - 1; i++)
@@ -77,7 +85,7 @@ void yfs_drto_pageupdt(yfms_context *yfms)//fixme
     yfs_printf_lft(yfms, 1, 0, COLR_IDX_WHITE, "%s",     "WAYPOINT");
     yfs_printf_rgt(yfms, 1, 0, COLR_IDX_WHITE, "%s",  "UTC  DIST  ");
     yfs_printf_lft(yfms, 2, 0, COLR_IDX_BLUE,  "%s",      "[     ]");
-    yfs_printf_rgt(yfms, 2, 0, COLR_IDX_WHITE, "%s", "----   ---  ");
+    yfs_printf_rgt(yfms, 2, 0, COLR_IDX_WHITE, "%s",  "---  ----  ");
     yfs_printf_lft(yfms, 3, 0, COLR_IDX_WHITE, "%s",   "F-PLN WPTS");
     yfs_printf_rgt(yfms, 4, 0, COLR_IDX_BLUE,  "%s",  "DIRECT TO  ");
 
@@ -104,9 +112,27 @@ void yfs_drto_pageupdt(yfms_context *yfms)//fixme
         }
         if (leg)
         {
-            yfs_printf_lft(yfms, 2 * (j + 2), 0, COLR_IDX_BLUE, "<-%s", leg->dst ? leg->dst->info.idnt : leg->info.idnt);
             yfms->data.drto.idx[j] = (i);
+            yfs_printf_lft(yfms, 2 * (j + 2), 0, COLR_IDX_BLUE, "<%s", leg->dst ? leg->dst->info.idnt : leg->info.idnt);
+            if (yfms->data.drto.dctlg && yfms->data.drto.dctidx == i)
+            {
+                yfs_printf_lft(yfms, 2 * (j + 2), 0, COLR_IDX_BLUE, "%s", " ");
+            }
         }
+    }
+
+    /* alternate state: pre-selected direct to */
+    if (yfms->data.drto.dctlg || yfms->data.drto.dctwp)
+    {
+        const char *drto_idnt = yfms->data.drto.dctlg ? (yfms->data.drto.dctlg->dst ? yfms->data.drto.dctlg->dst->info.idnt : yfms->data.drto.dctlg->info.idnt) : yfms->data.drto.dctwp->info.idnt;
+        yfs_printf_ctr(yfms,  0,    COLR_IDX_YELLOW, "%s",       "DIR TO");
+        yfs_printf_lft(yfms,  2, 0, COLR_IDX_YELLOW, "%-7s",    drto_idnt);
+        yfs_printf_rgt(yfms,  2, 0, COLR_IDX_YELLOW, "%s",  "---  ----  ");
+        yfs_printf_rgt(yfms,  4, 0, COLR_IDX_YELLOW, "%s",  "DIRECT TO  ");
+        yfs_printf_lft(yfms, 11, 0, COLR_IDX_ORANGE, "%s",      " DIR TO");
+        yfs_printf_lft(yfms, 12, 0, COLR_IDX_ORANGE, "%-9s",     "<ERASE");
+        yfs_printf_rgt(yfms, 11, 0, COLR_IDX_ORANGE, "%s",      "DIR TO ");
+        yfs_printf_rgt(yfms, 12, 0, COLR_IDX_ORANGE, "%s",      "INSERT*");
     }
 
     /* all good */
@@ -115,14 +141,16 @@ void yfs_drto_pageupdt(yfms_context *yfms)//fixme
 
 static void dct_spc_callback_lnup(yfms_context *yfms)
 {
-    int legct = ndt_list_count(yfms->data.fpln.legs);
+    yfms->data.drto.ln_off++;
+    int legct, legrm = (legct = ndt_list_count(yfms->data.fpln.legs)) - yfms->data.fpln.lg_idx;
     int indx0 = yfms->data.fpln.lg_idx + yfms->data.drto.ln_off;
-    if (indx0 > legct - 2)
+    int ndisp = legct - indx0;
+    if (legrm > 5) legrm = 5;
+    if (legrm > ndisp)
     {
-        yfms->data.drto.ln_off = legct - yfms->data.fpln.lg_idx - 1;
-        yfs_drto_pageupdt(yfms); return;
+        yfms->data.drto.ln_off -= legrm - ndisp;
     }
-    yfms->data.drto.ln_off++; yfs_drto_pageupdt(yfms); return;
+    yfs_drto_pageupdt(yfms); return;
 }
 
 static void dct_spc_callback_lndn(yfms_context *yfms)
@@ -133,4 +161,38 @@ static void dct_spc_callback_lndn(yfms_context *yfms)
         yfs_drto_pageupdt(yfms); return;
     }
     yfms->data.drto.ln_off--; yfs_drto_pageupdt(yfms); return;
+}
+
+static void yfs_lsk_callback_drto(yfms_context *yfms, int key[2], intptr_t refcon)
+{
+    if (key[1] == 5 && (yfms->data.drto.dctlg || yfms->data.drto.dctwp))
+    {
+        if (key[0] == 0) // DIR TO ERASE
+        {
+            yfms->data.drto.dctlg = NULL;
+            yfms->data.drto.dctwp = NULL;//fixme close instead?
+            yfs_drto_pageupdt(yfms); return;
+        }
+        if (key[0] ==1) // DIR TO INSERT
+        {
+            return;//fixme
+        }
+    }
+    if (key[0] == 0) // select a waypoint to fly direct to
+    {
+        if (key[1] <= 0)
+        {
+            yfms->data.drto.dctlg = NULL; // reset
+            yfms->data.drto.dctwp = NULL;//fixme
+            yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return;//fixme
+        }
+        if (key[1] <= 5 && yfms->data.drto.idx[key[1] - 1] != -1)
+        {
+            yfms->data.drto.dctwp = NULL;//fixme close instead? // reset
+            yfms->data.drto.dctlg = ndt_list_item((yfms->data.fpln.legs),
+                                                  (yfms->data.drto.dctidx =
+                                                   yfms->data.drto.idx[key[1] - 1])); yfs_drto_pageupdt(yfms); return;
+        }
+        return; // nothing to do
+    }
 }

@@ -291,8 +291,11 @@ typedef struct
         fpln;
         struct
         {
-            int ln_off; // currently topmost line offset
-            int idx[5]; // leg index for corresponding line select key
+            int           ln_off; // currently topmost line offset
+            int           idx[5]; // leg index for corresponding line select key
+            int           dctidx; // leg index for pre-selected direct to
+            ndt_route_leg *dctlg; // leg pntr. for pre-selected direct to
+            ndt_waypoint  *dctwp; // new wayp. for pre-selected direct to
         }
         drto;
         struct
