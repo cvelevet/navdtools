@@ -246,7 +246,8 @@ typedef struct
             ndt_distance trans_l; // transition f. level in descent
             ndt_airport *from;    // depart. airport
             ndt_airport *to;      // arrival airport
-        } init;
+        }
+        init;
         struct
         {
             int               lg_idx; // currently tracked leg in list
@@ -286,11 +287,19 @@ typedef struct
             }
             xplm_info[99];
             int xplm_last;
-        } fpln;
+        }
+        fpln;
+        struct
+        {
+            int ln_off; // currently topmost line offset
+            int idx[5]; // leg index for corresponding line select key
+        }
+        drto;
         struct
         {
             ndt_waypoint *fix;
-        } prog;
+        }
+        prog;
     }
     data;
 
