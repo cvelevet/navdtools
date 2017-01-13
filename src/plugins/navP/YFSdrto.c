@@ -18,14 +18,13 @@
  *     Timothy D. Walker
  */
 
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "common/common.h"
-//#include "lib/airport.h"
-//#include "lib/flightplan.h"
-//#include "lib/navdata.h"
+#include "lib/flightplan.h"
+#include "lib/navdata.h"
 
 #include "YFSdrto.h"
 #include "YFSfpln.h"
@@ -63,7 +62,7 @@ void yfs_drto_pageopen(yfms_context *yfms)
     yfms->spcs. cback_lndn = (YFS_SPC_f)&dct_spc_callback_lndn;
     yfms->data.drto.ln_off = 0;
     yfms->data.drto.dctlg  = NULL;
-    yfms->data.drto.dctwp  = NULL;//fixme close instead?
+    yfms->data.drto.dctwp  = NULL;
     yfs_drto_pageupdt(yfms); return;
 }
 
@@ -170,7 +169,7 @@ static void yfs_lsk_callback_drto(yfms_context *yfms, int key[2], intptr_t refco
         if (key[0] == 0) // DIR TO ERASE
         {
             yfms->data.drto.dctlg = NULL;
-            yfms->data.drto.dctwp = NULL;//fixme close instead?
+            yfms->data.drto.dctwp = NULL;
             yfs_drto_pageupdt(yfms); return;
         }
         if (key[0] ==1) // DIR TO INSERT
@@ -180,18 +179,27 @@ static void yfs_lsk_callback_drto(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0) // select a waypoint to fly direct to
     {
-        if (key[1] <= 0)
+        if (key[1] <= 0) // manually-entered waypoint, not in flight plan
         {
-            yfms->data.drto.dctlg = NULL; // reset
-            yfms->data.drto.dctwp = NULL;//fixme
-            yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return;//fixme
+            char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
+            if (!strnlen(buf, 1))
+            {
+                yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
+            }
+            if ((yfms->data.drto.dctwp = ndt_navdata_get_wptnear2(yfms->ndt.ndb, buf, NULL,
+                                                                  yfms->data.aircraft_pos)) == NULL)
+            {
+                // TODO: disambiguation page
+                yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return;
+            }
+            yfms->data.drto.dctlg = NULL; yfs_spad_clear(yfms); yfs_drto_pageupdt(yfms); return;
         }
-        if (key[1] <= 5 && yfms->data.drto.idx[key[1] - 1] != -1)
+        if (key[1] <= 5 && yfms->data.drto.idx[key[1] - 1] != -1) // from flight plan
         {
-            yfms->data.drto.dctwp = NULL;//fixme close instead? // reset
             yfms->data.drto.dctlg = ndt_list_item((yfms->data.fpln.legs),
                                                   (yfms->data.drto.dctidx =
-                                                   yfms->data.drto.idx[key[1] - 1])); yfs_drto_pageupdt(yfms); return;
+                                                   yfms->data.drto.idx[key[1] - 1]));
+            yfms->data.drto.dctwp = NULL; yfs_drto_pageupdt(yfms); return;
         }
         return; // nothing to do
     }
