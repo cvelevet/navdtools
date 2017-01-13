@@ -174,6 +174,10 @@ static void yfs_lsk_callback_drto(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (key[0] ==1) // DIR TO INSERT
         {
+            if (yfms->data.drto.dctlg)
+            {
+                yfs_fpln_directto(yfms, yfms->data.drto.dctidx, 0); return;
+            }
             return;//fixme
         }
     }

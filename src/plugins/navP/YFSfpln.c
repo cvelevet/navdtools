@@ -650,6 +650,38 @@ end:/* We should be fully synced with navdlib now */
     xplm_flpn_sync(yfms); yfs_fpln_pageupdt(yfms); return;
 }
 
+void yfs_fpln_directto(yfms_context *yfms, int index, int insert)
+{
+    // we may be flying direct to a newly-inserted waypoint
+    {
+        yfms->data.fpln.mod.operation = (insert            ?
+                                         YFS_FPLN_MOD_NSRT : // also update
+                                         YFS_FPLN_MOD_NONE); // only sync
+        yfs_fpln_fplnupdt(yfms); // update f-pln before updating the tracked leg
+    }
+    for (int i = 0, j = 1; i <= yfms->data.fpln.xplm_last; i++)
+    {
+        if (i && j && yfms->data.fpln.xplm_info[i].legindex >= index)
+        {
+            if (yfms->data.fpln.xplm_info[i].legindex > index)
+            {
+                j = 0; // destination now set to last waypoint of previous leg
+            }
+            if (j)
+            {
+//                // note: not required on the ground, but untested inflight yet
+//                // for a direct to, we should update the previous waypoint too
+//                XPLMSetFMSEntryLatLon(i-1, (float)ndt_position_getlatitude (yfms->data.aircraft_pos, NDT_ANGUNIT_DEG),
+//                                           (float)ndt_position_getlongitude(yfms->data.aircraft_pos, NDT_ANGUNIT_DEG),
+//                                                                           (yfms->data.fpln.xplm_info[i-1].altitude));
+                XPLMSetDestinationFMSEntry(i);
+            }
+        }
+    }
+    // we should be tracking the correct entry now, update the page
+    yfms->data.fpln.lg_idx = index; yfs_fpln_pageopen(yfms); return;
+}
+
 static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refcon)
 {
     if (key[0] == 0) // insert a waypoint, or open the lateral rev. page
