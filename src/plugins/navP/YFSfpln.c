@@ -31,12 +31,13 @@
 #include "YFSmain.h"
 #include "YFSspad.h"
 
-static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2],                intptr_t refcon);
-static void fpl_spc_callback_lnup(yfms_context *yfms                                            );
-static void fpl_spc_callback_lndn(yfms_context *yfms                                            );
-static void fpl_print_leg_generic(yfms_context *yfms, int row,                ndt_route_leg *leg);
-static void fpl_print_airport_rwy(yfms_context *yfms, int row, ndt_airport *apt, ndt_runway *rwy);
-static int  fpl_getindex_for_line(yfms_context *yfms, int line                                  );
+static void            yfs_lsk_callback_fpln(yfms_context *yfms, int key[2],                intptr_t refcon);
+static void            fpl_spc_callback_lnup(yfms_context *yfms                                            );
+static void            fpl_spc_callback_lndn(yfms_context *yfms                                            );
+static void            fpl_print_leg_generic(yfms_context *yfms, int row,                ndt_route_leg *leg);
+static void            fpl_print_airport_rwy(yfms_context *yfms, int row, ndt_airport *apt, ndt_runway *rwy);
+static int             fpl_getindex_for_line(yfms_context *yfms, int line                                  );
+static ndt_flightplan* fpl_getfplan_for_leg(yfms_context *yfms,                          ndt_route_leg *leg);
 
 static void xplm_flpn_sync(yfms_context *yfms)
 {
@@ -654,6 +655,9 @@ void yfs_fpln_directto(yfms_context *yfms, int index, int insert)
 {
     // we may be flying direct to a newly-inserted waypoint
     {
+        yfms->data.fpln.mod.source    = (NULL);
+        yfms->data.fpln.mod.opaque    = (NULL);
+        yfms->data.fpln.mod.index     = (index);
         yfms->data.fpln.mod.operation = (insert            ?
                                          YFS_FPLN_MOD_NSRT : // also update
                                          YFS_FPLN_MOD_NONE); // only sync
@@ -690,6 +694,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         int index = key[1] == 5 ? yfms->data.fpln.dindex : fpl_getindex_for_line(yfms, key[1]);
         if (index < 0) // next waypoint is origin or invalid
         {
+            // TODO: lateral revision page for origin //fixme ?
             yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
         }
         if ((leg = ndt_list_item(yfms->data.fpln.legs, index)) == NULL)
@@ -716,39 +721,9 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             {
                 yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return;
             }
-            if (leg->rsg->type == NDT_RSTYPE_PRC)
+            if (ndt_flightplan_remove_leg(fpl_getfplan_for_leg(yfms, leg), leg))
             {
-                ndt_flightplan *flp = NULL; // remove from correct sub-plan
-                if (leg->rsg == yfms->ndt.flp.dep->dep.sid.enroute.rsgt     ||
-                    leg->rsg == yfms->ndt.flp.dep->dep.sid.rsgt)
-                {
-                    flp = yfms->ndt.flp.dep;
-                }
-                if (leg->rsg == yfms->ndt.flp.arr->arr.star.enroute.rsgt    ||
-                    leg->rsg == yfms->ndt.flp.arr->arr.star.rsgt)
-                {
-                    flp = yfms->ndt.flp.arr;
-                }
-                if (leg->rsg == yfms->ndt.flp.iac->arr.apch.transition.rsgt ||
-                    leg->rsg == yfms->ndt.flp.iac->arr.apch.rsgt)
-                {
-                    flp = yfms->ndt.flp.iac;
-                }
-                if (flp == NULL)
-                {
-                    yfs_spad_reset(yfms, "UNKNOWN ERROR 2 B", COLR_IDX_ORANGE); return;
-                }
-                if (ndt_flightplan_remove_leg(flp, leg))
-                {
-                    yfs_spad_reset(yfms, "UNKNOWN ERROR 2 C", COLR_IDX_ORANGE); return;
-                }
-            }
-            else
-            {
-                if (ndt_flightplan_remove_leg(yfms->ndt.flp.rte, leg))
-                {
-                    yfs_spad_reset(yfms, "UNKNOWN ERROR 2 D", COLR_IDX_ORANGE); return;
-                }
+                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 B", COLR_IDX_ORANGE); return;
             }
             yfms->data.fpln.mod.source    = leg;
             yfms->data.fpln.mod.opaque    = NULL;
@@ -772,60 +747,9 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
         }
         // TODO: latitude/longitude (after fixes, because 1234N etc.)
-        if (index == yfms->data.fpln.dindex)
+        if (ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), wpt, leg, 0))
         {
-            if (ndt_flightplan_insert_direct(yfms->data.fpln.d_fpl, wpt, leg, 0))
-            {
-                yfs_spad_reset(yfms, "UNKNOWN ERROR 3 A", COLR_IDX_ORANGE); return;
-            }
-            yfms->data.fpln.mod.source    = leg;
-            yfms->data.fpln.mod.index     = index;
-            yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NSRT;
-            yfms->data.fpln.mod.opaque    = leg->dst ? (void*)leg->dst : (void*)leg->xpfms;
-            yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
-        }
-        if (leg->rsg == yfms->ndt.flp.dep->dep.sid.enroute.rsgt ||
-            leg->rsg == yfms->ndt.flp.dep->dep.sid.rsgt)
-        {
-            if (ndt_flightplan_insert_direct(yfms->ndt.flp.dep, wpt, leg, 0))
-            {
-                yfs_spad_reset(yfms, "UNKNOWN ERROR 3 B", COLR_IDX_ORANGE); return;
-            }
-            yfms->data.fpln.mod.source    = leg;
-            yfms->data.fpln.mod.index     = index;
-            yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NSRT;
-            yfms->data.fpln.mod.opaque    = leg->dst ? (void*)leg->dst : (void*)leg->xpfms;
-            yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
-        }
-        if (leg->rsg == yfms->ndt.flp.arr->arr.star.enroute.rsgt ||
-            leg->rsg == yfms->ndt.flp.arr->arr.star.rsgt)
-        {
-            if (ndt_flightplan_insert_direct(yfms->ndt.flp.arr, wpt, leg, 0))
-            {
-                yfs_spad_reset(yfms, "UNKNOWN ERROR 3 C", COLR_IDX_ORANGE); return;
-            }
-            yfms->data.fpln.mod.source    = leg;
-            yfms->data.fpln.mod.index     = index;
-            yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NSRT;
-            yfms->data.fpln.mod.opaque    = leg->dst ? (void*)leg->dst : (void*)leg->xpfms;
-            yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
-        }
-        if (leg->rsg == yfms->ndt.flp.iac->arr.apch.transition.rsgt ||
-            leg->rsg == yfms->ndt.flp.iac->arr.apch.rsgt)
-        {
-            if (ndt_flightplan_insert_direct(yfms->ndt.flp.iac, wpt, leg, 0))
-            {
-                yfs_spad_reset(yfms, "UNKNOWN ERROR 3 D", COLR_IDX_ORANGE); return;
-            }
-            yfms->data.fpln.mod.source    = leg;
-            yfms->data.fpln.mod.index     = index;
-            yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NSRT;
-            yfms->data.fpln.mod.opaque    = leg->dst ? (void*)leg->dst : (void*)leg->xpfms;
-            yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
-        }
-        if (ndt_flightplan_insert_direct(yfms->ndt.flp.rte, wpt, leg, 0))
-        {
-            yfs_spad_reset(yfms, "UNKNOWN ERROR 3 E", COLR_IDX_ORANGE); return;
+            yfs_spad_reset(yfms, "UNKNOWN ERROR 3", COLR_IDX_ORANGE); return;
         }
         yfms->data.fpln.mod.source    = leg;
         yfms->data.fpln.mod.index     = index;
@@ -1049,4 +973,31 @@ static int fpl_getindex_for_line(yfms_context *yfms, int line)
         }
     }
     return index;
+}
+
+static ndt_flightplan* fpl_getfplan_for_leg(yfms_context *yfms, ndt_route_leg *leg)//fixme
+{
+    if (leg)
+    {
+        if (leg == yfms->data.fpln.d_leg)
+        {
+            return yfms->data.fpln.d_fpl;
+        }
+        if (leg->rsg == yfms->ndt.flp.dep->dep.sid.enroute.rsgt     ||
+            leg->rsg == yfms->ndt.flp.dep->dep.sid.rsgt)
+        {
+            return yfms->ndt.flp.dep;
+        }
+        if (leg->rsg == yfms->ndt.flp.arr->arr.star.enroute.rsgt    ||
+            leg->rsg == yfms->ndt.flp.arr->arr.star.rsgt)
+        {
+            return yfms->ndt.flp.arr;
+        }
+        if (leg->rsg == yfms->ndt.flp.iac->arr.apch.transition.rsgt ||
+            leg->rsg == yfms->ndt.flp.iac->arr.apch.rsgt)
+        {
+            return yfms->ndt.flp.iac;
+        }
+    }
+    return yfms->ndt.flp.rte;
 }
