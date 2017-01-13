@@ -176,9 +176,13 @@ static void yfs_lsk_callback_drto(yfms_context *yfms, int key[2], intptr_t refco
         {
             if (yfms->data.drto.dctlg)
             {
-                yfs_fpln_directto(yfms, yfms->data.drto.dctidx, 0); return;
+                yfs_fpln_directto(yfms, yfms->data.drto.dctidx, NULL); return;
             }
-            return;//fixme
+            if (yfms->data.drto.dctwp)
+            {
+                yfs_fpln_directto(yfms, yfms->data.fpln.lg_idx, yfms->data.drto.dctwp); return;
+            }
+            yfs_spad_reset(yfms, "UNKNOWN ERROR 1 C", COLR_IDX_ORANGE); return;
         }
     }
     if (key[0] == 0) // select a waypoint to fly direct to

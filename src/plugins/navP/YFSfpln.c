@@ -27,6 +27,7 @@
 #include "lib/flightplan.h"
 #include "lib/navdata.h"
 
+#include "YFSdrto.h"
 #include "YFSfpln.h"
 #include "YFSmain.h"
 #include "YFSspad.h"
@@ -651,17 +652,37 @@ end:/* We should be fully synced with navdlib now */
     xplm_flpn_sync(yfms); yfs_fpln_pageupdt(yfms); return;
 }
 
-void yfs_fpln_directto(yfms_context *yfms, int index, int insert)
+void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
 {
-    // we may be flying direct to a newly-inserted waypoint
+    ndt_route_leg *leg;
+    if (toinsert)
     {
-        yfms->data.fpln.mod.source    = (NULL);
-        yfms->data.fpln.mod.opaque    = (NULL);
-        yfms->data.fpln.mod.index     = (index);
-        yfms->data.fpln.mod.operation = (insert            ?
-                                         YFS_FPLN_MOD_NSRT : // also update
-                                         YFS_FPLN_MOD_NONE); // only sync
-        yfs_fpln_fplnupdt(yfms); // update f-pln before updating the tracked leg
+        if ((leg = ndt_list_item(yfms->data.fpln.legs, (index = yfms->data.fpln.lg_idx))) == NULL)
+        {
+            yfs_spad_reset(yfms, "UNKNOWN ERROR 1 A", COLR_IDX_ORANGE); return; // PAGE_DRTO
+        }
+        if (toinsert == leg->dst) // toinsert being tracked already, should use list instead
+        {
+            yfms->data.drto.dctwp = NULL; yfs_drto_pageupdt(yfms);              // PAGE_DRTO
+            yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;                    // PAGE_DRTO
+        }
+        if (ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), toinsert, leg, 0))
+        {
+            yfs_spad_reset(yfms, "UNKNOWN ERROR 1 B", COLR_IDX_ORANGE); return; // PAGE_DRTO
+        }
+        yfms->data.fpln.mod.source    = leg;
+        yfms->data.fpln.mod.index     = index;
+        yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NSRT; // also update
+        yfms->data.fpln.mod.opaque    = leg->dst ? (void*)leg->dst : (void*)leg->xpfms;
+        yfs_fpln_fplnupdt(yfms); // update f-pln before updating the leg being tracked
+    }
+    else
+    {
+        yfms->data.fpln.mod.index     = 0;
+        yfms->data.fpln.mod.source    = NULL;
+        yfms->data.fpln.mod.opaque    = NULL;
+        yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NONE; // only sync
+        yfs_fpln_fplnupdt(yfms); // update f-pln before updating the leg being tracked
     }
     for (int i = 0, j = 1; i <= yfms->data.fpln.xplm_last; i++)
     {
@@ -975,7 +996,7 @@ static int fpl_getindex_for_line(yfms_context *yfms, int line)
     return index;
 }
 
-static ndt_flightplan* fpl_getfplan_for_leg(yfms_context *yfms, ndt_route_leg *leg)//fixme
+static ndt_flightplan* fpl_getfplan_for_leg(yfms_context *yfms, ndt_route_leg *leg)
 {
     if (leg)
     {

@@ -21,12 +21,14 @@
 #ifndef YFS_FPLN_H
 #define YFS_FPLN_H
 
+#include "lib/waypoint.h"
+
 #include "YFSmain.h"
 
-void yfs_fpln_pageopen(yfms_context *yfms                       );
-void yfs_fpln_pageupdt(yfms_context *yfms                       );
-void yfs_fpln_fplnsync(yfms_context *yfms                       );
-void yfs_fpln_fplnupdt(yfms_context *yfms                       );
-void yfs_fpln_directto(yfms_context *yfms, int index, int insert);
+void yfs_fpln_pageopen(yfms_context *yfms                                   );
+void yfs_fpln_pageupdt(yfms_context *yfms                                   );
+void yfs_fpln_fplnsync(yfms_context *yfms                                   );
+void yfs_fpln_fplnupdt(yfms_context *yfms                                   );
+void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert);
 
 #endif /* YFS_FPLN_H */
