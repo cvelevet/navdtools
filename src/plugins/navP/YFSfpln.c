@@ -735,6 +735,7 @@ static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
                     yfs_spad_reset(yfms, "MAX 20 USER WPTS", -1); return NULL; // TODO: wording
                 }
                 snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "PBD%02d", yfms->data.fpln.usridx + 1);
+                ndt_navdata_add_waypoint(yfms->ndt.ndb, wpt); // after setting ID (for correct sorting)
                 return (yfms->data.fpln.usrwpt[yfms->data.fpln.usridx++] = wpt);
             }
         }
@@ -768,6 +769,7 @@ static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
                     yfs_spad_reset(yfms, "MAX 20 USER WPTS", -1); return NULL; // TODO: wording
                 }
                 snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "PBX%02d", yfms->data.fpln.usridx + 1);
+                ndt_navdata_add_waypoint(yfms->ndt.ndb, wpt); // after setting ID (for correct sorting)
                 return (yfms->data.fpln.usrwpt[yfms->data.fpln.usridx++] = wpt);
             }
         }
@@ -833,6 +835,11 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             {
                 // keep the user-defined waypoint list lean & tidy when possible
                 // we cannot touch a waypoint halfway, but we can clear the last
+                if (yfms->data.prog.fix == leg->dst)
+                {
+                    yfms->data.prog.fix = NULL;
+                }
+                ndt_navdata_rem_waypoint(yfms->ndt.ndb, leg->dst);
                 ndt_waypoint_close(&yfms->data.fpln.usrwpt[--yfms->data.fpln.usridx]);
             }
             if (ndt_flightplan_remove_leg(fpl_getfplan_for_leg(yfms, leg), leg))

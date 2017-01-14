@@ -51,6 +51,8 @@ typedef struct ndt_navdatabase
 ndt_navdatabase* ndt_navdatabase_init (const char      *root, ndt_navdataformat fmt);
 void             ndt_navdatabase_close(ndt_navdatabase **ptr                       );
 
+void          ndt_navdata_add_waypoint(ndt_navdatabase *ndb, ndt_waypoint *wpt                                                                                                        );
+void          ndt_navdata_rem_waypoint(ndt_navdatabase *ndb, ndt_waypoint *wpt                                                                                                        );
 ndt_airport*  ndt_navdata_get_airport (ndt_navdatabase *ndb, const char   *idt                                                                                                        );
 ndt_airport*  ndt_navdata_init_airport(ndt_navdatabase *ndb, ndt_airport  *apt                                                                                                        );
 ndt_airway*   ndt_navdata_get_airway  (ndt_navdatabase *ndb, const char   *idt, size_t        *idx                                                                                    );

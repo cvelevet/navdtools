@@ -1090,6 +1090,14 @@ int yfs_main_close(yfms_context **_yfms)
     }
 
     /* navigation */
+    for (int i = 0; i < 20; i++)
+    {
+        if (yfms->data.fpln.usrwpt[i])
+        {
+            ndt_navdata_rem_waypoint(yfms->ndt.ndb, yfms->data.fpln.usrwpt[i]);
+            ndt_waypoint_close(&yfms->data.fpln.usrwpt[i]);
+        }
+    }
     if (yfms->ndt.ndb)
     {
         ndt_navdatabase_close(&yfms->ndt.ndb);
