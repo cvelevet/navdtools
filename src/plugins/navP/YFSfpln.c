@@ -707,11 +707,29 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
     yfms->data.fpln.lg_idx = index; yfs_fpln_pageopen(yfms); return;
 }
 
+static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
+{
+    char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); ndt_waypoint *wpt;
+    char *suffix = buf, *prefix = strsep(&suffix, "/-");
+    if   (prefix == NULL || strnlen(prefix, 1) == 0)
+    {
+        yfs_spad_reset(yfms, "FORMAT ERROR", -1); return NULL;
+    }
+    // TODO: place/bearing/distance, place-bearing/place-bearing, along route, etc.
+    // TODO: disambiguation page
+    if ((wpt = ndt_navdata_get_wptnear2(yfms->ndt.ndb, prefix, NULL, yfms->data.aircraft_pos)) == NULL)
+    {
+        yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return NULL;
+    }
+    // TODO: latitude/longitude (after fixes, because 1234N etc.)
+    return wpt;
+}
+
 static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refcon)
 {
     if (key[0] == 0) // insert a waypoint, or open the lateral rev. page
     {
-        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); ndt_route_leg *leg;
+        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); ndt_route_leg *leg; ndt_waypoint *wpt;
         int index = key[1] == 5 ? yfms->data.fpln.dindex : fpl_getindex_for_line(yfms, key[1]);
         if (index < 0) // next waypoint is origin or invalid
         {
@@ -752,22 +770,14 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             yfms->data.fpln.mod.operation = YFS_FPLN_MOD_REMV;
             yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
         }
-        char *suffix = buf, *prefix = strsep(&suffix, "/-"); ndt_waypoint *wpt;
-        if   (prefix == NULL || strnlen(prefix, 1) == 0)
+        if ((wpt = get_waypoint_from_scratchpad(yfms)) == NULL)
         {
-            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
-        }
-        // TODO: place/bearing/distance, place-bearing/place-bearing, along route, etc.
-        // TODO: disambiguation page
-        if ((wpt = ndt_navdata_get_wptnear2(yfms->ndt.ndb, prefix, NULL, yfms->data.aircraft_pos)) == NULL)
-        {
-            yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return;
+            return;
         }
         if (wpt == leg->src || wpt == leg->dst) // duplicates easy to check here
         {
             yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
         }
-        // TODO: latitude/longitude (after fixes, because 1234N etc.)
         if (ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), wpt, leg, 0))
         {
             yfs_spad_reset(yfms, "UNKNOWN ERROR 3", COLR_IDX_ORANGE); return;
