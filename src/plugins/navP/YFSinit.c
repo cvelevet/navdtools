@@ -241,8 +241,15 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                     {
                         yfms->data.init.trans_l = ndt_distance_init (10000, NDT_ALTUNIT_FT);
                     }
+                    for (int i = 0; i < 20; i++)
+                    {
+                        if (yfms->data.fpln.usrwpt[i])
+                        {
+                            ndt_waypoint_close(&yfms->data.fpln.usrwpt[i]);
+                        }
+                    }
                     yfms->data.init.ialized       = 1;
-                    yfms->data.fpln.cuswpt        = 1;
+                    yfms->data.fpln.usridx        = 0;
                     yfms->data.fpln.lg_idx        = 0;
                     yfms->data.fpln.mod.operation = YFS_FPLN_MOD_INIT; yfs_fpln_fplnupdt(yfms);
                 }
