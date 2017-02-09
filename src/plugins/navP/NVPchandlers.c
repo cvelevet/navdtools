@@ -125,6 +125,7 @@ typedef struct
         NVP_ACF_ERJ1_4D = 0x0080000,
         NVP_ACF_SSJ1_RZ = 0x0100000,
         NVP_ACF_HA4T_RW = 0x0200000,
+        NVP_ACF_MD80_RO = 0x0400000,
     } atyp;
 #define NVP_ACF_MASK_FFR  0x0107010 // all FlightFactor addons
 #define NVP_ACF_MASK_FJS  0x0010140 // all of FlyJSim's addons
@@ -142,6 +143,8 @@ typedef struct
 #define NVP_ACF_MASK_767  0x0002000 // all B767 series aircraft
 #define NVP_ACF_MASK_777  0x0004000 // all B777 series aircraft
 #define NVP_ACF_MASK_EMB  0x00E0000 // all EMB* series aircraft
+#define NVP_ACF_MASK_MD8  0x0400000 // all MD80 series aircraft
+
     /*
      * Note to self: the QPAC plugin (at least A320) seems to overwrite radio
      * frequency datarefs with its own; I found the datarefs but they're not
@@ -982,6 +985,19 @@ int nvp_chandlers_update(void *inContext)
             ctx->atyp = NVP_ACF_EMBE_SS; // still an SSG E-Jet variant
             break;
         }
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("Rotate.MD-80.Core"))
+        {
+            if (!STRN_CASECMP_AUTO(xaircraft_desc_str, "Rotate MD-80"))
+            {
+                ndt_log("navP [info]: plane is Rotate McDonnell Douglas MD-88\n");
+                ctx->atyp = NVP_ACF_MD80_RO;
+                break;
+            }
+            print_acf_info(xaircraft_icao_code, xaircraft_tail_numb, xaircraft_auth_str, xaircraft_desc_str, acf_file);
+            ndt_log("navP [warning]: no aircraft type match despite plugin (MD-80.Core)\n");
+            ctx->atyp = NVP_ACF_MD80_RO; // still a Rotate addon
+            break;
+        }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim.sasl"))
         {
             if (!STRN_CASECMP_AUTO(xaircraft_auth_str, "JARDESIGN") &&
@@ -1213,6 +1229,12 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.disc.cc.name = "SSG/EJET/MCP/AP_COMM";
             ctx->athr.disc.cc.name = "SSG/EJET/MCP/AT_COMM";
             ctx->athr.toga.cc.name = "SSG/EJET/MCP/Toga";
+            break;
+
+        case NVP_ACF_MD80_RO:
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->athr.disc.cc.name = "Rotate/md80/autopilot/at_switch_off";
+            ctx->athr.toga.cc.name = "Rotate/md80/autopilot/to_ga_button";
             break;
 
         default:
@@ -2215,6 +2237,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 case NVP_ACF_A320_JD:
                 case NVP_ACF_A330_JD:
                 case NVP_ACF_B737_XG:
+                case NVP_ACF_MD80_RO:
                     cdu->i_disabled = 1; return 0; // custom FMS, but no popup/command
 
                 case NVP_ACF_EMBE_SS:
@@ -2792,6 +2815,23 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
             _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+            break;
+
+        case NVP_ACF_MD80_RO:
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/panel_brightness_ratio")))
+            {
+                float panel_brightness_ratio[2] = { 0.5f, .25f, };
+                XPLMSetDatavf(d_ref, &panel_brightness_ratio[0], 1, 1);             // Inst. lights intensity control
+                XPLMSetDatavf(d_ref, &panel_brightness_ratio[1], 3, 1);             // Flood lights intensity control
+            }
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/instrument_brightness_ratio")))
+            {
+                float instrument_brightness_ratio[1] = { 1.0f, };
+                XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 0, 1);        // LED readouts intensity control
+            }
+            _DO(1, XPLMSetDatai, 1, "Rotate/md80/misc/hide_yoke_button_clicked");
+            _DO(1, XPLMSetDatai, 2, "Rotate/md80/instruments/nav_display_range");
+            _DO(1, XPLMSetDatai, 2, "Rotate/md80/instruments/nav_display_mode");
             break;
 
         // Note: path always non-verbose (don't log warnings for unapplicable datarefs)
