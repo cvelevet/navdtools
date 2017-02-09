@@ -2797,27 +2797,73 @@ static int first_fcall_do(chandler_context *ctx)
         // Note: path always non-verbose (don't log warnings for unapplicable datarefs)
         case NVP_ACF_GENERIC:
             // datarefs: Aerobask
-            _DO(0, XPLMSetDatai, 1, "aerobask/E1000/yokeL_hidden");
-            _DO(0, XPLMSetDatai, 1, "aerobask/E1000/yokeR_hidden");
-            _DO(0, XPLMSetDatai, 0, "aerobask/E1000/reflections_skyview_on");
-            _DO(0, XPLMSetDatai, 0, "aerobask/E1000/reflections_windshield_on");
-            _DO(0, XPLMSetDatai, 1, "aerobask/victory/yokeL_hidden");
-            _DO(0, XPLMSetDatai, 1, "aerobask/victory/yokeR_hidden");
-            _DO(0, XPLMSetDatai, 0, "aerobask/victory/reflections_skyview_on");
-            _DO(0, XPLMSetDatai, 0, "aerobask/victory/reflections_windshield_on");
-            // GG, Lancair Legacy FG: it's actually off by default, the switch animation is just stupidly inverted…
-//          _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
+            _DO(0, XPLMSetDatai, 1, "sim/har/reflets");                             // LEG2: refl. off
+            _DO(0, XPLMSetDatai, 0, "sim/har/pitchservo");                          // LEG2: 500ft/min
+            _DO(0, XPLMSetDatai, 1, "aerobask/E1000/yokeL_hidden");                 // EPIC
+            _DO(0, XPLMSetDatai, 1, "aerobask/E1000/yokeR_hidden");                 // EPIC
+            _DO(0, XPLMSetDatai, 0, "aerobask/E1000/reflections_skyview_on");       // EPIC
+            _DO(0, XPLMSetDatai, 0, "aerobask/E1000/reflections_windshield_on");    // EPIC
+            _DO(0, XPLMSetDatai, 1, "aerobask/victory/yokeL_hidden");               // EVIC
+            _DO(0, XPLMSetDatai, 1, "aerobask/victory/yokeR_hidden");               // EVIC
+            _DO(0, XPLMSetDatai, 0, "aerobask/victory/reflections_skyview_on");     // EVIC
+            _DO(0, XPLMSetDatai, 0, "aerobask/victory/reflections_windshield_on");  // EVIC
             // datarefs: Alabeo, Carenado
-            _DO(0, XPLMSetDatai,     0, "thranda/views/InstRefl");                  // various aircraft
-            _DO(0, XPLMSetDatai,     0, "thranda/views/WindowRefl");                // various aircraft
-            _DO(0, XPLMSetDatai,     1, "thranda/cockpit/actuators/HideYokeL");     // various aircraft
-            _DO(0, XPLMSetDatai,     1, "thranda/cockpit/actuators/HideYokeR");     // various aircraft
-            _DO(0, XPLMSetDataf,  1.0f, "thranda/cockpit/actuators/VisorSwingL");   // TBM 850 & PC-12
-            _DO(0, XPLMSetDataf,  1.0f, "thranda/cockpit/actuators/VisorSwingR");   // TBM 850 & PC-12
-            _DO(0, XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideL");   // TBM 850 & PC-12
-            _DO(0, XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideR");   // TBM 850 & PC-12
-            _DO(0, XPLMSetDataf, -0.5f, "thranda/cockpit/actuators/VisorL");        // TBM 850 & PC-12
-            _DO(0, XPLMSetDataf, -0.5f, "thranda/cockpit/actuators/VisorR");        // TBM 850 & PC-12
+            _DO(0, XPLMSetDataf, 1.0f, "com/dkmp/PassengerDoorHandle");             // BE20
+            _DO(0, XPLMSetDataf, 1.0f, "com/dkmp/winglets");                        // BE20
+            _DO(0, XPLMSetDatai,    1, "com/dkmp/HideYokeL");                       // various aircraft
+            _DO(0, XPLMSetDatai,    1, "com/dkmp/HideYokeR");                       // various aircraft
+            _DO(0, XPLMSetDatai,    0, "thranda/views/InstRefl");                   // various aircraft
+            _DO(0, XPLMSetDatai,    0, "thranda/views/WindowRefl");                 // various aircraft
+            _DO(0, XPLMSetDatai,    0, "thranda/views/staticelements");             // various aircraft
+            _DO(0, XPLMSetDatai,    1, "thranda/cockpit/actuators/HideYokeL");      // various aircraft
+            _DO(0, XPLMSetDatai,    1, "thranda/cockpit/actuators/HideYokeR");      // various aircraft
+            if ((d_ref = XPLMFindDataRef("com/dkmp/WindowRefl")) &&
+                (xplmType_Int & XPLMGetDataRefTypes(d_ref)))
+            {
+                _DO(0, XPLMSetDatai,    0, "com/dkmp/InstrRefl");
+                _DO(0, XPLMSetDatai,    0, "com/dkmp/WindowRefl");
+            }
+            else if ((d_ref = XPLMFindDataRef("com/dkmp/windowrefl")))
+            {
+                if ((XPLMGetDataRefTypes(d_ref) & xplmType_Int))
+                {
+                    _DO(0, XPLMSetDatai,    0, "com/dkmp/windowrefl");
+                }
+                else
+                {
+                    _DO(0, XPLMSetDataf, 0.0f, "com/dkmp/windowrefl");
+                }
+            }
+            if ((d_ref = XPLMFindDataRef("com/dkmp/tintedwindows")))
+            {
+                if ((XPLMGetDataRefTypes(d_ref) & xplmType_Int))
+                {
+                    _DO(0, XPLMSetDatai,    0, "com/dkmp/tintedwindows");
+                }
+                else
+                {
+                    _DO(0, XPLMSetDataf, 0.0f, "com/dkmp/tintedwindows");
+                }
+            }
+            if (XPLMFindDataRef("com/dkmp/static") ||
+                XPLMFindDataRef("com/dkmp/staticelements"))
+            {
+                _DO(0, XPLMSetDatai, 1, "com/dkmp/cargopod");                       // C208
+                _DO(0, XPLMSetDatai, 1, "com/dkmp/VCWindows");                      // C208
+                _DO(0, XPLMSetDatai, 0, "com/dkmp/static");                         // various aircraft
+                _DO(0, XPLMSetDatai, 0, "com/dkmp/staticelements");                 // various aircraft
+                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/no_smoking");        // HideYokeL
+                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/fasten_seat_belts"); // HideYokeR
+            }
+            if (!strcasecmp(ctx->icao, "TBM8"))
+            {
+                _DO(0, XPLMSetDataf, -0.5f, "thranda/cockpit/actuators/VisorL");
+                _DO(0, XPLMSetDataf, -0.5f, "thranda/cockpit/actuators/VisorR");
+                _DO(0, XPLMSetDataf,  1.0f, "thranda/cockpit/actuators/VisorSwingL");
+                _DO(0, XPLMSetDataf,  1.0f, "thranda/cockpit/actuators/VisorSwingR");
+                _DO(0, XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideL");
+                _DO(0, XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideR");
+            }
             // datarefs: DDenn Challenger 300
             _DO(0, XPLMSetDatai, 1, "cl300/fms/alt_rep");
             _DO(0, XPLMSetDatai, 1, "cl300/hide_pilots");
