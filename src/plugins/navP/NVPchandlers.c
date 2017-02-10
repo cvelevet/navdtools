@@ -2875,10 +2875,10 @@ static int first_fcall_do(chandler_context *ctx)
             if ((d_ref = XPLMFindDataRef("com/dkmp/WindowRefl")) &&
                 (xplmType_Int & XPLMGetDataRefTypes(d_ref)))
             {
-                _DO(0, XPLMSetDatai,    0, "com/dkmp/InstrRefl");
-                _DO(0, XPLMSetDatai,    0, "com/dkmp/WindowRefl");
+                _DO(0, XPLMSetDatai, 0, "com/dkmp/InstrRefl");
+                _DO(0, XPLMSetDatai, 0, "com/dkmp/WindowRefl");
             }
-            else if ((d_ref = XPLMFindDataRef("com/dkmp/windowrefl")))
+            else if (((d_ref = XPLMFindDataRef("com/dkmp/windowrefl"))))
             {
                 if ((XPLMGetDataRefTypes(d_ref) & xplmType_Int))
                 {
