@@ -126,6 +126,7 @@ typedef struct
         NVP_ACF_SSJ1_RZ = 0x0100000,
         NVP_ACF_HA4T_RW = 0x0200000,
         NVP_ACF_MD80_RO = 0x0400000,
+        NVP_ACF_PC12_CA = 0x0800000,
     } atyp;
 #define NVP_ACF_MASK_FFR  0x0107010 // all FlightFactor addons
 #define NVP_ACF_MASK_FJS  0x0010140 // all of FlyJSim's addons
@@ -1065,6 +1066,13 @@ int nvp_chandlers_update(void *inContext)
             {
                 ndt_log("navP [info]: plane is RWDesigns Hawker 4000\n");
                 ctx->atyp = NVP_ACF_HA4T_RW;
+                break;
+            }
+            if (!STRN_CASECMP_AUTO(xaircraft_auth_str, "Carenado") &&
+                !STRN_CASECMP_AUTO(xaircraft_desc_str, "Pilatus PC12"))
+            {
+                ndt_log("navP [info]: plane is Carenado Pilatus PC-12\n");
+                ctx->atyp = NVP_ACF_PC12_CA;
                 break;
             }
             // fall through
@@ -2834,8 +2842,15 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 2, "Rotate/md80/instruments/nav_display_mode");
             break;
 
-        // Note: path always non-verbose (don't log warnings for unapplicable datarefs)
+        case NVP_ACF_PC12_CA: // Carenado PC-12: tweaks to improve nose steering
+            _DO(0, XPLMSetDataf, .04f, "sim/aircraft/overflow/acf_roll_co");
+            _DO(0, XPLMSetDataf, 0.8f, "sim/aircraft/overflow/acf_brake_co");
+            _DO(0, XPLMSetDataf, -.3f, "sim/aircraft/overflow/acf_cgZ_fwd");
+            _DO(0, XPLMSetDataf, -.2f, "sim/flightmodel/misc/cgz_ref_to_default");
+            _DO(0, XPLMSetDataf, .01f, "sim/aircraft/overflow/acf_cgZ_aft");
+            // fall through
         case NVP_ACF_GENERIC:
+            // note: this path is always non-verbose (never warn for unapplicable datarefs)
             // datarefs: Aerobask
             _DO(0, XPLMSetDatai, 1, "sim/har/reflets");                             // LEG2: refl. off
             _DO(0, XPLMSetDatai, 0, "sim/har/pitchservo");                          // LEG2: 500ft/min
