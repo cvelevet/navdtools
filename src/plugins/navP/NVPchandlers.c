@@ -92,7 +92,7 @@ typedef struct
     int            i_disabled;
     int            i_value[2];
     XPLMDataRef    dataref[3];
-    XPLMCommandRef command[2];
+    XPLMCommandRef command[4];
 } refcon_cdu_pop;
 
 typedef struct
@@ -2372,23 +2372,52 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     // fall through
                 default:
                 {
+                    // reset all commands (default branch will always call all non-NULL commands)
+                    cdu->command[0] = cdu->command[1] = cdu->command[2] = cdu->command[3] = NULL;
+                    XPLMDataRef acf_descrip = XPLMFindDataRef("sim/aircraft/view/acf_descrip");
                     XPLMDataRef acft_author = XPLMFindDataRef("sim/aircraft/view/acf_author");
-                    if (acft_author)
+                    if (acf_descrip && acft_author)
                     {
-                        char author_name[41];
-                        dataref_read_string(acft_author, author_name,  sizeof(author_name));
+                        char descrip_str[41]; dataref_read_string(acf_descrip, descrip_str,  sizeof(descrip_str));
+                        char author_name[41]; dataref_read_string(acft_author, author_name,  sizeof(author_name));
                         if (!STRN_CASECMP_AUTO(author_name, "Aerobask"))
                         {
-                            if (NULL == (cdu->command[0] = XPLMFindCommand("aerobask/skyview/toggle_left")))
+                            if ((cdu->command[0] = XPLMFindCommand("aerobask/skyview/toggle_center")))
                             {
-                                cdu->i_disabled = 1; return 0; // GNS430, GNS530
+                                cdu->i_disabled = 0; break; // Dynon SkyView
                             }
-                            cdu->i_disabled = 0; break; // Dynon SkyView
+                            if (((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup"))  &&
+                                 (cdu->command[1] = XPLMFindCommand("sim/GPS/g430n2_popup"))) ||
+                                ((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup"))))
+                            {
+                                cdu->i_disabled = 0; break; // X-Plane GPS
+                            }
+                            cdu->i_disabled = 1; return 0; // no SkyView, no GPS
                         }
                         if (!STRN_CASECMP_AUTO(author_name, "Alabeo") ||
                             !STRN_CASECMP_AUTO(author_name, "Carenado"))
                         {
-                            cdu->i_disabled = 1; return 0; // GNS430, GNS530, G1000
+                            if (!STRN_CASECMP_AUTO(descrip_str, "Piper PA-34 Seneca V"))
+                            {
+                                if ((cdu->command[0] = XPLMFindCommand("xap/panels/2")) && // A/P
+                                    (cdu->command[1] = XPLMFindCommand("xap/panels/3")) && // G500
+                                    (cdu->command[2] = XPLMFindCommand("xap/panels/4")) && // XPDR
+                                    (cdu->command[3] = XPLMFindCommand("sim/GPS/g430n1_popup")))
+                                {
+                                    cdu->i_disabled = 0; break; // Carenado G500
+                                }
+                            }
+                            if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("Carenado.G1000.Database"))
+                            {
+                                cdu->i_disabled = 1; return 0; // Carenado G1000
+                            }
+                            if (((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup"))  &&
+                                 (cdu->command[1] = XPLMFindCommand("sim/GPS/g430n2_popup"))) ||
+                                ((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup"))))
+                            {
+                                cdu->i_disabled = 0; break; // X-Plane GPS
+                            }
+                            cdu->i_disabled = 1; return 0; // no G500/G1000, GPS
                         }
                         if (!STRN_CASECMP_AUTO(author_name, "Denis 'ddenn' Krupin"))
                         {
@@ -2465,7 +2494,10 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 // fall through
             default:
-                XPLMCommandOnce(cdu->command[0]); // single command (toggle)
+                if (cdu->command[0]) XPLMCommandOnce(cdu->command[0]);
+                if (cdu->command[1]) XPLMCommandOnce(cdu->command[1]);
+                if (cdu->command[2]) XPLMCommandOnce(cdu->command[2]);
+                if (cdu->command[3]) XPLMCommandOnce(cdu->command[3]);
                 return 0;
         }
     }
