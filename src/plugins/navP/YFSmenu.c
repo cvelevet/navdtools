@@ -19,6 +19,7 @@
  */
 
 #include <ctype.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -372,7 +373,10 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         }
         acf_roll_co += 0.0125f;
     }
-    XPLMSetDataf(yfms->xpl.tire.acf_roll_co, acf_roll_co);
+    if (fabsf(acf_roll_co - XPLMGetDataf(yfms->xpl.tire.acf_roll_co)) > 0.01f)
+    {
+        XPLMSetDataf(yfms->xpl.tire.acf_roll_co, acf_roll_co);
+    }
 
     /* every 1/4 second should (almost) not be perceivable by users */
     return .25f;
