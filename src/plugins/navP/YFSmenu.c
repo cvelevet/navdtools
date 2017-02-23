@@ -357,6 +357,23 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         }
     }
 
+    /* increase tire friction at low speeds */
+    float groundspeed = XPLMGetDataf(yfms->xpl.tire.groundspeed);
+    float acf_roll_co = yfms->xpl.tire.default_roll_coef;
+    if (groundspeed < 30.0f) // ~60 knots
+    {
+        if (groundspeed < 20.0f) // ~40 knots
+        {
+            if (groundspeed < 10.0f) // ~20 knots
+            {
+                acf_roll_co += 0.0250f;
+            }
+            acf_roll_co += 0.0125f;
+        }
+        acf_roll_co += 0.0125f;
+    }
+    XPLMSetDataf(yfms->xpl.tire.acf_roll_co, acf_roll_co);
+
     /* every 1/4 second should (almost) not be perceivable by users */
     return .25f;
 }

@@ -2938,10 +2938,8 @@ static int first_fcall_do(chandler_context *ctx)
             break;
 
         case NVP_ACF_PC12_CA: // Carenado PC-12: tweaks to improve nose steering
-            _DO(0, XPLMSetDataf, .04f, "sim/aircraft/overflow/acf_roll_co");
-            _DO(0, XPLMSetDataf, 0.8f, "sim/aircraft/overflow/acf_brake_co");
-            _DO(0, XPLMSetDataf, -.3f, "sim/aircraft/overflow/acf_cgZ_fwd");
-            _DO(0, XPLMSetDataf, -.2f, "sim/flightmodel/misc/cgz_ref_to_default");
+            _DO(0, XPLMSetDataf, -.2f, "sim/aircraft/overflow/acf_cgZ_fwd");
+            _DO(0, XPLMSetDataf, -.1f, "sim/flightmodel/misc/cgz_ref_to_default");
             _DO(0, XPLMSetDataf, .01f, "sim/aircraft/overflow/acf_cgZ_aft");
             // fall through
         case NVP_ACF_GENERIC:

@@ -1029,6 +1029,12 @@ void* yfs_main_init(void)
         ndt_log("YFMS [error]: could not load aircraft-related datarefs and commands\n");
         goto fail;
     }
+    if ((yfms->xpl.tire.groundspeed                = XPLMFindDataRef("sim/flightmodel/position/groundspeed"                         )) == NULL ||
+        (yfms->xpl.tire.acf_roll_co                = XPLMFindDataRef("sim/aircraft/overflow/acf_roll_co"                            )) == NULL)
+    {
+        ndt_log("YFMS [error]: could not load tire-related datarefs\n");
+        goto fail;
+    }
 
     /* we have a very useful key sniffer */
     if ((yfms->mwindow.ks_rgstrd = XPLMRegisterKeySniffer(&yfs_keysniffer, 1, yfms)) == 0)
