@@ -163,6 +163,10 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
                 nvp_menu_reset     (navpmenu_context);
                 yfs_menu_resetall  (navpyfms_context);
                 nvp_chandlers_reset(chandler_context);
+                if (navpyfms_context && navpyfms_context->xpl.tire.acf_roll_co)
+                {
+                    navpyfms_context->xpl.tire.default_roll_coef = -1;
+                }
             }
             break;
 
@@ -180,7 +184,9 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
         case XPLM_MSG_PLANE_UNLOADED:
             if (inParam == XPLM_USER_AIRCRAFT) // user's plane changed
             {
-                if (navpyfms_context && navpyfms_context->xpl.tire.acf_roll_co)
+                if (navpyfms_context &&
+                    navpyfms_context->xpl.tire.acf_roll_co &&
+                    navpyfms_context->xpl.tire.default_roll_coef > 0)
                 {
                      XPLMSetDataf(navpyfms_context->xpl.tire.acf_roll_co,
                                   navpyfms_context->xpl.tire.default_roll_coef);
@@ -198,7 +204,9 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
                 nvp_chandlers_update(chandler_context);
                 yfs_idnt_pageupdt   (navpyfms_context);
                 nvp_menu_setup      (navpmenu_context);
-                if (navpyfms_context && navpyfms_context->xpl.tire.acf_roll_co)
+                if (navpyfms_context &&
+                    navpyfms_context->xpl.tire.acf_roll_co &&
+                    navpyfms_context->xpl.tire.default_roll_coef < 0)
                 {
                     navpyfms_context->xpl.tire.default_roll_coef =
                     XPLMGetDataf(navpyfms_context->xpl.tire.acf_roll_co);
