@@ -548,8 +548,11 @@ void* nvp_chandlers_init(void)
     ctx->bking.max.cb.command = XPLMCreateCommand("navP/brakes/maximum", "maximum braking action");
     ctx->bking.reg.cb.command = XPLMCreateCommand("navP/brakes/regular", "regular braking action");
     ctx->bking.rc_brk.p_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/parking_brake_ratio");
-    ctx->bking.rc_brk.l_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/left_brake_ratio");
-    ctx->bking.rc_brk.r_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/right_brake_ratio");
+//  // "correct" controls don't work w/some Carenado aircraft, so we use the fl/model directly
+//  ctx->bking.rc_brk.r_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/right_brake_ratio");
+//  ctx->bking.rc_brk.l_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/left_brake_ratio");
+    ctx->bking.rc_brk.l_b_rat = XPLMFindDataRef  ("sim/flightmodel/controls/l_brake_add");
+    ctx->bking.rc_brk.r_b_rat = XPLMFindDataRef  ("sim/flightmodel/controls/r_brake_add");
     if (!ctx->bking.tur.cb.command ||
         !ctx->bking.prk.cb.command || !ctx->bking.off.cb.command                      ||
         !ctx->bking.max.cb.command || !ctx->bking.reg.cb.command                      ||
@@ -1549,12 +1552,12 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     switch (inPhase)
     {
         case xplm_CommandBegin:
-            XPLMSetDataf(rcb->l_b_rat, 0.9f);
-            XPLMSetDataf(rcb->r_b_rat, 0.9f);
+            XPLMSetDataf(rcb->l_b_rat, .75f);
+            XPLMSetDataf(rcb->r_b_rat, .75f);
             break;
         case xplm_CommandContinue:
-            XPLMSetDataf(rcb->l_b_rat, 0.9f);
-            XPLMSetDataf(rcb->r_b_rat, 0.9f);
+//          XPLMSetDataf(rcb->l_b_rat, .75f);
+//          XPLMSetDataf(rcb->r_b_rat, .75f);
             break;
         case xplm_CommandEnd:
         default:
@@ -1601,8 +1604,8 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             XPLMSetDataf(rcb->r_b_rat, .25f);
             break;
         case xplm_CommandContinue:
-            XPLMSetDataf(rcb->l_b_rat, .25f);
-            XPLMSetDataf(rcb->r_b_rat, .25f);
+//          XPLMSetDataf(rcb->l_b_rat, .25f);
+//          XPLMSetDataf(rcb->r_b_rat, .25f);
             break;
         case xplm_CommandEnd:
         default:
