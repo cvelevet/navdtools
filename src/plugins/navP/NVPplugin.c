@@ -212,6 +212,16 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
                     XPLMGetDataf(navpyfms_context->xpl.tire.acf_roll_co);
                     ndt_log("navP [XPluginReceiveMessage]: acf_roll_co %.3lf\n",
                             navpyfms_context->xpl.tire.default_roll_coef);
+                    /*
+                     * Tire friction & aircraft lateral/ground control, speed-based, inremental:
+                     * -> increase friction at low speeds, but avoid acting like a parking brake
+                     * -> not yet successful -> disabled, see yfs_flight_loop_cback() in YFSmenu
+                     *
+                     * Instead, simply increase friction a bit for now, as speed-based variable
+                     * friction coefficientss behave slightly erratically with some aircraft :-(
+                     */
+                    XPLMSetDataf(navpyfms_context->xpl.tire.acf_roll_co,
+                                 navpyfms_context->xpl.tire.default_roll_coef + 0.0125f);
                 }
             }
             break;
