@@ -258,8 +258,9 @@ typedef struct
             XPLMDataRef precp_percent;
             XPLMDataRef thndr_percent;
             XPLMDataRef turbl_percent;
-            XPLMDataRef windspd[3][2];
+            XPLMDataRef runway_frictn;
             XPLMDataRef turbulence[3];
+            XPLMDataRef windspd[3][2];
         } weather;
     } data;
 } menu_context;
@@ -380,15 +381,16 @@ void* nvp_menu_init(void)
         get_dataref(&ctx->data.weather.precp_percent, "sim/weather/rain_percent"            ) ||
         get_dataref(&ctx->data.weather.thndr_percent, "sim/weather/thunderstorm_percent"    ) ||
         get_dataref(&ctx->data.weather.turbl_percent, "sim/weather/wind_turbulence_percent" ) ||
+        get_dataref(&ctx->data.weather.runway_frictn, "sim/weather/runway_friction"         ) ||
+        get_dataref(&ctx->data.weather.turbulence[0], "sim/weather/turbulence[0]"           ) ||
+        get_dataref(&ctx->data.weather.turbulence[1], "sim/weather/turbulence[1]"           ) ||
+        get_dataref(&ctx->data.weather.turbulence[1], "sim/weather/turbulence[2]"           ) ||
         get_dataref(&ctx->data.weather.windspd[0][0], "sim/weather/wind_speed_kt[0]"        ) ||
         get_dataref(&ctx->data.weather.windspd[1][0], "sim/weather/wind_speed_kt[1]"        ) ||
         get_dataref(&ctx->data.weather.windspd[2][0], "sim/weather/wind_speed_kt[2]"        ) ||
         get_dataref(&ctx->data.weather.windspd[0][1], "sim/weather/shear_speed_kt[0]"       ) ||
         get_dataref(&ctx->data.weather.windspd[1][1], "sim/weather/shear_speed_kt[1]"       ) ||
-        get_dataref(&ctx->data.weather.windspd[2][1], "sim/weather/shear_speed_kt[2]"       ) ||
-        get_dataref(&ctx->data.weather.turbulence[0], "sim/weather/turbulence[0]"           ) ||
-        get_dataref(&ctx->data.weather.turbulence[1], "sim/weather/turbulence[1]"           ) ||
-        get_dataref(&ctx->data.weather.turbulence[2], "sim/weather/turbulence[2]"           ))
+        get_dataref(&ctx->data.weather.windspd[2][1], "sim/weather/shear_speed_kt[2]"       ))
     {
         goto fail;
     }
@@ -1309,6 +1311,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
                 XPLMSetDataf   (ctx->data.weather.turbulence[0],     0.0f); // none
                 XPLMSetDataf   (ctx->data.weather.turbulence[1],     0.0f); // none
                 XPLMSetDataf   (ctx->data.weather.turbulence[2],     0.0f); // none
+                XPLMSetDataf   (ctx->data.weather.runway_frictn,     0.0f); // dry
                 XPLMCommandOnce(ctx->data.weather.weather_rg);
                 XPLMSpeakString("Real weather disabled\n");
                 break;
