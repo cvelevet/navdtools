@@ -25,6 +25,7 @@
 
 #include "XPLM/XPLMDataAccess.h"
 #include "XPLM/XPLMDisplay.h"
+#include "XPLM/XPLMMenus.h"
 #include "XPLM/XPLMPlanes.h"
 #include "XPLM/XPLMPlugin.h"
 #include "XPLM/XPLMProcessing.h"
@@ -33,6 +34,7 @@
 #include "common/common.h"
 
 #include "NVPchandlers.h"
+#include "NVPmenu.h"
 
 typedef struct
 {
@@ -100,6 +102,8 @@ typedef struct
     int initialized;
     int first_fcall;
     int kill_daniel;
+
+    void *menu_context;
 
     char icao[5]; // addon's ICAO aircraft type designator
     int old_atyp;
@@ -842,6 +846,15 @@ int nvp_chandlers_reset(void *inContext)
 
     /* all good */
     ndt_log("navP [info]: nvp_chandlers_reset OK\n"); return (ctx->initialized = 0);
+}
+
+void nvp_chandlers_setmnu(void *inContext, void *inMenu)
+{
+    chandler_context *ctx = inContext;
+    if (ctx)
+    {
+        ctx->menu_context = inMenu;
+    }
 }
 
 static void print_acf_info(char *xaircraft_icao_code,
@@ -3097,6 +3110,10 @@ static int first_fcall_do(chandler_context *ctx)
                 XPLMSetDataf(rvr, new_v_ratio);
             }
         }
+    }
+    if (ctx->menu_context)
+    {
+        nvp_menu_tachy(ctx->menu_context, xplm_Menu_Checked);
     }
     return (ctx->first_fcall = 0);
 }

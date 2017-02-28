@@ -1322,6 +1322,21 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
     }
 }
 
+void nvp_menu_tachy(void *_menu_context, int set_state)
+{
+    menu_context *ctx = _menu_context;
+    if (ctx)
+    {
+        XPLMMenuCheck state = xplm_Menu_Checked;
+        XPLMCheckMenuItemState(ctx->id, ctx->items.speedbooster.id, &state);
+        if (state != set_state)
+        {
+            return menu_handler(ctx, &ctx->items.speedbooster);
+        }
+    }
+    return;
+}
+
 static char* string4speak(char *string, size_t alloc, int text_only)
 {
     char   buffer[2048];

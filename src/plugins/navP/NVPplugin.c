@@ -113,6 +113,7 @@ PLUGIN_API int XPluginEnable(void)
     {
         return 0; // menu creation failed :(
     }
+    nvp_chandlers_setmnu(chandler_context, navpmenu_context);
 
     /* and an FMS, too! */
     if ((navpyfms_context = yfs_main_init()) == NULL)
@@ -130,6 +131,7 @@ PLUGIN_API void XPluginDisable(void)
     nvp_chandlers_reset(chandler_context);
 
     /* kill the menu */
+    nvp_chandlers_setmnu(chandler_context, NULL);
     if (navpmenu_context) nvp_menu_close(&navpmenu_context);
 
     /* and the FMS */
