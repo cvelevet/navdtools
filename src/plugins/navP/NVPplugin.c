@@ -108,6 +108,7 @@ PLUGIN_API int XPluginEnable(void)
     {
         return 0; // menu creation failed :(
     }
+    nvp_chandlers_setmnu(chandler_context, navpmenu_context);
 
     /* all good */
     XPLMDebugString("navP [info]: XPluginEnable OK\n"); return 1;
@@ -119,6 +120,7 @@ PLUGIN_API void XPluginDisable(void)
     nvp_chandlers_reset(chandler_context);
 
     /* kill the menu */
+    nvp_chandlers_setmnu(chandler_context, NULL);
     if (navpmenu_context) nvp_menu_close(&navpmenu_context);
 
     /* all good */
