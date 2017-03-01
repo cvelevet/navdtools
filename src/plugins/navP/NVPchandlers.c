@@ -333,6 +333,12 @@ typedef struct
         {
             chandler_callback cb;
             chandler_command  cc;
+        } conn;
+
+        struct
+        {
+            chandler_callback cb;
+            chandler_command  cc;
         } disc;
     } otto;
 
@@ -691,10 +697,12 @@ void* nvp_chandlers_init(void)
     }
 
     /* Custom commands: autopilot and autothrottle */
+    ctx->otto.conn.cb.command = XPLMCreateCommand("navP/switches/ap_conn", "A/P engagement");
     ctx->otto.disc.cb.command = XPLMCreateCommand("navP/switches/ap_disc", "A/P disconnect");
     ctx->athr.disc.cb.command = XPLMCreateCommand("navP/switches/at_disc", "A/T disconnect");
     ctx->athr.toga.cb.command = XPLMCreateCommand("navP/switches/at_toga", "A/T takeoff/GA");
-    if (!ctx->otto.disc.cb.command ||
+    if (!ctx->otto.conn.cb.command ||
+        !ctx->otto.disc.cb.command ||
         !ctx->athr.disc.cb.command ||
         !ctx->athr.toga.cb.command)
     {
@@ -702,6 +710,7 @@ void* nvp_chandlers_init(void)
     }
     else
     {
+        REGISTER_CHANDLER(ctx->otto.conn.cb, chandler_swtch, 0, &ctx->otto.conn.cc);
         REGISTER_CHANDLER(ctx->otto.disc.cb, chandler_swtch, 0, &ctx->otto.disc.cc);
         REGISTER_CHANDLER(ctx->athr.disc.cb, chandler_swtch, 0, &ctx->athr.disc.cc);
         REGISTER_CHANDLER(ctx->athr.toga.cb, chandler_swtch, 0, &ctx->athr.toga.cc);
@@ -766,6 +775,7 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->trims.ail.rt.cb);
     UNREGSTR_CHANDLER(ctx->trims.rud.lt.cb);
     UNREGSTR_CHANDLER(ctx->trims.rud.rt.cb);
+    UNREGSTR_CHANDLER(ctx->otto.   conn.cb);
     UNREGSTR_CHANDLER(ctx->otto.   disc.cb);
     UNREGSTR_CHANDLER(ctx->athr.   disc.cb);
     UNREGSTR_CHANDLER(ctx->athr.   toga.cb);
@@ -833,7 +843,8 @@ int nvp_chandlers_reset(void *inContext)
     ctx->acfspec.x738.ready = 0;
     ctx->athr.disc.cc.name  = NULL;
     ctx->athr.toga.cc.name  = NULL;
-    ctx->otto.disc.cc.name  = NULL;
+    ctx->otto.conn.cc.name  = NULL;
+    ctx->athr.disc.cc.name  = NULL;
 
     /* Reset engine count */
     ctx->revrs.n_engines = -1;
@@ -1219,22 +1230,30 @@ int nvp_chandlers_update(void *inContext)
     switch (ctx->atyp)
     {
         case NVP_ACF_A320_JD:
-        case NVP_ACF_A320_QP:
         case NVP_ACF_A330_JD:
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+/*untested*/ctx->otto.conn.cc.name = "sim/autopilot/fdir_servos_up_one";
+            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+            break;
+
+        case NVP_ACF_A320_QP:
         case NVP_ACF_A330_RW:
         case NVP_ACF_A350_FF:
         case NVP_ACF_A380_PH:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+            ctx->otto.conn.cc.name = "airbus_qpac/ap1_push";
             break;
 
         case NVP_ACF_B737_EA:
             ctx->otto.disc.cc.name = "x737/yoke/capt_AP_DISENG_BTN";
             ctx->athr.disc.cc.name = "x737/mcp/ATHR_ARM_TOGGLE";
             ctx->athr.toga.cc.name = "x737/mcp/TOGA_TOGGLE";
+            ctx->otto.conn.cc.name = "x737/mcp/CMDA_TOGGLE";
             break;
 
         case NVP_ACF_B737_XG:
+            ctx->otto.conn.cc.name = "ixeg/733/autopilot/AP_A_cmd_toggle";
             ctx->otto.disc.cc.name = "ixeg/733/autopilot/AP_disengage";
             ctx->athr.disc.cc.name = "ixeg/733/autopilot/at_disengage";
             ctx->athr.toga.cc.name = "sim/engines/TOGA_power";
@@ -1254,21 +1273,37 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case NVP_ACF_EMBE_SS:
+            ctx->otto.conn.cc.name = "SSG/EJET/MCP/AP_COMM";
             ctx->otto.disc.cc.name = "SSG/EJET/MCP/AP_COMM";
             ctx->athr.disc.cc.name = "SSG/EJET/MCP/AT_COMM";
             ctx->athr.toga.cc.name = "SSG/EJET/MCP/Toga";
             break;
 
-        case NVP_ACF_MD80_RO:
+        case NVP_ACF_EMBE_XC:
+        case NVP_ACF_ERJ1_4D:
+        case NVP_ACF_HA4T_RW:
+        case NVP_ACF_SSJ1_RZ:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->athr.disc.cc.name = "Rotate/md80/autopilot/at_switch_off";
-            ctx->athr.toga.cc.name = "Rotate/md80/autopilot/to_ga_button";
-            break;
-
-        default:
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->otto.conn.cc.name = "sim/autopilot/fdir_servos_up_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             ctx->athr.toga.cc.name = "sim/autopilot/autothrottle_on";
+            break;
+
+        case NVP_ACF_MD80_RO:
+            ctx->athr.disc.cc.name = "Rotate/md80/autopilot/at_switch_off";
+            ctx->athr.toga.cc.name = "Rotate/md80/autopilot/to_ga_button";
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->otto.conn.cc.name = "sim/autopilot/fdir_servos_up_one";
+            break;
+
+        case NVP_ACF_B737_FJ:
+        case NVP_ACF_PC12_CA:
+        case NVP_ACF_GENERIC:
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->otto.conn.cc.name = "sim/autopilot/fdir_servos_up_one";
+            break;
+
+        default: // not generic but no custom commands
             break;
     }
 
