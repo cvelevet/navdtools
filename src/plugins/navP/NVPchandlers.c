@@ -844,7 +844,7 @@ int nvp_chandlers_reset(void *inContext)
     ctx->athr.disc.cc.name  = NULL;
     ctx->athr.toga.cc.name  = NULL;
     ctx->otto.conn.cc.name  = NULL;
-    ctx->athr.disc.cc.name  = NULL;
+    ctx->otto.disc.cc.name  = NULL;
 
     /* Reset engine count */
     ctx->revrs.n_engines = -1;
