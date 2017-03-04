@@ -306,9 +306,17 @@ typedef struct
             chandler_callback cb;
         } rev;
 
+        struct
+        {
+            chandler_callback cb;
+        } pff;
+
         int         n_engines;
         XPLMDataRef acf_numng;
         XPLMDataRef prop_mode;
+        XPLMDataRef propspeed;
+        XPLMDataRef prop_maxi;
+        XPLMCommandRef propup;
     } revrs;
 
     struct
@@ -487,6 +495,7 @@ static int  chandler_rt_lt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, v
 static int  chandler_rt_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_r_pff(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_sview(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_qlprv(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -633,10 +642,15 @@ void* nvp_chandlers_init(void)
     /* Custom commands: reverser control */
     ctx->revrs.fwd.cb.command = XPLMCreateCommand("navP/thrust/forward", "stow thrust reversers");
     ctx->revrs.rev.cb.command = XPLMCreateCommand("navP/thrust/reverse", "deploy thrust reversers");
+    ctx->revrs.pff.cb.command = XPLMCreateCommand("navP/thrust/propfin", "all props to full fine");
+    ctx->revrs.propup         = XPLMFindCommand  ("sim/engines/prop_up");
     ctx->revrs.acf_numng      = XPLMFindDataRef  ("sim/aircraft/engine/acf_num_engines");
     ctx->revrs.prop_mode      = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/prop_mode");
+    ctx->revrs.prop_maxi      = XPLMFindDataRef  ("sim/aircraft/controls/acf_RSC_redline_prp");
+    ctx->revrs.propspeed      = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/prop_rotation_speed_rad_sec_all");
     if (!ctx->revrs.fwd.cb.command || !ctx->revrs.rev.cb.command ||
-        !ctx->revrs.acf_numng      || !ctx->revrs.prop_mode)
+        !ctx->revrs.propup         || !ctx->revrs.acf_numng      ||
+        !ctx->revrs.prop_mode      || !ctx->revrs.prop_maxi      || !ctx->revrs.propspeed)
     {
         goto fail;
     }
@@ -644,6 +658,7 @@ void* nvp_chandlers_init(void)
     {
         REGISTER_CHANDLER(ctx->revrs.fwd.cb, chandler_r_fwd, 0, ctx);
         REGISTER_CHANDLER(ctx->revrs.rev.cb, chandler_r_rev, 0, ctx);
+        REGISTER_CHANDLER(ctx->revrs.pff.cb, chandler_r_pff, 0, ctx);
     }
 
     /* Custom commands: quick look views */
@@ -775,6 +790,9 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->trims.ail.rt.cb);
     UNREGSTR_CHANDLER(ctx->trims.rud.lt.cb);
     UNREGSTR_CHANDLER(ctx->trims.rud.rt.cb);
+    UNREGSTR_CHANDLER(ctx->revrs.   fwd.cb);
+    UNREGSTR_CHANDLER(ctx->revrs.   rev.cb);
+    UNREGSTR_CHANDLER(ctx->revrs.   pff.cb);
     UNREGSTR_CHANDLER(ctx->otto.   conn.cb);
     UNREGSTR_CHANDLER(ctx->otto.   disc.cb);
     UNREGSTR_CHANDLER(ctx->athr.   disc.cb);
@@ -2003,7 +2021,7 @@ static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         ctx->revrs.n_engines = ctx->revrs.n_engines > 8 ? 8 : ctx->revrs.n_engines;
         ctx->revrs.n_engines = ctx->revrs.n_engines < 0 ? 0 : ctx->revrs.n_engines;
     }
-    if (ctx->revrs.n_engines >= 1)
+    if (inPhase == xplm_CommandEnd && ctx->revrs.n_engines >= 1)
     {
         XPLMSetDatavi(ctx->revrs.prop_mode, propmode_fwd_get(), 0, ctx->revrs.n_engines);
     }
@@ -2019,9 +2037,20 @@ static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         ctx->revrs.n_engines = ctx->revrs.n_engines > 8 ? 8 : ctx->revrs.n_engines;
         ctx->revrs.n_engines = ctx->revrs.n_engines < 0 ? 0 : ctx->revrs.n_engines;
     }
-    if (ctx->revrs.n_engines >= 1)
+    if (inPhase == xplm_CommandEnd && ctx->revrs.n_engines >= 1)
     {
         XPLMSetDatavi(ctx->revrs.prop_mode, propmode_rev_get(), 0, ctx->revrs.n_engines);
+    }
+    return 0;
+}
+
+static int chandler_r_pff(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    chandler_context *ctx = inRefcon;
+    if (inPhase == xplm_CommandEnd)
+    {
+        XPLMSetDataf   (ctx->revrs.propspeed, XPLMGetDataf(ctx->revrs.prop_maxi) - .01f);
+        XPLMCommandOnce(ctx->revrs.propup);
     }
     return 0;
 }
