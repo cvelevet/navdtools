@@ -2458,6 +2458,32 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                     cdu->i_disabled = 0; break; // Carenado G500
                                 }
                             }
+                            if (!STRN_CASECMP_AUTO(descrip_str, "C207 Skywagon "))
+                            {
+                                if ((cdu->command[0] = XPLMFindCommand("xap/panels/2")) && // A/P
+                                    (cdu->command[1] = XPLMFindCommand("xap/panels/3")) && // FF
+                                    (cdu->command[2] = XPLMFindCommand("sim/GPS/g430n1_popup")))
+                                {
+                                    cdu->i_disabled = 0; break; // X-Plane GPS
+                                }
+                            }
+                            if (!STRN_CASECMP_AUTO(descrip_str, "C340 ") ||
+                                !STRN_CASECMP_AUTO(descrip_str, "C404 Titan "))
+                            {
+                                if ((cdu->command[0] = XPLMFindCommand("xap/panels/2"))         && // A/P
+                                    (cdu->command[1] = XPLMFindCommand("sim/GPS/g430n1_popup")) &&
+                                    (cdu->command[2] = XPLMFindCommand("sim/GPS/g430n2_popup")))
+                                {
+                                    cdu->i_disabled = 0; break; // X-Plane GPS
+                                }
+                            }
+                            if (!STRN_CASECMP_AUTO(descrip_str, "C90 "))
+                            {
+                                if ((cdu->command[0] = XPLMFindCommand("xap/panels/2")))
+                                {
+                                    cdu->i_disabled = 0; break; // A/P only (interferes with GPS window)
+                                }
+                            }
                             if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("Carenado.G1000.Database"))
                             {
                                 cdu->i_disabled = 1; return 0; // Carenado G1000
@@ -3044,15 +3070,20 @@ static int first_fcall_do(chandler_context *ctx)
                     _DO(0, XPLMSetDataf, 0.0f, "com/dkmp/tintedwindows");
                 }
             }
-            if (XPLMFindDataRef("com/dkmp/static") ||
+            if (XPLMFindDataRef("com/dkmp/static")    ||
+                XPLMFindDataRef("thranda/views/bush") ||
                 XPLMFindDataRef("com/dkmp/staticelements"))
             {
-                _DO(0, XPLMSetDatai, 1, "com/dkmp/cargopod");                       // C208
+                _DO(0, XPLMSetDatai, 1, "thranda/views/bush");                      // C207
                 _DO(0, XPLMSetDatai, 1, "com/dkmp/VCWindows");                      // C208
+                _DO(0, XPLMSetDatai, 1, "com/dkmp/cargopod");                       // C208
                 _DO(0, XPLMSetDatai, 0, "com/dkmp/static");                         // various aircraft
                 _DO(0, XPLMSetDatai, 0, "com/dkmp/staticelements");                 // various aircraft
-                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/no_smoking");        // HideYokeL
-                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/fasten_seat_belts"); // HideYokeR
+                if (strcasecmp(ctx->icao, "C404"))
+                {
+                    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/no_smoking");        // HideYokeL
+                    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/fasten_seat_belts"); // HideYokeR
+                }
             }
             if (!strcasecmp(ctx->icao, "TBM8"))
             {
