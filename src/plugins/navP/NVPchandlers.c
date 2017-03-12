@@ -3169,22 +3169,52 @@ static int first_fcall_do(chandler_context *ctx)
         default:
             break;
     }
-    if (ctx->atyp != NVP_ACF_B737_EA && ctx->atyp != NVP_ACF_B737_XG)
+
+    /*
+     * Sound and related datarefs.
+     */
+    XPLMDataRef wxr, wvr, evr, gvr, rvr, pvr, fvr; float new_v_ratio;
+    if ((wxr = XPLMFindDataRef("sim/operation/sound/weather_volume_ratio")) &&
+        (wvr = XPLMFindDataRef("sim/operation/sound/warning_volume_ratio")) &&
+        (evr = XPLMFindDataRef( "sim/operation/sound/engine_volume_ratio")) &&
+        (gvr = XPLMFindDataRef( "sim/operation/sound/ground_volume_ratio")) &&
+        (rvr = XPLMFindDataRef(  "sim/operation/sound/radio_volume_ratio")) &&
+        (pvr = XPLMFindDataRef(   "sim/operation/sound/prop_volume_ratio")) &&
+        (fvr = XPLMFindDataRef(    "sim/operation/sound/fan_volume_ratio")))
     {
+#define TIM_ONLY
+#ifdef  TIM_ONLY
+        /*
+         * Default to 25% volume for all planes.
+         */
+        if (ctx->atyp == NVP_ACF_B737_XG)
+        {
+            XPLMSetDataf(rvr, 0.25f);
+        }
+        else
+        {
+            XPLMSetDataf(wxr, 0.25f);
+            XPLMSetDataf(wvr, 0.25f);
+            XPLMSetDataf(evr, 0.25f);
+            XPLMSetDataf(gvr, 0.25f);
+            XPLMSetDataf(pvr, 0.25f);
+            XPLMSetDataf(rvr, 0.25f);
+            XPLMSetDataf(fvr, 0.25f);
+        }
+        /*
+         * Slight frame rate bump, but it makes clouds a bit more transparent :|
+         */
+        if (ctx->menu_context)
+        {
+            nvp_menu_tachy(ctx->menu_context, xplm_Menu_Checked);
+        }
+#else
         /*
          * Some addons override X-Plane volume ratios, going as far as
          * muting the radios' volume in cold & dark (e.g. EADT's x737).
          */
-        XPLMDataRef wxr, wvr, evr, gvr, rvr, pvr, fvr;
-        if ((wxr = XPLMFindDataRef("sim/operation/sound/weather_volume_ratio")) &&
-            (wvr = XPLMFindDataRef("sim/operation/sound/warning_volume_ratio")) &&
-            (evr = XPLMFindDataRef( "sim/operation/sound/engine_volume_ratio")) &&
-            (gvr = XPLMFindDataRef( "sim/operation/sound/ground_volume_ratio")) &&
-            (rvr = XPLMFindDataRef(  "sim/operation/sound/radio_volume_ratio")) &&
-            (pvr = XPLMFindDataRef(   "sim/operation/sound/prop_volume_ratio")) &&
-            (fvr = XPLMFindDataRef(    "sim/operation/sound/fan_volume_ratio")))
+        if (ctx->atyp != NVP_ACF_B737_EA && ctx->atyp != NVP_ACF_B737_XG)
         {
-            float new_v_ratio;
             if (ctx->old_atyp == NVP_ACF_B737_XG)
             {
                 /*
@@ -3227,10 +3257,7 @@ static int first_fcall_do(chandler_context *ctx)
                 XPLMSetDataf(rvr, new_v_ratio);
             }
         }
-    }
-    if (ctx->menu_context)
-    {
-        nvp_menu_tachy(ctx->menu_context, xplm_Menu_Checked);
+#endif
     }
     return (ctx->first_fcall = 0);
 }
