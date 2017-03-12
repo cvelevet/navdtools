@@ -53,10 +53,6 @@ typedef struct
 typedef struct
 {
     XPLMDataRef p_b_rat;
-    XPLMDataRef l_b_ra1;
-    XPLMDataRef r_b_ra1;
-    XPLMDataRef l_b_ra2;
-    XPLMDataRef r_b_ra2;
 } refcon_braking;
 
 typedef struct
@@ -569,30 +565,10 @@ void* nvp_chandlers_init(void)
     ctx->bking.max.cb.command = XPLMCreateCommand("navP/brakes/maximum", "maximum braking action");
     ctx->bking.reg.cb.command = XPLMCreateCommand("navP/brakes/regular", "regular braking action");
     ctx->bking.rc_brk.p_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/parking_brake_ratio");
-    /*
-     * The following is UN-FUCKING-BELIEVABLE. Some Carenado planes refused to
-     * work with the default cockpit2 controls for toe brakes, thus I switched
-     * to braking directly using the flightmodel. A few days later, the exact
-     * addons that prompted the change refused to work with it, so now I must
-     * revert the change. WTF x1000, fuck my life over and over, et caetera.
-     *
-     * Just to be safe, I now write both datarefs, because the f/model one just
-     * started working again, I guess it depends in which order the aircraft is
-     * loaded (i.e. one dataref works depending on the aircraft I loaded before
-     * and the other dataref may work if the aircraft is loaded first). OMG!!!!
-     */
-    ctx->bking.rc_brk.l_b_ra2 = XPLMFindDataRef  ("sim/flightmodel/controls/l_brake_add");
-    ctx->bking.rc_brk.r_b_ra2 = XPLMFindDataRef  ("sim/flightmodel/controls/r_brake_add");
-    ctx->bking.rc_brk.l_b_ra1 = XPLMFindDataRef  ("sim/cockpit2/controls/left_brake_ratio");
-    ctx->bking.rc_brk.r_b_ra1 = XPLMFindDataRef  ("sim/cockpit2/controls/right_brake_ratio");
     if (!ctx->bking.tur.cb.command ||
-        !ctx->bking.prk.cb.command || !ctx->bking.off.cb.command                      ||
-        !ctx->bking.max.cb.command || !ctx->bking.reg.cb.command                      ||
-        !ctx->bking.rc_brk.p_b_rat || !XPLMCanWriteDataRef(ctx->bking.rc_brk.p_b_rat) ||
-        !ctx->bking.rc_brk.l_b_ra1 || !XPLMCanWriteDataRef(ctx->bking.rc_brk.l_b_ra1) ||
-        !ctx->bking.rc_brk.r_b_ra1 || !XPLMCanWriteDataRef(ctx->bking.rc_brk.r_b_ra1) ||
-        !ctx->bking.rc_brk.l_b_ra2 || !XPLMCanWriteDataRef(ctx->bking.rc_brk.l_b_ra2) ||
-        !ctx->bking.rc_brk.r_b_ra2 || !XPLMCanWriteDataRef(ctx->bking.rc_brk.r_b_ra2))
+        !ctx->bking.prk.cb.command || !ctx->bking.off.cb.command ||
+        !ctx->bking.max.cb.command || !ctx->bking.reg.cb.command ||
+        !ctx->bking.rc_brk.p_b_rat || !XPLMCanWriteDataRef(ctx->bking.rc_brk.p_b_rat))
     {
         goto fail;
     }
@@ -1601,6 +1577,7 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     chandler_context *ctx = inRefcon;
     refcon_braking   *rcb = &ctx->bking.rc_brk;
+    float p_b_rat = XPLMGetDataf(rcb->p_b_rat);
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
         if (ctx->acfspec.qpac.ready == 0)
@@ -1626,26 +1603,15 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         return 0;
     }
-    /*
-     * Using 75% of max. braking makes the command behave the same
-     * as brakes_regular, i.e. it doesn't unset the parking brake :-)
-     */
     switch (inPhase)
     {
         case xplm_CommandBegin:
-            XPLMSetDataf(rcb->l_b_ra1, .75f);
-            XPLMSetDataf(rcb->r_b_ra1, .75f);
-            XPLMSetDataf(rcb->l_b_ra2, .75f);
-            XPLMSetDataf(rcb->r_b_ra2, .75f);
-            break;
         case xplm_CommandContinue:
+            if (p_b_rat < .75f) XPLMSetDataf(rcb->p_b_rat, .75f);
             break;
         case xplm_CommandEnd:
         default:
-            XPLMSetDataf(rcb->l_b_ra1, 0.0f);
-            XPLMSetDataf(rcb->r_b_ra1, 0.0f);
-            XPLMSetDataf(rcb->l_b_ra2, 0.0f);
-            XPLMSetDataf(rcb->r_b_ra2, 0.0f);
+            if (p_b_rat < .76f) XPLMSetDataf(rcb->p_b_rat, 0.0f);
             break;
     }
     return 0;
@@ -1655,6 +1621,7 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     chandler_context *ctx = inRefcon;
     refcon_braking   *rcb = &ctx->bking.rc_brk;
+    float p_b_rat = XPLMGetDataf(rcb->p_b_rat);
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
         if (ctx->acfspec.qpac.ready == 0)
@@ -1683,19 +1650,12 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     switch (inPhase)
     {
         case xplm_CommandBegin:
-            XPLMSetDataf(rcb->l_b_ra1, .25f);
-            XPLMSetDataf(rcb->r_b_ra1, .25f);
-            XPLMSetDataf(rcb->l_b_ra2, .25f);
-            XPLMSetDataf(rcb->r_b_ra2, .25f);
-            break;
         case xplm_CommandContinue:
+            if (p_b_rat < .25f) XPLMSetDataf(rcb->p_b_rat, .25f);
             break;
         case xplm_CommandEnd:
         default:
-            XPLMSetDataf(rcb->l_b_ra1, 0.0f);
-            XPLMSetDataf(rcb->r_b_ra1, 0.0f);
-            XPLMSetDataf(rcb->l_b_ra2, 0.0f);
-            XPLMSetDataf(rcb->r_b_ra2, 0.0f);
+            if (p_b_rat < .26f) XPLMSetDataf(rcb->p_b_rat, 0.0f);
             break;
     }
     return 0;
