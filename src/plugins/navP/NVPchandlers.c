@@ -89,6 +89,7 @@ typedef struct
 typedef struct
 {
     int            addon_type;
+    int            garmin_gtn;
     int            i_disabled;
     int            i_value[2];
     XPLMDataRef    dataref[3];
@@ -1382,6 +1383,7 @@ int nvp_chandlers_update(void *inContext)
         }
     }
     ctx->mcdu.rc.addon_type = ctx->atyp;
+    ctx->mcdu.rc.garmin_gtn = -1;
     ctx->mcdu.rc.i_disabled = -1;
 
     /* all good */
@@ -2439,11 +2441,16 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     {
                         char descrip_str[41]; dataref_read_string(acf_descrip, descrip_str,  sizeof(descrip_str));
                         char author_name[41]; dataref_read_string(acft_author, author_name,  sizeof(author_name));
-                        if (!STRN_CASECMP_AUTO(author_name, "Aerobask"))
+                        if (!STRN_CASECMP_AUTO(author_name, "Aerobask") || !STRN_CASECMP_AUTO(descrip_str, "Pipistrel"))
                         {
+                            if ((cdu->dataref[0] = XPLMFindDataRef("aerobask/panthera/gtn650_Show")) &&
+                                (cdu->dataref[1] = XPLMFindDataRef("aerobask/panthera/gtn750_Show")))
+                            {
+                                cdu->i_disabled = 0; cdu->garmin_gtn = 1; break; // Aerobask GTN
+                            }
                             if ((cdu->command[0] = XPLMFindCommand("aerobask/skyview/toggle_center")))
                             {
-                                cdu->i_disabled = 0; break; // Dynon SkyView
+                                cdu->i_disabled = 0; break; // Aerobask SkyView
                             }
                             if (((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup"))  &&
                                  (cdu->command[1] = XPLMFindCommand("sim/GPS/g430n2_popup"))) ||
@@ -2579,6 +2586,12 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 // fall through
             default:
+                if (cdu->garmin_gtn == 1)
+                {
+                    XPLMSetDatai(cdu->dataref[0], !XPLMGetDatai(cdu->dataref[0]));
+                    XPLMSetDatai(cdu->dataref[1], !XPLMGetDatai(cdu->dataref[1]));
+                    return 0;
+                }
                 if (cdu->command[0]) XPLMCommandOnce(cdu->command[0]);
                 if (cdu->command[1]) XPLMCommandOnce(cdu->command[1]);
                 if (cdu->command[2]) XPLMCommandOnce(cdu->command[2]);
@@ -3034,14 +3047,21 @@ static int first_fcall_do(chandler_context *ctx)
             // datarefs: Aerobask
             _DO(0, XPLMSetDatai, 1, "sim/har/reflets");                             // LEG2: refl. off
             _DO(0, XPLMSetDatai, 0, "sim/har/pitchservo");                          // LEG2: 500ft/min
+            _DO(0, XPLMSetDatai, 0, "aerobask/E1000/flags_on");                     // EPIC
             _DO(0, XPLMSetDatai, 1, "aerobask/E1000/yokeL_hidden");                 // EPIC
             _DO(0, XPLMSetDatai, 1, "aerobask/E1000/yokeR_hidden");                 // EPIC
             _DO(0, XPLMSetDatai, 0, "aerobask/E1000/reflections_skyview_on");       // EPIC
             _DO(0, XPLMSetDatai, 0, "aerobask/E1000/reflections_windshield_on");    // EPIC
+            _DO(0, XPLMSetDatai, 0, "aerobask/victory/flags_on");                   // EVIC
             _DO(0, XPLMSetDatai, 1, "aerobask/victory/yokeL_hidden");               // EVIC
             _DO(0, XPLMSetDatai, 1, "aerobask/victory/yokeR_hidden");               // EVIC
             _DO(0, XPLMSetDatai, 0, "aerobask/victory/reflections_skyview_on");     // EVIC
             _DO(0, XPLMSetDatai, 0, "aerobask/victory/reflections_windshield_on");  // EVIC
+            _DO(0, XPLMSetDatai, 0, "aerobask/panthera/flags_on");                  // PIPA
+            _DO(0, XPLMSetDatai, 0, "aerobask/panthera/reflections_skyview_on");    // PIPA
+            _DO(0, XPLMSetDatai, 0, "aerobask/panthera/reflections_windshield_on"); // PIPA
+            _DO(0,XPLMSetDataf,0.0f,"aerobask/panthera/reflections_EFIS");          // PIPA
+            _DO(0,XPLMSetDataf,0.0f,"aerobask/panthera/reflections_annunciators");  // PIPA
             // datarefs: Alabeo, Carenado, SimCoders REP
             _DO(0, XPLMSetDataf, 1.0f, "com/dkmp/PassengerDoorHandle");             // BE20
             _DO(0, XPLMSetDataf, 1.0f, "com/dkmp/winglets");                        // BE20
