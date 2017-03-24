@@ -391,7 +391,7 @@ static const char* _flap_names_BOM1[10] = {    "up",    "10",    "20",   "30",  
 static const char* _flap_names_BOM2[10] = {    "up",     "5",    "10",   "15",   "35",   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_C130[10] = {    "up",     "1",     "2",    "3",    "4",    "5",    "6", "full",   NULL,   NULL, };
 static const char* _flap_names_C340[10] = {    "up",    "15",    "45",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_CSNA[10] = {    "up",    "10",    "20",   "30",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_CSNA[10] = {    "up",    "10",    "20", "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_DC10[10] = {    "up",     "5",    "15",   "25",   "30",   "35",   "40",   NULL,   NULL,   NULL, };
 static const char* _flap_names_EMB1[10] = {    "up",     "9",    "18",   "22",   "45",   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_EMB2[10] = {    "up",     "1",     "2",    "3",    "4",    "5", "full",   NULL,   NULL,   NULL, };
@@ -399,6 +399,7 @@ static const char* _flap_names_FA7X[10] = {    "up",     "1",     "2", "full",  
 static const char* _flap_names_HA4T[10] = {    "up",    "12",    "20",   "35",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_MD80[10] = {    "up",     "0",     "5",   "11",   "15",   "28",   "40",   NULL,   NULL,   NULL, };
 static const char* _flap_names_PC12[10] = {    "up",    "15",    "30",   "40",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_PIPA[10] = {    "up",    "15",    "30",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_PIPR[10] = {    "up",    "10",    "25",   "40",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_TBM8[10] = { "8 5 0",   "up",  "half",  "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static       void   flap_callout_setst(const char *names[], int index)
@@ -2156,6 +2157,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     !strcasecmp(ctx->icao, "BE36") ||
                     !strcasecmp(ctx->icao, "BE58") ||
                     !strcasecmp(ctx->icao, "BE9L") ||
+                    !strcasecmp(ctx->icao, "C404") ||
                     !strcasecmp(ctx->icao, "COL4") ||
                     !strcasecmp(ctx->icao, "DA40") ||
                     !strcasecmp(ctx->icao, "EA50") ||
@@ -2258,9 +2260,19 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     flap_callout_setst(_flap_names_C130, lroundf(7.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
-                if (!strcasecmp(ctx->icao, "C172") ||
+                if (!strcasecmp(ctx->icao, "C150") ||
+                    !strcasecmp(ctx->icao, "C152") ||
+                    !strcasecmp(ctx->icao, "C170") ||
+                    !strcasecmp(ctx->icao, "C172") ||
+                    !strcasecmp(ctx->icao, "C180") ||
+                    !strcasecmp(ctx->icao, "C182") ||
+                    !strcasecmp(ctx->icao, "C185") ||
+                    !strcasecmp(ctx->icao, "C206") ||
+                    !strcasecmp(ctx->icao, "C207") ||
                     !strcasecmp(ctx->icao, "C208") ||
-                    !strcasecmp(ctx->icao, "C210") || !strcasecmp(ctx->icao, "T210") ||
+                    !strcasecmp(ctx->icao, "C210") ||
+                    !strcasecmp(ctx->icao, "P210") ||
+                    !strcasecmp(ctx->icao, "T210") ||
                     !strcasecmp(ctx->icao, "PA46"))
                 {
                     flap_callout_setst(_flap_names_CSNA, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
@@ -2340,6 +2352,11 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 if (!strcasecmp(ctx->icao, "PC12"))
                 {
                     flap_callout_setst(_flap_names_PC12, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->icao, "PIPA"))
+                {
+                    flap_callout_setst(_flap_names_PIPA, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
                 if (!strcasecmp(ctx->icao, "TBM8"))
