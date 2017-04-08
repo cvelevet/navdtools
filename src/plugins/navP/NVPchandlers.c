@@ -3188,8 +3188,11 @@ static int first_fcall_do(chandler_context *ctx)
 
     /*
      * Sound and related datarefs.
+     *
+     * NOTE: NVPmenu.c, menu_handler() has code covering the same functionality,
+     * we must always remember to update said code too when making changes here
      */
-    XPLMDataRef wxr, wvr, evr, gvr, rvr, pvr, fvr; float new_v_ratio;
+    XPLMDataRef wxr, wvr, evr, gvr, rvr, pvr, fvr, cvr;
     if ((wxr = XPLMFindDataRef("sim/operation/sound/weather_volume_ratio")) &&
         (wvr = XPLMFindDataRef("sim/operation/sound/warning_volume_ratio")) &&
         (evr = XPLMFindDataRef( "sim/operation/sound/engine_volume_ratio")) &&
@@ -3206,6 +3209,17 @@ static int first_fcall_do(chandler_context *ctx)
         if (ctx->atyp == NVP_ACF_B737_XG)
         {
             XPLMSetDataf(rvr, 0.25f);
+        }
+        else if ((cvr = XPLMFindDataRef("aerobask/eclipse/custom_volume_ratio")))
+        {
+            XPLMSetDataf(evr, 0.10f); // engines are a bit loud in this plane :(
+            XPLMSetDataf(cvr, 0.25f); // all other custom sounds (excl. engines)
+            XPLMSetDataf(wxr, 0.25f);
+            XPLMSetDataf(wvr, 0.25f);
+            XPLMSetDataf(gvr, 0.25f);
+            XPLMSetDataf(pvr, 0.25f);
+            XPLMSetDataf(rvr, 0.25f);
+            XPLMSetDataf(fvr, 0.25f);
         }
         else
         {
@@ -3231,6 +3245,7 @@ static int first_fcall_do(chandler_context *ctx)
          */
         if (ctx->atyp != NVP_ACF_B737_EA && ctx->atyp != NVP_ACF_B737_XG)
         {
+            float new_v_ratio;
             if (ctx->old_atyp == NVP_ACF_B737_XG)
             {
                 /*
