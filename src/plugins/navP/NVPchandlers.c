@@ -3175,6 +3175,17 @@ static int first_fcall_do(chandler_context *ctx)
             break;
     }
 
+#if 1
+    /*
+     * Kill X-Plane ATC (not needed, may/may not cause crashes in some places).
+     * Do it as late as possible (avoid interfering w/init. of X-Plane itself).
+     * Doing it too early might have caused a crash in the PilotEdge plugin :(
+     *
+     * This is all very much guesswork, really :-(
+     */
+    _DO(1, XPLMSetDataf, 1.0f, "sim/private/controls/perf/kill_atc");
+#endif
+
     /*
      * Sound and related datarefs.
      */

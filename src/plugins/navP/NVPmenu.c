@@ -665,20 +665,6 @@ int nvp_menu_setup(void *_menu_context)
     if (ctx && !ctx->setupdone)
     {
         /*
-         * Disable X-Plane 10 built-in ATC using "art" controls.
-         *
-         * In theory, having it enable doesn't hurt, but the ATC system may be
-         * the cause of several X-Plane crashes I've experienced, so let's not
-         * take any chances, kill it until it dies!
-         */
-        XPLMDataRef perf_kill_atc = XPLMFindDataRef("sim/private/controls/perf/kill_atc");
-        if (perf_kill_atc)
-        {
-            XPLMSetDataf(perf_kill_atc, 1.0f);
-            ndt_log("navP [debug]: killing evil ATC (%.1lf)\n", XPLMGetDataf(perf_kill_atc));
-        }
-
-        /*
          * Set defaults for dataref-backed variables,
          * since we can't do it in XPluginEnable().
          *
