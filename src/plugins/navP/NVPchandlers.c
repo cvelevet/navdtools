@@ -1309,12 +1309,14 @@ int nvp_chandlers_update(void *inContext)
 
         case NVP_ACF_B737_FJ:
         case NVP_ACF_PC12_CA:
-        case NVP_ACF_GENERIC:
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+        case NVP_ACF_GENERIC: // no A/T -> prop full fine
+            ctx->athr.disc.cc.name = "navP/thrust/propfin";
             ctx->otto.conn.cc.name = "sim/autopilot/fdir_servos_up_one";
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             break;
 
         default: // not generic but no custom commands
+            ctx->athr.disc.cc.name = "navP/thrust/propfin";
             break;
     }
 
