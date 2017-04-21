@@ -951,7 +951,8 @@ int nvp_chandlers_update(void *inContext)
                 ctx->atyp = NVP_ACF_A330_RW;
                 break;
             }
-            if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("FFSTSmousehandler"))
+            if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("FFSTSmousehandler") ||   // 1.3.x or earlier
+                XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("ru.ffsts.mousehandler")) // 1.4.x or later
             {
                 ndt_log("navP [info]: plane is FlightFactor Airbus A350 QPAC\n");
                 ctx->atyp = NVP_ACF_A350_FF;
