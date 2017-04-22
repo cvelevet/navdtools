@@ -57,12 +57,6 @@ typedef struct
 
 typedef struct
 {
-    int           ready;
-    XPLMDataRef pkb_ref;
-} refcon_ff_a350;
-
-typedef struct
-{
     int              ready;
     int            pkb_var;
     XPLMDataRef    pkb_tmp;
@@ -134,7 +128,7 @@ typedef struct
 #define NVP_ACF_MASK_FFR  0x0107010 // all FlightFactor addons
 #define NVP_ACF_MASK_FJS  0x0010140 // all of FlyJSim's addons
 #define NVP_ACF_MASK_JDN  0x0000005 // all J.A.R.Design addons
-#define NVP_ACF_MASK_QPC  0x000002A // all QPAC-powered addons
+#define NVP_ACF_MASK_QPC  0x000003A // all QPAC-powered addons
 #define NVP_ACF_MASK_SSG  0x0020000 // all SSGroup/FJCC addons
 #define NVP_ACF_MASK_XCR  0x0040000 // all X-Crafts/S.W addons
 #define NVP_ACF_MASK_320  0x0000003 // all A320 series aircraft
@@ -191,7 +185,6 @@ typedef struct
 
     struct
     {
-        refcon_ff_a350 a350;
         refcon_qpacfbw qpac;
         refcon_ixeg733 i733;
         refcon_eadt738 x738;
@@ -503,7 +496,6 @@ static int  chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, v
 static int  chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_flap_func(                                          float, float, int, void*);
 static int  first_fcall_do(                                             chandler_context *ctx);
-static int  aibus_350_init(                                               refcon_ff_a350 *ffa);
 static int  aibus_fbw_init(                                               refcon_qpacfbw *fbw);
 static int  boing_733_init(                                               refcon_ixeg733 *i33);
 static int  boing_738_init(                                               refcon_eadt738 *x38);
@@ -848,7 +840,6 @@ int nvp_chandlers_reset(void *inContext)
     ctx->old_atyp = ctx->atyp; ctx->atyp = NVP_ACF_GENERIC;
 
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
-    ctx->acfspec.a350.ready = 0;
     ctx->acfspec.qpac.ready = 0;
     ctx->acfspec.i733.ready = 0;
     ctx->acfspec.x738.ready = 0;
@@ -1431,13 +1422,6 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     /*
      * Do any additional aircraft-specific stuff that can't be done earlier.
      */
-    if (ctx->atyp == NVP_ACF_A350_FF)
-    {
-        if (ctx->acfspec.a350.ready == 0)
-        {
-            aibus_350_init(&ctx->acfspec.a350);
-        }
-    }
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
         if (ctx->acfspec.qpac.ready == 0)
@@ -1493,19 +1477,6 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         speak = 0;
     }
-    if (ctx->atyp == NVP_ACF_A350_FF)
-    {
-        if (ctx->acfspec.a350.ready == 0)
-        {
-            aibus_350_init(&ctx->acfspec.a350);
-        }
-        if (ctx->acfspec.a350.ready && inPhase == xplm_CommandEnd)
-        {
-            XPLMSetDatai(ctx->acfspec.a350.pkb_ref, 0); // inverted
-            if (speak > 0) XPLMSpeakString("park brake set");
-        }
-        return 0;
-    }
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
         if (ctx->acfspec.qpac.ready == 0)
@@ -1514,8 +1485,9 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         if (ctx->acfspec.qpac.ready && inPhase == xplm_CommandEnd)
         {
-            XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1);
-            XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, 1);
+            // the FlightFactor-QPAC A350 has its parking brake dataref inverted
+            XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->atyp != NVP_ACF_A350_FF));
+            XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, (ctx->atyp != NVP_ACF_A350_FF));
             if (speak > 0) XPLMSpeakString("park brake set");
         }
         return 0;
@@ -1537,19 +1509,6 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         speak = 0;
     }
-    if (ctx->atyp == NVP_ACF_A350_FF)
-    {
-        if (ctx->acfspec.a350.ready == 0)
-        {
-            aibus_350_init(&ctx->acfspec.a350);
-        }
-        if (ctx->acfspec.a350.ready && inPhase == xplm_CommandEnd)
-        {
-            XPLMSetDatai(ctx->acfspec.a350.pkb_ref, 1); // inverted
-            if (speak > 0) XPLMSpeakString("park brake released");
-        }
-        return 0;
-    }
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
         if (ctx->acfspec.qpac.ready == 0)
@@ -1558,8 +1517,9 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         if (ctx->acfspec.qpac.ready && inPhase == xplm_CommandEnd)
         {
-            XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 0);
-            XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, 0);
+            // the FlightFactor-QPAC A350 has its parking brake dataref inverted
+            XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->atyp == NVP_ACF_A350_FF));
+            XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, (ctx->atyp == NVP_ACF_A350_FF));
             if (speak > 0) XPLMSpeakString("park brake released");
         }
         return 0;
@@ -1596,7 +1556,6 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 case xplm_CommandBegin:
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, XPLMGetDatai(ctx->acfspec.qpac.pkb_ref));
-                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1);
                     XPLMCommandBegin(ctx->acfspec.qpac.h_b_max);
                     break;
                 case xplm_CommandEnd:
@@ -1640,7 +1599,6 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 case xplm_CommandBegin:
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, XPLMGetDatai(ctx->acfspec.qpac.pkb_ref));
-                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1);
                     XPLMCommandBegin(ctx->acfspec.qpac.h_b_reg);
                     break;
                 case xplm_CommandEnd:
@@ -3294,19 +3252,6 @@ static int first_fcall_do(chandler_context *ctx)
     return (ctx->first_fcall = 0);
 }
 
-static int aibus_350_init(refcon_ff_a350 *ffa)
-{
-    if (ffa && ffa->ready == 0)
-    {
-        if ((ffa->pkb_ref = XPLMFindDataRef("1-sim/parckBrake")))
-        {
-            (ffa->ready = 1); return 0;
-        }
-        return -1;
-    }
-    return 0;
-}
-
 static int aibus_fbw_init(refcon_qpacfbw *fbw)
 {
     if (fbw && fbw->ready == 0)
@@ -3321,6 +3266,14 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
                                                     NULL, NULL, NULL, NULL, NULL,
                                                     &fbw->pkb_var, &fbw->pkb_var);
             if (!fbw->pkb_tmp) return -1;
+        }
+        if ((fbw->h_b_max = XPLMFindCommand("1-sim/brakes_max"    )) &&
+            (fbw->h_b_reg = XPLMFindCommand("1-sim/brakes_regular")))
+        {
+            if ((fbw->pkb_ref = XPLMFindDataRef("1-sim/parckBrake")))
+            {
+                (fbw->ready = 1); return 0;
+            }
         }
         if ((fbw->h_b_max = XPLMFindCommand("sim/flight_controls/brakes_max"    )) &&
             (fbw->h_b_reg = XPLMFindCommand("sim/flight_controls/brakes_regular")))
