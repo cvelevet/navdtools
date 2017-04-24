@@ -1466,8 +1466,8 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
             {
                 switch (*procid)
                 {
-                    case 'X':
-                        proc->approach.type = NDT_APPRTYPE_LDA; // Navigraph
+                    case 'X': // Navigraph-only
+                        proc->approach.type = NDT_APPRTYPE_LDA;
                         break;
                     default:
                         break;
@@ -1499,17 +1499,18 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
                         break;
                 }
             }
-            if (*apptyp == 'G')
+            if (*apptyp == 'G' || *apptyp == 'R')
             {
                 switch (*procid)
                 {
                     case 'J':
                         proc->approach.type = NDT_APPRTYPE_GLS;
                         break;
-                    case 'G':
-                        proc->approach.type = NDT_APPRTYPE_IGS; // Navigraph
+                    case 'G': // Navigraph-only
+                        proc->approach.type = NDT_APPRTYPE_IGS;
                         break;
                     case 'R':
+                    case 'P': // Navigraph-only
                         proc->approach.type = NDT_APPRTYPE_RNAV;
                         break;
                     default:
@@ -1523,11 +1524,11 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
                     case 'I':
                         proc->approach.type = NDT_APPRTYPE_ILS;
                         break;
-                    case 'G':
-                        proc->approach.type = NDT_APPRTYPE_IGS; // Aerosoft
+                    case 'G': // Aerosoft-only
+                        proc->approach.type = NDT_APPRTYPE_IGS;
                         break;
-                    case 'X':
-                        proc->approach.type = NDT_APPRTYPE_LDA; // Aerosoft
+                    case 'X': // Aerosoft-only
+                        proc->approach.type = NDT_APPRTYPE_LDA;
                         break;
                     default:
                         break;
