@@ -765,6 +765,14 @@ int ndt_position_sprintllc(ndt_position pos, ndt_llcfmt fmt, char *buf, size_t l
             break;
         }
 
+        case NDT_LLCFMT_AIBX2:
+        {
+            // full form, e.g. 46 00.0N/050 00.0E
+            ret = snprintf(buf, len, "%02d %04.1lf%c/%03d %04.1lf%c",
+                           ilatd, dlatm, card[0], ilond, dlonm, card[1]);
+            break;
+        }
+
         case NDT_LLCFMT_BOING:
         {
             if (ilatm == 0 && ilonm == 0 && ilats < 6 && ilons < 6)
