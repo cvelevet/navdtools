@@ -310,12 +310,71 @@ void yfs_fpln_pageopen(yfms_context *yfms)
     yfs_fpln_pageupdt(yfms); return;
 }
 
+static void lrev_pageupdt(yfms_context *yfms)
+{
+    /* page title + latitude and longitude coordinates */
+    if (yfms->data.fpln.lrev.wpt)
+    {
+        yfs_printf_lft(yfms, 0, 16, COLR_IDX_GREEN, "%s", yfms->data.fpln.lrev.wpt->info.idnt);
+        ndt_position posn = yfms->data.fpln.lrev.wpt->position; char buf[21];
+        ndt_position_sprintllc(posn, NDT_LLCFMT_AIBX2, buf, sizeof(buf));
+        yfs_printf_lft(yfms, 1,  0, COLR_IDX_GREEN, "   %s", buf);
+    }
+    else
+    {
+        yfs_printf_lft(yfms, 0, 16, COLR_IDX_GREEN, "%s", yfms->data.fpln.lrev.leg->info.idnt);
+    }
+    yfs_printf_lft(yfms, 0, 0, COLR_IDX_WHITE, "%s", "   LAT REV FROM");
+
+    /* departure/arrival subpage links */
+    if (yfms->data.fpln.lrev.idx == -1)
+    {
+        yfs_printf_lft(yfms, 2, 0, COLR_IDX_WHITE, "%s", "<DEPARTURE");
+    }
+    if (yfms->data.fpln.lrev.idx == yfms->data.fpln.dindex)
+    {
+        yfs_printf_rgt(yfms, 2, 0, COLR_IDX_WHITE, "%s", "ARRIVAL>");
+    }
+
+    /* additional waypoints, airways */
+    {
+        yfs_printf_rgt(yfms, 5, 0, COLR_IDX_WHITE, "%s", "NEXT WPT ");
+        yfs_printf_rgt(yfms, 6, 0, COLR_IDX_BLUE,  "%s",     "[   ]");
+    }
+    if (yfms->data.fpln.lrev.idx != yfms->data.fpln.dindex)
+    {
+        yfs_printf_rgt(yfms, 7, 0, COLR_IDX_WHITE, "%s", "NEW DEST ");
+        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE,  "%s",     "[   ]");
+    }
+    if (yfms->data.fpln.lrev.leg->dst)
+    {
+        int type = yfms->data.fpln.lrev.leg->dst->type;
+        if (type == NDT_WPTYPE_NDB || type == NDT_WPTYPE_VOR ||
+            type == NDT_WPTYPE_FIX || type == NDT_WPTYPE_DME)
+        {
+            yfs_printf_rgt(yfms, 10, 0, COLR_IDX_WHITE, "%s", "AIRWAYS>");
+        }
+    }
+
+    /* return (to FPLN) */
+    yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "<RETURN");
+
+    /* all good */
+    return;
+}
+
 void yfs_fpln_pageupdt(yfms_context *yfms)
 {
     /* reset lines, set page title */
     for (int i = 0; i < YFS_DISPLAY_NUMR - 1; i++)
     {
         yfs_main_rline(yfms, i, -1);
+    }
+
+    /* is the lateral revision subpage open? */
+    if (yfms->data.fpln.lrev.open)
+    {
+        return lrev_pageupdt(yfms);
     }
 
     /* ensure we're still synced w/navdlib, reset if necessary */
@@ -878,24 +937,105 @@ static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
     return wpt;
 }
 
+static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
+{
+    if (key[0] == 0 && key[1] == 5)
+    {
+        yfms->data.fpln.lrev.open = 0;
+        yfms->data.fpln.lrev.leg = NULL;
+        yfms->data.fpln.lrev.wpt = NULL;
+        yfs_fpln_fplnupdt(yfms); return; // back to FPLN
+    }
+    if (key[1] == 0) // departure/arrival
+    {
+        if (key[0] == 0 && yfms->data.fpln.lrev.idx == -1)
+        {
+            yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO
+        }
+        if (key[0] == 1 && yfms->data.fpln.lrev.idx == yfms->data.fpln.dindex)
+        {
+            yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO
+        }
+        return;
+    }
+    if (key[0] == 1) // next wpt, new dest or airways
+    {
+        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
+        if (key[1] == 2)
+        {
+            if (strnlen(buf, 1))
+            {
+                yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO
+            }
+            return;
+        }
+        if (key[1] == 3 && yfms->data.fpln.lrev.idx != yfms->data.fpln.dindex)
+        {
+            if (strnlen(buf, 1))
+            {
+                yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO
+            }
+            return;
+        }
+        if (key[1] == 4 && yfms->data.fpln.lrev.leg->dst)
+        {
+            int type = yfms->data.fpln.lrev.leg->dst->type;
+            if (type == NDT_WPTYPE_NDB || type == NDT_WPTYPE_VOR ||
+                type == NDT_WPTYPE_FIX || type == NDT_WPTYPE_DME)
+            {
+                yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO
+            }
+        }
+        return;
+    }
+
+    /* all good */
+    return;
+}
+
 static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refcon)
 {
+    /* is the lateral revision subpage open? */
+    if (yfms->data.fpln.lrev.open)
+    {
+        return lsk_callback_lrev(yfms, key, refcon);
+    }
+
+    /* standard line select key configuration */
     if (key[0] == 0) // insert a waypoint, or open the lateral rev. page
     {
         char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); ndt_route_leg *leg; ndt_waypoint *wpt;
         int index = key[1] == 5 ? yfms->data.fpln.dindex : fpl_getindex_for_line(yfms, key[1]);
-        if (index < 0) // next waypoint is origin or invalid
+        if (index < -1) // invalid next waypoint
         {
-            // TODO: lateral revision page for origin //fixme ?
             yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
         }
         if ((leg = ndt_list_item(yfms->data.fpln.legs, index)) == NULL)
         {
             yfs_spad_reset(yfms, "UNKNOWN ERROR 1 A", COLR_IDX_ORANGE); return;
         }
-        if (key[1] == 5 || strnlen(buf, 1) == 0) // open lateral revision page
+        if (index == -1 || key[1] == 5 || !strnlen(buf, 1)) // lateral rev. page
         {
-            return; // TODO
+            yfms->data.fpln.lrev.open = 1;
+            yfms->data.fpln.lrev.leg  = leg;
+            yfms->data.fpln.lrev.idx  = index;
+            if (index == yfms->data.fpln.dindex)
+            {
+                yfms->data.fpln.lrev.wpt = (yfms->ndt.flp.rte->arr.rwy           ?
+                                            yfms->ndt.flp.rte->arr.rwy->waypoint :
+                                            yfms->ndt.flp.rte->arr.apt->waypoint);
+            }
+            else if (index == -1)
+            {
+                yfms->data.fpln.lrev.wpt = (yfms->ndt.flp.rte->dep.rwy           ?
+                                            yfms->ndt.flp.rte->dep.rwy->waypoint :
+                                            yfms->ndt.flp.rte->dep.apt->waypoint);
+            }
+            else
+            {
+                yfms->data.fpln.lrev.wpt = yfms->data.fpln.lrev.leg->dst;
+            }
+            return;
         }
         if (strcmp(buf, "CLR") == 0)
         {

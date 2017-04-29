@@ -288,6 +288,14 @@ typedef struct
             }
             xplm_info[99];
             int xplm_last;
+            struct
+            {
+                ndt_route_leg *leg;
+                ndt_waypoint  *wpt;
+                int            idx;
+                int           open;
+            }
+            lrev;
         }
         fpln;
         struct
