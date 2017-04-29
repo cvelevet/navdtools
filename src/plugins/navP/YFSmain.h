@@ -489,13 +489,6 @@ typedef struct
             int frequency_changed;
         }
         ils;
-        struct
-        {
-            XPLMDataRef groundspeed;
-            XPLMDataRef acf_roll_co;
-            float default_roll_coef;
-        }
-        tire;
     }
     xpl;
 }

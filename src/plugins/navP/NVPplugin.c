@@ -108,11 +108,15 @@ PLUGIN_API void XPluginStop(void)
 
 PLUGIN_API int XPluginEnable(void)
 {
+    /* reset command handlers */
+    nvp_chandlers_reset(chandler_context);
+
     /* navP features a menu :-) */
     if ((navpmenu_context = nvp_menu_init()) == NULL)
     {
         return 0; // menu creation failed :(
     }
+    nvp_menu_reset                        (navpmenu_context);
     nvp_chandlers_setmnu(chandler_context, navpmenu_context);
 
     /* and an FMS, too! */
@@ -120,6 +124,7 @@ PLUGIN_API int XPluginEnable(void)
     {
         return 0; // menu creation failed :(
     }
+    yfs_menu_resetall(navpyfms_context);
 
     /* all good */
     XPLMDebugString(PLUGIN_NAME " [info]: XPluginEnable OK\n"); return 1;
@@ -153,22 +158,12 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
         case XPLM_MSG_PLANE_LOADED:
             if (xplane_first_load)
             {
-                xplane_first_load = 0;
                 XPLMPluginID xfsr = XPLMFindPluginBySignature("ivao.xivap");
                 if (XPLM_NO_PLUGIN_ID != xfsr) // X-FlightServer's X-IvAp
                 {
                     XPLMDisablePlugin(xfsr);
                 }
-            }
-            if (inParam == XPLM_USER_AIRCRAFT) // user's plane changed
-            {
-                nvp_menu_reset     (navpmenu_context);
-                yfs_menu_resetall  (navpyfms_context);
-                nvp_chandlers_reset(chandler_context);
-                if (navpyfms_context && navpyfms_context->xpl.tire.acf_roll_co)
-                {
-                    navpyfms_context->xpl.tire.default_roll_coef = -1;
-                }
+                xplane_first_load = 0;
             }
             break;
 
@@ -184,15 +179,11 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
             break;
 
         case XPLM_MSG_PLANE_UNLOADED:
-            if (inParam == XPLM_USER_AIRCRAFT) // user's plane changed
+            if (inParam == XPLM_USER_AIRCRAFT) // user's plane changing
             {
-                if (navpyfms_context &&
-                    navpyfms_context->xpl.tire.acf_roll_co &&
-                    navpyfms_context->xpl.tire.default_roll_coef > 0)
-                {
-                     XPLMSetDataf(navpyfms_context->xpl.tire.acf_roll_co,
-                                  navpyfms_context->xpl.tire.default_roll_coef);
-                }
+                nvp_menu_reset     (navpmenu_context);
+                yfs_menu_resetall  (navpyfms_context);
+                nvp_chandlers_reset(chandler_context);
             }
             break;
 
@@ -202,29 +193,11 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
         case XPLM_MSG_LIVERY_LOADED:
             if (inParam == XPLM_USER_AIRCRAFT) // custom plugins loaded
             {
-                // chandlers_update sets datarefs used by pageupdt, run it first
+                // nvp_chandlers_update fixes the value of some default XP
+                // datarefs read by yfs_idnt_pageupdt, we must run it first
                 nvp_chandlers_update(chandler_context);
                 yfs_idnt_pageupdt   (navpyfms_context);
                 nvp_menu_setup      (navpmenu_context);
-                if (navpyfms_context &&
-                    navpyfms_context->xpl.tire.acf_roll_co &&
-                    navpyfms_context->xpl.tire.default_roll_coef < 0)
-                {
-                    navpyfms_context->xpl.tire.default_roll_coef =
-                    XPLMGetDataf(navpyfms_context->xpl.tire.acf_roll_co);
-                    ndt_log("navP [XPluginReceiveMessage]: acf_roll_co %.3lf\n",
-                            navpyfms_context->xpl.tire.default_roll_coef);
-                    /*
-                     * Tire friction & aircraft lateral/ground control, speed-based, inremental:
-                     * -> increase friction at low speeds, but avoid acting like a parking brake
-                     * -> not yet successful -> disabled, see yfs_flight_loop_cback() in YFSmenu
-                     *
-                     * Instead, simply increase friction a bit for now, as speed-based variable
-                     * friction coefficientss behave slightly erratically with some aircraft :-(
-                     */
-                    XPLMSetDataf(navpyfms_context->xpl.tire.acf_roll_co,
-                                 navpyfms_context->xpl.tire.default_roll_coef + 0.0125f);
-                }
             }
             break;
 

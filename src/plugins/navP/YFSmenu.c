@@ -358,48 +358,6 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         }
     }
 
-#if 0
-    /*
-     * Tire friction & aircraft lateral/ground control, speed-based, inremental:
-     * -> increase friction at low speeds, but avoid acting like a parking brake
-     * -> currently disabled; see XPluginReceiveMessage() function in NVPplugin.
-     */
-    float groundspeed = XPLMGetDataf(yfms->xpl.tire.groundspeed);
-    float acf_roll_co = yfms->xpl.tire.default_roll_coef;
-    if (groundspeed < 30.0f) // ~60 knots
-    {
-        if (groundspeed < 20.0f) // ~40 knots
-        {
-            if (groundspeed < 10.0f) // ~20 knots
-            {
-                if (groundspeed < 05.0f) // ~10 knots
-                {
-                    if (groundspeed < 02.5f) // ~05 knots
-                    {
-                        if (groundspeed < 1.25f) // ~02 knots
-                        {
-                            if (groundspeed < .625f) // ~01 knots
-                            {
-                                acf_roll_co -= 0.0125f; // ~01 knots
-                            }
-                            acf_roll_co -= 0.0125f; // ~02 knots
-                        }
-                        acf_roll_co -= 0.0125f; // ~05 knots
-                    }
-                    acf_roll_co -= 0.0125f; // ~10 knots
-                }
-                acf_roll_co += 0.0250f; // ~20 knots
-            }
-            acf_roll_co += 0.0125f; // ~40 knots
-        }
-        acf_roll_co += 0.0125f; // ~60 knots
-    }
-    if (fabsf(acf_roll_co - XPLMGetDataf(yfms->xpl.tire.acf_roll_co)) > 0.01f)
-    {
-        XPLMSetDataf(yfms->xpl.tire.acf_roll_co, acf_roll_co);
-    }
-#endif
-
     /* every 1/4 second should (almost) not be perceivable by users */
     return .25f;
 }
