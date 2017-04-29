@@ -346,7 +346,7 @@ static void lrev_pageupdt(yfms_context *yfms)
         yfs_printf_rgt(yfms, 7, 0, COLR_IDX_WHITE, "%s", "NEW DEST ");
         yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE,  "%s",     "[   ]");
     }
-    if (yfms->data.fpln.lrev.leg->dst)
+    if (yfms->data.fpln.lrev.leg && yfms->data.fpln.lrev.leg->dst)
     {
         int type = yfms->data.fpln.lrev.leg->dst->type;
         if (type == NDT_WPTYPE_NDB || type == NDT_WPTYPE_VOR ||
@@ -944,28 +944,58 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
         yfms->data.fpln.lrev.open = 0;
         yfms->data.fpln.lrev.leg = NULL;
         yfms->data.fpln.lrev.wpt = NULL;
-        yfs_fpln_fplnupdt(yfms); return; // back to FPLN
+        yfs_fpln_fplnupdt(yfms); return; // RETURN
     }
     if (key[1] == 0) // departure/arrival
     {
         if (key[0] == 0 && yfms->data.fpln.lrev.idx == -1)
         {
-            yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO
+            yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO        // DEPARTURE
         }
         if (key[0] == 1 && yfms->data.fpln.lrev.idx == yfms->data.fpln.dindex)
         {
-            yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO
+            yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO        // ARRIVAL
         }
         return;
     }
     if (key[0] == 1) // next wpt, new dest or airways
     {
+        ndt_route_leg *leg = yfms->data.fpln.lrev.leg; ndt_waypoint *wpt;
         char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if (key[1] == 2)
         {
             if (strnlen(buf, 1))
             {
-                yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO
+                if (yfms->data.fpln.lrev.idx == yfms->data.fpln.dindex)
+                {
+                    yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // future
+                }
+                if ((wpt = get_waypoint_from_scratchpad(yfms)) == NULL)
+                {
+                    return;
+                }
+                if (leg && leg->dst && leg->dst == wpt) // check for d.to itself
+                {        // we can't easily check the next leg's dst here though
+                    yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
+                }
+                if (yfms->data.fpln.lrev.idx == -1 && leg && leg->src && leg->src == wpt)
+                {
+                    yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
+                }
+                // insert after unless we're from the departure's lat. rev. page
+                // since in the latter case, leg is not the current but next leg
+                if (ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), wpt, leg, yfms->data.fpln.lrev.idx != -1))
+                {
+                    yfs_spad_reset(yfms, "UNKNOWN ERROR 3", COLR_IDX_ORANGE); return;
+                }
+                yfms->data.fpln.lrev.open     = 0;
+                yfms->data.fpln.lrev.leg      = NULL;
+                yfms->data.fpln.lrev.wpt      = NULL;
+                yfms->data.fpln.mod.source    = leg;
+                yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NSRT;
+                yfms->data.fpln.mod.index     = yfms->data.fpln.lrev.idx == -1 ? 0 : yfms->data.fpln.lrev.idx;
+                yfms->data.fpln.mod.opaque    = leg == NULL ? NULL : leg->dst ? (void*)leg->dst : (void*)leg->xpfms;
+                yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return; // NEXT WPT
             }
             return;
         }
@@ -973,17 +1003,17 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
         {
             if (strnlen(buf, 1))
             {
-                yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO
+                yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO    // NEW DEST
             }
             return;
         }
-        if (key[1] == 4 && yfms->data.fpln.lrev.leg->dst)
+        if (key[1] == 4 && yfms->data.fpln.lrev.leg && yfms->data.fpln.lrev.leg->dst)
         {
             int type = yfms->data.fpln.lrev.leg->dst->type;
             if (type == NDT_WPTYPE_NDB || type == NDT_WPTYPE_VOR ||
                 type == NDT_WPTYPE_FIX || type == NDT_WPTYPE_DME)
             {
-                yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO
+                yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO    // AIRWAYS
             }
         }
         return;
@@ -1017,8 +1047,8 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         if (index == -1 || key[1] == 5 || !strnlen(buf, 1)) // lateral rev. page
         {
             yfms->data.fpln.lrev.open = 1;
-            yfms->data.fpln.lrev.leg  = leg;
             yfms->data.fpln.lrev.idx  = index;
+            yfms->data.fpln.lrev.leg  = index == -1 ? ndt_list_item(yfms->data.fpln.legs, 0) : leg;
             if (index == yfms->data.fpln.dindex)
             {
                 yfms->data.fpln.lrev.wpt = (yfms->ndt.flp.rte->arr.rwy           ?
