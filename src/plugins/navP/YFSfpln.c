@@ -434,7 +434,7 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
     for (int i = 0; i < 5; i++)
     {
         ndt_route_leg *leg = NULL;
-        int have_waypt = 0, index;
+        int have_waypt = 0, index; ndt_distance distance;
         switch ((index = fpl_getindex_for_line(yfms, i)))
         {
             case -2:
@@ -474,7 +474,24 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
             }
             if (leg)
             {
-                double  distance_nmile = (double)ndt_distance_get(leg->dis, NDT_ALTUNIT_ME) / 1852.;
+                if (index == yfms->data.fpln.lg_idx)
+                {
+                    if (leg->dst) // tracked leg, show remaining instead of leg distance
+                    {
+                        ndt_position   to = leg->dst->position;
+                        ndt_position from = yfms->data.aircraft_pos;
+                        distance          = ndt_position_calcdistance(from, to);
+                    }
+                    else
+                    {
+                        distance = ndt_distance_init(-1, NDT_ALTUNIT_NA); // unavailable
+                    }
+                }
+                else
+                {
+                    distance = leg->dis;
+                }
+                double  distance_nmile = (double)ndt_distance_get(distance, NDT_ALTUNIT_ME) / 1852.;
                 switch (leg->rsg->type)
                 {
                     case NDT_RSTYPE_PRC: // TODO
@@ -492,6 +509,10 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
                         yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_GREEN, "%.0lf     ", distance_nmile);
                         if (i == 4) yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 3, COLR_IDX_WHITE, "%s", "NM");
                         break;
+                }
+                if (distance_nmile < 0.) // not valid/available: must unprint it
+                {
+                    yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_GREEN, "   --     ");
                 }
             }
             if (i == 0) // column headers, overwrite other info on the right
