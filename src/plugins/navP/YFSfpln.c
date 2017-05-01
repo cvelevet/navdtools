@@ -777,12 +777,8 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
             }
             if (j)
             {
-//                // note: not required on the ground, but untested inflight yet
-//                // for a direct to, we should update the previous waypoint too
-//                XPLMSetFMSEntryLatLon(i-1, (float)ndt_position_getlatitude (yfms->data.aircraft_pos, NDT_ANGUNIT_DEG),
-//                                           (float)ndt_position_getlongitude(yfms->data.aircraft_pos, NDT_ANGUNIT_DEG),
-//                                                                           (yfms->data.fpln.xplm_info[i-1].altitude));
-                XPLMSetDestinationFMSEntry(i);
+                // be lazy: X-Plane can handle all aspects of a direct to for us
+                XPLMSetDisplayedFMSEntry(i); XPLMCommandOnce(yfms->xpl.direct_to);
             }
         }
     }
