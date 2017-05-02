@@ -1101,7 +1101,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         {
             yfs_spad_reset(yfms, "UNKNOWN ERROR 1 A", COLR_IDX_ORANGE); return;
         }
-        if (index == -1 || key[1] == 5 || !strnlen(buf, 1)) // lateral rev. page
+        if (strnlen(buf, 1) == 0) // lateral rev. page
         {
             yfms->data.fpln.lrev.open = 1;
             yfms->data.fpln.lrev.idx  = index;
@@ -1124,12 +1124,17 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             }
             return;
         }
+        if (index == -1 || key[1] == 5) // strnlen(buf, 1) != 0
+        {
+            // departure/destination: no clearing/insertion
+            yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
+        }
         if (strcmp(buf, "CLR") == 0)
         {
-            if (index == ndt_list_count(yfms->data.fpln.legs) ||
-                index == yfms->data.fpln.dindex)
+            if (index == yfms->data.fpln.lg_idx || index == yfms->data.fpln.dindex)
             {
-                // can't clear destination or last leg
+                // can't clear either of current leg or destination
+                // future: perhaps clear current, direct next leg?
                 yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
             }
             if (leg->rsg == NULL)
