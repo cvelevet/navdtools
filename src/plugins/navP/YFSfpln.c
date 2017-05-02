@@ -50,6 +50,7 @@ static void xplm_flpn_sync(yfms_context *yfms)
      * the first and last legs so our waypoint count is limited to 99 or less.
      */
     int total_wpnts_count = 0, first_leg_idx = -1, last_leg_idx = 0;
+    int had_sync = yfms->data.fpln.xplm_last == XPLMCountFMSEntries() -1;
     ndt_route_leg *leg; ndt_waypoint *wpt;yfms->data.fpln.xplm_last = -1;
     for (int i = 0, j = ndt_list_count(yfms->data.fpln.legs); i < j; i++)
     {
@@ -100,7 +101,7 @@ static void xplm_flpn_sync(yfms_context *yfms)
                 {
                     break;
                 }
-                yfms->data.fpln.xplm_last++;
+                yfms->data.fpln.xplm_last++; // i == -1; xplm_last: -1 -> +0
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud = (float)ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG);
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude = (float)ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG);
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = XPLM_NAV_NOT_FOUND;
@@ -136,7 +137,7 @@ static void xplm_flpn_sync(yfms_context *yfms)
                 {
                     break;
                 }
-                yfms->data.fpln.xplm_last++;
+                yfms->data.fpln.xplm_last++; // i == -1; xplm_last: +0 -> +1
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud = (float)ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG);
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude = (float)ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG);
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = wpt->xplm.refSet ? wpt->xplm.navRef : XPLM_NAV_NOT_FOUND;
@@ -254,8 +255,31 @@ static void xplm_flpn_sync(yfms_context *yfms)
     /* TODO: VNAV */
 
     /* Clear all FMS entries - replace them w/our own */
+    int  t_leg = XPLMGetDestinationFMSEntry();
     for (int i = XPLMCountFMSEntries() - 1; i >= 0; i--)
     {
+        if (had_sync && i == t_leg - 1)
+        {
+            /*
+             * We are currently flying a straight line between two FMS entries:
+             * - src is entry i == t_leg - 1
+             * - dst is entry i + 1 == t_leg
+             *
+             * src should be in the original flight plan, but could have been
+             * altered by e.g. a direct to modification; we must save/restore
+             * the entry's waypoint information so as not to break the plane's
+             * lateral flightpath when updating the flightplan (e.g. following
+             * the insertion or removal of one or more legs).
+             */
+            had_sync = 100;         // XXX: just means we actually saved an FMS entry
+            XPLMGetFMSEntryInfo(i,                                          // inIndex
+                                NULL,                                       // outType
+                                NULL,                                       // outID
+                                &yfms->data.fpln.xplm_info[100].waypoint,   // outRef
+                                &yfms->data.fpln.xplm_info[100].altitude,   // outAltitude
+                                &yfms->data.fpln.xplm_info[100].latitude,   // outLat
+                                &yfms->data.fpln.xplm_info[100].longitud);  // outLon
+        }
         XPLMClearFMSEntry(i);
     }
     for (int i = 0, j = 1; i <= yfms->data.fpln.xplm_last; i++)
@@ -281,6 +305,22 @@ static void xplm_flpn_sync(yfms_context *yfms)
             }
             if (j)
             {
+                if (had_sync == 100 && i > 1) // i - 1 >= 1
+                {
+                    if (yfms->data.fpln.xplm_info[100].waypoint != XPLM_NAV_NOT_FOUND)
+                    {
+                        XPLMSetFMSEntryInfo(i - 1,
+                                            yfms->data.fpln.xplm_info[100].waypoint,
+                                            yfms->data.fpln.xplm_info[100].altitude);
+                    }
+                    else
+                    {
+                        XPLMSetFMSEntryLatLon(i - 1,
+                                              yfms->data.fpln.xplm_info[100].latitude,
+                                              yfms->data.fpln.xplm_info[100].longitud,
+                                              yfms->data.fpln.xplm_info[100].altitude);
+                    }
+                }
                 XPLMSetDestinationFMSEntry(i);
             }
         }

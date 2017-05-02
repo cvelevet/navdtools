@@ -251,6 +251,7 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                     yfms->data.init.ialized       = 1;
                     yfms->data.fpln.usridx        = 0;
                     yfms->data.fpln.lg_idx        = 0;
+                    yfms->data.fpln.xplm_last     = 99; // XXX: force a full flight plan sync
                     yfms->data.fpln.mod.operation = YFS_FPLN_MOD_INIT; yfs_fpln_fplnupdt(yfms);
                 }
                 yfs_spad_clear(yfms); yfs_init_pageupdt(yfms); return;
