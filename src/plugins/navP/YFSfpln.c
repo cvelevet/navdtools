@@ -682,7 +682,7 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)
 
     /* Last leg (arrival runway or airport) */
     ndt_list_add(yfms->data.fpln.legs, (yfms->data.fpln.d_leg = yfms->data.fpln.d_fpl->arr.last.rleg));
-    yfms->data.fpln.dindex = ndt_list_count(yfms->data.fpln.legs) - 1;
+    yfms->data.fpln.dindex = ndt_list_count(yfms->data.fpln.legs) - 1; // future: may != due to MAP
 
     /* Future: missed approach legs */
 
@@ -1031,8 +1031,8 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
                 {
                     return;
                 }
-                if (leg && leg->dst && leg->dst == wpt) // check for d.to itself
-                {        // we can't easily check the next leg's dst here though
+                if (leg && leg->dst && leg->dst == wpt) // check for duplicates
+                {
                     yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
                 }
                 if (yfms->data.fpln.lrev.idx == -1 && leg && leg->src && leg->src == wpt)
@@ -1131,7 +1131,9 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (strcmp(buf, "CLR") == 0)
         {
-            if (index == yfms->data.fpln.lg_idx || index == yfms->data.fpln.dindex)
+            if (index == yfms->data.fpln.lg_idx ||
+                index == yfms->data.fpln.dindex ||
+                index == ndt_list_count(yfms->data.fpln.legs) - 1)
             {
                 // can't clear either of current leg or destination
                 // future: perhaps clear current, direct next leg?
@@ -1174,6 +1176,39 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         if (wpt == leg->src || wpt == leg->dst) // duplicates easy to check here
         {
             yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
+        }
+        if (index == yfms->data.fpln.lg_idx)
+        {
+            /*
+             * We're trying to insert a leg before the currently tracked leg,
+             * which will invariably result in an immediate alteration of the
+             * aircraft's flight path. We have to assume we're doing a direct
+             * to said newly-inserted waypoint, because it's probably the only
+             * thing that makes sense at this point.
+             *
+             * The QPAC FMS simply disallows an insertion before the currently
+             * tracked waypoint, we'll do the same in YFMS with one exception.
+             * If we're tracking the last leg, we're likely in a high-workflow
+             * situation, going to the DIR page to insert a direct is slow and
+             * ineffective, allow insertion of said direct as described above.
+             *
+             * Currently, index == 0 is a special case, because it means we're
+             * still tracking the flight plan's very first leg; doing a direct
+             * to at this point is unlikely, the more obvious use case here is
+             * filling the flight plan on the ground after initialization of
+             * the departure and arrival airports. On the real Airbus FMS, a
+             * flight plan discontinuity will be inserted between the departure
+             * and arrival airport waypoints, so our special case doesn't apply.
+             */
+            if (index > 0)
+            {
+//                // on second thought, exception is slightly pointless
+//                if (index == ndt_list_count(yfms->data.fpln.legs) - 1)
+//                {
+//                    yfs_fpln_directto(yfms, index, wpt); return;
+//                }
+                yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
+            }
         }
         if (ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), wpt, leg, 0))
         {
