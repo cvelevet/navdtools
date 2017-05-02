@@ -156,7 +156,7 @@ static void dct_spc_callback_lndn(yfms_context *yfms)
 {
     if (yfms->data.drto.ln_off < 1)
     {
-        yfms->data.drto.ln_off = 0;
+        yfms->data.drto.ln_off = 0; // fixme allow selecting previous waypoints too
         yfs_drto_pageupdt(yfms); return;
     }
     yfms->data.drto.ln_off--; yfs_drto_pageupdt(yfms); return;
