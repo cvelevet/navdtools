@@ -442,16 +442,12 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
     }
 
     /* mostly static data */
-    if (fpl_getindex_for_line(yfms, 0) == yfms->data.fpln.lg_idx - 1)
+    if (yfms->data.init.flight_id[0])
     {
-        yfs_printf_lft(yfms, 0, 0, COLR_IDX_WHITE, "%s", " FROM");
+        yfs_printf_rgt(yfms, 0, 0, COLR_IDX_WHITE, "%s   ", yfms->data.init.flight_id);
+//      yfs_printf_rgt(yfms, 0, 0, COLR_IDX_WHITE, "%s ->", yfms->data.init.flight_id);
     }
     {
-        if (yfms->data.init.flight_id[0])
-        {
-            yfs_printf_rgt(yfms, 0, 0, COLR_IDX_WHITE, "%s   ", yfms->data.init.flight_id);
-//          yfs_printf_rgt(yfms, 0, 0, COLR_IDX_WHITE, "%s ->", yfms->data.init.flight_id);
-        }
         yfs_printf_lft(yfms, 11, 0, COLR_IDX_WHITE, "%s", " DEST   TIME  DIST  EFOB");
         yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "        ----  ----  ----");
     }
@@ -555,9 +551,18 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
                     yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_GREEN, "   --     ");
                 }
             }
-            if (i == 0) // column headers, overwrite other info on the right
+            if (i == 0) // column headers, overwrite other info
             {
-                yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_WHITE, "%s", "TIME  SPD/ALT   ");
+                if (fpl_getindex_for_line(yfms, 0) == yfms->data.fpln.lg_idx - 1)
+                {
+                    yfs_printf_lft(yfms, 0, 0, COLR_IDX_WHITE, "%s",                 " FROM");
+                    yfs_printf_lft(yfms, 1, 0, COLR_IDX_WHITE, "%s", "        TIME  SPD/ALT");
+                }
+                else
+                {
+                    // don't overwite magnetic course and/or related information
+                    yfs_printf_rgt(yfms, 1, 0, COLR_IDX_WHITE, "%s", "TIME  SPD/ALT   ");
+                }
             }
         }
     }
@@ -817,6 +822,9 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
             }
             if (j)
             {
+                // TODO/future: track which leg is being flown direct to in
+                //              order to display "T-P" origin in our leg list
+                //              note: we'll need updated course information too
                 // be lazy: X-Plane can handle all aspects of a direct to for us
                 XPLMSetDisplayedFMSEntry(i); XPLMCommandOnce(yfms->xpl.direct_to);
             }
