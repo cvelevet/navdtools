@@ -21,6 +21,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+
+#include "XPLM/XPLMUtilities.h"
 
 #include "common/common.h"
 #include "lib/flightplan.h"
@@ -77,9 +80,8 @@ void yfs_init_pageupdt(yfms_context *yfms)
     }
 
     /* left column */
-//  yfs_printf_lft(yfms,  2, 0, COLR_IDX_ORANGE, "%s", "##########"); // TODO: implement company route support
     yfs_printf_lft(yfms,  1, 0, COLR_IDX_WHITE,  "%s", " CO RTE");
-    yfs_printf_lft(yfms,  2, 0, COLR_IDX_BLUE,   "%s", "N/A");
+    yfs_printf_lft(yfms,  2, 0, COLR_IDX_ORANGE, "%s", "##########");
 //  yfs_printf_lft(yfms,  3, 0, COLR_IDX_WHITE,  "%s", "ALTN RTE");
 //  yfs_printf_lft(yfms,  4, 0, COLR_IDX_WHITE,  "%s", "--------");
     yfs_printf_lft(yfms,  5, 0, COLR_IDX_WHITE,  "%s", "FLT NBR");
@@ -150,8 +152,83 @@ void yfs_init_pageupdt(yfms_context *yfms)
     return;
 }
 
+static int get_couroute_file(yfms_context *yfms, const char *base, char outPath[512])//314
+{
+    char outBuffer[512*512]; char *outNames[512]; int outReturnedCount;
+    struct stat stats; const char *xlist[] = { ".fms", ".txt", ".fpl", }; // list of supported extensions
+    if (snprintf(outPath, 512, "%s%s", yfms->ndt.xsystem_pth, "Output/FMS plans") >= 512)
+    {
+        return -1;
+    }
+    if (stat(outPath, &stats))
+    {
+        return -2;
+    }
+    if (!S_ISDIR(stats.st_mode))
+    {
+        return -3;
+    }
+    /* list all files and directories inside FMS plans */
+    XPLMGetDirectoryContents(outPath, 0, outBuffer, sizeof(outBuffer), outNames, 512, NULL, &outReturnedCount);
+    /* then start looking for files with supported extensions */
+    for (int i = 0; i < sizeof(xlist) / sizeof(*xlist); i++)
+    {
+        /* check all subdirecories (only one level deep) first */
+        for (int j = 0; j < outReturnedCount; j++)
+        {
+            if (snprintf(outPath, 512, "%s%s/%s", yfms->ndt.xsystem_pth, "Output/FMS plans", outNames[j]) < 512)
+            {
+                if (!stat(outPath, &stats) && S_ISDIR(stats.st_mode)) // subdirectory, check it
+                {
+                    if (snprintf(outPath, 512, "%s%s/%s/%s%s", yfms->ndt.xsystem_pth, "Output/FMS plans", outNames[j], base, xlist[i]) < 512)
+                    {
+                        if (!stat(outPath, &stats) && S_ISREG(stats.st_mode))
+                        {
+                            return j ? /* ICAO */ 2 : /* X-Plane FMS */ 1;
+                        }
+                    }
+                }
+            }
+        }
+        /* check the main FMS plans directory next */
+        if (snprintf(outPath, 512, "%s%s/%s%s", yfms->ndt.xsystem_pth, "Output/FMS plans", base, xlist[i]) < 512)
+        {
+            if (!stat(outPath, &stats) && S_ISREG(stats.st_mode))
+            {
+                return i ? /* ICAO */ 2 : /* X-Plane FMS */ 1;
+            }
+        }
+    }
+    /* no company route found */
+    return 0;
+}
+
 static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refcon)
 {
+    if (key[0] == 0 && key[1] == 0) // company route                            //fixme
+    {
+        char outPath[512]; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
+        if  (strnlen(buf, 1))
+        {
+            switch (get_couroute_file(yfms, buf, outPath))
+            {
+                case 1:
+                case 2:
+                    ndt_log("yfms outPath \"%s\"\n", outPath); yfs_spad_clear(yfms); return;//debug//fixme
+                    break;
+                case 0:
+                    yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return;
+                case -1:
+                    yfs_spad_reset(yfms, "FILE PATH ERROR 1", COLR_IDX_ORANGE); return;
+                case -2:
+                    yfs_spad_reset(yfms, "FILE PATH ERROR 2", COLR_IDX_ORANGE); return;
+                case -3:
+                    yfs_spad_reset(yfms, "FILE PATH ERROR 3", COLR_IDX_ORANGE); return;
+                default:
+                    yfs_spad_reset(yfms, "UNKNOWN PATH ERR.", COLR_IDX_ORANGE); return;
+            }
+        }
+    }
     if (key[0] == 1 && key[1] == 0) // from/to
     {
         char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
