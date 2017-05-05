@@ -241,6 +241,7 @@ typedef struct
             int          aligned; // fake IRS system is aligned
             int       cost_index; // requested performance
             char    flight_id[9]; // flight "number"
+            char  corte_name[11]; // company route name
             ndt_distance crz_alt; // initial cruise altitude
             ndt_distance trans_a; // transition altitude in climb
             ndt_distance trans_l; // transition f. level in descent
