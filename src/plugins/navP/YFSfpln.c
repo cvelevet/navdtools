@@ -533,17 +533,16 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
                     case NDT_RSTYPE_PRC: // TODO
 //                      switch (leg->type)
                         break;
-                    case NDT_RSTYPE_AWY://fixme also print bearing next to airway identifier???
-                        yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_WHITE, " %5s", leg->awyleg->awy->info.idnt);
-                        yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_GREEN, "%.0lf     ", distance_nmile);
-                        if (i == 4) yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 3, COLR_IDX_WHITE, "%s", "NM");
+                    case NDT_RSTYPE_AWY:
+                        yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 1, COLR_IDX_WHITE, "%.5s", leg->awyleg->awy->info.idnt);
+                        yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 8, COLR_IDX_WHITE,              "TRK%03.0lf", leg->omb);
+                        yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_GREEN,        "%.0lf     ", distance_nmile);
+                        if (i == 4) yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 3, COLR_IDX_WHITE,              "%s", "NM");
                         break;
                     default:
-                        // note: we don't prepend 'C' to the course to e.g. prevent
-                        //       confusion with a procedure or an airway identifier
-                        yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_WHITE, " %03.0lf", leg->imb);
+                        yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 1, COLR_IDX_WHITE,         "C%03.0lf", leg->omb);
                         yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_GREEN, "%.0lf     ", distance_nmile);
-                        if (i == 4) yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 3, COLR_IDX_WHITE, "%s", "NM");
+                        if (i == 4) yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 3, COLR_IDX_WHITE,       "%s", "NM");
                         break;
                 }
                 if (distance_nmile < 0.) // not valid/available: must unprint it
@@ -561,7 +560,7 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
                 else
                 {
                     // don't overwite magnetic course and/or related information
-                    yfs_printf_rgt(yfms, 1, 0, COLR_IDX_WHITE, "%s", "TIME  SPD/ALT   ");
+                    yfs_printf_rgt(yfms, 1, 0, COLR_IDX_WHITE, "%s", " TIME  SPD/ALT   ");
                 }
             }
         }
