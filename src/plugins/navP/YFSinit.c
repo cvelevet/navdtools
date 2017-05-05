@@ -169,10 +169,46 @@ void yfs_init_pageupdt(yfms_context *yfms)
     return;
 }
 
+static int check_subdirectories_recursive(yfms_context *yfms, const char *base, char outPath[512])
+{
+    char basePath[512]; strncpy(basePath, outPath, sizeof(basePath));
+    const char *xlist[] = { ".fms", ".txt", ".fpl", }; // supported extensions by priority
+    struct stat stats; char outBuffer[512*512]; char *outNames[512]; int outReturnedCount;
+    /* log where we're looking for and what we're looking for */
+    ndt_log("YFMS [debug]: searching directory \"%s\" for company route \"%s\"\n", basePath, base);
+    /* check basePath for coroute files first */
+    for (int i = 0; i < sizeof(xlist) / sizeof(*xlist); i++)
+    {
+        if (snprintf(outPath, 512, "%s/%s%s", basePath, base, xlist[i]) < 512)
+        {
+            if (!stat(outPath, &stats) && S_ISREG(stats.st_mode))
+            {
+                ndt_log("YFMS [debug]: found company route \"%s\"\n", outPath);
+                return i ? /* ICAO */ 2 : /* X-Plane FMS */ 1;
+            }
+        }
+    }
+    /* list all files and directories within basePath */
+    XPLMGetDirectoryContents(basePath, 0, outBuffer, sizeof(outBuffer), outNames, 512, NULL, &outReturnedCount);
+    /* then start looking for files with supported extensions */
+    for (int i = 0; i < outReturnedCount; i++)
+    {
+        if (snprintf(outPath, 512, "%s/%s", basePath, outNames[i]) < 512)
+        {
+            if (!stat(outPath, &stats) && S_ISDIR(stats.st_mode)) // subdirectory, check it
+            {
+                int ret = check_subdirectories_recursive(yfms, base, outPath);
+                if (ret) return ret;
+            }
+        }
+    }
+    /* no company route found */
+    return 0;
+}
+
 static int get_coroute_file(yfms_context *yfms, const char *base, char outPath[512])
 {
-    char outBuffer[512*512]; char *outNames[512]; int outReturnedCount;
-    struct stat stats; const char *xlist[] = { ".fms", ".txt", ".fpl", }; // list of supported extensions
+    struct stat stats;
     if (snprintf(outPath, 512, "%s%s", yfms->ndt.xsystem_pth, "Output/FMS plans") >= 512)
     {
         return -1;
@@ -185,39 +221,8 @@ static int get_coroute_file(yfms_context *yfms, const char *base, char outPath[5
     {
         return -3;
     }
-    /* list all files and directories inside FMS plans */
-    XPLMGetDirectoryContents(outPath, 0, outBuffer, sizeof(outBuffer), outNames, 512, NULL, &outReturnedCount);
-    /* then start looking for files with supported extensions */
-    for (int i = 0; i < sizeof(xlist) / sizeof(*xlist); i++)
-    {
-        /* check all subdirecories (only one level deep) first */
-        for (int j = 0; j < outReturnedCount; j++)
-        {
-            if (snprintf(outPath, 512, "%s%s/%s", yfms->ndt.xsystem_pth, "Output/FMS plans", outNames[j]) < 512)
-            {
-                if (!stat(outPath, &stats) && S_ISDIR(stats.st_mode)) // subdirectory, check it
-                {
-                    if (snprintf(outPath, 512, "%s%s/%s/%s%s", yfms->ndt.xsystem_pth, "Output/FMS plans", outNames[j], base, xlist[i]) < 512)
-                    {
-                        if (!stat(outPath, &stats) && S_ISREG(stats.st_mode))
-                        {
-                            return j ? /* ICAO */ 2 : /* X-Plane FMS */ 1;
-                        }
-                    }
-                }
-            }
-        }
-        /* check the main FMS plans directory next */
-        if (snprintf(outPath, 512, "%s%s/%s%s", yfms->ndt.xsystem_pth, "Output/FMS plans", base, xlist[i]) < 512)
-        {
-            if (!stat(outPath, &stats) && S_ISREG(stats.st_mode))
-            {
-                return i ? /* ICAO */ 2 : /* X-Plane FMS */ 1;
-            }
-        }
-    }
-    /* no company route found */
-    return 0;
+    /* check any subdirectories recursively */
+    return check_subdirectories_recursive(yfms, base, outPath);
 }
 
 static ndt_flightplan* file_to_flightplan(yfms_context *yfms, char path[512], ndt_fltplanformat fmt)
