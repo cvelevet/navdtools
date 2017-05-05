@@ -169,7 +169,7 @@ void yfs_init_pageupdt(yfms_context *yfms)
     return;
 }
 
-static int get_couroute_file(yfms_context *yfms, const char *base, char outPath[512])
+static int get_coroute_file(yfms_context *yfms, const char *base, char outPath[512])
 {
     char outBuffer[512*512]; char *outNames[512]; int outReturnedCount;
     struct stat stats; const char *xlist[] = { ".fms", ".txt", ".fpl", }; // list of supported extensions
@@ -376,7 +376,7 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
             {
                 yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
             }
-            switch (get_couroute_file(yfms, buf, outPath))
+            switch (get_coroute_file(yfms, buf, outPath))
             {
                 case 1:
                     corte = file_to_flightplan(yfms, outPath, NDT_FLTPFMT_XPFMS);
