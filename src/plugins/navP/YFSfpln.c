@@ -528,7 +528,7 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
                     distance = leg->dis;
                 }
                 double  distance_nmile = (double)ndt_distance_get(distance, NDT_ALTUNIT_ME) / 1852.;
-                switch (leg->rsg->type)
+                switch (leg->rsg->type) // LSGG>BGTL(QPAC) suggests omb is used (as opposed to imb)
                 {
                     case NDT_RSTYPE_PRC: // TODO
 //                      switch (leg->type)
