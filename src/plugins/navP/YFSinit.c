@@ -360,11 +360,13 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
         {
             yfms->data.init.corte_name[0] = 0;
         }
-        yfms->data.init.ialized       = 1;
-        yfms->data.fpln.usridx        = 0;
-        yfms->data.fpln.lg_idx        = 0;
-        yfms->data.fpln.xplm_last     = 99; // XXX: force a full flight plan sync
-        yfms->data.fpln.mod.operation = YFS_FPLN_MOD_INIT; yfs_fpln_fplnupdt(yfms);
+        yfms->data.init.ialized         = 1;
+        yfms->data.fpln.usridx          = 0;
+        yfms->data.fpln.lg_idx          = 0;
+        yfms->data.fpln.dist.remain     = ndt_distance_init(0, NDT_ALTUNIT_NA);
+        yfms->data.fpln.dist.ref_leg_id = -1; // XXX: force a full distance re-sync
+        yfms->data.fpln.xplm_last       = 99; // XXX: force a full flight plan sync
+        yfms->data.fpln.mod.operation   = YFS_FPLN_MOD_INIT; yfs_fpln_fplnupdt(yfms);
     }
     /* all good */
     return;

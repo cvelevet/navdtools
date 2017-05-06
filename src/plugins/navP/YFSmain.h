@@ -261,6 +261,11 @@ typedef struct
             ndt_list           *legs; // list of all flight plan legs, if any
             struct
             {
+                int       ref_leg_id; // reference leg for distance calculation
+                ndt_distance  remain; // remaining distance after reference leg
+            } dist;
+            struct
+            {
                 ndt_route_leg *source; // may be invalid + non-NULL (closed leg)
                 void          *opaque;
                 int             index;

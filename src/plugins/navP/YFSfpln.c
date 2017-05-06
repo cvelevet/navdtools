@@ -325,7 +325,12 @@ static void xplm_flpn_sync(yfms_context *yfms)
             }
         }
     }
-    return; // should be fully synced now
+
+    /* ensure we recompute distance remaining to destination */
+    yfms->data.fpln.dist.ref_leg_id = -1;
+
+    /* should be fully synced now */
+    return;
 }
 
 void yfs_fpln_pageopen(yfms_context *yfms)
@@ -447,30 +452,33 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
         yfs_printf_rgt(yfms, 0, 0, COLR_IDX_WHITE, "%s   ", yfms->data.init.flight_id);
 //      yfs_printf_rgt(yfms, 0, 0, COLR_IDX_WHITE, "%s ->", yfms->data.init.flight_id);
     }
-    {
-        yfs_printf_lft(yfms, 11, 0, COLR_IDX_WHITE, "%s", " DEST   TIME  DIST  EFOB");
-        yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "        ----  ----  ----");
-    }
     if (yfms->data.init.ialized == 0)
     {
         if (yfms->data.fpln.ln_off)
         {
             yfms->data.fpln.ln_off = 0; yfs_fpln_pageupdt(yfms); return;
         }
-        yfs_printf_lft(yfms, 2, 0, COLR_IDX_WHITE, "%s", "------END OF F-PLN------");
+        yfs_printf_lft(yfms,  2, 0, COLR_IDX_WHITE, "%s", "------END OF F-PLN------");
+        yfs_printf_lft(yfms, 11, 0, COLR_IDX_WHITE, "%s", " DEST   TIME  DIST  EFOB");
+        yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "        ----  ----  ----");
         return;
     }
 
-    /* final destination :D */
-    yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%-4s%-3s ----  ----  ----", // TODO: TIME, DIST
-                   yfms->ndt.flp.rte->arr.apt->info.idnt,
-                   yfms->ndt.flp.rte->arr.rwy ? yfms->ndt.flp.rte->arr.rwy->info.idnt : "");
-
     /* two lines per leg (header/course/distance, then name/constraints) */
+    ndt_route_leg *leg; ndt_distance distance, dtrack = ndt_distance_init(0, NDT_ALTUNIT_NA);
+    if ((leg = ndt_list_item(yfms->data.fpln.legs, yfms->data.fpln.lg_idx)))
+    {
+        if (leg->dst) // tracked leg, compute dtrack
+        {
+            ndt_position to = leg->dst->position;
+            ndt_position from = yfms->data.aircraft_pos;
+            dtrack = ndt_position_calcdistance(from, to);
+        }
+    }
     for (int i = 0; i < 5; i++)
     {
         ndt_route_leg *leg = NULL;
-        int have_waypt = 0, index; ndt_distance distance;
+        int have_waypt = 0, index;
         switch ((index = fpl_getindex_for_line(yfms, i)))
         {
             case -2:
@@ -512,15 +520,13 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
             {
                 if (index == yfms->data.fpln.lg_idx)
                 {
-                    if (leg->dst) // tracked leg, show remaining instead of leg distance
+                    if (leg->dst) // display remaining distance instead of leg's
                     {
-                        ndt_position   to = leg->dst->position;
-                        ndt_position from = yfms->data.aircraft_pos;
-                        distance          = ndt_position_calcdistance(from, to);
+                        distance = dtrack;
                     }
-                    else
+                    else  // distance unavailable, set to invalid value
                     {
-                        distance = ndt_distance_init(-1, NDT_ALTUNIT_NA); // unavailable
+                        distance = ndt_distance_init(-1, NDT_ALTUNIT_NA);
                     }
                 }
                 else
@@ -565,6 +571,36 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
             }
         }
     }
+
+    /* update distance to destination */
+    if (yfms->data.fpln.dist.ref_leg_id != yfms->data.fpln.lg_idx)
+    {
+        {
+            distance = ndt_distance_init(0, NDT_ALTUNIT_NA);
+        }
+        for (int i = yfms->data.fpln.lg_idx + 1; i < ndt_list_count(yfms->data.fpln.legs); i++)
+        {
+            if ((leg = ndt_list_item(yfms->data.fpln.legs, i)))
+            {
+                distance = ndt_distance_add(distance, leg->dis);
+            }
+        }
+        yfms->data.fpln.dist.remain = distance;
+        yfms->data.fpln.dist.ref_leg_id = yfms->data.fpln.lg_idx;
+        distance = ndt_distance_add(yfms->data.fpln.dist.remain, dtrack);
+    }
+    else
+    {
+        distance = ndt_distance_add(yfms->data.fpln.dist.remain, dtrack);
+    }
+
+    /* final destination :D */
+    yfs_printf_lft(yfms, 11, 0, COLR_IDX_WHITE, "%s", " DEST   TIME  DIST  EFOB");
+    yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%-4s%-3s ----  %4.0lf  ----", // TODO: TIME
+                   yfms->ndt.flp.rte->arr.apt->info.idnt,
+                   yfms->ndt.flp.rte->arr.rwy ?
+                   yfms->ndt.flp.rte->arr.rwy->info.idnt : "",
+                   (double)ndt_distance_get(distance, NDT_ALTUNIT_ME) / 1852.);
 
     /* all good */
     return;
@@ -1007,8 +1043,7 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
     {
         yfms->data.fpln.lrev.open = 0;
         yfms->data.fpln.lrev.leg = NULL;
-        yfms->data.fpln.lrev.wpt = NULL;
-        yfs_fpln_fplnupdt(yfms); return; // RETURN
+        yfms->data.fpln.lrev.wpt = NULL; return; // RETURN
     }
     if (key[1] == 0) // departure/arrival
     {
