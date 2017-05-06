@@ -43,7 +43,7 @@ static void            fpl_print_airport_rwy(yfms_context *yfms, int row, ndt_ai
 static int             fpl_getindex_for_line(yfms_context *yfms, int line                                  );
 static ndt_flightplan* fpl_getfplan_for_leg(yfms_context *yfms,                          ndt_route_leg *leg);
 
-static void xplm_flpn_sync(yfms_context *yfms)
+static void xplm_fpln_sync(yfms_context *yfms)
 {
     /*
      * There may be more than 100 waypoints in our plan, we need to determine
@@ -612,7 +612,7 @@ void yfs_fpln_fplnsync(yfms_context *yfms)
     {
         if (yfms->data.fpln.xplm_last != XPLMCountFMSEntries() - 1)
         {
-            xplm_flpn_sync(yfms);
+            xplm_fpln_sync(yfms);
         }
     }
 }
@@ -812,7 +812,7 @@ end:/* We should be fully synced with navdlib now */
     yfms->data.fpln.mod.opaque    = NULL;
     yfms->data.fpln.mod.source    = NULL;
     yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NONE;
-    xplm_flpn_sync(yfms); yfs_fpln_pageupdt(yfms); return;
+    xplm_fpln_sync(yfms); yfs_fpln_pageupdt(yfms); return;
 }
 
 void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
