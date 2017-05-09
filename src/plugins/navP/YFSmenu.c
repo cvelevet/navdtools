@@ -109,6 +109,8 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfms->data.init.to            = NULL;
     yfms->data.init.from          = NULL;
     yfms->data.init.ialized       = 0;
+    yfms->data.fpln.awys.open     = 0;
+    yfms->data.fpln.lrev.open     = 0;
     yfms->data.init.cost_index    = 0;
     yfms->data.init.flight_id[0]  = 0;
     yfms->data.init.corte_name[0] = 0;

@@ -355,6 +355,11 @@ void yfs_fpln_pageopen(yfms_context *yfms)
     yfs_fpln_pageupdt(yfms); return;
 }
 
+static void awys_pageupdt(yfms_context *yfms)
+{
+    //fixme implement
+}
+
 static void lrev_pageupdt(yfms_context *yfms)
 {
     /* page title + latitude and longitude coordinates */
@@ -416,7 +421,11 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
         yfs_main_rline(yfms, i, -1);
     }
 
-    /* is the lateral revision subpage open? */
+    /* do we have a sub-page open? */
+    if (yfms->data.fpln.awys.open)
+    {
+        return awys_pageupdt(yfms);
+    }
     if (yfms->data.fpln.lrev.open)
     {
         return lrev_pageupdt(yfms);
@@ -1037,6 +1046,11 @@ static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
     return wpt;
 }
 
+static void lsk_callback_awys(yfms_context *yfms, int key[2], intptr_t refcon)
+{
+    //fixme implement
+}
+
 static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
 {
     if (key[0] == 0 && key[1] == 5)
@@ -1124,7 +1138,11 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
 
 static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refcon)
 {
-    /* is the lateral revision subpage open? */
+    /* do we have a sub-page open? */
+    if (yfms->data.fpln.awys.open)
+    {
+        return lsk_callback_awys(yfms, key, refcon);
+    }
     if (yfms->data.fpln.lrev.open)
     {
         return lsk_callback_lrev(yfms, key, refcon);

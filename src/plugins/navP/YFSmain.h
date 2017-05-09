@@ -302,6 +302,14 @@ typedef struct
                 int           open;
             }
             lrev;
+            struct
+            {
+                ndt_route_leg *leg;
+                ndt_waypoint  *wpt;
+                int            idx;
+                int           open;
+            }
+            awys;
         }
         fpln;
         struct
