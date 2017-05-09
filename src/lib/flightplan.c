@@ -879,7 +879,7 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
     }
 
     /*
-     * we must initialize after splitting airways:curr_leg->rsg may have changed
+     * We must initialize this after splitting: curr_leg->rsg may have changed.
      */
     ndt_route_segment *curr_rsg = curr_leg ? curr_leg->rsg : NULL;
 
@@ -1199,7 +1199,24 @@ int ndt_flightplan_remove_leg(ndt_flightplan *flp, void *_leg)
     {
         err = ENOMEM; goto end;
     }
-    ndt_route_segment *rsg, *dct, *tail; ndt_route_leg *leg = _leg, *item, *last = NULL;
+
+    /*
+     * Comment of the month (May 2017): declare some variables.
+     */
+    ndt_route_leg *leg = _leg, *item, *last = NULL;
+    ndt_route_segment *rsg, *dct, *tail;
+
+    /*
+     * First: split airway segments to facilitate removal of legs mid-airway.
+     */
+    if ((err = split_airways(flp)))
+    {
+        goto end;
+    }
+
+    /*
+     * We must initialize this after splitting: leg->rsg may have changed.
+     */
     if ((rsg = leg->rsg) == NULL)
     {
         err = EINVAL; goto end;
@@ -1213,7 +1230,7 @@ int ndt_flightplan_remove_leg(ndt_flightplan *flp, void *_leg)
                 // future: insert discontinuity
                 // currnt: route_leg_update should be able to sanitize correctly
                 ndt_list_rem(rsg->legs, leg);
-                goto cleanup1;
+                goto cleanup;
             }
         }
         if (i == ii - 1) // last iteration, leg not found
@@ -1222,7 +1239,7 @@ int ndt_flightplan_remove_leg(ndt_flightplan *flp, void *_leg)
         }
     }
 
-cleanup1: // remove empty route segments
+cleanup: // remove empty route segments
     for (int i = 0, ii = ndt_list_count(flp->rte); i < ii; i++)
     {
         if ((rsg = ndt_list_item(flp->rte, i)))
@@ -1233,115 +1250,36 @@ cleanup1: // remove empty route segments
                 {
                     if (rsg == flp->dep.sid.rsgt)
                     {
-                        ndt_route_segment_close(&flp->dep.sid.rsgt);            goto cleanup2;
+                        ndt_route_segment_close(&flp->dep.sid.rsgt);            goto end;
                     }
                     if (rsg == flp->dep.sid.enroute.rsgt)
                     {
-                        ndt_route_segment_close(&flp->dep.sid.enroute.rsgt);    goto cleanup2;
+                        ndt_route_segment_close(&flp->dep.sid.enroute.rsgt);    goto end;
                     }
                     if (rsg == flp->arr.star.enroute.rsgt)
                     {
-                        ndt_route_segment_close(&flp->arr.star.enroute.rsgt);   goto cleanup2;
+                        ndt_route_segment_close(&flp->arr.star.enroute.rsgt);   goto end;
                     }
                     if (rsg == flp->arr.star.rsgt)
                     {
-                        ndt_route_segment_close(&flp->arr.star.rsgt);           goto cleanup2;
+                        ndt_route_segment_close(&flp->arr.star.rsgt);           goto end;
                     }
                     if (rsg == flp->arr.apch.transition.rsgt)
                     {
-                        ndt_route_segment_close(&flp->arr.apch.transition.rsgt);goto cleanup2;
+                        ndt_route_segment_close(&flp->arr.apch.transition.rsgt);goto end;
                     }
                     if (rsg == flp->arr.apch.rsgt)
                     {
-                        ndt_route_segment_close(&flp->arr.apch.rsgt);           goto cleanup2;
-                    }
-                    {
-                        // TODO: missed approach?
+                        ndt_route_segment_close(&flp->arr.apch.rsgt);           goto end;
                     }
                     err = EINVAL; goto end;
                 }
+                {
+                    // TODO: missed approach?
+                }
                 ndt_list_rem  (flp->rte, rsg);
                 ndt_route_segment_close(&rsg);
-                goto cleanup2;
-            }
-        }
-    }
-
-cleanup2: // plug any implicit discontinuities
-    for (int i = 0, ii = ndt_list_count(flp->rte); i < ii; i++)
-    {
-        if ((rsg = ndt_list_item(flp->rte, i)))
-        {
-            for (int j = 0, jj = ndt_list_count(rsg->legs); j < jj; j++)
-            {
-                if ((item = ndt_list_item(rsg->legs, j)))
-                {
-                    if (last && last->dst != item->src)
-                    {
-                        if (rsg->type == NDT_RSTYPE_AWY)
-                        {
-                            if (j == 0) // 1st airway leg invalid, replace by a direct
-                            {
-                                if ((dct = ndt_route_segment_direct(last->dst, item->dst)) == NULL)
-                                {
-                                    err = ENOMEM;
-                                    goto end;
-                                }
-                                else
-                                {
-                                    ndt_list_rem(rsg->legs, item);
-                                    ndt_route_leg_close   (&item);
-                                }
-                                if (ndt_list_count(rsg->legs) == 0)
-                                {
-                                    ndt_list_rem  (flp->rte, rsg);
-                                    ndt_route_segment_close(&rsg);
-                                }
-                                ndt_list_insert(flp->rte, dct, i);
-                                goto end;
-                            }
-                            else // j >= 1
-                            {
-                                if ((dct = ndt_route_segment_direct(last->dst, item->dst)) == NULL)
-                                {
-                                    err = ENOMEM;
-                                    goto end;
-                                }
-                                else
-                                {
-                                    ndt_list_insert(flp->rte, dct, i + 1);
-                                    ndt_list_rem        (rsg->legs, item);
-                                    ndt_route_leg_close           (&item);
-                                }
-                                if (j < jj)
-                                {
-                                    if ((tail = ndt_route_segment_init()) == NULL)
-                                    {
-                                        return ENOMEM;
-                                    }
-                                    for (int k = jj - 1; k >= j; k--)
-                                    {
-                                        if ((item = ndt_list_item(rsg->legs, k)))
-                                        {
-                                            ndt_list_insert(tail->legs, item, 0);
-                                            ndt_list_rem(rsg ->legs, item);
-                                            tail->awy.src = item->awyleg;
-                                            tail->src = item->src;
-                                            item->rsg = tail;
-                                        }
-                                    }
-                                    ndt_list_insert(flp->rte, tail, i + 2);
-                                    tail->awy.awy = rsg->awy.awy;
-                                    tail->type = rsg->type;
-                                }
-                                goto end;
-                            }
-                        }
-                        // TODO: anything else in need of forceful sanitizing?
-                        // note: route_leg_update can handle other sanitizing
-                    }
-                    last = item;
-                }
+                goto end;
             }
         }
     }
