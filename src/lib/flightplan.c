@@ -799,18 +799,89 @@ static ndt_route_leg* route_leg_direct(ndt_waypoint *src, ndt_waypoint *dst)
     return leg;
 }
 
+/*
+ * "Airbus-style" (FPL page): split airway route segments so that we
+ *                            have one route segment per airway leg.
+ */
+static int split_airways(ndt_flightplan *flp)
+{
+    ndt_route_segment *rsg, *new_rsg; ndt_route_leg *leg;
+    for (int i = ndt_list_count(flp->rte) - 1; i >= 0; i--)
+    {
+        if ((rsg = ndt_list_item(flp->rte, i)) &&
+            (rsg->type == NDT_RSTYPE_AWY && ndt_list_count(rsg->legs) > 1))
+        {
+            for (int j = ndt_list_count(rsg->legs) - 1; j >= 0; j--)
+            {
+                if ((leg = ndt_list_item(rsg->legs, j)))
+                {
+                    if ((new_rsg = ndt_route_segment_init()) == NULL)
+                    {
+                        return ENOMEM;
+                    }
+                    else
+                    {
+                        // note: faster than using ndt_route_segment_airway()
+                        // also, we MUST preserve leg, otherwise we'll break
+                        // on-the-fly insertion, removal of flight plan legs
+                        snprintf(new_rsg->info.idnt, sizeof(new_rsg->info.idnt), "%s %s", leg->awyleg->awy->info.idnt, leg->dst->info.idnt);
+                        new_rsg->awy.awy = leg->awyleg->awy;new_rsg->type = NDT_RSTYPE_AWY;ndt_list_add(new_rsg->legs, leg);leg->rsg = new_rsg;
+                        new_rsg->awy.src = leg->awyleg;
+                        new_rsg->awy.dst = leg->awyleg;
+                        new_rsg->src     = leg->src;
+                        new_rsg->dst     = leg->dst;
+                    }
+                    ndt_list_rem   (rsg->legs,       leg);
+                    ndt_list_insert(flp->rte, new_rsg, i);
+                }
+            }
+            if (ndt_list_count(rsg->legs))
+            {
+                ndt_log("navP [error]: split_airways, rsg has legs (BUG)!\n");
+                return ENOMEM;
+            }
+            ndt_list_rem  (flp->rte, rsg);
+            ndt_route_segment_close(&rsg);
+        }
+    }
+    return 0;
+}
+
+/*
+ * "Boeing-style" (RTE page): consolidate consecutive airway legs
+ *                            into a single airway route segment.
+ */
+static int consolidate_airways(ndt_flightplan *flp)
+{
+    // note: beware of any airway segments where leg->src doesn't
+    //       match the previous leg's dst: they've become directs
+    return ENOSYS; // TODO: implement
+}
+
 int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_leg, int insert_after)
 {
     /*
      * Note: next_ fields currently unused, but may be usedful for inserting
      *       discontinuities down the road, so compute and save them anyway.
      */
-    int insert_at_indx = 0, err = 0;
+    int insert_at_indx =-1, err = 0;
     ndt_waypoint      *prev_dst = NULL, *next_src = NULL;
     ndt_route_leg     *curr_leg = _leg; ndt_route_segment *prc[6];
-    ndt_route_segment *curr_rsg = curr_leg ? curr_leg->rsg : NULL;
     ndt_route_segment *prev_rsg = NULL, *next_rsg = NULL, *new_rsg = NULL, *rsg;
     ndt_route_leg     *prev_leg = NULL, *next_leg = NULL, *new_leg = NULL, *leg;
+
+    /*
+     * First: split airway segments to facilitate insertion of legs mid-airway.
+     */
+    if ((err = split_airways(flp)))
+    {
+        goto end;
+    }
+
+    /*
+     * we must initialize after splitting airways:curr_leg->rsg may have changed
+     */
+    ndt_route_segment *curr_rsg = curr_leg ? curr_leg->rsg : NULL;
 
     /*
      * Check and save whether any given procedure segment is present:
@@ -1027,8 +1098,6 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
         goto end;
     }
 
-    //fixme split all airways (one route segment per leg)
-
     /* segment and leg not in a procedure: must be in main route */
     for (int i = 0, j = ndt_list_count(flp->rte); i < j; i++)
     {
@@ -1088,6 +1157,12 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
                 }
             }
         }
+    }
+    if (insert_at_indx < 0)
+    {
+        ndt_log("navP [error]: ndt_flightplan_insert_direct has a BUG!");
+        err = EINVAL;
+        goto end;
     }
     if ((new_rsg = ndt_route_segment_direct(prev_dst, wpt)) == NULL)
     {
@@ -1580,6 +1655,7 @@ ndt_route_segment* ndt_route_segment_airway(ndt_waypoint *src, ndt_waypoint *dst
         goto fail;
     }
 
+    // note: we must update split_airways too should we update this function
     snprintf(rsg->info.idnt, sizeof(rsg->info.idnt), "%s %s", awy->info.idnt, dst->info.idnt);
     rsg->type    = NDT_RSTYPE_AWY;
     rsg->src     = src;
@@ -1608,6 +1684,7 @@ ndt_route_segment* ndt_route_segment_airway(ndt_waypoint *src, ndt_waypoint *dst
         {
             goto fail;
         }
+        // note: we must update split_airways too should we update this function
         ndt_date now = ndt_date_now();
         leg->dis     = ndt_position_calcdistance(src->position,   dst->position);
         leg->trb     = ndt_position_calcbearing (src->position,   dst->position);
@@ -3556,6 +3633,26 @@ static int route_leg_update(ndt_flightplan *flp)
             ndt_route_leg_close        (&nxt);
             continue;
         }
+        if (leg->rsg && leg->rsg->type == NDT_RSTYPE_AWY)
+        {
+            /*
+             * check for airway legs where leg->src doesn't match src;
+             * this could happen, for example, when inserting a direct
+             * or discontinuity during on-the-fly flight plan editing.
+             *
+             * if the route segment only had a single leg, then it
+             * can easily be converted to a direct: problem solved!
+             */
+            if (leg->src != src && ndt_list_count(leg->rsg->legs) == 1)
+            {
+                leg->rsg->src     = src;
+                leg->rsg->awy.awy = NULL;
+                leg->rsg->awy.src = NULL;
+                leg->rsg->awy.dst = NULL;
+                leg->awyleg       = NULL;
+                leg->rsg->type    = NDT_RSTYPE_DCT;
+            }
+        }
         if (leg->type != NDT_LEGTYPE_ZZ)
         {
             leg->src = src;
@@ -3570,6 +3667,16 @@ static int route_leg_update(ndt_flightplan *flp)
         }
         src = leg->dst;
     }
+
+    /*
+     * Future: consolidate airways here as necessary.
+     *
+     * Note: we can probably set a variable in the flight plan to enable/disable
+     *       consolidation, as well as maybe a variable in the segment struct to
+     *       determine if the airway was part of a segment that got split by our
+     *       code vs. originally started out as actual single-leg airway segment
+     *       (i.e. single-leg segment specified in coroute or manually by user).
+     */
 
     /*
      * Dummy last leg from last leg's endpoint (if it exists) to the arrival
