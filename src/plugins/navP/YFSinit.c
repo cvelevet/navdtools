@@ -290,7 +290,9 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
         if ((yfms->data.fpln.legs == NULL) &&
             (yfms->data.fpln.legs = ndt_list_init()) == NULL)
         {
-            yfms->data.init.ialized = 0; yfms->data.init.from = yfms->data.init.to = NULL;
+            yfms->data.fpln.awys.open = 0;
+            yfms->data.fpln.lrev.open = 0;
+            yfms->data.init.ialized   = 0; yfms->data.init.from = yfms->data.init.to = NULL;
             yfs_spad_reset(yfms, "MEMORY ERROR 1", COLR_IDX_ORANGE); yfs_init_pageupdt(yfms); return;
         }
         if ((yfms->ndt.flp.arr = ndt_flightplan_init(yfms->ndt.ndb)) == NULL ||
@@ -298,7 +300,9 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
             (yfms->ndt.flp.iac = ndt_flightplan_init(yfms->ndt.ndb)) == NULL ||
             (yfms->ndt.flp.rte = ndt_flightplan_init(yfms->ndt.ndb)) == NULL)
         {
-            yfms->data.init.ialized = 0; yfms->data.init.from = yfms->data.init.to = NULL;
+            yfms->data.fpln.awys.open = 0;
+            yfms->data.fpln.lrev.open = 0;
+            yfms->data.init.ialized   = 0; yfms->data.init.from = yfms->data.init.to = NULL;
             yfs_spad_reset(yfms, "MEMORY ERROR 2", COLR_IDX_ORANGE); yfs_init_pageupdt(yfms); return;
         }
         if (ndt_flightplan_set_departure(yfms->ndt.flp.arr, yfms->data.init.from->info.idnt, NULL) ||
@@ -308,7 +312,9 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
         {
             if (src)
             {
-                yfms->data.init.ialized = 0; yfms->data.init.from = NULL;
+                yfms->data.fpln.awys.open = 0;
+                yfms->data.fpln.lrev.open = 0;
+                yfms->data.init.ialized   = 0; yfms->data.init.from = NULL;
                 yfs_spad_reset(yfms, "UNKNOWN ERROR 1", COLR_IDX_ORANGE); yfs_init_pageupdt(yfms); return;
             }
         }
@@ -319,7 +325,9 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
         {
             if (dst)
             {
-                yfms->data.init.ialized = 0; yfms->data.init.to = NULL;
+                yfms->data.fpln.awys.open = 0;
+                yfms->data.fpln.lrev.open = 0;
+                yfms->data.init.ialized   = 0; yfms->data.init.to = NULL;
                 yfs_spad_reset(yfms, "UNKNOWN ERROR 2", COLR_IDX_ORANGE); yfs_init_pageupdt(yfms); return;
             }
         }
@@ -350,12 +358,6 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
                 ndt_waypoint_close(&yfms->data.fpln.usrwpt[i]);
             }
         }
-        if (src)
-        {
-            yfms->data.init.crz_alt      = ndt_distance_init(0, NDT_ALTUNIT_NA);
-            yfms->data.init.cost_index   = 0;
-            yfms->data.init.flight_id[0] = 0;
-        }
         if (corte == NULL)
         {
             yfms->data.init.corte_name[0] = 0;
@@ -367,6 +369,17 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
         yfms->data.fpln.dist.ref_leg_id = -1; // XXX: force a full distance re-sync
         yfms->data.fpln.xplm_last       = 99; // XXX: force a full flight plan sync
         yfms->data.fpln.mod.operation   = YFS_FPLN_MOD_INIT; yfs_fpln_fplnupdt(yfms);
+    }
+    if (yfms->data.init.from == NULL && yfms->data.init.to == NULL) // reset all
+    {
+        yfms->data.init.crz_alt       = ndt_distance_init(0, NDT_ALTUNIT_NA);
+        yfms->data.init.corte_name[0] = 0;
+        yfms->data.init.flight_id[0]  = 0;
+        yfms->data.init.cost_index    = 0;
+        yfms->data.fpln.awys.open     = 0;
+        yfms->data.fpln.lrev.open     = 0;
+        yfms->data.init.ialized       = 0;
+        return yfs_init_pageupdt(yfms);
     }
     /* all good */
     return;
@@ -417,21 +430,33 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
         {
             ndt_airport *dst = NULL, *src = NULL;
             char *suffix = buf, *prefix = strsep(&suffix, "/");
+            if (prefix && prefix[0])
+            {
+                if (strcmp(prefix, "CLR") == 0)
+                {
+                    yfs_spad_clear(yfms); yfs_flightplan_reinit(yfms, NULL, NULL, NULL); return yfs_init_pageupdt(yfms);
+                }
+                src = ndt_navdata_get_airport(yfms->ndt.ndb, prefix);
+            }
+            else
+            {
+                prefix = NULL;
+            }
             if (suffix && suffix[0])
             {
                 dst = ndt_navdata_get_airport(yfms->ndt.ndb, suffix);
             }
-            if (prefix && prefix[0])
+            else
             {
-                src = ndt_navdata_get_airport(yfms->ndt.ndb, prefix);
+                suffix = NULL;
             }
-            if (dst || src)
+            if ((!prefix || src) && (!suffix || dst))
             {
-                yfs_spad_clear(yfms); yfs_flightplan_reinit(yfms, src, dst, NULL); yfs_init_pageupdt(yfms); return;
+                yfs_spad_clear(yfms); yfs_flightplan_reinit(yfms, src, dst, NULL); return yfs_init_pageupdt(yfms);
             }
-            yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); yfs_init_pageupdt(yfms); return;
+            yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return yfs_init_pageupdt(yfms);
         }
-        yfs_spad_reset(yfms, "FORMAT ERROR", -1); yfs_init_pageupdt(yfms); return;
+        yfs_spad_reset(yfms, "FORMAT ERROR", -1); return yfs_init_pageupdt(yfms);
     }
     if (key[0] == 0 && key[1] == 2) // flight number
     {
@@ -476,22 +501,30 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
         if (yfms->data.init.ialized)
         {
             int crz_alt; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
-            if (strnlen(buf, 1) && sscanf(buf, "%d", &crz_alt) == 1)
+            if (strnlen(buf, 1))
             {
-                // Lockheed SR-71 Blackbird can go up to FL850 ;-)
-                if (crz_alt >= (1600 - 50) && crz_alt <= 85000)
+                if (strcmp(buf, "CLR") == 0)
                 {
-                    crz_alt = ((crz_alt + 50) / 100); // round to nearest flight level
-                    yfms->data.init.crz_alt = ndt_distance_init(crz_alt, NDT_ALTUNIT_FL);
-                    yfs_spad_clear(yfms); yfs_init_pageupdt(yfms); return;
+                    yfms->data.init.crz_alt = ndt_distance_init(0, NDT_ALTUNIT_NA);
+                    yfs_spad_clear(yfms); return yfs_init_pageupdt(yfms);
                 }
-                if (crz_alt >= 16 && crz_alt <= 850)
+                if (sscanf(buf, "%d", &crz_alt) == 1)
                 {
-                    yfms->data.init.crz_alt = ndt_distance_init(crz_alt, NDT_ALTUNIT_FL);
-                    yfs_spad_clear(yfms); yfs_init_pageupdt(yfms); return;
+                    // Lockheed SR-71 Blackbird can go up to FL850 ;-)
+                    if (crz_alt >= (1600 - 50) && crz_alt <= 85000)
+                    {
+                        crz_alt = ((crz_alt + 50) / 100); // round to nearest flight level
+                        yfms->data.init.crz_alt = ndt_distance_init(crz_alt, NDT_ALTUNIT_FL);
+                        yfs_spad_clear(yfms); return yfs_init_pageupdt(yfms);
+                    }
+                    if (crz_alt >= 16 && crz_alt <= 850)
+                    {
+                        yfms->data.init.crz_alt = ndt_distance_init(crz_alt, NDT_ALTUNIT_FL);
+                        yfs_spad_clear(yfms); return yfs_init_pageupdt(yfms);
+                    }
+                    yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); return yfs_init_pageupdt(yfms);
                 }
             }
-            yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); yfs_init_pageupdt(yfms); return;
         }
         return;
     }
