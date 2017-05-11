@@ -893,7 +893,7 @@ void* ndt_flightplan_insert_airway(ndt_flightplan *flp, ndt_waypoint  *src, ndt_
                 {
                     err = ENOMEM; goto end;
                 }
-                if ((ret = ndt_list_item(rsg->legs, -1)))
+                if ((ret = ndt_list_item(rsg->legs, -1)) == NULL)
                 {
                     ndt_route_segment_close(&rsg); err = ENOMEM; goto end;
                 }
