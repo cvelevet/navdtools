@@ -130,9 +130,16 @@ void yfs_spad_reset(yfms_context *yfms, char *s, int color)
     char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
     if (*buf && *buf != ' ') // don't trust strlen here (spaces count as empty)
     {
-        // save scratchpad before resetting
-        yfms->mwindow.screen.spad_backup = 1;
-        sprintf(yfms->mwindow.screen.spad_bupbuf, "%s", buf);
+        // don't overwrite the backup unless the buffer is actually a "clear"
+        // command; e.g. we could reset to "NOT ALLOWED" twice consecutively,
+        // losing the original, more useful contents from said backup buffer
+        if (!yfms->mwindow.screen.spad_backup ||
+            !strcmp(yfms->mwindow.screen.spad_bupbuf, "CLR"))
+        {
+            // save scratchpad before resetting
+            yfms->mwindow.screen.spad_backup = 1;
+            sprintf(yfms->mwindow.screen.spad_bupbuf, "%s", buf);
+        }
     }
     memset  (yfms->mwindow.screen.text[SPAD_IDX], 0, YFS_ROW_BUF_SIZE);
     snprintf(yfms->mwindow.screen.text[SPAD_IDX],    YFS_ROW_BUF_SIZE, "%s", s);
