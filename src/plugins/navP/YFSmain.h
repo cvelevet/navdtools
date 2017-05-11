@@ -306,6 +306,7 @@ typedef struct
             {
                 ndt_route_leg     *leg;
                 ndt_waypoint      *wpt;
+                int                idx;
                 int               open;
                 ndt_waypoint   *dst[5];
                 ndt_airway     *awy[5];

@@ -1369,6 +1369,7 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
             {
                 yfms->data.fpln.lrev.open = 0;
                 yfms->data.fpln.awys.open = 1;
+                yfms->data.fpln.awys.idx  = yfms->data.fpln.lrev.idx;
                 yfms->data.fpln.awys.leg  = yfms->data.fpln.lrev.leg;
                 yfms->data.fpln.awys.wpt  = yfms->data.fpln.lrev.wpt;
                 for (int i = 0; i < 5; i++)
@@ -1378,7 +1379,7 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
                     yfms->data.fpln.awys.lgi[i] = NULL;
                     yfms->data.fpln.awys.lgo[i] = NULL;
                 }
-                return yfs_fpln_pageupdt(yfms);
+                return yfs_fpln_pageupdt(yfms); // AIRWAYS
             }
         }
         return;
