@@ -911,7 +911,9 @@ void* ndt_flightplan_insert_airway(ndt_flightplan *flp, ndt_waypoint  *src, ndt_
                             ndt_route_leg_close   (&ret);
                         }
                     }
-                    ndt_route_segment_close(&rsg); goto end;
+                    ndt_list_rem  (flp->rte, rsg);
+                    ndt_route_segment_close(&rsg);
+                    route_leg_update        (flp); goto end;
                 }
                 goto end;
             }
