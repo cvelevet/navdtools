@@ -1116,17 +1116,18 @@ static void lsk_callback_awys(yfms_context *yfms, int key[2], intptr_t refcon)
         }
         return;
     }
+
     if (key[0] == 0) // VIA
     {
-        const char *awy1id; ndt_airway *awy1, *awy2; ndt_waypoint *src;
-        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
-        if  (key[1] >= 1 && yfms->data.fpln.awys.awy[key[1] - 1] == NULL)
-        {
-            return; // no active input field
-        }
+        const char *awy1id; ndt_airway *awy1, *awy2, *valid_awy2 = NULL;
+        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); ndt_waypoint *src;
         if (strnlen(buf, 1) == 0)
         {
             return; // no input
+        }
+        if (key[1] >= 1 && yfms->data.fpln.awys.awy[key[1] - 1] == NULL)
+        {
+            return; // no active input field
         }
         if (key[1] <= 3 && yfms->data.fpln.awys.awy[key[1] + 1])
         {
@@ -1150,9 +1151,12 @@ static void lsk_callback_awys(yfms_context *yfms, int key[2], intptr_t refcon)
         {
             // two consecutive airways, compute their intersection, if any
             // we already checked yfms->data.fpln.awys.awy[key[1] - 1] above
+            // tested under AIRAC 1705 with:
+            // LSGG MOLUS N871       Z55       Z50       Z119       UZ613       LSZH
+            // LSGG MOLUS N871 BERSU Z55 GERSA Z50 PELAD Z119 RONAG UZ613 NEGRA LSZH
             {
-                src = key[1] > 1 ? yfms->data.fpln.awys.dst[key[1] - 2] : yfms->data.fpln.awys.wpt;
                 awy1id = yfms->data.fpln.awys.awy[key[1] - 1]->info.idnt;
+                src = key[1] > 1 ? yfms->data.fpln.awys.dst[key[1] - 2] : yfms->data.fpln.awys.wpt;
             }
             for (size_t awy1idx = 0; (awy1 = ndt_navdata_get_airway(yfms->ndt.ndb, awy1id, &awy1idx)); awy1idx++)
             {
@@ -1171,10 +1175,11 @@ static void lsk_callback_awys(yfms_context *yfms, int key[2], intptr_t refcon)
                                 yfs_spad_clear(yfms); return yfs_fpln_pageupdt(yfms);
                             }
                         }
+                        valid_awy2 = awy2;
                     }
                 }
             }
-            if (ndt_navdata_get_airway(yfms->ndt.ndb, buf, NULL))
+            if (valid_awy2)
             {
                 yfms->data.fpln.awys.lgi[key[1] - 1] = NULL;
                 yfms->data.fpln.awys.lgo[key[1] - 1] = NULL;
@@ -1204,8 +1209,9 @@ static void lsk_callback_awys(yfms_context *yfms, int key[2], intptr_t refcon)
                     yfms->data.fpln.awys.awy[key[1] + 0] = awy2;
                     yfs_spad_clear(yfms); return yfs_fpln_pageupdt(yfms);
                 }
+                valid_awy2 = awy2;
             }
-            if (ndt_navdata_get_airway(yfms->ndt.ndb, buf, NULL))
+            if (valid_awy2)
             {
                 yfms->data.fpln.awys.awy[key[1] + 0] = NULL;
                 yfs_spad_reset(yfms,"WAYPOINT MISMATCH",-1); return;
@@ -1217,9 +1223,66 @@ static void lsk_callback_awys(yfms_context *yfms, int key[2], intptr_t refcon)
             }
         }
     }
+
     if (key[0] == 1) // TO
     {
-        //fixme
+        const char *awy2id; ndt_airway *awy2; ndt_waypoint *src, *dst, *valid_dst = NULL;
+        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
+        if (strnlen(buf, 1) == 0)
+        {
+            return; // no input
+        }
+        if (key[1] >= 0 && yfms->data.fpln.awys.awy[key[1]] == NULL)
+        {
+            return; // no active input field
+        }
+        if (key[1] <= 3 && yfms->data.fpln.awys.awy[key[1] + 1])
+        {
+            yfs_spad_reset(yfms, "NOT ALLOWED", -1); return; // can only clear or set the last airway
+        }
+        if (strcmp(buf, "CLR") == 0)
+        {
+            if (yfms->data.fpln.awys.dst[key[1]] == NULL)
+            {
+                yfs_spad_reset(yfms, "NOT ALLOWED", -1); return; // don't have anything: can't clear
+            }
+            yfms->data.fpln.awys.dst[key[1]] = NULL;
+            yfs_spad_clear(yfms); return yfs_fpln_pageupdt(yfms);
+        }
+        else
+        {
+            // standard airway segment starting from src == previous dst
+            {
+                awy2id = yfms->data.fpln.awys.awy[key[1]]->info.idnt;
+                src = key[1] > 0 ? yfms->data.fpln.awys.dst[key[1] - 1] : yfms->data.fpln.awys.wpt;
+            }
+            for (size_t awy2idx = 0; (awy2 = ndt_navdata_get_airway(yfms->ndt.ndb, awy2id, &awy2idx)); awy2idx++)
+            {
+                if ((yfms->data.fpln.awys.lgi[key[1]] = ndt_airway_startpoint(awy2, src->info.idnt, src->position)))
+                {
+                    for (size_t dstidx = 0; (dst = ndt_navdata_get_waypoint(yfms->ndt.ndb, buf, &dstidx)); dstidx++)
+                    {
+                        if ((yfms->data.fpln.awys.lgo[key[1]] = ndt_airway_endpoint(yfms->data.fpln.awys.lgi[key[1]], dst->info.idnt, dst->position)))
+                        {
+                            yfms->data.fpln.awys.dst[key[1]] = dst;
+                            yfms->data.fpln.awys.awy[key[1]] = awy2;
+                            yfs_spad_clear(yfms); return yfs_fpln_pageupdt(yfms);
+                        }
+                        valid_dst = dst;
+                    }
+                }
+            }
+            if (valid_dst)
+            {
+                yfms->data.fpln.awys.dst[key[1]] = NULL;
+                yfs_spad_reset(yfms,"WAYPOINT MISMATCH",-1); return;
+            }
+            else
+            {
+                yfms->data.fpln.awys.dst[key[1]] = NULL;
+                yfs_spad_reset(yfms, "NOT IN DATA BASE",-1); return;
+            }
+        }
     }
 
     /* all good */
@@ -1232,6 +1295,7 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
     {
         yfms->data.fpln.lrev.open = 0; return yfs_fpln_pageupdt(yfms); // RETURN
     }
+
     if (key[1] == 0) // departure/arrival
     {
         if (key[0] == 0 && yfms->data.fpln.lrev.idx == -1)
@@ -1244,6 +1308,7 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
         }
         return;
     }
+
     if (key[0] == 1) // next wpt, new dest or airways
     {
         ndt_route_leg *leg = yfms->data.fpln.lrev.leg; ndt_waypoint *wpt;
@@ -1584,6 +1649,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         }
         yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
     }
+
     /* all good */
     return;
 }
