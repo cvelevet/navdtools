@@ -444,8 +444,13 @@ static void lrev_pageupdt(yfms_context *yfms)
 
     /* additional waypoints, airways */
     {
-        yfs_printf_rgt(yfms, 5, 0, COLR_IDX_WHITE, "%s", "NEXT WPT ");
-        yfs_printf_rgt(yfms, 6, 0, COLR_IDX_BLUE,  "%s",     "[   ]");
+//      // potential OPC options???
+//      yfs_printf_rgt(yfms, 3, 0, COLR_IDX_WHITE, "%s", "LL XING/INCR/NO");
+//      yfs_printf_rgt(yfms, 4, 0, COLR_IDX_BLUE,  "%s",   "[  ] /[ ] /[]");
+//      yfs_printf_rgt(yfms, 3, 0, COLR_IDX_WHITE, "%s",       "VIA/GO TO");
+//      yfs_printf_rgt(yfms, 4, 0, COLR_IDX_BLUE,  "%s",      "[  ]/[   ]");
+        yfs_printf_rgt(yfms, 5, 0, COLR_IDX_WHITE, "%s",       "NEXT WPT ");
+        yfs_printf_rgt(yfms, 6, 0, COLR_IDX_BLUE,  "%s",           "[   ]");
     }
     if (yfms->data.fpln.lrev.idx != yfms->data.fpln.dindex)
     {
