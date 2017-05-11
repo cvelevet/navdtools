@@ -175,7 +175,7 @@ static int check_subdirectories_recursive(yfms_context *yfms, const char *base, 
     const char *xlist[] = { ".fms", ".txt", ".fpl", }; // supported extensions by priority
     struct stat stats; char outBuffer[512*512]; char *outNames[512]; int outReturnedCount;
     /* log where we're looking for and what we're looking for */
-    ndt_log("YFMS [debug]: searching directory \"%s\" for company route \"%s\"\n", basePath, base);
+    ndt_log("YFMS [info]: searching directory \"%s\" for company route \"%s\"\n", basePath, base);
     /* check basePath for coroute files first */
     for (int i = 0; i < sizeof(xlist) / sizeof(*xlist); i++)
     {
@@ -183,7 +183,7 @@ static int check_subdirectories_recursive(yfms_context *yfms, const char *base, 
         {
             if (!stat(outPath, &stats) && S_ISREG(stats.st_mode))
             {
-                ndt_log("YFMS [debug]: found company route \"%s\"\n", outPath);
+                ndt_log("YFMS [info]: found company route \"%s\"\n", outPath);
                 return i ? /* ICAO */ 2 : /* X-Plane FMS */ 1;
             }
         }
@@ -365,6 +365,8 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
         yfms->data.init.ialized         = 1;
         yfms->data.fpln.usridx          = 0;
         yfms->data.fpln.lg_idx          = 0;
+        yfms->data.fpln.awys.open       = 0;
+        yfms->data.fpln.lrev.open       = 0;
         yfms->data.fpln.dist.remain     = ndt_distance_init(0, NDT_ALTUNIT_NA);
         yfms->data.fpln.dist.ref_leg_id = -1; // XXX: force a full distance re-sync
         yfms->data.fpln.xplm_last       = 99; // XXX: force a full flight plan sync
@@ -379,7 +381,6 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
         yfms->data.fpln.awys.open     = 0;
         yfms->data.fpln.lrev.open     = 0;
         yfms->data.init.ialized       = 0;
-        return yfs_init_pageupdt(yfms);
     }
     /* all good */
     return;
@@ -420,7 +421,7 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                 yfs_spad_reset(yfms, "CO RTE LOAD FAIL", -1); return;
             }
             strncpy(yfms->data.init.corte_name, buf, sizeof(yfms->data.init.corte_name));
-            yfs_spad_clear(yfms); yfs_flightplan_reinit(yfms, NULL, NULL, corte); yfs_init_pageupdt(yfms); return;
+            yfs_spad_clear(yfms); yfs_flightplan_reinit(yfms, NULL, NULL, corte); return yfs_init_pageupdt(yfms);
         }
     }
     if (key[0] == 1 && key[1] == 0) // from/to

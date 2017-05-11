@@ -1111,13 +1111,42 @@ static void lsk_callback_awys(yfms_context *yfms, int key[2], intptr_t refcon)
 {
     if (key[1] == 5)
     {
-        if (key[0] == 0)
+        if (key[0] == 0) // ERASE/RETURN
         {
-            yfms->data.fpln.awys.open = 0; return yfs_fpln_pageupdt(yfms); // ERASE/RETURN
+            yfms->data.fpln.awys.open = 0; return yfs_fpln_pageupdt(yfms);
         }
-        if (yfms->data.fpln.awys.awy[0] && yfms->data.fpln.awys.dst[0]) // INSERT
+        if (yfms->data.fpln.awys.awy[0] &&
+            yfms->data.fpln.awys.dst[0]) // INSERT
         {
-            yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO        // INSERT
+            ndt_route_leg *lg = yfms->data.fpln.awys.leg;
+            ndt_waypoint *src = yfms->data.fpln.awys.wpt;
+            for (int i = 0; i < 5; i++)
+            {
+                if (yfms->data.fpln.awys.awy[i] &&
+                    yfms->data.fpln.awys.lgi[i] &&
+                    yfms->data.fpln.awys.lgo[i] &&
+                    yfms->data.fpln.awys.dst[i] && src)
+                {
+                    if ((lg = ndt_flightplan_insert_airway(yfms->ndt.flp.rte, src,
+                                                           yfms->data.fpln.awys.dst[i],
+                                                           yfms->data.fpln.awys.awy[i],
+                                                           yfms->data.fpln.awys.lgi[i],
+                                                           yfms->data.fpln.awys.lgo[i], lg)) == NULL)
+                    {
+                        yfs_spad_reset(yfms, "UNKNOWN ERROR", COLR_IDX_ORANGE);
+                        yfms->data.fpln.awys.open  = 0;
+                        return yfs_fpln_pageupdt(yfms);
+                    }
+                    src = yfms->data.fpln.awys.dst[i]; continue;
+                }
+                break;
+            }
+            yfms->data.fpln.awys.open       = 0;
+            yfms->data.fpln.mod.operation   = YFS_FPLN_MOD_NSRT;
+            yfms->data.fpln.mod.source = lg = yfms->data.fpln.awys.leg;
+            yfms->data.fpln.mod.index       = yfms->data.fpln.awys.idx;
+            yfms->data.fpln.mod.opaque      = lg->dst ? (void*)lg->dst : (void*)lg->xpfms;
+            return yfs_fpln_fplnupdt(yfms);
         }
         return;
     }
