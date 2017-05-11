@@ -858,6 +858,78 @@ static int consolidate_airways(ndt_flightplan *flp)
     return ENOSYS; // TODO: implement
 }
 
+void* ndt_flightplan_insert_airway(ndt_flightplan *flp, ndt_waypoint  *src, ndt_waypoint   *dst,
+                                   ndt_airway     *awy, ndt_airway_leg *in, ndt_airway_leg *out,
+                                   void           *from)
+{
+    int err; ndt_route_leg *ret, *leg = from;
+    if (flp == NULL || src == NULL || dst == NULL ||
+        awy == NULL || in  == NULL || out == NULL || from == NULL)
+    {
+        err = ENOMEM; goto end;
+    }
+
+    /*
+     * First: split airway segments to facilitate insertion of legs mid-airway.
+     */
+    if ((err = split_airways(flp)))
+    {
+        goto end;
+    }
+
+    ndt_route_segment *rsg, *tmp;
+    if ((rsg = leg->rsg) == NULL)
+    {
+        err = EINVAL; goto end;
+    }
+
+    for (int i = 0, ii = ndt_list_count(flp->rte); i < ii; i++)
+    {
+        if ((tmp = ndt_list_item(flp->rte, i)))
+        {
+            if (tmp == rsg)
+            {
+                if ((rsg = ndt_route_segment_airway(src, dst, awy, in, out, flp->ndb)) == NULL)
+                {
+                    err = ENOMEM; goto end;
+                }
+                if ((ret = ndt_list_item(rsg->legs, -1)))
+                {
+                    ndt_route_segment_close(&rsg); err = ENOMEM; goto end;
+                }
+                else
+                {
+                    ndt_list_insert(flp->rte, rsg, i + 1);
+                }
+                if ((err = route_leg_update(flp)))
+                {
+                    while (ndt_list_count(rsg->legs))
+                    {
+                        if ((ret = ndt_list_item(rsg->legs, 0)))
+                        {
+                            ndt_list_rem(rsg->legs, ret);
+                            ndt_route_leg_close   (&ret);
+                        }
+                    }
+                    ndt_route_segment_close(&rsg); goto end;
+                }
+                goto end;
+            }
+        }
+    }
+    err = ENOENT; goto end;
+
+end:
+    if (err)
+    {
+        char error[64];
+        strerror_r(err, error, sizeof(error));
+        ndt_log("ndt_flightplan_insert_airway: failure (%s)\n", error);
+        return NULL;
+    }
+    return ret;
+}
+
 int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_leg, int insert_after)
 {
     /*

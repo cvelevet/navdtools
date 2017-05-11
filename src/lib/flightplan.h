@@ -132,8 +132,15 @@ int             ndt_flightplan_set_arrivstar(ndt_flightplan   *flightplan, const
 int             ndt_flightplan_set_arrivapch(ndt_flightplan   *flightplan, const char *name,  const char   *transition);
 int             ndt_flightplan_set_route    (ndt_flightplan   *flightplan, const char *route, ndt_fltplanformat format);
 int             ndt_flightplan_write        (ndt_flightplan   *flightplan, FILE *file,        ndt_fltplanformat format);
-int             ndt_flightplan_insert_direct(ndt_flightplan   *flightplan, ndt_waypoint *wpt, void *leg, int after_leg);
 int             ndt_flightplan_remove_leg   (ndt_flightplan   *flightplan,                    void *leg               );
+int             ndt_flightplan_insert_direct(ndt_flightplan   *flightplan, ndt_waypoint *wpt, void *leg, int after_leg);
+void*           ndt_flightplan_insert_airway(ndt_flightplan   *flightplan,
+                                             ndt_waypoint     *src_wpt,
+                                             ndt_waypoint     *dst_wpt,
+                                             ndt_airway       *awy,
+                                             ndt_airway_leg   *in_leg,
+                                             ndt_airway_leg   *out_leg,
+                                             void             *from_leg);
 
 typedef struct ndt_procedure
 {
