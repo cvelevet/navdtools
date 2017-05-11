@@ -349,7 +349,7 @@ void yfs_fpln_pageopen(yfms_context *yfms)
     yfms->lsks[0][2].cback = yfms->lsks[1][2].cback =
     yfms->lsks[0][3].cback = yfms->lsks[1][3].cback =
     yfms->lsks[0][4].cback = yfms->lsks[1][4].cback =
-    yfms->lsks[0][5].cback/*yfms->lsks[1][5].cback*/= (YFS_LSK_f)&yfs_lsk_callback_fpln;
+    yfms->lsks[0][5].cback = yfms->lsks[1][5].cback = (YFS_LSK_f)&yfs_lsk_callback_fpln;
     yfms->spcs. cback_lnup = (YFS_SPC_f)&fpl_spc_callback_lnup;
     yfms->spcs. cback_lndn = (YFS_SPC_f)&fpl_spc_callback_lndn;
     yfs_fpln_pageupdt(yfms); return;
@@ -357,7 +357,63 @@ void yfs_fpln_pageopen(yfms_context *yfms)
 
 static void awys_pageupdt(yfms_context *yfms)
 {
-    //fixme implement
+    /*
+     * do we have valid modifications to the flight plan?
+     * colors as per youtube.com/watch?v=_skUOMfv-AQ&t=53
+     */
+    int have_valid_leg = yfms->data.fpln.awys.awy[0] && yfms->data.fpln.awys.dst[0];
+    int text_colr_idx1 = have_valid_leg ? COLR_IDX_YELLOW : COLR_IDX_WHITE;
+    int text_colr_idx2 = have_valid_leg ? COLR_IDX_YELLOW : COLR_IDX_BLUE;
+
+    /* page title */
+    yfs_printf_lft(yfms, 0,  0, text_colr_idx1, "%s",                   "   AIRWAYS FROM");
+    yfs_printf_lft(yfms, 0, 16, COLR_IDX_GREEN, "%s", yfms->data.fpln.lrev.wpt->info.idnt);
+
+    /* print up to 5 preselected airway legs */
+    for (int i = 0, ii = 5; i < ii; i++)
+    {
+        int prev_airway_set = i == 0 || yfms->data.fpln.awys.awy[i - 1] != NULL;
+        int curr_airway_set = yfms->data.fpln.awys.awy[i] != NULL;
+        int curr_waypnt_set = yfms->data.fpln.awys.dst[i] != NULL;
+        if (prev_airway_set)
+        {
+            if (curr_airway_set)
+            {
+                yfs_printf_lft(yfms, (2 * (i + 1)), 0, text_colr_idx2, "%s", yfms->data.fpln.awys.awy[i]->info.idnt);
+            }
+            else
+            {
+                yfs_printf_lft(yfms, (2 * (i + 1)), 0, COLR_IDX_BLUE,  "%s", "[   ]");
+            }
+            yfs_printf_lft    (yfms, ((2 * i) + 1), 0, COLR_IDX_WHITE, "%s",  " VIA");
+        }
+        if (curr_airway_set)
+        {
+            if (curr_waypnt_set)
+            {
+                yfs_printf_rgt(yfms, (2 * (i + 1)), 0, text_colr_idx2, "%s", yfms->data.fpln.awys.dst[i]->info.idnt);
+            }
+            else
+            {
+                yfs_printf_rgt(yfms, (2 * (i + 1)), 0, COLR_IDX_BLUE,  "%s", "[    ]");
+            }
+            yfs_printf_rgt    (yfms, ((2 * i) + 1), 0, COLR_IDX_WHITE, "%s",    "TO ");
+        }
+    }
+
+    /* insert and erase/return */
+    if (have_valid_leg)
+    {
+        yfs_printf_rgt(yfms, 12, 0, COLR_IDX_ORANGE, "%s", "INSERT*");
+        yfs_printf_lft(yfms, 12, 0, text_colr_idx1,  "%s",  "<F-PLN");
+    }
+    else
+    {
+        yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE,  "%s", "<RETURN");
+    }
+
+    /* all good */
+    return;
 }
 
 static void lrev_pageupdt(yfms_context *yfms)
@@ -1048,16 +1104,133 @@ static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
 
 static void lsk_callback_awys(yfms_context *yfms, int key[2], intptr_t refcon)
 {
-    //fixme implement
+    if (key[1] == 5)
+    {
+        if (key[0] == 0)
+        {
+            yfms->data.fpln.awys.open = 0; return yfs_fpln_pageupdt(yfms); // ERASE/RETURN
+        }
+        if (yfms->data.fpln.awys.awy[0] && yfms->data.fpln.awys.dst[0]) // INSERT
+        {
+            yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO        // INSERT
+        }
+        return;
+    }
+    if (key[0] == 0) // VIA
+    {
+        const char *awy1id; ndt_airway *awy1, *awy2; ndt_waypoint *src;
+        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
+        if  (key[1] >= 1 && yfms->data.fpln.awys.awy[key[1] - 1] == NULL)
+        {
+            return; // no active input field
+        }
+        if (strnlen(buf, 1) == 0)
+        {
+            return; // no input
+        }
+        if (key[1] <= 3 && yfms->data.fpln.awys.awy[key[1] + 1])
+        {
+            yfs_spad_reset(yfms, "NOT ALLOWED", -1); return; // can only clear or set the last airway
+        }
+        if (strcmp(buf, "CLR") == 0)
+        {
+            if (yfms->data.fpln.awys.awy[key[1]] == NULL)
+            {
+                yfs_spad_reset(yfms, "NOT ALLOWED", -1); return; // don't have anything: can't clear
+            }
+            yfms->data.fpln.awys.awy[key[1]] = NULL;
+            yfms->data.fpln.awys.dst[key[1]] = NULL;
+            yfs_spad_clear(yfms); return yfs_fpln_pageupdt(yfms);
+        }
+        if (yfms->data.fpln.awys.dst[key[1]])
+        {
+            yfs_spad_reset(yfms, "NOT ALLOWED", -1); return; // can't overwrite leg with termination
+        }
+        if (key[1] >= 1 && yfms->data.fpln.awys.dst[key[1] - 1] == NULL)
+        {
+            // two consecutive airways, compute their intersection, if any
+            // we already checked yfms->data.fpln.awys.awy[key[1] - 1] above
+            {
+                src = key[1] > 1 ? yfms->data.fpln.awys.dst[key[1] - 2] : yfms->data.fpln.awys.wpt;
+                awy1id = yfms->data.fpln.awys.awy[key[1] - 1]->info.idnt;
+            }
+            for (size_t awy1idx = 0; (awy1 = ndt_navdata_get_airway(yfms->ndt.ndb, awy1id, &awy1idx)); awy1idx++)
+            {
+                if ((yfms->data.fpln.awys.lgi[key[1] - 1] = ndt_airway_startpoint(awy1, src->info.idnt, src->position)))
+                {
+                    for (size_t awy2idx = 0; (awy2 = ndt_navdata_get_airway(yfms->ndt.ndb, buf, &awy2idx)); awy2idx++)
+                    {
+                        if ((yfms->data.fpln.awys.lgo[key[1] - 1] = ndt_airway_intersect(yfms->data.fpln.awys.lgi[key[1] - 1], awy2)))
+                        {
+                            if ((yfms->data.fpln.awys.dst[key[1] - 1] = ndt_navdata_get_wpt4pos(yfms->ndt.ndb,
+                                                                                                yfms->data.fpln.awys.lgo[key[1] - 1]->out.info.idnt, NULL,
+                                                                                                yfms->data.fpln.awys.lgo[key[1] - 1]->out.position)))
+                            {
+                                yfms->data.fpln.awys.awy[key[1] - 1] = awy1;
+                                yfms->data.fpln.awys.awy[key[1] + 0] = awy2;
+                                yfs_spad_clear(yfms); return yfs_fpln_pageupdt(yfms);
+                            }
+                        }
+                    }
+                }
+            }
+            if (ndt_navdata_get_airway(yfms->ndt.ndb, buf, NULL))
+            {
+                yfms->data.fpln.awys.lgi[key[1] - 1] = NULL;
+                yfms->data.fpln.awys.lgo[key[1] - 1] = NULL;
+                yfms->data.fpln.awys.dst[key[1] - 1] = NULL;
+                yfms->data.fpln.awys.awy[key[1] + 0] = NULL;
+                yfs_spad_reset(yfms, "NO INTERSECTION", -1); return;
+            }
+            else
+            {
+                yfms->data.fpln.awys.lgi[key[1] - 1] = NULL;
+                yfms->data.fpln.awys.lgo[key[1] - 1] = NULL;
+                yfms->data.fpln.awys.dst[key[1] - 1] = NULL;
+                yfms->data.fpln.awys.awy[key[1] + 0] = NULL;
+                yfs_spad_reset(yfms, "NOT IN DATA BASE",-1); return;
+            }
+        }
+        else
+        {
+            // standard airway segment starting from src == previous dst
+            {
+                src = key[1] > 0 ? yfms->data.fpln.awys.dst[key[1] - 1] : yfms->data.fpln.awys.wpt;
+            }
+            for (size_t awy2idx = 0; (awy2 = ndt_navdata_get_airway(yfms->ndt.ndb, buf, &awy2idx)); awy2idx++)
+            {
+                if (ndt_airway_startpoint(awy2, src->info.idnt, src->position))
+                {
+                    yfms->data.fpln.awys.awy[key[1] + 0] = awy2;
+                    yfs_spad_clear(yfms); return yfs_fpln_pageupdt(yfms);
+                }
+            }
+            if (ndt_navdata_get_airway(yfms->ndt.ndb, buf, NULL))
+            {
+                yfms->data.fpln.awys.awy[key[1] + 0] = NULL;
+                yfs_spad_reset(yfms,"WAYPOINT MISMATCH",-1); return;
+            }
+            else
+            {
+                yfms->data.fpln.awys.awy[key[1] + 0] = NULL;
+                yfs_spad_reset(yfms, "NOT IN DATA BASE",-1); return;
+            }
+        }
+    }
+    if (key[0] == 1) // TO
+    {
+        //fixme
+    }
+
+    /* all good */
+    return;
 }
 
 static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
 {
     if (key[0] == 0 && key[1] == 5)
     {
-        yfms->data.fpln.lrev.open = 0;
-        yfms->data.fpln.lrev.leg = NULL;
-        yfms->data.fpln.lrev.wpt = NULL; return; // RETURN
+        yfms->data.fpln.lrev.open = 0; return yfs_fpln_pageupdt(yfms); // RETURN
     }
     if (key[1] == 0) // departure/arrival
     {
@@ -1102,8 +1275,6 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
                     yfs_spad_reset(yfms, "UNKNOWN ERROR 3", COLR_IDX_ORANGE); return;
                 }
                 yfms->data.fpln.lrev.open     = 0;
-                yfms->data.fpln.lrev.leg      = NULL;
-                yfms->data.fpln.lrev.wpt      = NULL;
                 yfms->data.fpln.mod.source    = leg;
                 yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NSRT;
                 yfms->data.fpln.mod.index     = yfms->data.fpln.lrev.idx == -1 ? 0 : yfms->data.fpln.lrev.idx;
@@ -1126,7 +1297,18 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
             if (type == NDT_WPTYPE_NDB || type == NDT_WPTYPE_VOR ||
                 type == NDT_WPTYPE_FIX || type == NDT_WPTYPE_DME)
             {
-                yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO    // AIRWAYS
+                yfms->data.fpln.lrev.open = 0;
+                yfms->data.fpln.awys.open = 1;
+                yfms->data.fpln.awys.leg  = yfms->data.fpln.lrev.leg;
+                yfms->data.fpln.awys.wpt  = yfms->data.fpln.lrev.wpt;
+                for (int i = 0; i < 5; i++)
+                {
+                    yfms->data.fpln.awys.dst[i] = NULL;
+                    yfms->data.fpln.awys.awy[i] = NULL;
+                    yfms->data.fpln.awys.lgi[i] = NULL;
+                    yfms->data.fpln.awys.lgo[i] = NULL;
+                }
+                return yfs_fpln_pageupdt(yfms);
             }
         }
         return;
@@ -1163,6 +1345,11 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (strnlen(buf, 1) == 0) // lateral rev. page
         {
+            // note: IRL, when:
+            // - the leg linked to LSK2 (key[1] == 1) is the tracked leg
+            // - the leg linked to LSK1 (key[1] == 0) is NOT the departure
+            // pressing LSK1 will open a special "LAT REV FROM PPOS" page
+            // not implemented here for the time being (maybe in the future)
             yfms->data.fpln.lrev.open = 1;
             yfms->data.fpln.lrev.idx  = index;
             yfms->data.fpln.lrev.leg  = index == -1 ? ndt_list_item(yfms->data.fpln.legs, 0) : leg;
@@ -1182,7 +1369,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             {
                 yfms->data.fpln.lrev.wpt = yfms->data.fpln.lrev.leg->dst;
             }
-            return;
+            return yfs_fpln_pageupdt(yfms);
         }
         if (index == -1 || key[1] == 5) // strnlen(buf, 1) != 0
         {

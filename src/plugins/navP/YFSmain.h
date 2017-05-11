@@ -304,10 +304,13 @@ typedef struct
             lrev;
             struct
             {
-                ndt_route_leg *leg;
-                ndt_waypoint  *wpt;
-                int            idx;
-                int           open;
+                ndt_route_leg     *leg;
+                ndt_waypoint      *wpt;
+                int               open;
+                ndt_waypoint   *dst[5];
+                ndt_airway     *awy[5];
+                ndt_airway_leg *lgi[5];
+                ndt_airway_leg *lgo[5];
             }
             awys;
         }
