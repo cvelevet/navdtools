@@ -30,11 +30,14 @@
 
 #include "lib/flightplan.h"
 
+#include "YFSdata.h"
 #include "YFSdrto.h"
+#include "YFSfuel.h"
 #include "YFSfpln.h"
 #include "YFSinit.h"
 #include "YFSmain.h"
 #include "YFSmenu.h"
+#include "YFSperf.h"
 #include "YFSprog.h"
 #include "YFSrdio.h"
 #include "YFSspad.h"
@@ -80,6 +83,9 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfms->spcs.cback_init = (YFS_SPC_f)&yfs_init_pageopen;
     yfms->spcs.cback_fpln = (YFS_SPC_f)&yfs_fpln_pageopen;
     yfms->spcs.cback_drto = (YFS_SPC_f)&yfs_drto_pageopen;
+    yfms->spcs.cback_data = (YFS_SPC_f)&yfs_data_pageopen;
+    yfms->spcs.cback_perf = (YFS_SPC_f)&yfs_perf_pageopen;
+    yfms->spcs.cback_fuel = (YFS_SPC_f)&yfs_fuel_pageopen;
 
     /* navigation backend */
     if (yfms->ndt.flp.arr)

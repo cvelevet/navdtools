@@ -1420,6 +1420,17 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
 
 static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refcon)
 {
+    /* is the page inactive? */
+    if (yfms->data.init.ialized == 0)
+    {
+        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
+        if  (strnlen(buf, 1))
+        {
+            return yfs_spad_reset(yfms, "NOT ALLOWED", -1);
+        }
+        return;
+    }
+
     /* do we have a sub-page open? */
     if (yfms->data.fpln.awys.open)
     {

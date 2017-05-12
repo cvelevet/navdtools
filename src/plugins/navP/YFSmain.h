@@ -196,16 +196,18 @@ typedef struct
 
         enum
         {
-            PAGE0     = 0,
-            PAGE_IDNT = 1,
-            PAGE_MENU = 2,
-            PAGE_RAD1 = 3,
-            PAGE_RAD2 = 4,
-            PAGE_PROG = 5,
-            PAGE_INIT = 6,
-            PAGE_PERF = 7,
-            PAGE_FPLN = 8,
-            PAGE_DRTO = 9,
+            PAGE0     =  0,
+            PAGE_IDNT =  1,
+            PAGE_MENU =  2,
+            PAGE_RAD1 =  3,
+            PAGE_RAD2 =  4,
+            PAGE_PROG =  5,
+            PAGE_INIT =  6,
+            PAGE_PERF =  7,
+            PAGE_FPLN =  8,
+            PAGE_DRTO =  9,
+            PAGE_DATA = 10,
+            PAGE_FUEL = 11,
         }
         current_page;
     }

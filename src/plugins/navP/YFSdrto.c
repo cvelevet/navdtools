@@ -41,16 +41,9 @@ void yfs_drto_pageopen(yfms_context *yfms)
     {
         return; // no error
     }
-    if (yfms->data.init.ialized)
+    if (yfs_main_newpg(yfms, PAGE_DRTO))
     {
-        if (yfs_main_newpg(yfms, PAGE_DRTO))
-        {
-            return;
-        }
-    }
-    else
-    {
-        return; // don't open this page unless we already have a flight plan
+        return;
     }
     yfms->lsks[0][0].cback =
     yfms->lsks[0][1].cback =
@@ -63,7 +56,7 @@ void yfs_drto_pageopen(yfms_context *yfms)
     yfms->data.drto.ln_off = 0;
     yfms->data.drto.dctlg  = NULL;
     yfms->data.drto.dctwp  = NULL;
-    yfs_drto_pageupdt(yfms); return;
+    return yfs_drto_pageupdt(yfms);
 }
 
 void yfs_drto_pageupdt(yfms_context *yfms)
@@ -73,11 +66,12 @@ void yfs_drto_pageupdt(yfms_context *yfms)
     {
         yfs_main_rline(yfms, i, -1);
     }
-    yfms->data.drto.idx[0] =
-    yfms->data.drto.idx[1] =
-    yfms->data.drto.idx[2] =
-    yfms->data.drto.idx[3] =
-    yfms->data.drto.idx[4] = -1;
+
+    /* is the page meant to be active? */
+    if (yfms->data.init.ialized == 0)
+    {
+        yfs_printf_ctr(yfms, 2, COLR_IDX_WHITE, "%s", "--------NO F-PLN--------"); return;
+    }
 
     /* default state: no direct selected yet */
     yfs_printf_ctr(yfms, 0,    COLR_IDX_WHITE, "%s",       "DIR TO");
@@ -87,6 +81,7 @@ void yfs_drto_pageupdt(yfms_context *yfms)
     yfs_printf_rgt(yfms, 2, 0, COLR_IDX_WHITE, "%s",  "---  ----  ");
     yfs_printf_lft(yfms, 3, 0, COLR_IDX_WHITE, "%s",   "F-PLN WPTS");
     yfs_printf_rgt(yfms, 4, 0, COLR_IDX_BLUE,  "%s",  "DIRECT TO  ");
+    yfms->data.drto.idx[0] = yfms->data.drto.idx[1] = yfms->data.drto.idx[2] = yfms->data.drto.idx[3] = yfms->data.drto.idx[4] = -1;
 
     /* remaining flight plan leg list */
     int legct = ndt_list_count(yfms->data.fpln.legs);
@@ -164,6 +159,16 @@ static void dct_spc_callback_lndn(yfms_context *yfms)
 
 static void yfs_lsk_callback_drto(yfms_context *yfms, int key[2], intptr_t refcon)
 {
+    /* is the page inactive? */
+    if (yfms->data.init.ialized == 0)
+    {
+        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
+        if  (strnlen(buf, 1))
+        {
+            return yfs_spad_reset(yfms, "NOT ALLOWED", -1);
+        }
+        return;
+    }
     if (key[1] == 5 && (yfms->data.drto.dctlg || yfms->data.drto.dctwp))
     {
         if (key[0] == 0) // DIR TO ERASE
