@@ -200,14 +200,23 @@ void yfs_idnt_pageupdt(yfms_context *yfms)
     }
     switch (engt[0])
     {
-        case 2:
-            yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%d TURBOPROP", engc);
+        case 6: case 7:
+            yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%d ROCKET",     engc);
+            break;
+        case 0: case 1:
+            yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%d PISTON",     engc);
+            break;
+        case 4:
+            yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%d TURBOJET",   engc);
             break;
         case 5:
-            yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%d TURBOFAN",  engc);
+            yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%d TURBOFAN",   engc);
+            break;
+        case 2: case 8:
+            yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%d TURBOPROP",  engc);
             break;
         default:
-            yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%d OTHER",     engc);
+            yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%d OTHER (%d)", engc, engt[0]);
             break;
     }
 
