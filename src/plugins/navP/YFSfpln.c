@@ -643,7 +643,15 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
         }
     }
 
-    /* update distance to destination */
+    /*
+     * update distance to destination
+     *
+     * future: when we can handle and detect discontinuities in the navigation
+     *         API's entries, use the latitude and longitude from said entries
+     *         to compute a total distance closer to what will really be flown
+     *         than the theoretical distance we currently get from YFMS's data
+     *         representation (which is accurate but nonetheless theoretical).
+     */
     if (yfms->data.fpln.dist.ref_leg_id != yfms->data.fpln.lg_idx)
     {
         {
@@ -928,11 +936,32 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
             }
             if (j)
             {
-                // TODO/future: track which leg is being flown direct to in
-                //              order to display "T-P" origin in our leg list
-                //              note: we'll need updated course information too
-                // be lazy: X-Plane can handle all aspects of a direct to for us
-                XPLMSetDisplayedFMSEntry(i); XPLMCommandOnce(yfms->xpl.direct_to);
+                /*
+                 * note: this doesn't work in some cases, for example:
+                 *        -> X-Plane's GNS430/530 (even in X-Plane 10)
+                 *        -> X-Plane 11's new default FMS (reportedly)
+                 *
+                 * // be lazy: X-Plane can handle all aspects of a direct to for us
+                 * XPLMSetDisplayedFMSEntry(i); XPLMCommandOnce(yfms->xpl.direct_to);
+                 *
+                 * TODO/future: track which leg is being flown direct to in
+                 *              order to display "T-P" origin in our leg list
+                 *              note: we'll need updated course information too
+                 */
+                if (i >= 2) // YFMS never sets legs 0 or 1 as an FMS destination
+                {
+                    // TODO: offset from current position for better tracking???
+                    XPLMSetFMSEntryLatLon((i - 1),
+                                          (float)(XPLMGetDatad(yfms->xpl.latitude)),
+                                          (float)(XPLMGetDatad(yfms->xpl.longitude)),
+                                          (float)(XPLMGetDatad(yfms->xpl.elevation) / .3048));
+                    XPLMSetDestinationFMSEntry(i);
+                }
+                else
+                {
+                    ndt_log("YFMS [error]: DIRECT 2 BUG %d %d %d\n", i, j, index);
+                    return yfs_spad_reset(yfms, "DIRECT TO BUG", COLR_IDX_ORANGE);
+                }
             }
         }
     }
