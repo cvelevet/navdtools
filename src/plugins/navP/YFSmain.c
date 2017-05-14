@@ -1306,8 +1306,11 @@ static int yfs_mcdubgrh(XPWidgetMessage inMessage,
     {
         if (XPIsWidgetVisible(inWidget))
         {
-            int g[4];
+            //fixme transparency can't be helping the font renderer
+            //fixme this is unbearably slow, at least in XPlane 11 :-(
+            int g[4]; // drawing box twice for same effect in XP11
             XPGetWidgetGeometry(inWidget, &g[0], &g[1], &g[2], &g[3]);
+            XPLMDrawTranslucentDarkBox(    g[0],  g[1],  g[2],  g[3]);
             XPLMDrawTranslucentDarkBox(    g[0],  g[1],  g[2],  g[3]);
         }
         return 1;
