@@ -888,7 +888,7 @@ static void toggle_main_window(yfms_context *yfms)
     if (yfms->mwindow.current_page == PAGE_FPLN)
     {
         yfms->data.fpln.ln_off = 0; // reset page's line offset before updating
-        yfs_fpln_pageupdt(yfms); // update the page while window is still hidden
+        yfs_fpln_pageupdt(yfms); // update the page while window's still hidden
     }
     XPShowWidget            (yfms->mwindow.id);
     XPSetKeyboardFocus      (yfms->mwindow.id);
