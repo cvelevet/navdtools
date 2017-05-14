@@ -187,7 +187,7 @@ typedef struct
                 COLR_IDX_WHITE   = 5,
                 COLR_IDX_ORANGE  = 6,
                 COLR_IDX_YELLOW  = 7,
-            };
+            }    spad_color; // declare an unused variable (ensure GCC is happy)
             int  spad_reset;
             int  spad_backup;
             char spad_bupbuf[YFS_DISPLAY_NUMC + 1];
