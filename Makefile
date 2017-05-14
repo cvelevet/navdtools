@@ -2,15 +2,16 @@ SOURCE_DIR = src
 SOURCE_SDK = XPSDK213
 NDCONV_EXE = navdconv
 NAVP_XPDLL = navP.xpl
-NDTINCLUDE = -I$(SOURCE_DIR)
-SDKINCLUDE = -I$(SOURCE_SDK)/CHeaders
-SDKLDPATHS = -F$(SOURCE_SDK)/Libraries/Mac
-SDKLDLINKS = -framework XPLM -framework XPWidgets
+ND_INCLUDE = -I$(SOURCE_DIR)
+XP_INCLUDE = -I$(SOURCE_SDK)/CHeaders
+XP_LD_LIBS = -F$(SOURCE_SDK)/Libraries/Mac -framework XPLM -framework XPWidgets
+XPCPPFLAGS = -DXPLM200 -DXPLM210 -DAPL=1 -DIBM=0 -DLIN=0
 CFLAGS     = -O3 -std=c99 -mmacosx-version-min=10.6
 TARGETARCH = -arch i386 -arch x86_64
-GITVERSION = $(shell find . -name ".git" -type d -exec git describe --long --always --dirty=/m --abbrev=1 --tags \;)
+CC         = clang
+CPPFLAGS   =
 
-NDC_DEFINES = -DNDCONV_EXE="\"$(NDCONV_EXE)\""
+NDCCPPFLAGS = -DNDCONV_EXE="\"$(NDCONV_EXE)\""
 NDC_SOURCES = $(SOURCE_DIR)/tools/navdconv.c
 NDC_OBJECTS = $(addsuffix .o,$(basename $(notdir $(NDC_SOURCES))))
 LIB_HEADERS = $(wildcard $(SOURCE_DIR)/lib/*.h)
@@ -25,39 +26,38 @@ CPT_OBJECTS = $(addsuffix .o,$(basename $(notdir $(CPT_SOURCES))))
 WMM_HEADERS = $(wildcard $(SOURCE_DIR)/wmm/*.h)
 WMM_SOURCES = $(wildcard $(SOURCE_DIR)/wmm/*.c)
 WMM_OBJECTS = $(addsuffix .o,$(basename $(notdir $(WMM_SOURCES))))
-NVP_XPLUGIN = -dynamiclib -fvisibility=hidden
-NVP_DEFINES = -DXPLM200 -DXPLM210 -DAPL=1 -DIBM=0 -DLIN=0
+NVPCPPFLAGS =
+NVP_LDFLAGS = -dynamiclib -fvisibility=hidden
 NVP_HEADERS = $(wildcard $(SOURCE_DIR)/plugins/navP/*.h)
 NVP_SOURCES = $(wildcard $(SOURCE_DIR)/plugins/navP/*.c)
 NVP_OBJECTS = $(addsuffix .o,$(basename $(notdir $(NVP_SOURCES))))
+GIT_VERSION = $(shell find . -name ".git" -type d -exec git describe --long --always --dirty=/m --abbrev=1 --tags \;)
 
 all: navdconv navp
 
 navp: nvpobj libobj comobj compat wmmobj
-	$(CC) $(NVP_XPLUGIN) $(SDKLDPATHS) $(SDKLDLINKS) $(SDKINCLUDE) $(NDTINCLUDE) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(TARGETARCH) -o $(NAVP_XPDLL) $(NVP_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(WMM_OBJECTS) $(LDLIBS)
-#fixme NVP_DEFINES???
+	$(CC) $(ND_INCLUDE) $(XP_INCLUDE) $(XPCPPFLAGS) $(CPPFLAGS) $(NVPCPPFLAGS) $(CFLAGS) $(NVP_LDFLAGS) $(LDFLAGS) $(TARGETARCH) -o $(NAVP_XPDLL) $(NVP_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(WMM_OBJECTS) $(XP_LD_LIBS) $(LDLIBS)
 
 nvpobj: $(NVP_SOURCES) $(NVP_HEADERS)
-	$(CC) $(SDKINCLUDE) $(NDTINCLUDE) $(NVP_DEFINES) $(CFLAGS) $(CPPFLAGS) $(TARGETARCH) -c $(NVP_SOURCES)
-#fixme NVP_DEFINES???
+	$(CC) $(ND_INCLUDE) $(XP_INCLUDE) $(XPCPPFLAGS) $(CPPFLAGS) $(NVPCPPFLAGS) $(CFLAGS) $(TARGETARCH) -c $(NVP_SOURCES)
 
 navdconv: ndcobj libobj comobj compat wmmobj
-	$(CC) $(NDTINCLUDE) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(TARGETARCH) -o $(NDCONV_EXE) $(NDC_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(WMM_OBJECTS) $(LDLIBS)
+	$(CC) $(ND_INCLUDE) $(NDCCPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(TARGETARCH) -o $(NDCONV_EXE) $(NDC_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(WMM_OBJECTS) $(LDLIBS)
 
 ndcobj: $(NDC_SOURCES)
-	$(CC) $(NDTINCLUDE) $(NDC_DEFINES) $(CFLAGS) $(CPPFLAGS) $(TARGETARCH) -c $(NDC_SOURCES)
+	$(CC) $(ND_INCLUDE) $(NDCCPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(TARGETARCH) -c $(NDC_SOURCES)
 
 libobj: $(LIB_SOURCES) $(LIB_HEADERS)
-	$(CC) $(NDTINCLUDE) $(CFLAGS) $(CPPFLAGS) $(TARGETARCH) -c $(LIB_SOURCES)
+	$(CC) $(ND_INCLUDE) $(NDCCPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(TARGETARCH) -c $(LIB_SOURCES)
 
 comobj: $(COM_SOURCES) $(COM_HEADERS)
-	$(CC) $(NDTINCLUDE) $(CFLAGS) $(CPPFLAGS) $(TARGETARCH) -c $(COM_SOURCES)
+	$(CC) $(ND_INCLUDE) $(NDCCPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(TARGETARCH) -c $(COM_SOURCES)
 
 compat: $(CPT_SOURCES) $(CPT_HEADERS)
-	$(CC) $(NDTINCLUDE) $(CFLAGS) $(CPPFLAGS) $(TARGETARCH) -c $(CPT_SOURCES)
+	$(CC) $(ND_INCLUDE) $(NDCCPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(TARGETARCH) -c $(CPT_SOURCES)
 
 wmmobj: $(WMM_SOURCES) $(WMM_HEADERS)
-	$(CC) $(NDTINCLUDE) $(CFLAGS) $(CPPFLAGS) $(TARGETARCH) -c $(WMM_SOURCES)
+	$(CC) $(ND_INCLUDE) $(NDCCPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(TARGETARCH) -c $(WMM_SOURCES)
 
 linux:
 	$(MAKE) -f Makefile.linux
@@ -67,9 +67,9 @@ mingw:
 
 .PHONY: version
 version:
-ifneq ($(strip $(GITVERSION)),)
-NDC_DEFINES += -DNDT_VERSION="\"$(GITVERSION)\""
-NVP_DEFINES += -DNDT_VERSION="\"$(GITVERSION)\""
+ifneq ($(strip $(GIT_VERSION)),)
+NDCCPPFLAGS += -DNDT_VERSION="\"$(GIT_VERSION)\""
+NVPCPPFLAGS += -DNDT_VERSION="\"$(GIT_VERSION)\""
 endif
 
 .PHONY: clean

@@ -1,18 +1,18 @@
 SOURCE_SDK  = XPSDK213
-CC          = x86_64-w64-mingw32-gcc
-CFLAGS      = -O3 -std=gnu99 -DMINGW_HAS_SECURE_API -DCOMPAT_STRCASESTR=1 -DCOMPAT_STRERROR_R=1 -DCOMPAT_STRNDUP=1 -DCOMPAT_STRSEP=1
-NVP_DEFINES = -DXPLM200 -DXPLM210 -DAPL=0 -DIBM=1 -DLIN=0 -DYFMS_ONLY
-SDKLDPATHS  = -L$(SOURCE_SDK)/Libraries/Win
-NVP_XPLUGIN = -shared -fvisibility=hidden
-SDKLDLINKS  = -lXPLM_64 -lXPWidgets_64
 NDCONV_EXE  = navdconv.exe
 NAVP_XPDLL  = YFMS-w64.xpl
-TARGETARCH  =
-#fixme include compat headers in YFMS for strsep etc.
+CFLAGS      = -O3 -std=gnu99
+CC          = x86_64-w64-mingw32-gcc
+CPPFLAGS    = -DMINGW_HAS_SECURE_API -DCOMPAT_STRCASESTR=1 -DCOMPAT_STRERROR_R=1 -DCOMPAT_STRNDUP=1 -DCOMPAT_STRSEP=1
+XP_LD_LIBS  = -L$(SOURCE_SDK)/Libraries/Win -lXPLM_64 -lXPWidgets_64
+XPCPPFLAGS  = -DXPLM200 -DXPLM210 -DAPL=0 -DIBM=1 -DLIN=0
+NVP_LDFLAGS = -shared -fvisibility=hidden
+NVPCPPFLAGS = -DYFMS_ONLY
+TARGETARCH  = -m64
 
 all:
-	$(MAKE) -f Makefile CC="$(CC)" CFLAGS="$(CFLAGS)"                                                                                                                 TARGETARCH="$(TARGETARCH)" NDCONV_EXE="$(NDCONV_EXE)" navdconv
-	$(MAKE) -f Makefile CC="$(CC)" CFLAGS="$(CFLAGS)" NVP_DEFINES="$(NVP_DEFINES)" NVP_XPLUGIN="$(NVP_XPLUGIN)" SDKLDPATHS="$(SDKLDPATHS)" SDKLDLINKS="$(SDKLDLINKS)" TARGETARCH="$(TARGETARCH)" NAVP_XPDLL="$(NAVP_XPDLL)" navp
+	$(MAKE) -f Makefile                                                                                                                 CC="$(CC)" CPPFLAGS="$(CPPFLAGS)" CFLAGS="$(CFLAGS)" TARGETARCH="$(TARGETARCH)" NDCONV_EXE="$(NDCONV_EXE)" navdconv
+	$(MAKE) -f Makefile XP_LD_LIBS="$(XP_LD_LIBS)" NVP_LDFLAGS="$(NVP_LDFLAGS)" NVPCPPFLAGS="$(NVPCPPFLAGS)" XPCPPFLAGS="$(XPCPPFLAGS)" CC="$(CC)" CPPFLAGS="$(CPPFLAGS)" CFLAGS="$(CFLAGS)" TARGETARCH="$(TARGETARCH)" NAVP_XPDLL="$(NAVP_XPDLL)" navp
 
 .PHONY: clean
 clean:

@@ -1,9 +1,11 @@
-CFLAGS     = -O3 -std=gnu99 -Wno-unused-result -D_GNU_SOURCE
+CFLAGS     = -O3 -std=gnu99 -Wno-unused-result
+CPPFLAGS   = -D_GNU_SOURCE
 LDLIBS     = -lm -static
-TARGETARCH =
+TARGETARCH = -m64
+CC         = gcc
 
 all:
-	$(MAKE) -f Makefile CFLAGS="$(CFLAGS)" LDLIBS="$(LDLIBS)" TARGETARCH="$(TARGETARCH)" navdconv
+	$(MAKE) -f Makefile CC="$(CC)" CPPFLAGS="$(CPPFLAGS)" CFLAGS="$(CFLAGS)" TARGETARCH="$(TARGETARCH)" LDLIBS="$(LDLIBS)" navdconv
 
 .PHONY: clean
 clean:
