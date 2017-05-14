@@ -37,6 +37,7 @@
 #include "lib/flightplan.h"
 #include "lib/navdata.h"
 
+#include "YFSfpln.h"
 #include "YFSkeys.h"
 #include "YFSmain.h"
 #include "YFSmenu.h"
@@ -884,10 +885,15 @@ static void toggle_main_window(yfms_context *yfms)
         XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_copilot, XPLMGetDataf(yfms->xpl.nav1_obs_deg_mag_pilot));
         XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot, XPLMGetDataf(yfms->xpl.nav2_obs_deg_mag_copilot));
     }
-    yfs_curr_pageupdt       (yfms            );
+    if (yfms->mwindow.current_page == PAGE_FPLN)
+    {
+        yfms->data.fpln.ln_off = 0; // reset page's line offset before updating
+        yfs_fpln_pageupdt(yfms); // update the page while window is still hidden
+    }
     XPShowWidget            (yfms->mwindow.id);
     XPSetKeyboardFocus      (yfms->mwindow.id);
     XPBringRootWidgetToFront(yfms->mwindow.id);
+    yfs_curr_pageupdt       (yfms            ); // call last as it does nothing when hidden
     return;
 }
 

@@ -506,13 +506,13 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
         }
         for (int i = 1, set = 0; i <= yfms->data.fpln.xplm_last; i++)
         {
-            if (set && yfms->data.fpln.xplm_info[i].legindex > s)
+            if (set > 0 && yfms->data.fpln.xplm_info[i].legindex > s)
             {
-                break;
+                XPLMSetDisplayedFMSEntry(set); break;                           // display
             }
             if (yfms->data.fpln.xplm_info[i].legindex >= s)
             {
-                XPLMSetDisplayedFMSEntry(i); set = 1;                           // display
+                set = i;
             }
         }
     }
