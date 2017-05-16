@@ -25,6 +25,18 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#if IBM
+#include <windows.h>
+#endif
+#if APL
+#include <OpenGL/gl.h>
+#else
+#include <GL/gl.h>
+#endif
+#ifndef GL_BGRA
+#define GL_BGRA 0x80E1
+#endif
+
 #include "Widgets/XPStandardWidgets.h"
 #include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMDisplay.h"
@@ -625,9 +637,22 @@ static int create_main_window(yfms_context *yfms)
                         yfms->mwindow.screen.sw_inRT, yfms->mwindow.screen.sw_inBM,
                         1, "", 0, yfms->mwindow.id, xpWidgetClass_SubWindow)))
     {
+        uint8_t *byt = (uint8_t*)yfms->mwindow.screen.bgra_pix_buf;
+        for (int y = 0; y < 256; y++)
+        {
+            for (int x = 0; x < 256; x++)
+            {
+                // dark background
+                *byt++ =  55; // B
+                *byt++ =  55; // G
+                *byt++ =  55; // R
+                *byt++ = 255; // A (opaque)
+            }
+        }
+        XPSetWidgetProperty(yfms->mwindow.screen.bgrd_id, xpProperty_Refcon, (intptr_t)yfms->mwindow.screen.bgra_pix_buf);
         XPSetWidgetProperty(yfms->mwindow.screen.subw_id, xpProperty_Refcon, (intptr_t)yfms);
-        XPAddWidgetCallback(yfms->mwindow.screen.subw_id, &yfs_mcdudish);
         XPAddWidgetCallback(yfms->mwindow.screen.bgrd_id, &yfs_mcdubgrh);
+        XPAddWidgetCallback(yfms->mwindow.screen.subw_id, &yfs_mcdudish);
     }
     else
     {
@@ -1306,12 +1331,18 @@ static int yfs_mcdubgrh(XPWidgetMessage inMessage,
     {
         if (XPIsWidgetVisible(inWidget))
         {
-            //fixme transparency can't be helping the font renderer
-            //fixme this is unbearably slow, at least in XPlane 11 :-(
-            int g[4]; // drawing box twice for same effect in XP11
-            XPGetWidgetGeometry(inWidget, &g[0], &g[1], &g[2], &g[3]);
-            XPLMDrawTranslucentDarkBox(    g[0],  g[1],  g[2],  g[3]);
-            XPLMDrawTranslucentDarkBox(    g[0],  g[1],  g[2],  g[3]);
+            uint8_t *bgra_pix_buf = (uint8_t*)XPGetWidgetProperty(inWidget, xpProperty_Refcon, NULL);
+            if (bgra_pix_buf == NULL)
+            {
+                ndt_log("YFMS [debug]: no context for MCDU background!\n");
+                return 0;
+            }
+            int g[4]; XPGetWidgetGeometry(inWidget, &g[0], &g[1], &g[2], &g[3]);
+            // note: glDrawPixels is not in current version of the OpenGL specification
+            //       but seems to work OK and I am lazy; TODO: let's redo this function
+            // set XPL GFX state to suitable 2D drawing configuration via trial & error
+            XPLMSetGraphicsState(0, 0, 0, 0, 0, 0, 0); glRasterPos4i(g[0] - 1, g[3] - 1, 0, 1);
+            glDrawPixels(g[2] - g[0] + 2, g[1] - g[3] + 2, GL_BGRA, GL_UNSIGNED_BYTE, bgra_pix_buf);
         }
         return 1;
     }
@@ -1381,13 +1412,13 @@ static int yfs_mcdudish(XPWidgetMessage inMessage,
     {
         if (XPIsWidgetVisible(inWidget))
         {
-            int y, x; yfms_context *yfms = (yfms_context*)XPGetWidgetProperty(inWidget, xpProperty_Refcon, NULL);
+            yfms_context *yfms = (yfms_context*)XPGetWidgetProperty(inWidget, xpProperty_Refcon, NULL);
             if (yfms == NULL)
             {
                 ndt_log("YFMS [debug]: no context for MCDU display!\n");
                 return 0;
             }
-            draw_display(yfms);
+            XPLMSetGraphicsState(0, 0, 0, 0, 0, 0, 0); draw_display(yfms);
         }
         return 1;
     }

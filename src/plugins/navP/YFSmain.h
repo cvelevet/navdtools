@@ -170,6 +170,7 @@ typedef struct
             int        sw_inLT;
             int        sw_inTP;
             int        sw_inRT;
+            uint8_t    bgra_pix_buf[256][256][4];
             XPWidgetID line_id[YFS_DISPLAY_NUMR];
             int        ln_inBM[YFS_DISPLAY_NUMR];
             int        ln_inLT[YFS_DISPLAY_NUMR];
