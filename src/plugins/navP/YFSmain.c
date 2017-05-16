@@ -1337,6 +1337,7 @@ static int yfs_mcdubgrh(XPWidgetMessage inMessage,
                 ndt_log("YFMS [debug]: no context for MCDU background!\n");
                 return 0;
             }
+            //fixme make this faster
             int g[4]; XPGetWidgetGeometry(inWidget, &g[0], &g[1], &g[2], &g[3]);
             // note: glDrawPixels is not in current version of the OpenGL specification
             //       but seems to work OK and I am lazy; TODO: let's redo this function
@@ -1370,7 +1371,7 @@ static void draw_display(yfms_context *yfms)
                  // scratchpad parser strips trailing spaces, we use underscores instead
                 *buf = ' '; // display the intended character, not the stored workaround
             }
-            switch  (yfms->mwindow.screen.colr[i][j])
+            switch  (yfms->mwindow.screen.colr[i][j])//fixme glutBitmapCharacter faster???
             {
                 case COLR_IDX_BLACK:
                     XPLMDrawString(COLR_BLACK,   x, y, buf, NULL, xplmFont_Basic);

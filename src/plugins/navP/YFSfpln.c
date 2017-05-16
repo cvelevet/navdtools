@@ -897,6 +897,12 @@ end:/* We should be fully synced with navdlib now */
 void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
 {
     ndt_route_leg *leg;
+    //fixme create T-P waypoint
+    //fixme remove other T-P waypoints from plan (iterate over all route legs)
+    //fixme insert T-P (as well as toinsert if applicable)
+    //fixme obtain the index of the leg we want to track
+    //fixme sync flightplan (no need to call XPLMSetDestinationFMSEntry anymore)
+    //fixme no need to backup latitude/longitude coordinates anymore
     if (toinsert)
     {
         if ((leg = ndt_list_item(yfms->data.fpln.legs, (index = yfms->data.fpln.lg_idx))) == NULL)
