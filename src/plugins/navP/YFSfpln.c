@@ -896,27 +896,41 @@ end:/* We should be fully synced with navdlib now */
 
 void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
 {
-    ndt_route_leg *leg;
-    //fixme create T-P waypoint
+    char  llc_buf[23];  ndt_waypoint *w_tp = NULL;
+    float trueheading = XPLMGetDataf(yfms->xpl.true_psi);
+    float groundspeed = XPLMGetDataf(yfms->xpl.groundspeed);
+    int64_t elevation = XPLMGetDatad(yfms->xpl.elevation) / .3048;
+    ndt_distance palt = ndt_distance_init(elevation, NDT_ALTUNIT_FT);
+    ndt_distance dnxt = ndt_distance_init(groundspeed * 2, NDT_ALTUNIT_FT); // compute aircraft's position ~2 seconds from now
+    ndt_position ppos = ndt_position_init(XPLMGetDatad(yfms->xpl.latitude), XPLMGetDatad(yfms->xpl.longitude), NDT_DISTANCE_ZERO);
+    ndt_position p_tp = ndt_position_calcpos4pbd(ppos, trueheading, dnxt); snprintf(llc_buf, sizeof(llc_buf), "%+010.6lf/%+011.6lf",
+                                                                                    ndt_position_getlatitude (p_tp, NDT_ANGUNIT_DEG),
+                                                                                    ndt_position_getlongitude(p_tp, NDT_ANGUNIT_DEG));
+    if ((w_tp = ndt_waypoint_llc(llc_buf)) == NULL)
+    {
+        return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 A", COLR_IDX_ORANGE);      // PAGE_DRTO
+    }
     //fixme remove other T-P waypoints from plan (iterate over all route legs)
+    yfms->data.fpln.w_tp = w_tp;
     //fixme insert T-P (as well as toinsert if applicable)
     //fixme obtain the index of the leg we want to track
     //fixme sync flightplan (no need to call XPLMSetDestinationFMSEntry anymore)
     //fixme no need to backup latitude/longitude coordinates anymore
     if (toinsert)
     {
+        ndt_route_leg *leg;
         if ((leg = ndt_list_item(yfms->data.fpln.legs, (index = yfms->data.fpln.lg_idx))) == NULL)
         {
-            yfs_spad_reset(yfms, "UNKNOWN ERROR 1 A", COLR_IDX_ORANGE); return; // PAGE_DRTO
+            return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 B", COLR_IDX_ORANGE);  // PAGE_DRTO
         }
         if (toinsert == leg->dst) // toinsert being tracked already, should use list instead
         {
             yfms->data.drto.dctwp = NULL; yfs_drto_pageupdt(yfms);              // PAGE_DRTO
-            yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;                    // PAGE_DRTO
+            return yfs_spad_reset(yfms, "NOT ALLOWED", -1);                     // PAGE_DRTO
         }
         if (ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), toinsert, leg, 0))
         {
-            yfs_spad_reset(yfms, "UNKNOWN ERROR 1 B", COLR_IDX_ORANGE); return; // PAGE_DRTO
+            return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 C", COLR_IDX_ORANGE);  // PAGE_DRTO
         }
         yfms->data.fpln.mod.source    = leg;
         yfms->data.fpln.mod.index     = index;

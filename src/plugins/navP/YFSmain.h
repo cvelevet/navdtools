@@ -259,6 +259,7 @@ typedef struct
             int               dindex; // index of d_leg (in legs list)
             int               usridx; // user-defined waypoint, 01->20
             ndt_waypoint *usrwpt[20]; // user-defined waypoint, 01->20
+            ndt_waypoint       *w_tp; // present pos. waypoint for DIR TO
             ndt_flightplan    *d_fpl; // last non-empty flight plan element
             ndt_route_leg     *d_leg; // leg to the arrival airport or runway
             ndt_list           *legs; // list of all flight plan legs, if any
@@ -400,10 +401,12 @@ typedef struct
         // PAGE_FPLN
         XPLMCommandRef direct_to;
         // miscellaneous
+        XPLMDataRef true_psi;
         XPLMDataRef latitude;
         XPLMDataRef longitude;
         XPLMDataRef elevation;
         XPLMDataRef tropopause;
+        XPLMDataRef groundspeed;
         // autopilot
         XPLMDataRef machno;
         XPLMDataRef vvi_fpm_pilot;

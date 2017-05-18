@@ -1045,9 +1045,11 @@ void* yfs_main_init(void)
         (yfms->xpl.nav2_obs_deg_mag_copilot        = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav2_obs_deg_mag_copilot"       )) == NULL ||
         (yfms->xpl.nav1_course_deg_mag_pilot       = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav1_course_deg_mag_pilot"      )) == NULL ||
         (yfms->xpl.nav2_course_deg_mag_pilot       = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav2_course_deg_mag_pilot"      )) == NULL ||
+        (yfms->xpl.true_psi                        = XPLMFindDataRef("sim/flightmodel/position/true_psi"                            )) == NULL ||
         (yfms->xpl.latitude                        = XPLMFindDataRef("sim/flightmodel/position/latitude"                            )) == NULL ||
         (yfms->xpl.longitude                       = XPLMFindDataRef("sim/flightmodel/position/longitude"                           )) == NULL ||
         (yfms->xpl.elevation                       = XPLMFindDataRef("sim/flightmodel/position/elevation"                           )) == NULL ||
+        (yfms->xpl.groundspeed                     = XPLMFindDataRef("sim/flightmodel/position/groundspeed"                         )) == NULL ||
         (yfms->xpl.tropopause                      = XPLMFindDataRef("sim/weather/tropo_alt_mtr"                                    )) == NULL ||
         (yfms->xpl.machno                          = XPLMFindDataRef("sim/flightmodel/misc/machno"                                  )) == NULL ||
         (yfms->xpl.vvi_fpm_pilot                   = XPLMFindDataRef("sim/cockpit2/gauges/indicators/vvi_fpm_pilot"                 )) == NULL ||
