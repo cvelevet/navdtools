@@ -256,6 +256,10 @@ static ndt_flightplan* file_to_flightplan(yfms_context *yfms, char path[512], nd
 static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airport *dst, ndt_flightplan *corte)
 {
     // departure or arrival changed, reset flight plans, leg lists
+    if (yfms->data.init.ialized)
+    {
+        yfms->data.init.ialized = 0;
+    }
     if (yfms->ndt.flp.arr)
     {
         ndt_flightplan_close(&yfms->ndt.flp.arr);
@@ -288,12 +292,24 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
     if (yfms->data.init.from && yfms->data.init.to)
     {
         // we have both airports, initialize flight plans
+        for (int i = 0; i < 20; i++)
+        {
+            if (yfms->data.fpln.usrwpt[i])
+            {
+                ndt_waypoint_close(&yfms->data.fpln.usrwpt[i]);
+            }
+            yfms->data.fpln.usridx = 0;
+        }
+        if (yfms->data.fpln.w_tp)
+        {
+            ndt_waypoint_close(&yfms->data.fpln.w_tp);
+        }
         if ((yfms->data.fpln.legs == NULL) &&
             (yfms->data.fpln.legs = ndt_list_init()) == NULL)
         {
             yfms->data.fpln.awys.open = 0;
-            yfms->data.fpln.lrev.open = 0; yfms->data.fpln.w_tp = NULL;
-            yfms->data.init.ialized   = 0; yfms->data.init.from = yfms->data.init.to = NULL;
+            yfms->data.fpln.lrev.open = 0;
+            yfms->data.init.from = yfms->data.init.to = NULL;
             yfs_spad_reset(yfms, "MEMORY ERROR 1", COLR_IDX_ORANGE); return yfs_init_pageupdt(yfms);
         }
         if ((yfms->ndt.flp.arr = ndt_flightplan_init(yfms->ndt.ndb)) == NULL ||
@@ -302,8 +318,8 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
             (yfms->ndt.flp.rte = ndt_flightplan_init(yfms->ndt.ndb)) == NULL)
         {
             yfms->data.fpln.awys.open = 0;
-            yfms->data.fpln.lrev.open = 0; yfms->data.fpln.w_tp = NULL;
-            yfms->data.init.ialized   = 0; yfms->data.init.from = yfms->data.init.to = NULL;
+            yfms->data.fpln.lrev.open = 0;
+            yfms->data.init.from = yfms->data.init.to = NULL;
             yfs_spad_reset(yfms, "MEMORY ERROR 2", COLR_IDX_ORANGE); return yfs_init_pageupdt(yfms);
         }
         if (ndt_flightplan_set_departure(yfms->ndt.flp.arr, yfms->data.init.from->info.idnt, NULL) ||
@@ -314,8 +330,8 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
             if (src)
             {
                 yfms->data.fpln.awys.open = 0;
-                yfms->data.fpln.lrev.open = 0; yfms->data.fpln.w_tp = NULL;
-                yfms->data.init.ialized   = 0; yfms->data.init.from = NULL;
+                yfms->data.fpln.lrev.open = 0;
+                yfms->data.init.from      = NULL;
                 yfs_spad_reset(yfms, "UNKNOWN ERROR 1", COLR_IDX_ORANGE); return yfs_init_pageupdt(yfms);
             }
         }
@@ -327,8 +343,8 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
             if (dst)
             {
                 yfms->data.fpln.awys.open = 0;
-                yfms->data.fpln.lrev.open = 0; yfms->data.fpln.w_tp = NULL;
-                yfms->data.init.ialized   = 0; yfms->data.init.to   = NULL;
+                yfms->data.fpln.lrev.open = 0;
+                yfms->data.init.to        = NULL;
                 yfs_spad_reset(yfms, "UNKNOWN ERROR 2", COLR_IDX_ORANGE); return yfs_init_pageupdt(yfms);
             }
         }
@@ -352,23 +368,14 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
         {
             yfms->data.init.trans_l = ndt_distance_init (10000, NDT_ALTUNIT_FT);
         }
-        for (int i = 0; i < 20; i++)
-        {
-            if (yfms->data.fpln.usrwpt[i])
-            {
-                ndt_waypoint_close(&yfms->data.fpln.usrwpt[i]);
-            }
-        }
         if (corte == NULL)
         {
             yfms->data.init.corte_name[0] = 0;
         }
         yfms->data.init.ialized         = 1;
-        yfms->data.fpln.usridx          = 0;
         yfms->data.fpln.lg_idx          = 0;
         yfms->data.fpln.awys.open       = 0;
         yfms->data.fpln.lrev.open       = 0;
-        yfms->data.fpln.w_tp            = NULL;
         yfms->data.fpln.dist.remain     = ndt_distance_init(0, NDT_ALTUNIT_NA);
         yfms->data.fpln.dist.ref_leg_id = -1; // XXX: force a full distance re-sync
         yfms->data.fpln.xplm_last       = 99; // XXX: force a full flight plan sync
@@ -377,13 +384,11 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
     if (yfms->data.init.from == NULL && yfms->data.init.to == NULL) // reset all
     {
         yfms->data.init.crz_alt       = ndt_distance_init(0, NDT_ALTUNIT_NA);
-        yfms->data.fpln.w_tp          = NULL;
         yfms->data.init.corte_name[0] = 0;
         yfms->data.init.flight_id[0]  = 0;
         yfms->data.init.cost_index    = 0;
         yfms->data.fpln.awys.open     = 0;
         yfms->data.fpln.lrev.open     = 0;
-        yfms->data.init.ialized       = 0;
     }
     /* all good */
     return;
