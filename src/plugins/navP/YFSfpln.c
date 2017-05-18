@@ -896,7 +896,8 @@ end:/* We should be fully synced with navdlib now */
 
 void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
 {
-    char  llc_buf[23];  ndt_waypoint *w_tp = NULL;
+    char  llc_buf[23];
+    ndt_waypoint *w_tp; ndt_route_leg *leg;
     float trueheading = XPLMGetDataf(yfms->xpl.true_psi);
     float groundspeed = XPLMGetDataf(yfms->xpl.groundspeed);
     int64_t elevation = XPLMGetDatad(yfms->xpl.elevation) / .3048;
@@ -911,6 +912,10 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
         return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 A", COLR_IDX_ORANGE);      // PAGE_DRTO
     }
     //fixme remove other T-P waypoints from plan (iterate over all route legs)
+    if (yfms->data.fpln.w_tp)
+    {
+        ndt_waypoint_close(&yfms->data.fpln.w_tp);
+    }
     yfms->data.fpln.w_tp = w_tp;
     //fixme insert T-P (as well as toinsert if applicable)
     //fixme obtain the index of the leg we want to track
@@ -918,7 +923,6 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
     //fixme no need to backup latitude/longitude coordinates anymore
     if (toinsert)
     {
-        ndt_route_leg *leg;
         if ((leg = ndt_list_item(yfms->data.fpln.legs, (index = yfms->data.fpln.lg_idx))) == NULL)
         {
             return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 B", COLR_IDX_ORANGE);  // PAGE_DRTO
