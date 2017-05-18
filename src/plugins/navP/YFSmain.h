@@ -297,7 +297,7 @@ typedef struct
                 int        legindex;
                 ndt_restriction cst;
             }
-            xplm_info[101];
+            xplm_info[100];
             int xplm_last;
             struct
             {
