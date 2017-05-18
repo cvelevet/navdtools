@@ -932,7 +932,7 @@ end:
     return ret;
 }
 
-int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_leg, int insert_after)
+void* ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_leg, int insert_after)
 {
     /*
      * Note: next_ fields currently unused, but may be usedful for inserting
@@ -991,6 +991,11 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
             err = ENOMEM;
             goto end;
         }
+        else if ((new_leg = ndt_list_item(new_rsg->legs, 0)) == NULL)
+        {
+            err = EINVAL;
+            goto end;
+        }
         ndt_list_add(flp->rte, new_rsg);
         goto end;
     }
@@ -1037,6 +1042,11 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
         if ((new_rsg = ndt_route_segment_direct(prev_dst, wpt)) == NULL)
         {
             err = ENOMEM;
+            goto end;
+        }
+        else if ((new_leg = ndt_list_item(new_rsg->legs, 0)) == NULL)
+        {
+            err = EINVAL;
             goto end;
         }
         ndt_list_add(flp->rte, new_rsg);
@@ -1243,6 +1253,11 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
         err = ENOMEM;
         goto end;
     }
+    else if ((new_leg = ndt_list_item(new_rsg->legs, 0)) == NULL)
+    {
+        err = EINVAL;
+        goto end;
+    }
     ndt_list_insert(flp->rte, new_rsg, insert_at_indx);
     goto end;
 
@@ -1252,18 +1267,22 @@ int ndt_flightplan_insert_direct(ndt_flightplan *flp, ndt_waypoint *wpt, void *_
      */
 
 end:
+    if (new_leg)
+    {
+        err = route_leg_update(flp);
+    }
+    else
+    {
+        err = ENOMEM;
+    }
     if (err)
     {
         char error[64];
         strerror_r(err, error, sizeof(error));
         ndt_log("ndt_flightplan_insert_direct: failure (%s)\n", error);
-        return err;
+        return NULL;
     }
-    if (new_rsg || new_leg)
-    {
-        return route_leg_update(flp);
-    }
-    return err;
+    return new_leg;
 }
 
 int ndt_flightplan_remove_leg(ndt_flightplan *flp, void *_leg)
