@@ -828,12 +828,12 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)
         {
             yfms->data.fpln.lg_idx = yfms->data.fpln.dindex; goto end;
         }
-        for (int i = 0, j = ndt_list_count(yfms->data.fpln.legs); i < j; i++)
+        for (int i = 0, ii = ndt_list_count(yfms->data.fpln.legs); i < ii; i++)
         {
             {
                 yfms->data.fpln.lg_idx = 0; // reset, then find last tracked leg
             }
-            if ((leg = ndt_list_item(l, i)))
+            if ((leg = ndt_list_item(yfms->data.fpln.legs, i)))
             {
                 if (leg        == yfms->data.fpln.mod.source ||
                     leg->xpfms == yfms->data.fpln.mod.opaque)
@@ -844,7 +844,8 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)
                 {
                     continue; // changed SID, exact leg else keep tracking first
                 }
-                if (leg->dst && leg->dst == yfms->data.fpln.mod.opaque)
+                if (leg->dst && yfms->data.fpln.mod.source->dst &&
+                    leg->dst == yfms->data.fpln.mod.source->dst)
                 {
                     yfms->data.fpln.lg_idx = i; continue; // track same waypoint
                 }
@@ -891,106 +892,96 @@ end:/* We should be fully synced with navdlib now */
     yfms->data.fpln.mod.opaque    = NULL;
     yfms->data.fpln.mod.source    = NULL;
     yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NONE;
-    xplm_fpln_sync(yfms); yfs_fpln_pageupdt(yfms); return;
+    xplm_fpln_sync(yfms); return yfs_fpln_pageupdt(yfms);
 }
 
 void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
 {
-    char  llc_buf[23];
-    ndt_waypoint *w_tp; ndt_route_leg *leg;
+    ndt_waypoint *t_p_wpt; char buf[23];
+    int insert_after = toinsert ? 1 : 0;
+    ndt_route_leg *tmp, *leg, *t_p_leg, *dct_leg;
+    if (toinsert) index = yfms->data.fpln.lg_idx;
     float trueheading = XPLMGetDataf(yfms->xpl.true_psi);
     float groundspeed = XPLMGetDataf(yfms->xpl.groundspeed);
     int64_t elevation = XPLMGetDatad(yfms->xpl.elevation) / .3048;
     ndt_distance palt = ndt_distance_init(elevation, NDT_ALTUNIT_FT);
     ndt_distance dnxt = ndt_distance_init(groundspeed * 2, NDT_ALTUNIT_FT); // compute aircraft's position ~2 seconds from now
     ndt_position ppos = ndt_position_init(XPLMGetDatad(yfms->xpl.latitude), XPLMGetDatad(yfms->xpl.longitude), NDT_DISTANCE_ZERO);
-    ndt_position p_tp = ndt_position_calcpos4pbd(ppos, trueheading, dnxt); snprintf(llc_buf, sizeof(llc_buf), "%+010.6lf/%+011.6lf",
+    ndt_position p_tp = ndt_position_calcpos4pbd(ppos, trueheading, dnxt); snprintf(buf, sizeof(buf), "%+010.6lf/%+011.6lf",
                                                                                     ndt_position_getlatitude (p_tp, NDT_ANGUNIT_DEG),
                                                                                     ndt_position_getlongitude(p_tp, NDT_ANGUNIT_DEG));
-    if ((w_tp = ndt_waypoint_llc(llc_buf)) == NULL)
+    if ((t_p_wpt = ndt_waypoint_llc(buf)) == NULL)
     {
-        return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 A", COLR_IDX_ORANGE);      // PAGE_DRTO
+        return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 B", COLR_IDX_ORANGE);      // PAGE_DRTO
     }
-    //fixme remove other T-P waypoints from plan (iterate over all route legs)
+    if ((leg = ndt_list_item(yfms->data.fpln.legs, index)) == NULL)
+    {
+        ndt_waypoint_close(&t_p_wpt);
+        return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 C", COLR_IDX_ORANGE);      // PAGE_DRTO
+    }
+    if (toinsert && leg->dst &&
+        toinsert == leg->dst)
+    {
+        // toinsert being tracked already, should use list instead              // PAGE_DRTO
+        ndt_waypoint_close(&t_p_wpt); yfms->data.drto.dctwp = NULL;             // PAGE_DRTO
+        yfs_drto_pageupdt(yfms); return yfs_spad_reset(yfms, "NOT ALLOWED", -1);// PAGE_DRTO
+    }
+    if ((t_p_leg = ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), t_p_wpt, leg, insert_after)) == NULL)
+    {
+        ndt_waypoint_close(&t_p_wpt);
+        return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 D", COLR_IDX_ORANGE);      // PAGE_DRTO
+    }
     if (yfms->data.fpln.w_tp)
     {
-        ndt_waypoint_close(&yfms->data.fpln.w_tp);
+        for (int i = 0, ii = ndt_list_count(yfms->data.fpln.legs); i < ii; i++)
+        {
+            if ((tmp = ndt_list_item(yfms->data.fpln.legs, i)) &&
+                (tmp->dst && tmp->dst == yfms->data.fpln.w_tp))
+            {
+                if (ndt_flightplan_remove_leg(fpl_getfplan_for_leg(yfms, tmp), tmp) == 0)
+                {
+                    ndt_route_leg_close(&tmp); ndt_waypoint_close(&yfms->data.fpln.w_tp);
+                    break;
+                }
+            }
+        }
+        if (yfms->data.fpln.w_tp)
+        {
+            if (ndt_flightplan_remove_leg(fpl_getfplan_for_leg(yfms, t_p_leg), t_p_leg) == 0)
+            {
+                ndt_route_leg_close(&t_p_leg); ndt_waypoint_close(&t_p_wpt);
+            }
+            return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 E", COLR_IDX_ORANGE);  // PAGE_DRTO
+        }
     }
-    yfms->data.fpln.w_tp = w_tp;
-    //fixme insert T-P (as well as toinsert if applicable)
-    //fixme obtain the index of the leg we want to track
-    //fixme sync flightplan (no need to call XPLMSetDestinationFMSEntry anymore)
-    //fixme no need to backup latitude/longitude coordinates anymore
     if (toinsert)
     {
-        if ((leg = ndt_list_item(yfms->data.fpln.legs, (index = yfms->data.fpln.lg_idx))) == NULL)
+        if ((dct_leg = ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, t_p_leg), toinsert, t_p_leg, 1)) == NULL)
         {
-            return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 B", COLR_IDX_ORANGE);  // PAGE_DRTO
+            if (ndt_flightplan_remove_leg(fpl_getfplan_for_leg(yfms, t_p_leg), t_p_leg) == 0)
+            {
+                ndt_route_leg_close(&t_p_leg); ndt_waypoint_close(&t_p_wpt);
+            }
+            return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 F", COLR_IDX_ORANGE);  // PAGE_DRTO
         }
-        if (toinsert == leg->dst) // toinsert being tracked already, should use list instead
-        {
-            yfms->data.drto.dctwp = NULL; yfs_drto_pageupdt(yfms);              // PAGE_DRTO
-            return yfs_spad_reset(yfms, "NOT ALLOWED", -1);                     // PAGE_DRTO
-        }
-        if (ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), toinsert, leg, 0))
-        {
-            return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 C", COLR_IDX_ORANGE);  // PAGE_DRTO
-        }
-        yfms->data.fpln.mod.source    = leg;
-        yfms->data.fpln.mod.index     = index;
-        yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NSRT; // also update
-        yfms->data.fpln.mod.opaque    = leg->dst ? (void*)leg->dst : (void*)leg->xpfms;
-        yfs_fpln_fplnupdt(yfms); // update f-pln before updating the leg being tracked
+        yfms->data.fpln.w_tp = t_p_wpt;
     }
     else
     {
-        yfms->data.fpln.mod.index     = 0;
-        yfms->data.fpln.mod.source    = NULL;
-        yfms->data.fpln.mod.opaque    = NULL;
-        yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NONE; // only sync
-        yfs_fpln_fplnupdt(yfms); // update f-pln before updating the leg being tracked
+        yfms->data.fpln.w_tp = t_p_wpt; dct_leg = leg;
     }
-    for (int i = 0, j = 1; i <= yfms->data.fpln.xplm_last; i++)
-    {
-        if (i && j && yfms->data.fpln.xplm_info[i].legindex >= index)
-        {
-            if (yfms->data.fpln.xplm_info[i].legindex > index)
-            {
-                j = 0; // destination now set to last waypoint of previous leg
-            }
-            if (j)
-            {
-                /*
-                 * note: this doesn't work in some cases, for example:
-                 *        -> X-Plane's GNS430/530 (even in X-Plane 10)
-                 *        -> X-Plane 11's new default FMS (reportedly)
-                 *
-                 * // be lazy: X-Plane can handle all aspects of a direct to for us
-                 * XPLMSetDisplayedFMSEntry(i); XPLMCommandOnce(yfms->xpl.direct_to);
-                 *
-                 * TODO/future: track which leg is being flown direct to in
-                 *              order to display "T-P" origin in our leg list
-                 *              note: we'll need updated course information too
-                 */
-                if (i >= 2) // YFMS never sets legs 0 or 1 as an FMS destination
-                {
-                    // TODO: offset from current position for better tracking???
-                    XPLMSetFMSEntryLatLon((i - 1),
-                                          (float)(XPLMGetDatad(yfms->xpl.latitude)),
-                                          (float)(XPLMGetDatad(yfms->xpl.longitude)),
-                                          (float)(XPLMGetDatad(yfms->xpl.elevation) / .3048));
-                    XPLMSetDestinationFMSEntry(i);
-                }
-                else
-                {
-                    ndt_log("YFMS [error]: DIRECT 2 BUG %d %d %d\n", i, j, index);
-                    return yfs_spad_reset(yfms, "DIRECT TO BUG", COLR_IDX_ORANGE);
-                }
-            }
-        }
-    }
+    /*
+     * if (toinsert)
+     *   - t_p_leg after leg (currently tracked)
+     *   - dct_leg after t_p_leg
+     * else
+     *   - t_p_leg before dct_leg (pre-existing)
+     */
+    yfms->data.fpln.mod.source    = dct_leg;
+    yfms->data.fpln.mod.operation = YFS_FPLN_MOD_DCTO; // compute dct_leg's index
+    yfms->data.fpln.mod.opaque    = (void*)dct_leg->xpfms; yfs_fpln_fplnupdt(yfms);
     // we should be tracking the correct entry now, update the page
-    yfms->data.fpln.lg_idx = index; yfs_fpln_pageopen(yfms); return;
+    return yfs_fpln_pageopen(yfms);
 }
 
 static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
@@ -1199,7 +1190,7 @@ static void lsk_callback_awys(yfms_context *yfms, int key[2], intptr_t refcon)
             yfms->data.fpln.mod.operation   = YFS_FPLN_MOD_NSRT;
             yfms->data.fpln.mod.source = lg = yfms->data.fpln.awys.leg;
             yfms->data.fpln.mod.index       = yfms->data.fpln.awys.idx;
-            yfms->data.fpln.mod.opaque      = lg->dst ? (void*)lg->dst : (void*)lg->xpfms;
+            yfms->data.fpln.mod.opaque      = (void*)lg->xpfms;
             return yfs_fpln_fplnupdt(yfms);
         }
         return;
@@ -1423,7 +1414,7 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
                 }
                 // insert after unless we're from the departure's lat. rev. page
                 // since in the latter case, leg is not the current but next leg
-                if (ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), wpt, leg, yfms->data.fpln.lrev.idx != -1))
+                if ((ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), wpt, leg, yfms->data.fpln.lrev.idx != -1)) == NULL)
                 {
                     yfs_spad_reset(yfms, "UNKNOWN ERROR 3", COLR_IDX_ORANGE); return;
                 }
@@ -1431,7 +1422,7 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
                 yfms->data.fpln.mod.source    = leg;
                 yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NSRT;
                 yfms->data.fpln.mod.index     = yfms->data.fpln.lrev.idx == -1 ? 0 : yfms->data.fpln.lrev.idx;
-                yfms->data.fpln.mod.opaque    = leg == NULL ? NULL : leg->dst ? (void*)leg->dst : (void*)leg->xpfms;
+                yfms->data.fpln.mod.opaque    = leg == NULL ? NULL : (void*)leg->xpfms;
                 yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return; // NEXT WPT
             }
             return;
@@ -1622,14 +1613,14 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
                 yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
             }
         }
-        if (ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), wpt, leg, 0))
+        if ((ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), wpt, leg, 0)) == NULL)
         {
             yfs_spad_reset(yfms, "UNKNOWN ERROR 3", COLR_IDX_ORANGE); return;
         }
         yfms->data.fpln.mod.source    = leg;
         yfms->data.fpln.mod.index     = index;
         yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NSRT;
-        yfms->data.fpln.mod.opaque    = leg->dst ? (void*)leg->dst : (void*)leg->xpfms;
+        yfms->data.fpln.mod.opaque    = (void*)leg->xpfms;
         yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
     }
     if (key[0] == 1 && key[1] != 5) // constraints or vertical rev. page

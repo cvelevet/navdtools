@@ -97,6 +97,7 @@ void yfs_drto_pageupdt(yfms_context *yfms)
                 leg = ndt_list_item(yfms->data.fpln.legs, ++i);
                 continue;
             }
+            //fixme skip more leg types (e.g. T-P, altitude terminations, etc.)
             if (leg->dst == NULL && !ndt_list_count(leg->xpfms))
             {
                 leg = ndt_list_item(yfms->data.fpln.legs, ++i);
@@ -187,7 +188,7 @@ static void yfs_lsk_callback_drto(yfms_context *yfms, int key[2], intptr_t refco
             {
                 yfs_fpln_directto(yfms, yfms->data.fpln.lg_idx, yfms->data.drto.dctwp); return;
             }
-            return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 D", COLR_IDX_ORANGE);
+            return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 A", COLR_IDX_ORANGE);
         }
     }
     if (key[0] == 0) // select a waypoint to fly direct to
