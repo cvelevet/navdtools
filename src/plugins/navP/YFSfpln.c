@@ -806,70 +806,65 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)
     /* Future: missed approach legs */
 
     /* Update index to tracked leg as required */
-    if (yfms->data.fpln.lg_idx > 0)
+    if (yfms->data.fpln.mod.operation != YFS_FPLN_MOD_DCTO)
     {
-        if (yfms->data.fpln.mod.operation == YFS_FPLN_MOD_REMV)
+        if (yfms->data.fpln.lg_idx == 0)
         {
-            if (yfms->data.fpln.mod.index < yfms->data.fpln.lg_idx)
-            {
-                yfms->data.fpln.lg_idx--;
-            }
-            goto end;
-        }
-        if (yfms->data.fpln.mod.operation == YFS_FPLN_MOD_NSRT)
-        {
-            if (yfms->data.fpln.mod.index < yfms->data.fpln.lg_idx)
-            {
-                yfms->data.fpln.lg_idx++;
-            }
+            // inserting leg before index 0 becomes a poor man's "direct to"
+            // rationale: inserting before leg 0 will only happen on ground
             goto end;
         }
         if (tracking_destination)
         {
             yfms->data.fpln.lg_idx = yfms->data.fpln.dindex; goto end;
         }
-        for (int i = 0, ii = ndt_list_count(yfms->data.fpln.legs); i < ii; i++)
+        yfms->data.fpln.lg_idx = 0; // reset, find leg, update index accordingly
+    }
+    else
+    {
+        yfms->data.fpln.lg_idx = 0; // reset, find leg, update index accordingly
+    }
+    for (int i = 0, ii = ndt_list_count(yfms->data.fpln.legs); i < ii; i++)
+    {
+        if ((leg = ndt_list_item(yfms->data.fpln.legs, i)))
         {
+            if (yfms->data.fpln.mod.operation == YFS_FPLN_MOD_DCTO) ndt_log("TIM %p vs. %p\n", yfms->data.fpln.mod.source, leg);//fixme
+            if ((yfms->data.fpln.mod.source && yfms->data.fpln.mod.source == leg)  ||
+                (yfms->data.fpln.mod.opaque && yfms->data.fpln.mod.opaque == leg->xpfms))
             {
-                yfms->data.fpln.lg_idx = 0; // reset, then find last tracked leg
+                if (yfms->data.fpln.mod.operation == YFS_FPLN_MOD_DCTO) ndt_log("TIM found index A %d\n", i);//fixme
+                yfms->data.fpln.lg_idx = i; goto end; // exact same leg
             }
-            if ((leg = ndt_list_item(yfms->data.fpln.legs, i)))
+            if (yfms->data.fpln.mod.operation == YFS_FPLN_MOD_SIDP)
             {
-                if (leg        == yfms->data.fpln.mod.source ||
-                    leg->xpfms == yfms->data.fpln.mod.opaque)
+                continue; // changed SID, exact leg else keep tracking first
+            }
+            if (leg->dst && yfms->data.fpln.mod.source->dst &&
+                leg->dst == yfms->data.fpln.mod.source->dst)
+            {
+                if (yfms->data.fpln.mod.operation == YFS_FPLN_MOD_DCTO) ndt_log("TIM found index B %d\n", i);//fixme
+                yfms->data.fpln.lg_idx = i; continue; // last instance of same waypoint
+            }
+            if (yfms->data.fpln.lg_idx == 0 && leg->rsg && leg->rsg->type == NDT_RSTYPE_PRC)
+            {
+                if ((yfms->data.fpln.mod.operation == YFS_FPLN_MOD_STAR) &&
+                    (leg->rsg == yfms->ndt.flp.arr->arr.star.enroute.rsgt ||
+                     leg->rsg == yfms->ndt.flp.arr->arr.star.rsgt))
                 {
-                    yfms->data.fpln.lg_idx = i; break; // exact same leg
+                    // changed our STAR and reached first segment of new STAR
+                    yfms->data.fpln.lg_idx = i - 1; continue; // last enroute leg
                 }
-                if (yfms->data.fpln.mod.operation == YFS_FPLN_MOD_SIDP)
+                if ((yfms->data.fpln.mod.operation == YFS_FPLN_MOD_APPR) &&
+                    (leg->rsg == yfms->ndt.flp.arr->arr.apch.transition.rsgt ||
+                     leg->rsg == yfms->ndt.flp.arr->arr.apch.rsgt))
                 {
-                    continue; // changed SID, exact leg else keep tracking first
-                }
-                if (leg->dst && yfms->data.fpln.mod.source->dst &&
-                    leg->dst == yfms->data.fpln.mod.source->dst)
-                {
-                    yfms->data.fpln.lg_idx = i; continue; // track same waypoint
-                }
-                if (yfms->data.fpln.lg_idx == 0 && leg->rsg && leg->rsg->type == NDT_RSTYPE_PRC)
-                {
-                    if ((yfms->data.fpln.mod.operation == YFS_FPLN_MOD_STAR) &&
-                        (leg->rsg == yfms->ndt.flp.arr->arr.star.enroute.rsgt ||
-                         leg->rsg == yfms->ndt.flp.arr->arr.star.rsgt))
-                    {
-                        // changed our STAR and reached first segment of new STAR
-                        yfms->data.fpln.lg_idx = i - 1; continue; // last enroute leg
-                    }
-                    if ((yfms->data.fpln.mod.operation == YFS_FPLN_MOD_APPR) &&
-                        (leg->rsg == yfms->ndt.flp.arr->arr.apch.transition.rsgt ||
-                         leg->rsg == yfms->ndt.flp.arr->arr.apch.rsgt))
-                    {
-                        // changed our APPR and reached first segment of new APPR
-                        yfms->data.fpln.lg_idx = i - 1; continue; // last STAR/RT leg
-                    }
+                    // changed our APPR and reached first segment of new APPR
+                    yfms->data.fpln.lg_idx = i - 1; continue; // last STAR/RT leg
                 }
             }
         }
-        goto end;
     }
+    goto end;
 
 end:/* We should be fully synced with navdlib now */
     /* Adjust line offset after line count change */
@@ -877,17 +872,18 @@ end:/* We should be fully synced with navdlib now */
     {
         case YFS_FPLN_MOD_NONE:
             break;
-        case YFS_FPLN_MOD_REMV:
-        case YFS_FPLN_MOD_NSRT:
+        case YFS_FPLN_MOD_SNGL:
+        case YFS_FPLN_MOD_MULT:
             if ((index_for_ln_zero -= fpl_getindex_for_line(yfms, 0)))
             {
                 yfms->data.fpln.ln_off += index_for_ln_zero;
             }
             break;
-        default: // major modifications, reset
+        default:
             yfms->data.fpln.ln_off = 0;
             break;
     }
+    if (yfms->data.fpln.mod.operation == YFS_FPLN_MOD_DCTO) ndt_log("TIM final index %d\n------------------\n", yfms->data.fpln.lg_idx);//fixme
     yfms->data.fpln.mod.index     = 0;
     yfms->data.fpln.mod.opaque    = NULL;
     yfms->data.fpln.mod.source    = NULL;
@@ -913,6 +909,10 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
     if ((t_p_wpt = ndt_waypoint_llc(buf)) == NULL)
     {
         return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 B", COLR_IDX_ORANGE);      // PAGE_DRTO
+    }
+    else
+    {
+        snprintf(t_p_wpt->info.idnt, sizeof(t_p_wpt->info.idnt), "%s", "T-P");
     }
     if ((leg = ndt_list_item(yfms->data.fpln.legs, index)) == NULL)
     {
@@ -1187,7 +1187,7 @@ static void lsk_callback_awys(yfms_context *yfms, int key[2], intptr_t refcon)
                 break;
             }
             yfms->data.fpln.awys.open       = 0;
-            yfms->data.fpln.mod.operation   = YFS_FPLN_MOD_NSRT;
+            yfms->data.fpln.mod.operation   = YFS_FPLN_MOD_MULT;
             yfms->data.fpln.mod.source = lg = yfms->data.fpln.awys.leg;
             yfms->data.fpln.mod.index       = yfms->data.fpln.awys.idx;
             yfms->data.fpln.mod.opaque      = (void*)lg->xpfms;
@@ -1420,7 +1420,7 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
                 }
                 yfms->data.fpln.lrev.open     = 0;
                 yfms->data.fpln.mod.source    = leg;
-                yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NSRT;
+                yfms->data.fpln.mod.operation = YFS_FPLN_MOD_SNGL;
                 yfms->data.fpln.mod.index     = yfms->data.fpln.lrev.idx == -1 ? 0 : yfms->data.fpln.lrev.idx;
                 yfms->data.fpln.mod.opaque    = leg == NULL ? NULL : (void*)leg->xpfms;
                 yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return; // NEXT WPT
@@ -1569,7 +1569,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             yfms->data.fpln.mod.source    = leg;
             yfms->data.fpln.mod.opaque    = NULL;
             yfms->data.fpln.mod.index     = index;
-            yfms->data.fpln.mod.operation = YFS_FPLN_MOD_REMV;
+            yfms->data.fpln.mod.operation = YFS_FPLN_MOD_SNGL;
             yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
         }
         if ((wpt = get_waypoint_from_scratchpad(yfms)) == NULL)
@@ -1619,7 +1619,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         }
         yfms->data.fpln.mod.source    = leg;
         yfms->data.fpln.mod.index     = index;
-        yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NSRT;
+        yfms->data.fpln.mod.operation = YFS_FPLN_MOD_SNGL;
         yfms->data.fpln.mod.opaque    = (void*)leg->xpfms;
         yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
     }

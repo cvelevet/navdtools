@@ -278,8 +278,8 @@ typedef struct
                     YFS_FPLN_MOD_NONE = 0,
                     YFS_FPLN_MOD_INIT, // flight plan (re-)initialized
                     YFS_FPLN_MOD_DCTO, // direct to some waypoint
-                    YFS_FPLN_MOD_REMV, // remove a single old leg
-                    YFS_FPLN_MOD_NSRT, // insert a single new leg
+                    YFS_FPLN_MOD_SNGL, // remove/add a single leg
+                    YFS_FPLN_MOD_MULT, // remove/add multiple legs
                     YFS_FPLN_MOD_SIDP, // changed SID, or transition
                     YFS_FPLN_MOD_STAR, // changed STAR or transition
                     YFS_FPLN_MOD_APPR, // changed final appr./trans.
