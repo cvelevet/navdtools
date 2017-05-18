@@ -1135,13 +1135,24 @@ static void lsk_callback_awys(yfms_context *yfms, int key[2], intptr_t refcon)
                                                            yfms->data.fpln.awys.lgi[i],
                                                            yfms->data.fpln.awys.lgo[i], lg)) == NULL)
                     {
-                        yfs_spad_reset(yfms, "UNKNOWN ERROR", COLR_IDX_ORANGE);
+                        yfs_spad_reset(yfms, "UNKNOWN ERROR 1", COLR_IDX_ORANGE);
                         yfms->data.fpln.awys.open  = 0;
                         return yfs_fpln_pageupdt(yfms);
                     }
                     src = yfms->data.fpln.awys.dst[i]; continue;
                 }
                 break;
+            }
+            if ((lg = ndt_list_item(yfms->data.fpln.legs, yfms->data.fpln.awys.idx + 1)) &&
+                (lg->dst && lg->dst == src)) // src == last valid awys.dst[i]
+            {
+                // remove consecutive identical waypoints after airway insertion
+                if (ndt_flightplan_remove_leg(fpl_getfplan_for_leg(yfms, lg), lg))
+                {
+                    yfs_spad_reset(yfms, "UNKNOWN ERROR 2", COLR_IDX_ORANGE);
+                    yfms->data.fpln.awys.open  = 0;
+                    return yfs_fpln_pageupdt(yfms);
+                }
             }
             yfms->data.fpln.awys.open       = 0;
             yfms->data.fpln.mod.operation   = YFS_FPLN_MOD_MULT;
