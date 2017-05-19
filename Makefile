@@ -11,7 +11,7 @@ TARGETARCH = -arch i386 -arch x86_64
 CC         = clang
 CPPFLAGS   =
 
-NDCCPPFLAGS = -DNDCONV_EXE="\"$(NDCONV_EXE)\""
+NDCCPPFLAGS =
 NDC_SOURCES = $(SOURCE_DIR)/tools/navdconv.c
 NDC_OBJECTS = $(addsuffix .o,$(basename $(notdir $(NDC_SOURCES))))
 LIB_HEADERS = $(wildcard $(SOURCE_DIR)/lib/*.h)
@@ -32,17 +32,19 @@ NVP_HEADERS = $(wildcard $(SOURCE_DIR)/plugins/navP/*.h)
 NVP_SOURCES = $(wildcard $(SOURCE_DIR)/plugins/navP/*.c)
 NVP_OBJECTS = $(addsuffix .o,$(basename $(notdir $(NVP_SOURCES))))
 GIT_VERSION = $(shell find . -name ".git" -type d -exec git describe --long --always --dirty=/m --abbrev=1 --tags \;)
+NDC_VERSION = -DNDCONV_EXE="\"$(NDCONV_EXE)\""
+NDT_VERSION =
 
 all: navdconv navp
 
 navp: nvpobj libobj comobj compat wmmobj
-	$(CC) $(ND_INCLUDE) $(XP_INCLUDE) $(XPCPPFLAGS) $(CPPFLAGS) $(NVPCPPFLAGS) $(CFLAGS) $(NVP_LDFLAGS) $(LDFLAGS) $(TARGETARCH) -o $(NAVP_XPDLL) $(NVP_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(WMM_OBJECTS) $(XP_LD_LIBS) $(LDLIBS)
+	$(CC) $(ND_INCLUDE) $(XP_INCLUDE) $(XPCPPFLAGS) $(CPPFLAGS) $(NVPCPPFLAGS) $(NDT_VERSION) $(CFLAGS) $(NVP_LDFLAGS) $(LDFLAGS) $(TARGETARCH) -o $(NAVP_XPDLL) $(NVP_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(WMM_OBJECTS) $(XP_LD_LIBS) $(LDLIBS)
 
 nvpobj: $(NVP_SOURCES) $(NVP_HEADERS)
-	$(CC) $(ND_INCLUDE) $(XP_INCLUDE) $(XPCPPFLAGS) $(CPPFLAGS) $(NVPCPPFLAGS) $(CFLAGS) $(TARGETARCH) -c $(NVP_SOURCES)
+	$(CC) $(ND_INCLUDE) $(XP_INCLUDE) $(XPCPPFLAGS) $(CPPFLAGS) $(NVPCPPFLAGS) $(NDT_VERSION) $(CFLAGS) $(TARGETARCH) -c $(NVP_SOURCES)
 
 navdconv: ndcobj libobj comobj compat wmmobj
-	$(CC) $(ND_INCLUDE) $(NDCCPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(TARGETARCH) -o $(NDCONV_EXE) $(NDC_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(WMM_OBJECTS) $(LDLIBS)
+	$(CC) $(ND_INCLUDE) $(NDCCPPFLAGS) $(CPPFLAGS) $(NDC_VERSION) $(CFLAGS) $(LDFLAGS) $(TARGETARCH) -o $(NDCONV_EXE) $(NDC_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(WMM_OBJECTS) $(LDLIBS)
 
 ndcobj: $(NDC_SOURCES)
 	$(CC) $(ND_INCLUDE) $(NDCCPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(TARGETARCH) -c $(NDC_SOURCES)
@@ -68,8 +70,8 @@ mingw:
 .PHONY: version
 version:
 ifneq ($(strip $(GIT_VERSION)),)
-NDCCPPFLAGS += -DNDT_VERSION="\"$(GIT_VERSION)\""
-NVPCPPFLAGS += -DNDT_VERSION="\"$(GIT_VERSION)\""
+NDC_VERSION += -DNDT_VERSION="\"$(GIT_VERSION)\""
+NDT_VERSION += -DNDT_VERSION="\"$(GIT_VERSION)\""
 endif
 
 .PHONY: clean
