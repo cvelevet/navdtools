@@ -197,12 +197,14 @@ int ndt_flightplan_set_departure(ndt_flightplan *flp, const char *icao, const ch
 
     if (!(apt = ndt_navdata_get_airport(flp->ndb, icao)))
     {
+        ndt_log("YFMS DEBUG: 1\n");//fixme
         err = EINVAL;
         goto end;
     }
 
     if (!ndt_navdata_init_airport(flp->ndb, apt))
     {
+        ndt_log("YFMS DEBUG: 2\n");//fixme
         err = EINVAL;
         goto end;
     }
@@ -220,6 +222,7 @@ int ndt_flightplan_set_departure(ndt_flightplan *flp, const char *icao, const ch
 
         if (!rwy)
         {
+            ndt_log("YFMS DEBUG: 3\n");//fixme
             err = EINVAL;
             goto end;
         }
