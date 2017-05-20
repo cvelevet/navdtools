@@ -2756,6 +2756,41 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
             break;
 
+        case NVP_ACF_A330_RW:
+            if ((d_ref = XPLMFindDataRef("AirbusFBW/DUBrightness")))
+            {
+                float DUBrightness[1] = { 0.8f, };
+                for  (int i = 0; i < 8; i++)
+                {
+                    XPLMSetDatavf(d_ref, &DUBrightness[0], i, 1);
+                }
+            }
+            _DO(1, XPLMSetDatai, 1, "AirbusFBW/ALT100_1000");                       // FCU alt. sel. increm.  (1000ft)
+            _DO(1, XPLMSetDatai, 3, "AirbusFBW/NDmodeCapt");                        // ND m. sel. (cap. side) (arc)
+            _DO(1, XPLMSetDatai, 2, "AirbusFBW/NDmodeFO");                          // ND m. sel. (f/o. side) (nav)
+            _DO(1, XPLMSetDatai, 1, "AirbusFBW/NDrangeCapt");                       // ND r. sel. (cap. side) ( 20)
+            _DO(1, XPLMSetDatai, 4, "AirbusFBW/NDrangeFO");                         // ND r. sel. (f/o. side) (160)
+            _DO(1, XPLMSetDataf,.8f,"A330/LIGHTS/INTEG_LT");                        // ins. label light
+            _DO(1, XPLMSetDatai, 1, "A330/lighting/DOME_LIGHT");                    // ambi. dome light
+            _DO(1, XPLMSetDatai, 1, "A330/OVERHEAD/EMEREXITLT_SWITCH");             // arm em. exit lts
+            _DO(1, XPLMSetDatai, 1, "A330/ELECTRICAL/APU_BAT");                     // self-explanatory
+            _DO(1, XPLMSetDatai, 1, "A330/ELECTRICAL/APU_GEN");                     // self-explanatory
+            _DO(1, XPLMSetDatai, 1, "A330/ELECTRICAL/BUS_TIE");                     // self-explanatory
+            _DO(1, XPLMSetDatai, 1, "A330/ELECTRICAL/GEN_1");                       // self-explanatory
+            _DO(1, XPLMSetDatai, 1, "A330/ELECTRICAL/GEN_2");                       // self-explanatory
+            _DO(1, XPLMSetDatai, 1, "A330/HYD/YELLOW_ELEC_2");                      // hydraulics AUTO
+            _DO(1, XPLMSetDatai, 1, "A330/HYD/YELLOW_ENG_2");                       // hydraulics AUTO
+            _DO(1, XPLMSetDatai, 1, "A330/HYD/GREEN_ELEC_1");                       // hydraulics AUTO
+            _DO(1, XPLMSetDatai, 1, "A330/HYD/GREEN_ENG_1");                        // hydraulics AUTO
+            _DO(1, XPLMSetDatai, 1, "A330/HYD/GREEN_ENG_2");                        // hydraulics AUTO
+            _DO(1, XPLMSetDatai, 1, "A330/HYD/BLUE_ELEC_1");                        // hydraulics AUTO
+            _DO(1, XPLMSetDatai, 1, "A330/HYD/BLUE_ENG_1");                         // hydraulics AUTO
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");  // VOR1 on ND2 off
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");  // VOR2 on ND2 off
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");    // VOR1 on ND1 off
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
+            break;
+
         case NVP_ACF_A350_FF:
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");  // VOR1 on ND2 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");  // VOR2 on ND2 off
