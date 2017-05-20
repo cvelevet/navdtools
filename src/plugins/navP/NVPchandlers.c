@@ -92,6 +92,21 @@ typedef struct
 
 typedef struct
 {
+    XPLMPluginID pe;
+    XPLMDataRef pe1;
+    XPLMDataRef atc;
+    XPLMDataRef cvr;
+    XPLMDataRef evr;
+    XPLMDataRef fvr;
+    XPLMDataRef gvr;
+    XPLMDataRef pvr;
+    XPLMDataRef wvr;
+    XPLMDataRef wxr;
+    XPLMDataRef tmp;
+} refcon_volumes;
+
+typedef struct
+{
     int initialized;
     int first_fcall;
     int kill_daniel;
@@ -166,6 +181,7 @@ typedef struct
      *
      * RMP3 should be the backup radio panel located overhead the pilots.
      */
+    refcon_volumes volumes;
 
     struct
     {
@@ -548,6 +564,18 @@ void* nvp_chandlers_init(void)
     if (!ctx->callouts.ref_park_brake ||
         !ctx->callouts.ref_speedbrake ||
         !ctx->callouts.ref_flap_lever)
+    {
+        goto fail;
+    }
+
+    /* Volume-related datarefs */
+    if ((ctx->volumes.wxr = XPLMFindDataRef("sim/operation/sound/weather_volume_ratio")) == NULL ||
+        (ctx->volumes.wvr = XPLMFindDataRef("sim/operation/sound/warning_volume_ratio")) == NULL ||
+        (ctx->volumes.evr = XPLMFindDataRef( "sim/operation/sound/engine_volume_ratio")) == NULL ||
+        (ctx->volumes.gvr = XPLMFindDataRef( "sim/operation/sound/ground_volume_ratio")) == NULL ||
+        (ctx->volumes.atc = XPLMFindDataRef(  "sim/operation/sound/radio_volume_ratio")) == NULL ||
+        (ctx->volumes.pvr = XPLMFindDataRef(   "sim/operation/sound/prop_volume_ratio")) == NULL ||
+        (ctx->volumes.fvr = XPLMFindDataRef(    "sim/operation/sound/fan_volume_ratio")) == NULL)
     {
         goto fail;
     }
@@ -1381,6 +1409,12 @@ int nvp_chandlers_update(void *inContext)
     ctx->mcdu.rc.garmin_gtn = -1;
     ctx->mcdu.rc.i_disabled = -1;
 
+    /* detect presence of PilotEdge */
+    if (XPLM_NO_PLUGIN_ID != (ctx->volumes.pe = XPLMFindPluginBySignature("com.pilotedge.plugin.xplane")))
+    {
+        ctx->volumes.pe1 = XPLMFindDataRef("pilotedge/status/connected");
+    }
+
     /* all good */
     ndt_log("navP [info]: nvp_chandlers_update OK\n"); XPLMSpeakString("nav P configured"); return 0;
 }
@@ -1466,34 +1500,37 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
  */
 static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    chandler_context *ctx = inRefcon;
-    refcon_braking   *rcb = &ctx->bking.rc_brk;
-    int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
-//  if (ctx->kill_daniel)
-//  {
-//      // TODO: implement
-//  }
-    if (ctx->atyp & NVP_ACF_MASK_JDN)
-    {
-        speak = 0;
-    }
-    if (ctx->atyp & NVP_ACF_MASK_QPC)
-    {
-        if (ctx->acfspec.qpac.ready == 0)
-        {
-            aibus_fbw_init(&ctx->acfspec.qpac);
-        }
-        if (ctx->acfspec.qpac.ready && inPhase == xplm_CommandEnd)
-        {
-            // the FlightFactor-QPAC A350 has its parking brake dataref inverted
-            XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->atyp != NVP_ACF_A350_FF));
-            XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, (ctx->atyp != NVP_ACF_A350_FF));
-            if (speak > 0) XPLMSpeakString("park brake set");
-        }
-        return 0;
-    }
     if (inPhase == xplm_CommandEnd)
     {
+        chandler_context *ctx = inRefcon;
+        refcon_braking   *rcb = &ctx->bking.rc_brk;
+        int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
+        if (ctx->atyp & NVP_ACF_MASK_JDN)
+        {
+            speak = 0;
+        }
+        if (ctx->atyp & NVP_ACF_MASK_QPC)
+        {
+            if (ctx->acfspec.qpac.ready == 0)
+            {
+                aibus_fbw_init(&ctx->acfspec.qpac);
+            }
+            if (ctx->acfspec.qpac.ready)
+            {
+                // the FlightFactor-QPAC A350 has its parking brake dataref inverted
+                XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->atyp != NVP_ACF_A350_FF));
+                XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, (ctx->atyp != NVP_ACF_A350_FF));
+                if (speak > 0) XPLMSpeakString("park brake set");
+            }
+            return 0;
+        }
+        if (ctx->volumes.pe != XPLM_NO_PLUGIN_ID && ctx->volumes.pe1)
+        {
+            if (XPLMGetDatai(ctx->volumes.pe1) == 1)
+            {
+                XPLMSetDataf(ctx->volumes.atc, 1.0f);
+            }
+        }
         XPLMSetDataf(rcb->p_b_rat, 1.0f);
         if (speak > 0) XPLMSpeakString("park brake set");
     }
@@ -1502,30 +1539,37 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    chandler_context *ctx = inRefcon;
-    refcon_braking   *rcb = &ctx->bking.rc_brk;
-    int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
-    if (ctx->atyp & NVP_ACF_MASK_JDN)
-    {
-        speak = 0;
-    }
-    if (ctx->atyp & NVP_ACF_MASK_QPC)
-    {
-        if (ctx->acfspec.qpac.ready == 0)
-        {
-            aibus_fbw_init(&ctx->acfspec.qpac);
-        }
-        if (ctx->acfspec.qpac.ready && inPhase == xplm_CommandEnd)
-        {
-            // the FlightFactor-QPAC A350 has its parking brake dataref inverted
-            XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->atyp == NVP_ACF_A350_FF));
-            XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, (ctx->atyp == NVP_ACF_A350_FF));
-            if (speak > 0) XPLMSpeakString("park brake released");
-        }
-        return 0;
-    }
     if (inPhase == xplm_CommandEnd)
     {
+        chandler_context *ctx = inRefcon;
+        refcon_braking   *rcb = &ctx->bking.rc_brk;
+        int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
+        if (ctx->atyp & NVP_ACF_MASK_JDN)
+        {
+            speak = 0;
+        }
+        if (ctx->atyp & NVP_ACF_MASK_QPC)
+        {
+            if (ctx->acfspec.qpac.ready == 0)
+            {
+                aibus_fbw_init(&ctx->acfspec.qpac);
+            }
+            if (ctx->acfspec.qpac.ready)
+            {
+                // the FlightFactor-QPAC A350 has its parking brake dataref inverted
+                XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->atyp == NVP_ACF_A350_FF));
+                XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, (ctx->atyp == NVP_ACF_A350_FF));
+                if (speak > 0) XPLMSpeakString("park brake released");
+            }
+            return 0;
+        }
+        if (ctx->volumes.pe != XPLM_NO_PLUGIN_ID && ctx->volumes.pe1)
+        {
+            if (XPLMGetDatai(ctx->volumes.pe1) == 1)
+            {
+                XPLMSetDataf(ctx->volumes.atc, 1.0f);
+            }
+        }
         XPLMSetDataf(rcb->p_b_rat, 0.0f);
         if (speak > 0) XPLMSpeakString("park brake released");
     }
@@ -3136,7 +3180,8 @@ static int first_fcall_do(chandler_context *ctx)
             break;
     }
 
-#if 1
+#define TIM_ONLY
+#ifdef  TIM_ONLY
     /*
      * Kill X-Plane ATC (not needed, may/may not cause crashes in some places).
      * Do it as late as possible (avoid interfering w/init. of X-Plane itself).
@@ -3145,112 +3190,49 @@ static int first_fcall_do(chandler_context *ctx)
      * This is all very much guesswork, really :-(
      */
     _DO(1, XPLMSetDataf, 1.0f, "sim/private/controls/perf/kill_atc");
-#endif
 
     /*
      * Sound and related datarefs.
      *
      * NOTE: NVPmenu.c, menu_handler() has code covering the same functionality,
      * we must always remember to update said code too when making changes here
+     *
+     * Default to 25% volume for all planes.
      */
-    XPLMDataRef wxr, wvr, evr, gvr, rvr, pvr, fvr, cvr;
-    if ((wxr = XPLMFindDataRef("sim/operation/sound/weather_volume_ratio")) &&
-        (wvr = XPLMFindDataRef("sim/operation/sound/warning_volume_ratio")) &&
-        (evr = XPLMFindDataRef( "sim/operation/sound/engine_volume_ratio")) &&
-        (gvr = XPLMFindDataRef( "sim/operation/sound/ground_volume_ratio")) &&
-        (rvr = XPLMFindDataRef(  "sim/operation/sound/radio_volume_ratio")) &&
-        (pvr = XPLMFindDataRef(   "sim/operation/sound/prop_volume_ratio")) &&
-        (fvr = XPLMFindDataRef(    "sim/operation/sound/fan_volume_ratio")))
+    if (ctx->atyp == NVP_ACF_B737_XG)
     {
-#define TIM_ONLY
-#ifdef  TIM_ONLY
-        /*
-         * Default to 25% volume for all planes.
-         */
-        if (ctx->atyp == NVP_ACF_B737_XG)
-        {
-            XPLMSetDataf(rvr, 0.50f);
-        }
-        else if ((cvr = XPLMFindDataRef("aerobask/eclipse/custom_volume_ratio")))
-        {
-            XPLMSetDataf(evr, 0.10f); // engines are a bit loud in this plane :(
-            XPLMSetDataf(cvr, 0.25f); // all other custom sounds (excl. engines)
-            XPLMSetDataf(wxr, 0.25f);
-            XPLMSetDataf(wvr, 0.25f);
-            XPLMSetDataf(gvr, 0.25f);
-            XPLMSetDataf(pvr, 0.25f);
-            XPLMSetDataf(fvr, 0.25f);
-            XPLMSetDataf(rvr, 0.50f);
-        }
-        else
-        {
-            XPLMSetDataf(wxr, 0.25f);
-            XPLMSetDataf(wvr, 0.25f);
-            XPLMSetDataf(evr, 0.25f);
-            XPLMSetDataf(gvr, 0.25f);
-            XPLMSetDataf(pvr, 0.25f);
-            XPLMSetDataf(fvr, 0.25f);
-            XPLMSetDataf(rvr, 0.50f);
-        }
-        /*
-         * Slight frame rate bump, but it makes clouds a bit more transparent :|
-         */
-        if (ctx->menu_context)
-        {
-            nvp_menu_tachy(ctx->menu_context, xplm_Menu_Checked);
-        }
-#else
-        /*
-         * Some addons override X-Plane volume ratios, going as far as
-         * muting the radios' volume in cold & dark (e.g. EADT's x737).
-         */
-        if (ctx->atyp != NVP_ACF_B737_EA && ctx->atyp != NVP_ACF_B737_XG)
-        {
-            float new_v_ratio;
-            if (ctx->old_atyp == NVP_ACF_B737_XG)
-            {
-                /*
-                 * The IXEG volumes tend to be calibrated quite
-                 * differently compared to other X-Plane addons.
-                 *
-                 * If the warnings' volume is greater than 75%, we can assume
-                 * that cockpit volume is at or near 100% and that the master
-                 * volume is greater than 25%: we may then assume that "full"
-                 * volume was the intent; otherwise, we use the engines' volume
-                 * as our baseline (100% IXEG master volume actually translates
-                 * to 80% engine volume set via X-Plane's corresponding slider).
-                 */
-                if ((new_v_ratio = XPLMGetDataf(wvr)) > .75f)
-                {
-                    (new_v_ratio = 1.0f);
-                }
-                else if ((new_v_ratio = XPLMGetDataf(evr)) > .75f)
-                {
-                    (new_v_ratio = 1.0f);
-                }
-                else
-                {
-                    (new_v_ratio /= .8f);
-                }
-                XPLMSetDataf(wxr, new_v_ratio);
-                XPLMSetDataf(wvr, new_v_ratio);
-                XPLMSetDataf(evr, new_v_ratio);
-                XPLMSetDataf(gvr, new_v_ratio);
-                XPLMSetDataf(pvr, new_v_ratio);
-                XPLMSetDataf(rvr, new_v_ratio);
-                XPLMSetDataf(fvr, new_v_ratio);
-            }
-            else if (XPLMGetDataf(rvr) < (new_v_ratio = XPLMGetDataf(wvr)))
-            {
-                /*
-                 * Always make sure the radio volume is at least
-                 * equal to that of cockpit warnings and callouts.
-                 */
-                XPLMSetDataf(rvr, new_v_ratio);
-            }
-        }
-#endif
+        XPLMSetDataf(ctx->volumes.atc, 0.50f);
     }
+    else if ((ctx->volumes.tmp = XPLMFindDataRef("aerobask/eclipse/custom_volume_ratio")))
+    {
+        XPLMSetDataf(ctx->volumes.evr, 0.10f); // engines are a bit loud in this plane :(
+        XPLMSetDataf(ctx->volumes.tmp, 0.25f); // all other custom sounds (excl. engines)
+        XPLMSetDataf(ctx->volumes.wxr, 0.25f);
+        XPLMSetDataf(ctx->volumes.wvr, 0.25f);
+        XPLMSetDataf(ctx->volumes.gvr, 0.25f);
+        XPLMSetDataf(ctx->volumes.pvr, 0.25f);
+        XPLMSetDataf(ctx->volumes.fvr, 0.25f);
+        XPLMSetDataf(ctx->volumes.atc, 0.50f);
+    }
+    else
+    {
+        XPLMSetDataf(ctx->volumes.wxr, 0.25f);
+        XPLMSetDataf(ctx->volumes.wvr, 0.25f);
+        XPLMSetDataf(ctx->volumes.evr, 0.25f);
+        XPLMSetDataf(ctx->volumes.gvr, 0.25f);
+        XPLMSetDataf(ctx->volumes.pvr, 0.25f);
+        XPLMSetDataf(ctx->volumes.fvr, 0.25f);
+        XPLMSetDataf(ctx->volumes.atc, 0.50f);
+    }
+    /*
+     * Slight frame rate bump, but it makes clouds a bit more transparent :|
+     */
+    if (ctx->menu_context)
+    {
+        nvp_menu_tachy(ctx->menu_context, xplm_Menu_Checked);
+    }
+#endif
+
     return (ctx->first_fcall = 0);
 }
 
