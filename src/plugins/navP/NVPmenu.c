@@ -1166,48 +1166,48 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
          * functionality, don't forget to update it when making changes here
          */
         XPLMDataRef     ea50;
-        float   volume_ratio;
+        float vradio, volume;
         switch (itx->mivalue)
         {
             case MENUITEM_VOLUME_PRST0:
-                volume_ratio = 0.00f;
+                volume = 0.00f; vradio = sqrtf(volume);
                 break;
             case MENUITEM_VOLUME_PRST1:
-                volume_ratio = 0.25f;
+                volume = 0.25f; vradio = sqrtf(volume);
                 break;
             case MENUITEM_VOLUME_PRST2:
-                volume_ratio = 0.50f;
+                volume = 0.50f; vradio = sqrtf(volume);
                 break;
             case MENUITEM_VOLUME_PRST3:
-                volume_ratio = 0.75f;
+                volume = 0.75f; vradio = sqrtf(volume);
                 break;
             case MENUITEM_VOLUME_PRST4:
-                volume_ratio = 1.00f;
+                volume = 1.00f; vradio = sqrtf(volume);
                 break;
             default:
                 return;
         }
         if ((ea50 = XPLMFindDataRef("aerobask/eclipse/custom_volume_ratio")))
         {
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume_ratio * .4f);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume_ratio);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume_ratio);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume_ratio);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume_ratio);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_coo, volume_ratio);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume_ratio);
-            XPLMSetDataf(                             ea50, volume_ratio);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume * .4f);
+            XPLMSetDataf(                             ea50, volume);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_coo, vradio);
         }
         else
         {
             // TODO: different ratios for e.g. radios, props, engines etc.
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume_ratio);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume_ratio);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume_ratio);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume_ratio);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume_ratio);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_coo, volume_ratio);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume_ratio);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_coo, vradio);
         }
         XPLMSpeakString("Volume set");
         return;

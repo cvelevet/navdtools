@@ -3261,7 +3261,7 @@ static int first_fcall_do(chandler_context *ctx)
          */
         if (ctx->atyp == NVP_ACF_B737_XG)
         {
-            XPLMSetDataf(rvr, 0.25f);
+            XPLMSetDataf(rvr, 0.50f);
         }
         else if ((cvr = XPLMFindDataRef("aerobask/eclipse/custom_volume_ratio")))
         {
@@ -3271,8 +3271,8 @@ static int first_fcall_do(chandler_context *ctx)
             XPLMSetDataf(wvr, 0.25f);
             XPLMSetDataf(gvr, 0.25f);
             XPLMSetDataf(pvr, 0.25f);
-            XPLMSetDataf(rvr, 0.25f);
             XPLMSetDataf(fvr, 0.25f);
+            XPLMSetDataf(rvr, 0.50f);
         }
         else
         {
@@ -3281,8 +3281,8 @@ static int first_fcall_do(chandler_context *ctx)
             XPLMSetDataf(evr, 0.25f);
             XPLMSetDataf(gvr, 0.25f);
             XPLMSetDataf(pvr, 0.25f);
-            XPLMSetDataf(rvr, 0.25f);
             XPLMSetDataf(fvr, 0.25f);
+            XPLMSetDataf(rvr, 0.50f);
         }
         /*
          * Slight frame rate bump, but it makes clouds a bit more transparent :|
