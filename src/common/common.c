@@ -94,13 +94,22 @@ char* ndt_file_slurp(const char *name, int *p)
         goto end;
     }
 
-    flen = ftell(fdes);
-
-    if (flen < 0)
+    if ((flen = ftell(fdes)) < 0)
     {
         ndt_log("YFMS DEBUG: 2 B 6 C (%d)\n", errno);//fixme
         ret = errno;
         goto end;
+    }
+
+    if (feof(fdes))
+    {
+        ndt_log("YFMS DEBUG: 2 B 6 X1 (%d)\n", errno);//fixme
+        clearerr(fdes);
+    }
+    if (ferror(fdes))
+    {
+        ndt_log("YFMS DEBUG: 2 B 6 X2 (%d)\n", errno);//fixme
+        clearerr(fdes);
     }
 
     if (fseek(fdes, 0L, SEEK_SET) < 0)
