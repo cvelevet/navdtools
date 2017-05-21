@@ -82,12 +82,14 @@ char* ndt_file_slurp(const char *name, int *p)
 
     if (!fdes)
     {
+        ndt_log("YFMS DEBUG: 2 B 6 A (%d)\n", errno);//fixme
         ret = errno;
         goto end;
     }
 
     if (fseek(fdes, 0L, SEEK_END) < 0)
     {
+        ndt_log("YFMS DEBUG: 2 B 6 B (%d)\n", errno);//fixme
         ret = errno;
         goto end;
     }
@@ -96,12 +98,14 @@ char* ndt_file_slurp(const char *name, int *p)
 
     if (flen < 0)
     {
+        ndt_log("YFMS DEBUG: 2 B 6 C (%d)\n", errno);//fixme
         ret = errno;
         goto end;
     }
 
     if (fseek(fdes, 0L, SEEK_SET) < 0)
     {
+        ndt_log("YFMS DEBUG: 2 B 6 D (%d)\n", errno);//fixme
         ret = errno;
         goto end;
     }
@@ -110,21 +114,25 @@ char* ndt_file_slurp(const char *name, int *p)
 
     if (!file)
     {
+        ndt_log("YFMS DEBUG: 2 B 6 E (%d)\n", ENOMEM);//fixme
         ret = ENOMEM;
         goto end;
     }
 
     if (fread(file, 1, flen, fdes) != flen)
     {
+        ndt_log("YFMS DEBUG: 2 B 6 F (%d)\n", EIO);//fixme
         ret = EIO;
         goto end;
     }
 
-    if (file[flen - 1] != '\n')
+    if (file[flen-1] != '\n')
     {
-        file[flen++]    = '\n';
+        file[flen++]  = '\n';
     }
-    file[flen] = '\0';
+    file[flen] = '\0'; ret = 0; // success
+
+    ndt_log("YFMS DEBUG: 2 B 6 G (%d)\n", ret);//fixme
 
 end:
     if (ret)
@@ -134,6 +142,7 @@ end:
     }
     if (p) *p = ret;
     fclose(fdes);
+    ndt_log("YFMS DEBUG: 2 B 6 H (%d)\n", p ? *p : -123);//fixme
     return file;
 }
 
