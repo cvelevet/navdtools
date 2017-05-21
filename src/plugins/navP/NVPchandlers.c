@@ -1637,10 +1637,18 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 case xplm_CommandBegin:
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, XPLMGetDatai(ctx->acfspec.qpac.pkb_ref));
-                    XPLMCommandBegin(ctx->acfspec.qpac.h_b_max);
+                    if (ctx->acfspec.qpac.h_b_max)
+                    {
+                        XPLMCommandBegin(ctx->acfspec.qpac.h_b_max);
+                        break;
+                    }
+                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1); // use parking brake directly
                     break;
                 case xplm_CommandEnd:
-                    XPLMCommandEnd(ctx->acfspec.qpac.h_b_max);
+                    if (ctx->acfspec.qpac.h_b_max)
+                    {
+                        XPLMCommandEnd(ctx->acfspec.qpac.h_b_max);
+                    }
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(ctx->acfspec.qpac.pkb_tmp));
                     break;
                 default:
@@ -1680,10 +1688,18 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 case xplm_CommandBegin:
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, XPLMGetDatai(ctx->acfspec.qpac.pkb_ref));
-                    XPLMCommandBegin(ctx->acfspec.qpac.h_b_reg);
+                    if (ctx->acfspec.qpac.h_b_reg)
+                    {
+                        XPLMCommandBegin(ctx->acfspec.qpac.h_b_reg);
+                        break;
+                    }
+                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1); // use parking brake directly
                     break;
                 case xplm_CommandEnd:
-                    XPLMCommandEnd(ctx->acfspec.qpac.h_b_reg);
+                    if (ctx->acfspec.qpac.h_b_reg)
+                    {
+                        XPLMCommandEnd(ctx->acfspec.qpac.h_b_reg);
+                    }
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(ctx->acfspec.qpac.pkb_tmp));
                     break;
                 default:
@@ -3383,18 +3399,34 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
         {
             if ((fbw->pkb_ref = XPLMFindDataRef("1-sim/parckBrake")))
             {
+                /*
+                 * We're good to go!
+                 */
                 (fbw->ready = 1); return 0;
             }
         }
         if ((fbw->h_b_max = XPLMFindCommand("sim/flight_controls/brakes_max"    )) &&
             (fbw->h_b_reg = XPLMFindCommand("sim/flight_controls/brakes_regular")))
         {
-            if ((fbw->pkb_ref = XPLMFindDataRef("AirbusFBW/ParkBrake")))
-            {
-                (fbw->ready = 1); return 0;
-            }
             if ((fbw->pkb_ref = XPLMFindDataRef("com/petersaircraft/airbus/ParkBrake")))
             {
+                /*
+                 * Peter's A380 seems less twitchy than the other QPACs…
+                 */
+                (fbw->ready = 1); return 0;
+            }
+            if ((fbw->pkb_ref = XPLMFindDataRef("AirbusFBW/ParkBrake")))
+            {
+                /*
+                 * The QPAC A320 and RWDesigns's braking is so twitchy, we
+                 * simply bypass braking commands altogether; instead use
+                 * the parking brake toggle directly…
+                 */
+                (fbw->h_b_max = fbw->h_b_reg = NULL);
+
+                /*
+                 * We're (finally) good to go!
+                 */
                 (fbw->ready = 1); return 0;
             }
         }
