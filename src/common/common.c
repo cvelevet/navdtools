@@ -97,8 +97,8 @@ char* ndt_file_slurp(const char *name, int *p)
     if ((flen = ftell(fdes)) < 0)
     {
         ndt_log("YFMS DEBUG: 2 B 6 C (%d)\n", errno);//fixme
-        ret = errno;
-        goto end;
+//        ret = errno;//fixme
+//        goto end;//fixme
     }
 
     if (feof(fdes))
