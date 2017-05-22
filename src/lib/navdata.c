@@ -56,7 +56,7 @@ ndt_navdatabase* ndt_navdatabase_init(const char *ndr, ndt_navdataformat fmt)
     }
 
     ndb->fmt       = fmt;
-    ndb->root      = ndr;
+    ndb->root      = ndr;//fixme FML
     ndb->airports  = ndt_list_init();
     ndb->airways   = ndt_list_init();
     ndb->waypoints = ndt_list_init();
