@@ -878,7 +878,7 @@ ndt_airport* ndt_ndb_xpgns_navdata_init_airport(ndt_navdatabase *ndb, ndt_airpor
         ndt_log("YFMS DEBUG: 2 B 3\n");//fixme
         goto end; // airport ID must be 1-4 characters
     }
-    if (ndt_file_getpath(ndb->root,suffix, &path, &pathlen))
+    if (ndt_file_getpath(ndb->root, suffix, &path, &pathlen))
     {
         ndt_log("YFMS DEBUG: 2 B 4\n");//fixme
         goto end;
@@ -890,12 +890,13 @@ ndt_airport* ndt_ndb_xpgns_navdata_init_airport(ndt_navdatabase *ndb, ndt_airpor
     {
         if (err == ENOENT)
         {
-            ndt_log("YFMS DEBUG: 2 B 5\n");//fixme
+            ndt_log("YFMS DEBUG: 2 B 5 (\"%s\" %d)\n", path, pathlen);//fixme
             err = 0; ret = apt; goto end; // doesn't exist: non-issue
         }
-        ndt_log("YFMS DEBUG: 2 B 6\n");//fixme
+        ndt_log("YFMS DEBUG: 2 B 6 (\"%s\" %d)\n", path, pathlen);//fixme
         goto end;
     }
+    ndt_log("YFMS DEBUG: 2 B i (\"%s\" %d)\n", path, pathlen);//fixme
 
     // and parse it
     if ((err = parse_procedures(procedures, ndb, apt)))

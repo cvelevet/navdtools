@@ -78,11 +78,12 @@ char* ndt_file_slurp(const char *name, int *p)
     long  flen;
     int   ret  = 0;
     char *file = NULL;
-    FILE *fdes = fopen(name ? name : "", "rb");
+    const char *fname = name ? name : "";
+    FILE *fdes = fopen(fname, "rb");
 
     if (!fdes)
     {
-        ndt_log("YFMS DEBUG: 2 B 6 A (%d)\n", errno);//fixme
+        ndt_log("YFMS DEBUG: 2 B 6 A (%d) (\"%s\")\n", errno, fname);//fixme
         ret = errno;
         goto end;
     }
