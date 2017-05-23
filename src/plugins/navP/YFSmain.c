@@ -1124,13 +1124,15 @@ int yfs_main_close(yfms_context **_yfms)
     }
 
     /* navigation */
-    for (int i = 0; i < 20; i++)
+    for (int i = 20; i >= 1; i--)
     {
-        if (yfms->data.fpln.usrwpt[i])
+        if (yfms->data.fpln.usrwpt[i-1])
         {
-            ndt_navdata_rem_waypoint(yfms->ndt.ndb, yfms->data.fpln.usrwpt[i]);
-            ndt_waypoint_close(&yfms->data.fpln.usrwpt[i]);
+            ndt_navdata_rem_waypoint(yfms->ndt.ndb,
+                                     yfms->data.fpln.usrwpt[i-1]);
+            ndt_waypoint_close     (&yfms->data.fpln.usrwpt[i-1]);
         }
+        yfms->data.fpln.usridx = i - 1;
     }
     if (yfms->ndt.ndb)
     {
