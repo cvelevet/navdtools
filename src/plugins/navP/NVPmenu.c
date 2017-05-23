@@ -796,10 +796,10 @@ int nvp_menu_setup(void *_menu_context)
          * Thankfully the child widgets move with their parents :-)
          */
         /* Payload & fuel main window (root, container) */
+        int inBM = 0;
         int inLT = 0;
         int inTP = REFUEL_DIALG_DEFH - 1;
         int inRT = REFUEL_DIALG_DEFW - 1;
-        int inBM = 0;
         ctx->data.refuel_dialg.dialog_id = XPCreateWidget(inLT, inTP, inRT, inBM,
                                                           0, "Fuel & Payload", 1, NULL,
                                                           xpWidgetClass_MainWindow);
@@ -945,10 +945,10 @@ static void mainw_center(int out[4], int in_w, int in_h)
 {
     int scrn_w, scrn_h;
     XPLMGetScreenSize(&scrn_w, &scrn_h);
-    out[0] = (scrn_w - in_w) / 2; // inLeft
     out[3] = (scrn_h - in_h) / 2; // inBottom
-    out[2] = (out[0] + in_w) - 1; // inRight
+    out[0] = (scrn_w - in_w) / 2; // inLeft
     out[1] = (out[3] + in_h) - 1; // inTop
+    out[2] = (out[0] + in_w) - 1; // inRight
 }
 
 static void menu_rm_item(menu_context *ctx, int index)
