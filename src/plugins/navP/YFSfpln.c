@@ -64,7 +64,7 @@ static void xplm_fpln_sync(yfms_context *yfms)
             {
                 break;
             }
-            total_wpnts_count += ndt_list_count(leg->xpfms) + !!leg->dst + !!leg->xpovf;
+            total_wpnts_count += ndt_list_count(leg->xpfms) + !!leg->dst;
             last_leg_idx = i;
         }
     }
@@ -76,7 +76,7 @@ static void xplm_fpln_sync(yfms_context *yfms)
             {
                 break;
             }
-            total_wpnts_count += ndt_list_count(leg->xpfms) + !!leg->dst + !!leg->xpovf;
+            total_wpnts_count += ndt_list_count(leg->xpfms) + !!leg->dst;
             first_leg_idx = i - 1;
         }
     }
@@ -234,20 +234,6 @@ static void xplm_fpln_sync(yfms_context *yfms)
                     wpt->xplm.navRef = yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint;
                     wpt->xplm.refSet = 1;
                 }
-            }
-            if ((wpt = leg->xpovf))
-            {
-                if (yfms->data.fpln.xplm_last >= 99)
-                {
-                    break;
-                }
-                yfms->data.fpln.xplm_last++;
-                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud = (float)ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG);
-                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude = (float)ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG);
-                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].legindex = i == last_leg_idx ? i : i + 1; // not 100% part of this leg
-                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = XPLM_NAV_NOT_FOUND;
-                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].cst = leg->constraints;
-                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].altitude = 0;
             }
         }
     }
