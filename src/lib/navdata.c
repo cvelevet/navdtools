@@ -56,7 +56,7 @@ ndt_navdatabase* ndt_navdatabase_init(const char *ndr, ndt_navdataformat fmt)
     }
 
     ndb->fmt       = fmt;
-    ndb->root      = ndr;//fixme FML
+    ndb->root      = strdup(ndr); //fixme this should fix Flap_'s issue
     ndb->airports  = ndt_list_init();
     ndb->airways   = ndt_list_init();
     ndb->waypoints = ndt_list_init();
@@ -67,8 +67,7 @@ ndt_navdatabase* ndt_navdatabase_init(const char *ndr, ndt_navdataformat fmt)
         goto end;
     }
 
-    ndb->wmm = ndt_wmm_init();
-    if (ndb->wmm == NULL)
+    if ((ndb->wmm = ndt_wmm_init()) == NULL)
     {
         ndt_log("navdata: failed to open World Magnetic Model\n");
         err = -1;
@@ -159,6 +158,11 @@ void ndt_navdatabase_close(ndt_navdatabase **_ndb)
                 ndt_waypoint_close               (               &wpt);
             }
             ndt_list_close(&ndb->waypoints);
+        }
+
+        if (ndb->root)
+        {
+            free(ndb->root);
         }
 
         if (ndb->wmm)
