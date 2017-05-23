@@ -39,11 +39,11 @@ typedef enum ndt_navdataformat
 typedef struct ndt_navdatabase
 {
     ndt_info         info;      // identification information
-    ndt_list *   airports;      // list of all airports  in database (struct ndt_airport)
+    ndt_list    *airports;      // list of all airports  in database (struct ndt_airport)
     ndt_list     *airways;      // list of all airways   in database (struct ndt_airway)
     ndt_list   *waypoints;      // list of all waypoints in database (struct ndt_waypoint)
     ndt_navdataformat fmt;      // backend database's format
-    const char      *root;      // backend database's root folder
+    char            *root;      // backend database's root folder
 
     void *wmm;                  // World Magnetic Model library wrapper
 } ndt_navdatabase;
