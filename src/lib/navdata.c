@@ -56,7 +56,7 @@ ndt_navdatabase* ndt_navdatabase_init(const char *ndr, ndt_navdataformat fmt)
     }
 
     ndb->fmt       = fmt;
-    ndb->root      = strdup(ndr); //fixme this should fix Flap_'s issue
+    ndb->root      = strdup(ndr);
     ndb->airports  = ndt_list_init();
     ndb->airways   = ndt_list_init();
     ndb->waypoints = ndt_list_init();
@@ -222,19 +222,16 @@ ndt_airport* ndt_navdata_init_airport(ndt_navdatabase *ndb, ndt_airport *apt)
 {
     if (!ndb || !apt)
     {
-        ndt_log("YFMS DEBUG: 2 A\n");//fixme
         return NULL;
     }
 
     switch (ndb->fmt)
     {
         case NDT_NAVDFMT_XPGNS:
-            ndt_log("YFMS DEBUG: 2 B\n");//fixme
             return ndt_ndb_xpgns_navdata_init_airport(ndb, apt);
 
         case NDT_NAVDFMT_OTHER:
         default:
-            ndt_log("YFMS DEBUG: 2 C\n");//fixme
             return NULL;
     }
 }

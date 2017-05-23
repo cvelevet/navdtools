@@ -858,7 +858,6 @@ ndt_airport* ndt_ndb_xpgns_navdata_init_airport(ndt_navdatabase *ndb, ndt_airpor
 
     if (apt->allprocs)
     {
-        ndt_log("YFMS DEBUG: 2 B 1\n");//fixme
         // success (already parsed)
         ret = apt;
         goto  end;
@@ -867,7 +866,6 @@ ndt_airport* ndt_ndb_xpgns_navdata_init_airport(ndt_navdatabase *ndb, ndt_airpor
     apt->allprocs = ndt_list_init();
     if (!apt->allprocs)
     {
-        ndt_log("YFMS DEBUG: 2 B 2\n");//fixme
         goto end;
     }
 
@@ -875,12 +873,10 @@ ndt_airport* ndt_ndb_xpgns_navdata_init_airport(ndt_navdatabase *ndb, ndt_airpor
     err = snprintf(suffix, sizeof(suffix), "/Proc/%s.txt", apt->info.idnt);
     if (err <= 10 || err >= 15)
     {
-        ndt_log("YFMS DEBUG: 2 B 3\n");//fixme
         goto end; // airport ID must be 1-4 characters
     }
     if (ndt_file_getpath(ndb->root, suffix, &path, &pathlen))
     {
-        ndt_log("YFMS DEBUG: 2 B 4\n");//fixme
         goto end;
     }
 
@@ -890,32 +886,26 @@ ndt_airport* ndt_ndb_xpgns_navdata_init_airport(ndt_navdatabase *ndb, ndt_airpor
     {
         if (err == ENOENT)
         {
-            ndt_log("YFMS DEBUG: 2 B 5 (\"%s\" %d)\n", path, pathlen);//fixme
             err = 0; ret = apt; goto end; // doesn't exist: non-issue
         }
-        ndt_log("YFMS DEBUG: 2 B 6 (\"%s\" %d)\n", path, pathlen);//fixme
         goto end;
     }
-    ndt_log("YFMS DEBUG: 2 B i (\"%s\" %d)\n", path, pathlen);//fixme
 
     // and parse it
     if ((err = parse_procedures(procedures, ndb, apt)))
     {
-        ndt_log("YFMS DEBUG: 2 B 7\n");//fixme
         goto end;
     }
 
     // place them in various lists for correct access
     if ((err = place_procedures(ndb, apt)))
     {
-        ndt_log("YFMS DEBUG: 2 B 8\n");//fixme
         goto end;
     }
 
     // finally, do any desired cleanup, renaming etc.
     if ((err = rename_finalappr(apt)))
     {
-        ndt_log("YFMS DEBUG: 2 B 9\n");//fixme
         goto end;
     }
 
@@ -925,7 +915,6 @@ ndt_airport* ndt_ndb_xpgns_navdata_init_airport(ndt_navdatabase *ndb, ndt_airpor
 end:
     if (!ret && apt->allprocs)
     {
-        ndt_log("YFMS DEBUG: 2 B 10\n");//fixme
         ndt_list_close(&apt->allprocs);
     }
     if (err)
