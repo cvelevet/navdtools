@@ -94,6 +94,14 @@ typedef struct
 
 typedef struct
 {
+    float   nominal_roll_c;
+    XPLMDataRef acf_roll_c;
+    XPLMDataRef ground_spd;
+    XPLMFlightLoop_f flc_g;
+} refcon_ground;
+
+typedef struct
+{
     XPLMPluginID pe;
     XPLMDataRef pe1;
     XPLMDataRef atc;
@@ -184,6 +192,8 @@ typedef struct
      * RMP3 should be the backup radio panel located overhead the pilots.
      */
     refcon_volumes volumes;
+
+    refcon_ground ground;
 
     struct
     {
@@ -380,6 +390,12 @@ typedef struct
         chandler_callback cb;
         refcon_cdu_pop    rc;
     } mcdu;
+
+    struct
+    {
+        XPLMDataRef dataref[8];
+        XPLMCommandRef comm[8];
+    } debug;
 } chandler_context;
 
 /* Callout default values */
@@ -513,6 +529,7 @@ static int  chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, v
 static int  chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_flap_func(                                          float, float, int, void*);
+static float gnd_stab_hdlr(                                          float, float, int, void*);
 static int  first_fcall_do(                                             chandler_context *ctx);
 static int  aibus_fbw_init(                                               refcon_qpacfbw *fbw);
 static int  boing_733_init(                                               refcon_ixeg733 *i33);
@@ -774,6 +791,14 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->mcdu.cb, chandler_mcdup, 0, &ctx->mcdu.rc);
     }
 
+    /* Custom ground stabilization system (via flight loop callback) */
+    ctx->ground.acf_roll_c = XPLMFindDataRef("sim/aircraft/overflow/acf_roll_co");
+    ctx->ground.ground_spd = XPLMFindDataRef("sim/flightmodel/position/groundspeed");
+    if (!ctx->ground.acf_roll_c || !ctx->ground.ground_spd)
+    {
+        goto fail;
+    }
+
     /* all good */
     return ctx;
 
@@ -850,7 +875,8 @@ int nvp_chandlers_close(void **_chandler_context)
     }
 
     /* …and all callbacks */
-    XPLMUnregisterFlightLoopCallback(ctx->callouts.flc_flaps, NULL);
+    if (ctx->callouts.flc_flaps) XPLMUnregisterFlightLoopCallback(ctx->callouts.flc_flaps,   NULL);
+    if (ctx->ground.flc_g)       XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
 
     /* all good */
     free(ctx);
@@ -886,6 +912,14 @@ int nvp_chandlers_reset(void *inContext)
     _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com2_power");
     _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/nav1_power");
     _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/nav2_power");
+
+    /* Reset turnaround-enabled flight loop callback */
+    if (ctx->ground.flc_g)
+    {
+        XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
+        XPLMSetDataf(ctx->ground.acf_roll_c, ctx->ground.nominal_roll_c);
+        ctx->ground.flc_g = NULL;
+    }
 
     /* all good */
     ndt_log("navP [info]: nvp_chandlers_reset OK\n"); return (ctx->initialized = 0);
@@ -1412,6 +1446,9 @@ int nvp_chandlers_update(void *inContext)
     {
         ctx->volumes.pe1 = XPLMFindDataRef("pilotedge/status/connected");
     }
+
+    /* Custom ground stabilization system (via flight loop callback) */
+    ctx->ground.nominal_roll_c = XPLMGetDataf(ctx->ground.acf_roll_c);
 
     /* all good */
     ndt_log("navP [info]: nvp_chandlers_update OK\n"); XPLMSpeakString("nav P configured"); return 0;
@@ -2643,6 +2680,56 @@ static float flc_flap_func(float inElapsedSinceLastCall,
     return 0;
 }
 
+#define GS_KT_MIN             (2.500f)
+#define GS_KT_MID             (26.25f)
+#define GS_KT_MAX             (50.00f)
+#define ACF_ROLL_SET(_var, _gs, _base)                  \
+{                                                       \
+    {                                                   \
+        _var  = ((_gs - GS_KT_MIN) / 950.0f) + _base;   \
+    }                                                   \
+    if (_gs > GS_KT_MID)                                \
+    {                                                   \
+        _var -= ((_gs - GS_KT_MID) / 475.0f);           \
+    }                                                   \
+}
+static float gnd_stab_hdlr(float inElapsedSinceLastCall,
+                           float inElapsedTimeSinceLastFlightLoop,
+                           int   inCounter,
+                           void *inRefcon)
+{
+    if (inRefcon)
+    {
+        refcon_ground ground = *((refcon_ground*)inRefcon); float acf_roll_c;
+        float ground_spd_kts = XPLMGetDataf(ground.ground_spd) * 3.6f / 1.852f;
+        if   (ground_spd_kts > GS_KT_MIN && ground_spd_kts < GS_KT_MAX)
+        {
+            ACF_ROLL_SET(acf_roll_c, ground_spd_kts, ground.nominal_roll_c);
+            XPLMSetDataf(ground.acf_roll_c, acf_roll_c);
+            return -4; // 1/4 fmodels should be smooth
+        }
+#if 0
+        float gstest[] =
+        {
+            ((GS_KT_MIN)),
+            ((GS_KT_MID + GS_KT_MIN) / 2.0f),
+            ((GS_KT_MID)),
+            ((GS_KT_MID - GS_KT_MIN) * 1.5f) + GS_KT_MIN,
+            ((GS_KT_MAX)),
+        };
+        for (int i = 0; i < (sizeof(gstest) / sizeof(gstest[0])); i++)
+        {
+            ACF_ROLL_SET(acf_roll_c, gstest[i], ground.nominal_roll_c);
+            ndt_log("navP [debug]: acf_roll_co[%5.2fkts]: %.4f (nominal %.4f) (difference %.4f)\n",
+                    gstest[i], acf_roll_c, ground.nominal_roll_c, acf_roll_c - ground.nominal_roll_c);
+        }
+#endif
+        XPLMSetDataf(ground.acf_roll_c, ground.nominal_roll_c);
+        return 0.25f; // 1/4 sec. should be responsive enough
+    }
+    return 0;
+}
+
 static int first_fcall_do(chandler_context *ctx)
 {
     XPLMCommandRef cr;
@@ -3227,6 +3314,13 @@ static int first_fcall_do(chandler_context *ctx)
         default:
             break;
     }
+
+    /* Custom ground stabilization system (via flight loop callback) */
+    if (ctx->ground.flc_g)
+    {
+        XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
+    }
+    XPLMRegisterFlightLoopCallback((ctx->ground.flc_g = &gnd_stab_hdlr), 1, &ctx->ground);
 
 #define TIM_ONLY
 #ifdef  TIM_ONLY
