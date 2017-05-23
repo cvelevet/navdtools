@@ -82,7 +82,9 @@ typedef struct
 
 typedef struct
 {
-    int            addon_type;
+    const char          *auth;
+    const char          *desc;
+    int                  atyp;
     int            garmin_gtn;
     int            i_disabled;
     int            i_value[2];
@@ -113,8 +115,9 @@ typedef struct
 
     void *menu_context;
 
-    char icao[5]; // addon's ICAO aircraft type designator
-    int old_atyp;
+    char auth[41]; // addon's PlaneMaker author information
+    char desc[41]; // addon's PlaneMaker description string
+    char icao[ 5]; // addon's ICAO aircraft type designator
     enum
     {
         NVP_ACF_GENERIC = 0x0000000,
@@ -138,7 +141,6 @@ typedef struct
         NVP_ACF_SSJ1_RZ = 0x0100000,
         NVP_ACF_HA4T_RW = 0x0200000,
         NVP_ACF_MD80_RO = 0x0400000,
-        NVP_ACF_PC12_CA = 0x0800000,
     } atyp;
 #define NVP_ACF_MASK_FFR  0x0107010 // all FlightFactor addons
 #define NVP_ACF_MASK_FJS  0x0010140 // all of FlyJSim's addons
@@ -865,7 +867,7 @@ int nvp_chandlers_reset(void *inContext)
     }
 
     /* Reset the aircraft/addon type */
-    ctx->old_atyp = ctx->atyp; ctx->atyp = NVP_ACF_GENERIC;
+    ctx->atyp = NVP_ACF_GENERIC;
 
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
     ctx->acfspec.qpac.ready = 0;
@@ -1130,13 +1132,6 @@ int nvp_chandlers_update(void *inContext)
                 ctx->atyp = NVP_ACF_HA4T_RW;
                 break;
             }
-            if (!STRN_CASECMP_AUTO(xaircraft_auth_str, "Carenado") &&
-                !STRN_CASECMP_AUTO(xaircraft_desc_str, "Pilatus PC12"))
-            {
-                ndt_log("navP [info]: plane is Carenado Pilatus PC-12\n");
-                ctx->atyp = NVP_ACF_PC12_CA;
-                break;
-            }
             // fall through
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("gizmo.x-plugins.com"))
@@ -1256,6 +1251,8 @@ int nvp_chandlers_update(void *inContext)
             break;
     }
     snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", xaircraft_icao_code);
+    snprintf(ctx->auth, sizeof(ctx->auth), "%.40s", xaircraft_auth_str);
+    snprintf(ctx->desc, sizeof(ctx->desc), "%.40s", xaircraft_desc_str);
 
     /* plane-specific custom commands for automation disconnects, if any */
     switch (ctx->atyp)
@@ -1328,7 +1325,6 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case NVP_ACF_B737_FJ:
-        case NVP_ACF_PC12_CA:
         case NVP_ACF_GENERIC: // no A/T -> prop full fine
             ctx->athr.disc.cc.name = "navP/thrust/propfin";
             ctx->otto.conn.cc.name = "sim/autopilot/fdir_servos_up_one";
@@ -1405,7 +1401,9 @@ int nvp_chandlers_update(void *inContext)
             }
         }
     }
-    ctx->mcdu.rc.addon_type = ctx->atyp;
+    ctx->mcdu.rc.auth       = ctx->auth;
+    ctx->mcdu.rc.desc       = ctx->desc;
+    ctx->mcdu.rc.atyp       = ctx->atyp;
     ctx->mcdu.rc.garmin_gtn = -1;
     ctx->mcdu.rc.i_disabled = -1;
 
@@ -2402,7 +2400,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             XPLMPluginID sfmc = XPLMFindPluginBySignature("pikitanga.xplane10.SimpleFMC");
             XPLMPluginID x737 = XPLMFindPluginBySignature("FJCC.x737FMC");
             XPLMPluginID xfmc = XPLMFindPluginBySignature("x-fmc.com");
-            switch (cdu->addon_type)
+            switch (cdu->atyp)
             {
                 case NVP_ACF_A320_JD:
                 case NVP_ACF_A330_JD:
@@ -2471,15 +2469,14 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     // fall through
                 default:
                 {
-                    // reset all commands (default branch will always call all non-NULL commands)
-                    cdu->command[0] = cdu->command[1] = cdu->command[2] = cdu->command[3] = NULL;
-                    XPLMDataRef acf_descrip = XPLMFindDataRef("sim/aircraft/view/acf_descrip");
-                    XPLMDataRef acft_author = XPLMFindDataRef("sim/aircraft/view/acf_author");
-                    if (acf_descrip && acft_author)
+                    cdu->command[0] = // reset commands (default
+                    cdu->command[1] = // branch will always call
+                    cdu->command[2] = // every non-NULL command)
+                    cdu->command[3] = NULL; // :)
+                    if (*cdu->auth && *cdu->desc)
                     {
-                        char descrip_str[41]; dataref_read_string(acf_descrip, descrip_str, sizeof(descrip_str));
-                        char author_name[41]; dataref_read_string(acft_author, author_name, sizeof(author_name));
-                        if (!STRN_CASECMP_AUTO(author_name, "Aerobask") || !STRN_CASECMP_AUTO(author_name, "Stephane Buon"))
+                        if (!STRN_CASECMP_AUTO(cdu->auth, "Aerobask") ||
+                            !STRN_CASECMP_AUTO(cdu->auth, "Stephane Buon"))
                         {
                             if ((cdu->dataref[0] = XPLMFindDataRef("aerobask/eclipse/gtn650_Show")) &&
                                 (cdu->dataref[1] = XPLMFindDataRef("aerobask/eclipse/gtn750_Show")))
@@ -2503,10 +2500,10 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             }
                             cdu->i_disabled = 1; return 0; // no SkyView, no GPS
                         }
-                        if (!STRN_CASECMP_AUTO(author_name, "Alabeo") ||
-                            !STRN_CASECMP_AUTO(author_name, "Carenado"))
+                        if (!STRN_CASECMP_AUTO(cdu->auth, "Alabeo") ||
+                            !STRN_CASECMP_AUTO(cdu->auth, "Carenado"))
                         {
-                            if (!STRN_CASECMP_AUTO(descrip_str, "Piper PA-34 Seneca V"))
+                            if (!STRN_CASECMP_AUTO(cdu->desc, "Piper PA-34 Seneca V"))
                             {
                                 if ((cdu->command[0] = XPLMFindCommand("xap/panels/2")) && // A/P
                                     (cdu->command[1] = XPLMFindCommand("xap/panels/3")) && // G500
@@ -2516,7 +2513,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                     cdu->i_disabled = 0; break; // Carenado G500
                                 }
                             }
-                            if (!STRN_CASECMP_AUTO(descrip_str, "C207 Skywagon "))
+                            if (!STRN_CASECMP_AUTO(cdu->desc, "C207 Skywagon"))
                             {
                                 if ((cdu->command[0] = XPLMFindCommand("xap/panels/2")) && // A/P
                                     (cdu->command[1] = XPLMFindCommand("xap/panels/3")) && // FF
@@ -2525,21 +2522,13 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                     cdu->i_disabled = 0; break; // X-Plane GPS
                                 }
                             }
-                            if (!STRN_CASECMP_AUTO(descrip_str, "C340 ") ||
-                                !STRN_CASECMP_AUTO(descrip_str, "C404 Titan "))
+                            if (!STRN_CASECMP_AUTO(cdu->desc, "C404 Titan"))
                             {
                                 if ((cdu->command[0] = XPLMFindCommand("xap/panels/2"))         && // A/P
                                     (cdu->command[1] = XPLMFindCommand("sim/GPS/g430n1_popup")) &&
                                     (cdu->command[2] = XPLMFindCommand("sim/GPS/g430n2_popup")))
                                 {
                                     cdu->i_disabled = 0; break; // X-Plane GPS
-                                }
-                            }
-                            if (!STRN_CASECMP_AUTO(descrip_str, "C90 "))
-                            {
-                                if ((cdu->command[0] = XPLMFindCommand("xap/panels/2")))
-                                {
-                                    cdu->i_disabled = 0; break; // A/P only (interferes with GPS window)
                                 }
                             }
                             if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("Carenado.G1000.Database"))
@@ -2554,7 +2543,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             }
                             cdu->i_disabled = 1; return 0; // no G500/G1000, GPS
                         }
-                        if (!STRN_CASECMP_AUTO(author_name, "Denis 'ddenn' Krupin"))
+                        if (!STRN_CASECMP_AUTO(cdu->auth, "Denis 'ddenn' Krupin"))
                         {
                             if (NULL == (cdu->command[0] = XPLMFindCommand("sim/operation/slider_12")))
                             {
@@ -2600,7 +2589,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             return 0;
         }
-        switch (cdu->addon_type)
+        switch (cdu->atyp)
         {
             case NVP_ACF_EMBE_XC:
                 cdu->i_value[0] = 1;
@@ -3113,13 +3102,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 2, "Rotate/md80/instruments/nav_display_mode");
             break;
 
-        case NVP_ACF_PC12_CA: // Carenado PC-12: tweaks to improve nose steering
-            _DO(0, XPLMSetDataf, .04f, "sim/aircraft/overflow/acf_roll_co");
-            _DO(0, XPLMSetDataf, 0.8f, "sim/aircraft/overflow/acf_brake_co");
-            _DO(0, XPLMSetDataf, -.3f, "sim/aircraft/overflow/acf_cgZ_fwd");
-            _DO(0, XPLMSetDataf, -.2f, "sim/flightmodel/misc/cgz_ref_to_default");
-            _DO(0, XPLMSetDataf, .01f, "sim/aircraft/overflow/acf_cgZ_aft");
-            // fall through
         case NVP_ACF_GENERIC:
             // note: this path is always non-verbose (never warn for unapplicable datarefs)
             // datarefs: Aerobask
@@ -3224,6 +3206,21 @@ static int first_fcall_do(chandler_context *ctx)
             if (!XPLMFindCommand("aerobask/skyview/toggle_left"))
             {
                 _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
+            }
+            if (ctx->auth[0] && ctx->desc[0])
+            {
+                if (!STRN_CASECMP_AUTO(ctx->auth, "Alabeo") ||
+                    !STRN_CASECMP_AUTO(ctx->auth, "Carenado"))
+                {
+                    if (!STRN_CASECMP_AUTO(ctx->desc, "C207 Skywagon") ||
+                        !STRN_CASECMP_AUTO(ctx->desc, "Pilatus PC12"))
+                    {
+                        // make these planes less tail-heavy to improve ground handling
+                        _DO(0, XPLMSetDataf, -0.20f, "sim/aircraft/overflow/acf_cgZ_fwd");
+                        _DO(0, XPLMSetDataf, -0.10f, "sim/flightmodel/misc/cgz_ref_to_default");
+                        _DO(0, XPLMSetDataf, +0.01f, "sim/aircraft/overflow/acf_cgZ_aft");
+                    }
+                }
             }
             break;
 
