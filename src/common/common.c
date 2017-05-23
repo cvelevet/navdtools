@@ -75,7 +75,7 @@ void ndt_log_set_callback(ndt_log_callback *callback)
 
 char* ndt_file_slurp(const char *name, int *p)
 {
-    long  flen;
+    long  len;
     int   ret  = 0;
     char *file = NULL;
     FILE *fdes = fopen(name ? name : "", "rb");
@@ -92,13 +92,20 @@ char* ndt_file_slurp(const char *name, int *p)
         goto end;
     }
 
-    flen = ftell(fdes);
-
-    if (flen < 0)
+    if ((len = ftell(fdes)) < 0)
     {
         ret = errno;
         goto end;
     }
+
+//    if (feof(fdes))
+//    {
+//        clearerr(fdes);
+//    }
+//    if (ferror(fdes))
+//    {
+//        clearerr(fdes);
+//    }
 
     if (fseek(fdes, 0L, SEEK_SET) < 0)
     {
@@ -106,7 +113,7 @@ char* ndt_file_slurp(const char *name, int *p)
         goto end;
     }
 
-    file = malloc(flen + 2);
+    file = malloc(len + 2);
 
     if (!file)
     {
@@ -114,17 +121,17 @@ char* ndt_file_slurp(const char *name, int *p)
         goto end;
     }
 
-    if (fread(file, 1, flen, fdes) != flen)
+    if (fread(file, 1, len, fdes) != len)
     {
         ret = EIO;
         goto end;
     }
 
-    if (file[flen - 1] != '\n')
+    if (file[len-1] != '\n')
     {
-        file[flen++]    = '\n';
+        file[len++]  = '\n';
     }
-    file[flen] = '\0';
+    file[len] = '\0'; ret = 0; // success
 
 end:
     if (ret)
