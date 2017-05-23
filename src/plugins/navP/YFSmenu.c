@@ -325,6 +325,8 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         return 0; // we're screwed
     }
 
+    //fixme implement our own transponder automatic mode???
+
     /* if main window visible, update currently displayed page */
     yfs_curr_pageupdt(yfms);
 
