@@ -273,8 +273,7 @@ typedef struct ndt_route_leg
     double             imb;    // bearing (unit: deg), magnetic,  inbound (unset if src or dst NULL)
     double             omb;    // bearing (unit: deg), magnetic, outbound (unset if src or dst NULL)
     ndt_route_segment *rsg;    // leg's parent route segment
-    ndt_list        *xpfms;    // list of fake waypoints for XPFMS-based formats
-    ndt_waypoint    *xpovf;    // fake waypoint for overfly (XPFMS-based formats)
+    ndt_list        *xpfms;    // list of fake waypoints for XPFMS based formats
 
     ndt_restriction constraints;    // altitude constraints
     ndt_distance    altitude;       // altitude at leg->dst
