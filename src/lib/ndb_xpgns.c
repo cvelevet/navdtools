@@ -875,7 +875,7 @@ ndt_airport* ndt_ndb_xpgns_navdata_init_airport(ndt_navdatabase *ndb, ndt_airpor
     {
         goto end; // airport ID must be 1-4 characters
     }
-    if (ndt_file_getpath(ndb->root,suffix, &path, &pathlen))
+    if (ndt_file_getpath(ndb->root, suffix, &path, &pathlen))
     {
         goto end;
     }
@@ -886,7 +886,7 @@ ndt_airport* ndt_ndb_xpgns_navdata_init_airport(ndt_navdatabase *ndb, ndt_airpor
     {
         if (err == ENOENT)
         {
-            ret = apt; // success (file doesn't exist, not an issue)
+            err = 0; ret = apt; goto end; // doesn't exist: non-issue
         }
         goto end;
     }
@@ -916,6 +916,11 @@ end:
     if (!ret && apt->allprocs)
     {
         ndt_list_close(&apt->allprocs);
+    }
+    if (err)
+    {
+        char errbuf[64]; strerror_r(err, errbuf, sizeof(errbuf));
+        ndt_log("[ndb_xpgns] navdata_init_airport: failed (%s)\n", errbuf);
     }
     free(procedures);
     free(path);
