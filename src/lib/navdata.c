@@ -172,6 +172,23 @@ void ndt_navdatabase_close(ndt_navdatabase **_ndb)
     }
 }
 
+void ndt_navdata_add_waypoint(ndt_navdatabase *ndb, ndt_waypoint *wpt)
+{
+    if (ndb && wpt)
+    {
+        ndt_list_add (ndb->waypoints, wpt); // TODO: use insert (no sorting req)
+        ndt_list_sort(ndb->waypoints, sizeof(ndt_waypoint*), &compare_wpt);
+    }
+}
+
+void ndt_navdata_rem_waypoint(ndt_navdatabase *ndb, ndt_waypoint *wpt)
+{
+    if (ndb && wpt)
+    {
+        ndt_list_rem(ndb->waypoints, wpt);
+    }
+}
+
 ndt_airport* ndt_navdata_get_airport(ndt_navdatabase *ndb, const char *idt)
 {
     if (idt)
