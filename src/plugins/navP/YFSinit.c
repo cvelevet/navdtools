@@ -278,15 +278,12 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
     }
     if (corte)
     {
-        src = corte->dep.apt;
-        dst = corte->arr.apt;
+        yfms->data.init.from = src = corte->dep.apt;
+        yfms->data.init.to   = dst = corte->arr.apt;
     }
-    if (src)
+    else
     {
         yfms->data.init.from = src;
-    }
-    if (dst)
-    {
         yfms->data.init.to   = dst;
     }
     if (yfms->data.init.from && yfms->data.init.to)

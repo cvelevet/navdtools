@@ -114,6 +114,7 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfms->data.prog.fix           = NULL;
     yfms->data.init.to            = NULL;
     yfms->data.init.from          = NULL;
+    yfms->data.init.aligned       = 0;
     yfms->data.init.ialized       = 0;
     yfms->data.fpln.awys.open     = 0;
     yfms->data.fpln.lrev.open     = 0;
