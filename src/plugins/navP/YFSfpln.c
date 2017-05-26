@@ -923,8 +923,7 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
     yfms->data.fpln.mod.source    = dct_leg;
     yfms->data.fpln.mod.operation = YFS_FPLN_MOD_DCTO; // compute dct_leg's index
     yfms->data.fpln.mod.opaque    = (void*)dct_leg->xpfms; yfs_fpln_fplnupdt(yfms);
-    // we should be tracking the correct entry now, update the page
-    return yfs_fpln_pageopen(yfms);
+    return yfs_fpln_pageopen(yfms); // should be tracking correct entry, update page
 }
 
 static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
@@ -1106,6 +1105,7 @@ static void lsk_callback_awys(yfms_context *yfms, int key[2], intptr_t refcon)
         if (yfms->data.fpln.awys.awy[0] &&
             yfms->data.fpln.awys.dst[0]) // INSERT
         {
+            ndt_route_leg *tk = ndt_list_item(yfms->data.fpln.legs, yfms->data.fpln.lg_idx);
             ndt_route_leg *lg = yfms->data.fpln.awys.leg;
             ndt_waypoint *src = yfms->data.fpln.awys.wpt;
             for (int i = 0; i < 5; i++)
@@ -1140,11 +1140,11 @@ static void lsk_callback_awys(yfms_context *yfms, int key[2], intptr_t refcon)
                     return yfs_fpln_pageupdt(yfms);
                 }
             }
-            yfms->data.fpln.awys.open       = 0;
-            yfms->data.fpln.mod.operation   = YFS_FPLN_MOD_MULT;
-            yfms->data.fpln.mod.source = lg = yfms->data.fpln.awys.leg;
-            yfms->data.fpln.mod.index       = yfms->data.fpln.awys.idx;
-            yfms->data.fpln.mod.opaque      = (void*)lg->xpfms;
+            yfms->data.fpln.awys.open     = 0;
+            yfms->data.fpln.mod.source    = tk;
+            yfms->data.fpln.mod.operation = YFS_FPLN_MOD_MULT;
+            yfms->data.fpln.mod.index     = yfms->data.fpln.lg_idx;
+            yfms->data.fpln.mod.opaque    = tk ? (void*)tk->xpfms : NULL;
             return yfs_fpln_fplnupdt(yfms);
         }
         return;
@@ -1344,6 +1344,7 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
 
     if (key[0] == 1) // next wpt, new dest or airways
     {
+        ndt_route_leg *trk = ndt_list_item(yfms->data.fpln.legs, yfms->data.fpln.lg_idx);
         ndt_route_leg *leg = yfms->data.fpln.lrev.leg; ndt_waypoint *wpt;
         char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if (key[1] == 2)
@@ -1373,10 +1374,10 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
                     yfs_spad_reset(yfms, "UNKNOWN ERROR 3", COLR_IDX_ORANGE); return;
                 }
                 yfms->data.fpln.lrev.open     = 0;
-                yfms->data.fpln.mod.source    = leg;
+                yfms->data.fpln.mod.source    = trk;
                 yfms->data.fpln.mod.operation = YFS_FPLN_MOD_SNGL;
-                yfms->data.fpln.mod.index     = yfms->data.fpln.lrev.idx == -1 ? 0 : yfms->data.fpln.lrev.idx;
-                yfms->data.fpln.mod.opaque    = leg == NULL ? NULL : (void*)leg->xpfms;
+                yfms->data.fpln.mod.index     = yfms->data.fpln.lg_idx;
+                yfms->data.fpln.mod.opaque    = trk ? (void*)trk->xpfms : NULL;
                 yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return; // NEXT WPT
             }
             return;
@@ -1443,7 +1444,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
     /* standard line select key configuration */
     if (key[0] == 0) // insert a waypoint, or open the lateral rev. page
     {
-        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); ndt_route_leg *leg; ndt_waypoint *wpt;
+        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); ndt_route_leg *leg, *trk; ndt_waypoint *wpt;
         int index = key[1] == 5 ? yfms->data.fpln.dindex : fpl_getindex_for_line(yfms, key[1]);
         if (index < -1) // invalid next waypoint
         {
@@ -1452,6 +1453,10 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         if ((leg = ndt_list_item(yfms->data.fpln.legs, index)) == NULL)
         {
             yfs_spad_reset(yfms, "UNKNOWN ERROR 1 A", COLR_IDX_ORANGE); return;
+        }
+        if ((trk = ndt_list_item(yfms->data.fpln.legs, yfms->data.fpln.lg_idx)) == NULL)
+        {
+            yfs_spad_reset(yfms, "UNKNOWN ERROR 1 B", COLR_IDX_ORANGE); return;
         }
         if (strnlen(buf, 1) == 0) // lateral rev. page
         {
@@ -1520,11 +1525,11 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             {
                 yfs_spad_reset(yfms, "UNKNOWN ERROR 2 B", COLR_IDX_ORANGE); return;
             }
-            yfms->data.fpln.mod.source    = leg;
-            yfms->data.fpln.mod.opaque    = NULL;
-            yfms->data.fpln.mod.index     = index;
+            yfms->data.fpln.mod.source    = trk;
+            yfms->data.fpln.mod.opaque    = (void*)trk->xpfms;
             yfms->data.fpln.mod.operation = YFS_FPLN_MOD_SNGL;
-            yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
+            yfms->data.fpln.mod.index     = yfms->data.fpln.lg_idx;
+            yfs_spad_clear(yfms);   return yfs_fpln_fplnupdt(yfms);
         }
         if ((wpt = get_waypoint_from_scratchpad(yfms)) == NULL)
         {
@@ -1559,11 +1564,11 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
              */
             if (index > 0)
             {
-//                // on second thought, exception is slightly pointless
-//                if (index == ndt_list_count(yfms->data.fpln.legs) - 1)
-//                {
-//                    yfs_fpln_directto(yfms, index, wpt); return;
-//                }
+//              // on second thought, exception is slightly pointless
+//              if (index == ndt_list_count(yfms->data.fpln.legs) - 1)
+//              {
+//                  yfs_fpln_directto(yfms, index, wpt); return;
+//              }
                 yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
             }
         }
@@ -1571,11 +1576,11 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         {
             yfs_spad_reset(yfms, "UNKNOWN ERROR 3", COLR_IDX_ORANGE); return;
         }
-        yfms->data.fpln.mod.source    = leg;
-        yfms->data.fpln.mod.index     = index;
+        yfms->data.fpln.mod.source    = trk;
+        yfms->data.fpln.mod.opaque    = (void*)trk->xpfms;
         yfms->data.fpln.mod.operation = YFS_FPLN_MOD_SNGL;
-        yfms->data.fpln.mod.opaque    = (void*)leg->xpfms;
-        yfs_spad_clear(yfms); yfs_fpln_fplnupdt(yfms); return;
+        yfms->data.fpln.mod.index     = yfms->data.fpln.lg_idx;
+        yfs_spad_clear(yfms);   return yfs_fpln_fplnupdt(yfms);
     }
     if (key[0] == 1 && key[1] != 5) // constraints or vertical rev. page
     {
