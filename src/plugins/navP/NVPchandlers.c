@@ -843,6 +843,7 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->revrs.   fwd.cb);
     UNREGSTR_CHANDLER(ctx->revrs.   rev.cb);
     UNREGSTR_CHANDLER(ctx->revrs.   pff.cb);
+    UNREGSTR_CHANDLER(ctx->otto.   ffst.cb);
     UNREGSTR_CHANDLER(ctx->otto.   conn.cb);
     UNREGSTR_CHANDLER(ctx->otto.   disc.cb);
     UNREGSTR_CHANDLER(ctx->athr.   disc.cb);
