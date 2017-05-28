@@ -1071,14 +1071,19 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         float temp_dp = XPLMGetDataf(ctx->data.speakweather.temp_dp);
         snprintf(baro, sizeof(baro), "Altimeter %04d, area QNH %04d.",
                  (int)round(baro_sl * 100.), (int)round(baro_sl * 33.86389));
-        if (wind_sd < 1.75f)
-        {
-            snprintf(wind, sizeof(wind), "%s", "Wind calm.");
-        }
-        else
+        if (3 <= (int)round(wind_sd))
         {
             snprintf(wind, sizeof(wind), "Wind %03d at %d.",
                      (int)wind_dt, (int)round(wind_sd));
+        }
+        else
+        {
+            /*
+             * FAA ORDER JO 7110.65W
+             * Describe the wind as calm when the
+             * wind velocity is less than 3 knots.
+             */
+            snprintf(wind, sizeof(wind), "%s", "Wind calm.");
         }
         snprintf(temp, sizeof(temp), "Temperature %d, dew point %d.",
                  (int)round(temp_dc), (int)round(temp_dp));
