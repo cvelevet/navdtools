@@ -2555,14 +2555,11 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         if (!STRN_CASECMP_AUTO(cdu->auth, "Alabeo") ||
                             !STRN_CASECMP_AUTO(cdu->auth, "Carenado"))
                         {
-                            if (!STRN_CASECMP_AUTO(cdu->desc, "Piper PA-34 Seneca V"))
+                            if (!STRN_CASECMP_AUTO(cdu->desc, "B1900"))
                             {
-                                if ((cdu->command[0] = XPLMFindCommand("xap/panels/2")) && // A/P
-                                    (cdu->command[1] = XPLMFindCommand("xap/panels/3")) && // G500
-                                    (cdu->command[2] = XPLMFindCommand("xap/panels/4")) && // XPDR
-                                    (cdu->command[3] = XPLMFindCommand("sim/GPS/g430n1_popup")))
+                                if ((cdu->command[0] = XPLMFindCommand("xap/panels/2")))
                                 {
-                                    cdu->i_disabled = 0; break; // Carenado G500
+                                    cdu->i_disabled = 0; break; // A/P & EFIS CP
                                 }
                             }
                             if (!STRN_CASECMP_AUTO(cdu->desc, "C207 Skywagon"))
@@ -2581,6 +2578,16 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                     (cdu->command[2] = XPLMFindCommand("sim/GPS/g430n2_popup")))
                                 {
                                     cdu->i_disabled = 0; break; // X-Plane GPS
+                                }
+                            }
+                            if (!STRN_CASECMP_AUTO(cdu->desc, "Piper PA-34 Seneca V"))
+                            {
+                                if ((cdu->command[0] = XPLMFindCommand("xap/panels/2")) && // A/P
+                                    (cdu->command[1] = XPLMFindCommand("xap/panels/3")) && // G500
+                                    (cdu->command[2] = XPLMFindCommand("xap/panels/4")) && // XPDR
+                                    (cdu->command[3] = XPLMFindCommand("sim/GPS/g430n1_popup")))
+                                {
+                                    cdu->i_disabled = 0; break; // Carenado G500
                                 }
                             }
                             if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("Carenado.G1000.Database"))
