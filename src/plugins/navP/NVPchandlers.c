@@ -361,6 +361,12 @@ typedef struct
         struct
         {
             chandler_callback cb;
+            XPLMDataRef      *dr;
+        } ffst;
+
+        struct
+        {
+            chandler_callback cb;
             chandler_command  cc;
         } conn;
 
@@ -529,6 +535,7 @@ static int  chandler_qlprv(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, v
 static int  chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_ffap1(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_flap_func(                                          float, float, int, void*);
 static float gnd_stab_hdlr(                                          float, float, int, void*);
 static int  first_fcall_do(                                             chandler_context *ctx);
@@ -745,11 +752,13 @@ void* nvp_chandlers_init(void)
     }
 
     /* Custom commands: autopilot and autothrottle */
+    ctx->otto.ffst.cb.command = XPLMCreateCommand("private/ffsts/ap_cmdl", "NOT TO BE USED");
     ctx->otto.conn.cb.command = XPLMCreateCommand("navP/switches/ap_conn", "A/P engagement");
     ctx->otto.disc.cb.command = XPLMCreateCommand("navP/switches/ap_disc", "A/P disconnect");
     ctx->athr.disc.cb.command = XPLMCreateCommand("navP/switches/at_disc", "A/T disconnect");
     ctx->athr.toga.cb.command = XPLMCreateCommand("navP/switches/at_toga", "A/T takeoff/GA");
-    if (!ctx->otto.conn.cb.command ||
+    if (!ctx->otto.ffst.cb.command ||
+        !ctx->otto.conn.cb.command ||
         !ctx->otto.disc.cb.command ||
         !ctx->athr.disc.cb.command ||
         !ctx->athr.toga.cb.command)
@@ -758,6 +767,7 @@ void* nvp_chandlers_init(void)
     }
     else
     {
+        REGISTER_CHANDLER(ctx->otto.ffst.cb, chandler_ffap1, 0, &ctx->otto.ffst.dr);
         REGISTER_CHANDLER(ctx->otto.conn.cb, chandler_swtch, 0, &ctx->otto.conn.cc);
         REGISTER_CHANDLER(ctx->otto.disc.cb, chandler_swtch, 0, &ctx->otto.disc.cc);
         REGISTER_CHANDLER(ctx->athr.disc.cb, chandler_swtch, 0, &ctx->athr.disc.cc);
@@ -900,10 +910,11 @@ int nvp_chandlers_reset(void *inContext)
     ctx->acfspec.qpac.ready = 0;
     ctx->acfspec.i733.ready = 0;
     ctx->acfspec.x738.ready = 0;
-    ctx->athr.disc.cc.name  = NULL;
-    ctx->athr.toga.cc.name  = NULL;
+    ctx->otto.ffst.dr       = NULL;
     ctx->otto.conn.cc.name  = NULL;
     ctx->otto.disc.cc.name  = NULL;
+    ctx->athr.disc.cc.name  = NULL;
+    ctx->athr.toga.cc.name  = NULL;
 
     /* Reset engine count */
     ctx->revrs.n_engines = -1;
@@ -1334,8 +1345,9 @@ int nvp_chandlers_update(void *inContext)
             ctx->athr.toga.cc.name = "sim/engines/TOGA_power";
             break;
 
-        case NVP_ACF_B757_FF: // TODO: check that all commands match 767
+        case NVP_ACF_B757_FF:
         case NVP_ACF_B767_FF:
+            ctx->otto.conn.cc.name = "private/ffsts/ap_cmdl";
             ctx->otto.disc.cc.name = "1-sim/comm/AP/ap_disc";
             ctx->athr.disc.cc.name = "1-sim/comm/AP/at_disc";
             ctx->athr.toga.cc.name = "1-sim/comm/AP/at_toga";
@@ -2117,19 +2129,20 @@ static int chandler_r_pff(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
  */
 static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    chandler_command *cc = inRefcon;
-    if (cc->name)
+    if (inPhase == xplm_CommandEnd)
     {
-        if (cc->xpcr == NULL)
+        chandler_command *cc = inRefcon;
+        if (cc->name)
         {
-            cc->xpcr = XPLMFindCommand(cc->name);
-            if (NULL == cc->xpcr)
+            if (cc->xpcr == NULL)
             {
-                XPLMSpeakString("Failed to resolve command");
+                if ((cc->xpcr = XPLMFindCommand(cc->name)) == NULL)
+                {
+                    ndt_log("navP [error]: command not found: \"%s\"\n", cc->name);
+                    XPLMSpeakString("failed to resolve command");
+                    cc->name = NULL; return 0;
+                }
             }
-        }
-        if (cc->xpcr && inPhase == xplm_CommandEnd)
-        {
             XPLMCommandOnce(cc->xpcr);
         }
     }
@@ -2693,6 +2706,25 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
+static int chandler_ffap1(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        XPLMDataRef dataref = *((XPLMDataRef*)inRefcon);
+        if (dataref == NULL)
+        {
+            if ((dataref = XPLMFindDataRef("1-sim/AP/cmd_L_Button")) == NULL)
+            {
+                ndt_log("navP [warning]: chandler_ffap1: \"1-sim/AP/cmd_L_Button\" not found\n");
+                return 0;
+            }
+            *((XPLMDataRef*)inRefcon) = dataref;
+        }
+        XPLMSetDatai(dataref, !XPLMGetDatai(dataref));
+    }
+    return 0;
+}
+
 static float flc_flap_func(float inElapsedSinceLastCall,
                            float inElapsedTimeSinceLastFlightLoop,
                            int   inCounter,
@@ -2956,7 +2988,7 @@ static int first_fcall_do(chandler_context *ctx)
             }
             break;
 
-        case NVP_ACF_B757_FF: // TODO: check that all datarefs match 767
+        case NVP_ACF_B757_FF:
         case NVP_ACF_B767_FF:
             // the following two are special, the buttons auto-revert to zero;
             // thankfully they always work (even without any electrical power)
@@ -3335,6 +3367,26 @@ static int first_fcall_do(chandler_context *ctx)
 
         default:
             break;
+    }
+
+    /* resolve addon-specific command references early (might be faster?) */
+    chandler_command *list[] =
+    {
+        &ctx->otto.conn.cc,
+        &ctx->otto.disc.cc,
+        &ctx->athr.disc.cc,
+        &ctx->athr.toga.cc, NULL,
+    };
+    for (int i = 0; list[i]; i++)
+    {
+        if (list[i]->name && list[i]->xpcr == NULL)
+        {
+            list[i]->xpcr = XPLMFindCommand(list[i]->name);
+        }
+    }
+    if (ctx->atyp == NVP_ACF_B757_FF || ctx->atyp == NVP_ACF_B767_FF)
+    {
+        ctx->otto.ffst.dr = XPLMFindDataRef("1-sim/AP/cmd_L_Button");
     }
 
     /* Custom ground stabilization system (via flight loop callback) */
