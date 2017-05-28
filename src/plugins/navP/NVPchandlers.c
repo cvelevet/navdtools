@@ -425,10 +425,10 @@ typedef struct
 } chandler_context;
 
 /* Callout default values */
-#define CALLOUT_PARKBRAKE 1
-#define CALLOUT_SPEEDBRAK 1
-#define CALLOUT_FLAPLEVER 1
-#define CALLOUT_GEARLEVER 1
+#define CALLOUT_PARKBRAKE (-1)
+#define CALLOUT_SPEEDBRAK (-1)
+#define CALLOUT_FLAPLEVER (-1)
+#define CALLOUT_GEARLEVER (-1)
 
 /* Flap lever position name constants */
 static       char  _flap_callout_st[11];
@@ -2814,8 +2814,7 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 if (XPLMGetDatai(gear->gear_handle_down) == 0) // 0 -> 1
                 {
-                    if (speak) XPLMSpeakString("gear down");
-                    return 1; // let X-Plane actually move the handle
+                    if (speak > 0) XPLMSpeakString("gear down"); return 1;
                 }
             }
             if (inCommand == gear->landing_gear_toggle.command ||
@@ -2823,8 +2822,7 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 if (XPLMGetDatai(gear->gear_handle_down) != 0) // 1 -> 0
                 {
-                    if (speak) XPLMSpeakString("gear up");
-                    return 1; // let X-Plane actually move the handle
+                    if (speak > 0) XPLMSpeakString("gear up");   return 1;
                 }
             }
             return 1; // let X-Plane actually move the handle
