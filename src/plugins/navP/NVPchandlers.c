@@ -52,6 +52,7 @@ typedef struct
 
 typedef struct
 {
+    float      ratio[2];
     XPLMDataRef p_b_rat;
 } refcon_braking;
 
@@ -1300,6 +1301,18 @@ int nvp_chandlers_update(void *inContext)
     snprintf(ctx->auth, sizeof(ctx->auth), "%.40s", xaircraft_auth_str);
     snprintf(ctx->desc, sizeof(ctx->desc), "%.40s", xaircraft_desc_str);
 
+    /* plane-specific braking ratios */
+    if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
+    {
+        ctx->bking.rc_brk.ratio[0] = .500f;
+        ctx->bking.rc_brk.ratio[1] = .875f;
+    }
+    else
+    {
+        ctx->bking.rc_brk.ratio[0] = .375f; // default
+        ctx->bking.rc_brk.ratio[1] = .750f; // values
+    }
+
     /* plane-specific custom commands for automation disconnects, if any */
     switch (ctx->atyp)
     {
@@ -1636,6 +1649,7 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     chandler_context *ctx = inRefcon;
     refcon_braking   *rcb = &ctx->bking.rc_brk;
     float p_b_rat = XPLMGetDataf(rcb->p_b_rat);
+    float p_ratio = rcb->ratio[1], parkset = p_ratio + .01f;
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
         if (ctx->acfspec.qpac.ready == 0)
@@ -1672,11 +1686,11 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         case xplm_CommandBegin:
         case xplm_CommandContinue:
-            if (p_b_rat < .75f) XPLMSetDataf(rcb->p_b_rat, .75f);
+            if (p_b_rat < p_ratio) XPLMSetDataf(rcb->p_b_rat, p_ratio);
             break;
         case xplm_CommandEnd:
         default:
-            if (p_b_rat < .76f) XPLMSetDataf(rcb->p_b_rat, 0.0f);
+            if (p_b_rat < parkset) XPLMSetDataf(rcb->p_b_rat, 0.0f);
             break;
     }
     return 0;
@@ -1687,6 +1701,7 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     chandler_context *ctx = inRefcon;
     refcon_braking   *rcb = &ctx->bking.rc_brk;
     float p_b_rat = XPLMGetDataf(rcb->p_b_rat);
+    float p_ratio = rcb->ratio[0], parkset = p_ratio + .01f;
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
         if (ctx->acfspec.qpac.ready == 0)
@@ -1723,11 +1738,11 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         case xplm_CommandBegin:
         case xplm_CommandContinue:
-            if (p_b_rat < .25f) XPLMSetDataf(rcb->p_b_rat, .25f);
+            if (p_b_rat < p_ratio) XPLMSetDataf(rcb->p_b_rat, p_ratio);
             break;
         case xplm_CommandEnd:
         default:
-            if (p_b_rat < .26f) XPLMSetDataf(rcb->p_b_rat, 0.0f);
+            if (p_b_rat < parkset) XPLMSetDataf(rcb->p_b_rat, 0.0f);
             break;
     }
     return 0;
