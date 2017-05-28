@@ -1071,16 +1071,9 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         float temp_dp = XPLMGetDataf(ctx->data.speakweather.temp_dp);
         snprintf(baro, sizeof(baro), "Altimeter %04d, area QNH %04d.",
                  (int)round(baro_sl * 100.), (int)round(baro_sl * 33.86389));
-        if (wind_sd < 4.5f)
+        if (wind_sd < 1.75f)
         {
-            if (wind_sd < 1.5f)
-            {
-                snprintf(wind, sizeof(wind), "%s", "Wind calm.");
-            }
-            else
-            {
-                snprintf(wind, sizeof(wind), "%s", "Wind light and variable.");
-            }
+            snprintf(wind, sizeof(wind), "%s", "Wind calm.");
         }
         else
         {
