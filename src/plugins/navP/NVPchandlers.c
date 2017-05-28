@@ -118,6 +118,21 @@ typedef struct
 
 typedef struct
 {
+    chandler_callback landing_gear_toggle;
+    chandler_callback   landing_gear_down;
+    chandler_callback     landing_gear_up;
+    XPLMDataRef          acf_gear_retract;
+    XPLMDataRef          gear_handle_down;
+    int              has_retractable_gear;
+    struct
+    {
+        XPLMDataRef ref;
+        int       atype;
+    } callouts;
+} refcon_gear;
+
+typedef struct
+{
     int initialized;
     int first_fcall;
     int kill_daniel;
@@ -196,6 +211,8 @@ typedef struct
 
     refcon_ground ground;
 
+    refcon_gear gear;
+
     struct
     {
         int         var_park_brake;
@@ -204,6 +221,8 @@ typedef struct
         XPLMDataRef ref_speedbrake;
         int         var_flap_lever;
         XPLMDataRef ref_flap_lever;
+        int         var_gear_lever;
+        XPLMDataRef ref_gear_lever;
 
         // named, plane-specific (hardcoded) flap callouts
         chandler_callback cb_flapu;
@@ -409,6 +428,7 @@ typedef struct
 #define CALLOUT_PARKBRAKE 1
 #define CALLOUT_SPEEDBRAK 1
 #define CALLOUT_FLAPLEVER 1
+#define CALLOUT_GEARLEVER 1
 
 /* Flap lever position name constants */
 static       char  _flap_callout_st[11];
@@ -536,6 +556,7 @@ static int  chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, v
 static int  chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int  chandler_ffap1(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int  chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_flap_func(                                          float, float, int, void*);
 static float gnd_stab_hdlr(                                          float, float, int, void*);
 static int  first_fcall_do(                                             chandler_context *ctx);
@@ -588,9 +609,19 @@ void* nvp_chandlers_init(void)
                                                             NULL, NULL, NULL, NULL, NULL,
                                                             &ctx->callouts.var_flap_lever,
                                                             &ctx->callouts.var_flap_lever);
+    ctx->callouts.var_gear_lever = CALLOUT_GEARLEVER;
+    ctx->callouts.ref_gear_lever = XPLMRegisterDataAccessor("navP/callouts/gear_lever",
+                                                            xplmType_Int, 1,
+                                                            &priv_getdata_i,
+                                                            &priv_setdata_i,
+                                                            NULL, NULL, NULL, NULL, NULL,
+                                                            NULL, NULL, NULL, NULL, NULL,
+                                                            &ctx->callouts.var_gear_lever,
+                                                            &ctx->callouts.var_gear_lever);
     if (!ctx->callouts.ref_park_brake ||
         !ctx->callouts.ref_speedbrake ||
-        !ctx->callouts.ref_flap_lever)
+        !ctx->callouts.ref_flap_lever ||
+        !ctx->callouts.ref_gear_lever)
     {
         goto fail;
     }
@@ -791,6 +822,28 @@ void* nvp_chandlers_init(void)
     }
     XPLMRegisterFlightLoopCallback((ctx->callouts.flc_flaps = &flc_flap_func), 0, NULL);
 
+    /* Default commands' handlers: gear up, down, toggle */
+    ctx->gear.acf_gear_retract            = XPLMFindDataRef("sim/aircraft/gear/acf_gear_retract"     );
+    ctx->gear.gear_handle_down            = XPLMFindDataRef("sim/cockpit2/controls/gear_handle_down" );
+    ctx->gear.landing_gear_up.command     = XPLMFindCommand("sim/flight_controls/landing_gear_up"    );
+    ctx->gear.landing_gear_down.command   = XPLMFindCommand("sim/flight_controls/landing_gear_down"  );
+    ctx->gear.landing_gear_toggle.command = XPLMFindCommand("sim/flight_controls/landing_gear_toggle");
+    if (!ctx->gear.landing_gear_toggle.command ||
+        !ctx->gear.landing_gear_down.command   ||
+        !ctx->gear.landing_gear_up.command     ||
+        !ctx->gear.gear_handle_down            ||
+        !ctx->gear.acf_gear_retract)
+    {
+        goto fail;
+    }
+    else
+    {
+        ctx->gear.callouts.ref = ctx->callouts.ref_gear_lever;
+        REGISTER_CHANDLER(ctx->gear.landing_gear_up,     chandler_ghndl, 1 /* before X-Plane */, &ctx->gear);
+        REGISTER_CHANDLER(ctx->gear.landing_gear_down,   chandler_ghndl, 1 /* before X-Plane */, &ctx->gear);
+        REGISTER_CHANDLER(ctx->gear.landing_gear_toggle, chandler_ghndl, 1 /* before X-Plane */, &ctx->gear);
+    }
+
     /* Custom command: pop-up Control Display Unit */
     ctx->mcdu.cb.command = XPLMCreateCommand("navP/switches/cdu_toggle", "CDU pop-up/down");
     if (!ctx->mcdu.cb.command)
@@ -855,9 +908,12 @@ int nvp_chandlers_close(void **_chandler_context)
     {
         UNREGSTR_CHANDLER(ctx->views.cbs[i]);
     }
-    UNREGSTR_CHANDLER(ctx->callouts.cb_flapu);
-    UNREGSTR_CHANDLER(ctx->callouts.cb_flapd);
-    UNREGSTR_CHANDLER(ctx->mcdu.          cb);
+    UNREGSTR_CHANDLER(ctx->gear.landing_gear_toggle);
+    UNREGSTR_CHANDLER(ctx->gear.  landing_gear_down);
+    UNREGSTR_CHANDLER(ctx->gear.    landing_gear_up);
+    UNREGSTR_CHANDLER(ctx->callouts.       cb_flapu);
+    UNREGSTR_CHANDLER(ctx->callouts.       cb_flapd);
+    UNREGSTR_CHANDLER(ctx->mcdu.                 cb);
 
     /* …and all datarefs */
     if (ctx->acfspec.qpac.pkb_tmp)
@@ -879,6 +935,11 @@ int nvp_chandlers_close(void **_chandler_context)
     {
         XPLMUnregisterDataAccessor(ctx->callouts.ref_flap_lever);
         ctx->callouts.ref_flap_lever = NULL;
+    }
+    if (ctx->callouts.ref_gear_lever)
+    {
+        XPLMUnregisterDataAccessor(ctx->callouts.ref_gear_lever);
+        ctx->callouts.ref_gear_lever = NULL;
     }
     if (ref_ql_idx_get())
     {
@@ -904,8 +965,10 @@ int nvp_chandlers_reset(void *inContext)
         return -1;
     }
 
-    /* Reset the aircraft/addon type */
-    ctx->atyp = NVP_ACF_GENERIC;
+    /* Reset aircraft properties (type, engine count, retractable gear, etc.) */
+    ctx->atyp                      = NVP_ACF_GENERIC;
+    ctx->revrs.n_engines           = -1;
+    ctx->gear.has_retractable_gear = -1;
 
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
     ctx->acfspec.qpac.ready = 0;
@@ -916,9 +979,6 @@ int nvp_chandlers_reset(void *inContext)
     ctx->otto.disc.cc.name  = NULL;
     ctx->athr.disc.cc.name  = NULL;
     ctx->athr.toga.cc.name  = NULL;
-
-    /* Reset engine count */
-    ctx->revrs.n_engines = -1;
 
     /* Reset some datarefs to match X-Plane's defaults at startup */
     _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com1_power");
@@ -1467,6 +1527,9 @@ int nvp_chandlers_update(void *inContext)
     ctx->mcdu.rc.garmin_gtn = -1;
     ctx->mcdu.rc.i_disabled = -1;
 
+    /* for the gear handle callouts */
+    ctx->gear.callouts.atype = ctx->atyp;
+
     /* detect presence of PilotEdge */
     if (XPLM_NO_PLUGIN_ID != (ctx->volumes.pe = XPLMFindPluginBySignature("com.pilotedge.plugin.xplane")))
     {
@@ -1538,6 +1601,10 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (XPLMGetDatai(ctx->callouts.ref_flap_lever) == -1)
         {
             XPLMSetDatai(ctx->callouts.ref_flap_lever,     1);
+        }
+        if (XPLMGetDatai(ctx->callouts.ref_gear_lever) == -1)
+        {
+            XPLMSetDatai(ctx->callouts.ref_gear_lever,     1);
         }
         if (first_fcall_do(ctx) == 0 && ctx->first_fcall == 0)
         {
@@ -2726,6 +2793,47 @@ static int chandler_ffap1(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
+static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandBegin) // before X-Plane moves the handle
+    {
+        refcon_gear *gear = inRefcon;
+        if (gear->has_retractable_gear == -1)
+        {
+            gear->has_retractable_gear = !!XPLMGetDatai(gear->acf_gear_retract);
+        }
+        if (gear->has_retractable_gear ==  1)
+        {
+            int speak = XPLMGetDatai(gear->callouts.ref);
+            if (gear->callouts.atype & NVP_ACF_MASK_JDN)
+            {
+                speak = 0;
+            }
+            if (inCommand == gear->landing_gear_toggle.command ||
+                inCommand == gear->landing_gear_down  .command)
+            {
+                if (XPLMGetDatai(gear->gear_handle_down) == 0) // 0 -> 1
+                {
+                    if (speak) XPLMSpeakString("gear down");
+                    return 1; // let X-Plane actually move the handle
+                }
+            }
+            if (inCommand == gear->landing_gear_toggle.command ||
+                inCommand == gear->landing_gear_up    .command)
+            {
+                if (XPLMGetDatai(gear->gear_handle_down) != 0) // 1 -> 0
+                {
+                    if (speak) XPLMSpeakString("gear up");
+                    return 1; // let X-Plane actually move the handle
+                }
+            }
+            return 1; // let X-Plane actually move the handle
+        }
+        return 1; // let X-Plane actually move the handle
+    }
+    return 1; // let X-Plane actually move the handle
+}
+
 static float flc_flap_func(float inElapsedSinceLastCall,
                            float inElapsedTimeSinceLastFlightLoop,
                            int   inCounter,
@@ -3370,7 +3478,7 @@ static int first_fcall_do(chandler_context *ctx)
             break;
     }
 
-    /* resolve addon-specific command references early (might be faster?) */
+    /* resolve addon-specific references early (might be faster?) */
     chandler_command *list[] =
     {
         &ctx->otto.conn.cc,
@@ -3388,6 +3496,10 @@ static int first_fcall_do(chandler_context *ctx)
     if (ctx->atyp == NVP_ACF_B757_FF || ctx->atyp == NVP_ACF_B767_FF)
     {
         ctx->otto.ffst.dr = XPLMFindDataRef("1-sim/AP/cmd_L_Button");
+    }
+    if (ctx->gear.has_retractable_gear == -1)
+    {
+        ctx->gear.has_retractable_gear = !!XPLMGetDatai(ctx->gear.acf_gear_retract);
     }
 
     /* Custom ground stabilization system (via flight loop callback) */
@@ -3553,5 +3665,6 @@ static void priv_setdata_i(void *inRefcon, int inValue)
 #undef CALLOUT_PARKBRAKE
 #undef CALLOUT_SPEEDBRAK
 #undef CALLOUT_FLAPLEVER
+#undef CALLOUT_GEARLEVER
 #undef STRN_CASECMP_AUTO
 #undef _DO
