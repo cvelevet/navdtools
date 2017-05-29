@@ -3594,6 +3594,14 @@ static int first_fcall_do(chandler_context *ctx)
                         _DO(0, XPLMSetDataf, -0.10f, "sim/flightmodel/misc/cgz_ref_to_default");
                         _DO(0, XPLMSetDataf, +0.01f, "sim/aircraft/overflow/acf_cgZ_aft");
                     }
+                    if (!STRN_CASECMP_AUTO(ctx->desc, "C404 Titan"))
+                    {
+                        if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/instrument_brightness_ratio")))
+                        {
+                            float instrument_brightness_ratio[1] = { 0.5f, };
+                            XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 4, 1); // autopilot/warning annunciator brightness
+                        }
+                    }
                 }
             }
             break;
