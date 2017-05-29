@@ -53,6 +53,10 @@ typedef struct
 typedef struct
 {
     float      ratio[2];
+    float       flt_var;
+    int         int_var;
+    XPLMDataRef p_b_flt;
+    XPLMDataRef p_b_int;
     XPLMDataRef p_b_rat;
     chandler_command rg;
     chandler_command mx;
@@ -61,8 +65,6 @@ typedef struct
 typedef struct
 {
     int              ready;
-    int            pkb_var;
-    XPLMDataRef    pkb_tmp;
     XPLMDataRef    pkb_ref;
     XPLMCommandRef h_b_max;
     XPLMCommandRef h_b_reg;
@@ -535,38 +537,40 @@ static int          ref_ql_idx_val(void)
 
 static int  dataref_read_string(XPLMDataRef dataref, char *string_buffer,  size_t buffer_size);
 static int  dataref_wrte_string(XPLMDataRef dataref, char *string_buffer,  size_t buffer_size);
-static int  chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_pt_up(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_pt_dn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_at_lt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_at_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_rt_lt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_rt_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_r_pff(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_sview(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_qlprv(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_ffap1(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int  chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static float flc_flap_func(                                          float, float, int, void*);
-static float gnd_stab_hdlr(                                          float, float, int, void*);
-static int  first_fcall_do(                                             chandler_context *ctx);
-static int  aibus_fbw_init(                                               refcon_qpacfbw *fbw);
-static int  boing_733_init(                                               refcon_ixeg733 *i33);
-static int  boing_738_init(                                               refcon_eadt738 *x38);
-static int  priv_getdata_i(                                       void *inRefcon             );
-static void priv_setdata_i(                                       void *inRefcon, int inValue);
+static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_pt_up(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_pt_dn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_at_lt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_at_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_rt_lt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_rt_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_r_pff(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_sview(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_qlprv(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_ffap1(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static float flc_flap_func (                                        float, float, int, void*);
+static float gnd_stab_hdlr (                                        float, float, int, void*);
+static int   first_fcall_do(                                           chandler_context *ctx);
+static int   aibus_fbw_init(                                             refcon_qpacfbw *fbw);
+static int   boing_733_init(                                             refcon_ixeg733 *i33);
+static int   boing_738_init(                                             refcon_eadt738 *x38);
+static int   priv_getdata_i(                                   void *inRefcon               );
+static void  priv_setdata_i(                                   void *inRefcon, int   inValue);
+static float priv_getdata_f(                                   void *inRefcon               );
+static void  priv_setdata_f(                                   void *inRefcon, float inValue);
 
 void* nvp_chandlers_init(void)
 {
@@ -587,37 +591,45 @@ void* nvp_chandlers_init(void)
     ctx->callouts.var_park_brake = CALLOUT_PARKBRAKE;
     ctx->callouts.ref_park_brake = XPLMRegisterDataAccessor("navP/callouts/park_brake",
                                                             xplmType_Int, 1,
-                                                            &priv_getdata_i,
-                                                            &priv_setdata_i,
-                                                            NULL, NULL, NULL, NULL, NULL,
-                                                            NULL, NULL, NULL, NULL, NULL,
+                                                            &priv_getdata_i, &priv_setdata_i,
+                                                            NULL, NULL,
+                                                            NULL, NULL,
+                                                            NULL, NULL,
+                                                            NULL, NULL,
+                                                            NULL, NULL,
                                                             &ctx->callouts.var_park_brake,
                                                             &ctx->callouts.var_park_brake);
     ctx->callouts.var_speedbrake = CALLOUT_SPEEDBRAK;
     ctx->callouts.ref_speedbrake = XPLMRegisterDataAccessor("navP/callouts/speedbrake",
                                                             xplmType_Int, 1,
-                                                            &priv_getdata_i,
-                                                            &priv_setdata_i,
-                                                            NULL, NULL, NULL, NULL, NULL,
-                                                            NULL, NULL, NULL, NULL, NULL,
+                                                            &priv_getdata_i, &priv_setdata_i,
+                                                            NULL, NULL,
+                                                            NULL, NULL,
+                                                            NULL, NULL,
+                                                            NULL, NULL,
+                                                            NULL, NULL,
                                                             &ctx->callouts.var_speedbrake,
                                                             &ctx->callouts.var_speedbrake);
     ctx->callouts.var_flap_lever = CALLOUT_FLAPLEVER;
     ctx->callouts.ref_flap_lever = XPLMRegisterDataAccessor("navP/callouts/flap_lever",
                                                             xplmType_Int, 1,
-                                                            &priv_getdata_i,
-                                                            &priv_setdata_i,
-                                                            NULL, NULL, NULL, NULL, NULL,
-                                                            NULL, NULL, NULL, NULL, NULL,
+                                                            &priv_getdata_i, &priv_setdata_i,
+                                                            NULL, NULL,
+                                                            NULL, NULL,
+                                                            NULL, NULL,
+                                                            NULL, NULL,
+                                                            NULL, NULL,
                                                             &ctx->callouts.var_flap_lever,
                                                             &ctx->callouts.var_flap_lever);
     ctx->callouts.var_gear_lever = CALLOUT_GEARLEVER;
     ctx->callouts.ref_gear_lever = XPLMRegisterDataAccessor("navP/callouts/gear_lever",
                                                             xplmType_Int, 1,
-                                                            &priv_getdata_i,
-                                                            &priv_setdata_i,
-                                                            NULL, NULL, NULL, NULL, NULL,
-                                                            NULL, NULL, NULL, NULL, NULL,
+                                                            &priv_getdata_i, &priv_setdata_i,
+                                                            NULL, NULL,
+                                                            NULL, NULL,
+                                                            NULL, NULL,
+                                                            NULL, NULL,
+                                                            NULL, NULL,
                                                             &ctx->callouts.var_gear_lever,
                                                             &ctx->callouts.var_gear_lever);
     if (!ctx->callouts.ref_park_brake ||
@@ -636,6 +648,32 @@ void* nvp_chandlers_init(void)
         (ctx->volumes.atc = XPLMFindDataRef(  "sim/operation/sound/radio_volume_ratio")) == NULL ||
         (ctx->volumes.pvr = XPLMFindDataRef(   "sim/operation/sound/prop_volume_ratio")) == NULL ||
         (ctx->volumes.fvr = XPLMFindDataRef(    "sim/operation/sound/fan_volume_ratio")) == NULL)
+    {
+        goto fail;
+    }
+
+    /* Private datarefs: braking */
+    ctx->bking.rc_brk.p_b_int = XPLMRegisterDataAccessor("private/temp/integer/refcon_braking",
+                                                         xplmType_Int, 1,
+                                                         &priv_getdata_i, &priv_setdata_i,
+                                                         NULL, NULL,
+                                                         NULL, NULL,
+                                                         NULL, NULL,
+                                                         NULL, NULL,
+                                                         NULL, NULL,
+                                                         &ctx->bking.rc_brk.int_var,
+                                                         &ctx->bking.rc_brk.int_var);
+    ctx->bking.rc_brk.p_b_flt = XPLMRegisterDataAccessor("private/temp/floatpt/refcon_braking",
+                                                         xplmType_Float, 1,
+                                                         NULL, NULL,
+                                                         &priv_getdata_f, &priv_setdata_f,
+                                                         NULL, NULL,
+                                                         NULL, NULL,
+                                                         NULL, NULL,
+                                                         NULL, NULL,
+                                                         &ctx->bking.rc_brk.flt_var,
+                                                         &ctx->bking.rc_brk.flt_var);
+    if (!ctx->bking.rc_brk.p_b_int || !ctx->bking.rc_brk.p_b_flt)
     {
         goto fail;
     }
@@ -918,10 +956,15 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->mcdu.                 cb);
 
     /* …and all datarefs */
-    if (ctx->acfspec.qpac.pkb_tmp)
+    if (ctx->bking.rc_brk.p_b_int)
     {
-        XPLMUnregisterDataAccessor(ctx->acfspec.qpac.pkb_tmp);
-        ctx->acfspec.qpac.pkb_tmp = NULL;
+        XPLMUnregisterDataAccessor(ctx->bking.rc_brk.p_b_int);
+        ctx->bking.rc_brk.p_b_int = NULL;
+    }
+    if (ctx->bking.rc_brk.p_b_flt)
+    {
+        XPLMUnregisterDataAccessor(ctx->bking.rc_brk.p_b_flt);
+        ctx->bking.rc_brk.p_b_flt = NULL;
     }
     if (ctx->callouts.ref_park_brake)
     {
@@ -1655,7 +1698,7 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 // the FlightFactor-QPAC A350 has its parking brake dataref inverted
                 XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->atyp != NVP_ACF_A350_FF));
-                XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, (ctx->atyp != NVP_ACF_A350_FF));
+                XPLMSetDatai(rcb->p_b_int,              (ctx->atyp != NVP_ACF_A350_FF));
                 if (speak > 0) XPLMSpeakString("park brake set");
             }
             return 0;
@@ -1694,7 +1737,7 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 // the FlightFactor-QPAC A350 has its parking brake dataref inverted
                 XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->atyp == NVP_ACF_A350_FF));
-                XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, (ctx->atyp == NVP_ACF_A350_FF));
+                XPLMSetDatai(rcb->p_b_int,              (ctx->atyp == NVP_ACF_A350_FF));
                 if (speak > 0) XPLMSpeakString("park brake released");
             }
             return 0;
@@ -1736,7 +1779,7 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             switch (inPhase)
             {
                 case xplm_CommandBegin:
-                    XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, XPLMGetDatai(ctx->acfspec.qpac.pkb_ref));
+                    XPLMSetDatai(rcb->p_b_int, XPLMGetDatai(ctx->acfspec.qpac.pkb_ref));
                     if (ctx->acfspec.qpac.h_b_max)
                     {
                         XPLMCommandBegin(ctx->acfspec.qpac.h_b_max);
@@ -1749,7 +1792,7 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     {
                         XPLMCommandEnd(ctx->acfspec.qpac.h_b_max);
                     }
-                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(ctx->acfspec.qpac.pkb_tmp));
+                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(rcb->p_b_int));
                     break;
                 default:
                     break;
@@ -1815,7 +1858,7 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             switch (inPhase)
             {
                 case xplm_CommandBegin:
-                    XPLMSetDatai(ctx->acfspec.qpac.pkb_tmp, XPLMGetDatai(ctx->acfspec.qpac.pkb_ref));
+                    XPLMSetDatai(rcb->p_b_int, XPLMGetDatai(ctx->acfspec.qpac.pkb_ref));
                     if (ctx->acfspec.qpac.h_b_reg)
                     {
                         XPLMCommandBegin(ctx->acfspec.qpac.h_b_reg);
@@ -1828,7 +1871,7 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     {
                         XPLMCommandEnd(ctx->acfspec.qpac.h_b_reg);
                     }
-                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(ctx->acfspec.qpac.pkb_tmp));
+                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(rcb->p_b_int));
                     break;
                 default:
                     break;
@@ -3633,17 +3676,6 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
 {
     if (fbw && fbw->ready == 0)
     {
-        if (fbw->pkb_tmp == NULL)
-        {
-            fbw->pkb_tmp = XPLMRegisterDataAccessor("navP/refcon_qpacfbw/pkb_tmp",
-                                                    xplmType_Int, 1,
-                                                    &priv_getdata_i,
-                                                    &priv_setdata_i,
-                                                    NULL, NULL, NULL, NULL, NULL,
-                                                    NULL, NULL, NULL, NULL, NULL,
-                                                    &fbw->pkb_var, &fbw->pkb_var);
-            if (!fbw->pkb_tmp) return -1;
-        }
         if ((fbw->h_b_max = XPLMFindCommand("1-sim/brakes_max"    )) &&
             (fbw->h_b_reg = XPLMFindCommand("1-sim/brakes_regular")))
         {
@@ -3722,6 +3754,16 @@ static int priv_getdata_i(void *inRefcon)
 static void priv_setdata_i(void *inRefcon, int inValue)
 {
     *((int*)inRefcon) = inValue;
+}
+
+static float priv_getdata_f(void *inRefcon)
+{
+    return *((float*)inRefcon);
+}
+
+static void priv_setdata_f(void *inRefcon, float inValue)
+{
+    *((float*)inRefcon) = inValue;
 }
 
 #undef REGISTER_CHANDLER
