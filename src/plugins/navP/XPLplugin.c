@@ -68,14 +68,18 @@ PLUGIN_API int XPluginStart(char *outName,
     ndt_log_set_callback(&log_with_sdk);
 
     /* start our sub-plugins */
+#ifndef YFMS_ONLY
     if ((navp_init_ok = nvp_plugin_start(outName, outSig, outDesc)) != 1)
     {
         XPLMDebugString("Rodeo314 [error]: couldn't start navP\n");
     }
+#endif
+#ifndef NAVP_ONLY
     if ((yfms_init_ok = yfs_plugin_start(outName, outSig, outDesc)) != 1)
     {
         XPLMDebugString("Rodeo314 [error]: couldn't start YFMS\n");
     }
+#endif
     return 1;
 }
 
