@@ -54,6 +54,8 @@ typedef struct
 {
     float      ratio[2];
     XPLMDataRef p_b_rat;
+    chandler_command rg;
+    chandler_command mx;
 } refcon_braking;
 
 typedef struct
@@ -971,14 +973,16 @@ int nvp_chandlers_reset(void *inContext)
     ctx->gear.has_retractable_gear = -1;
 
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
-    ctx->acfspec.qpac.ready = 0;
-    ctx->acfspec.i733.ready = 0;
-    ctx->acfspec.x738.ready = 0;
-    ctx->otto.ffst.dr       = NULL;
-    ctx->otto.conn.cc.name  = NULL;
-    ctx->otto.disc.cc.name  = NULL;
-    ctx->athr.disc.cc.name  = NULL;
-    ctx->athr.toga.cc.name  = NULL;
+    ctx->acfspec.qpac.ready   = 0;
+    ctx->acfspec.i733.ready   = 0;
+    ctx->acfspec.x738.ready   = 0;
+    ctx->otto.ffst.dr         = NULL;
+    ctx->otto.conn.cc.name    = NULL;
+    ctx->otto.disc.cc.name    = NULL;
+    ctx->athr.disc.cc.name    = NULL;
+    ctx->athr.toga.cc.name    = NULL;
+    ctx->bking.rc_brk.rg.name = NULL;
+    ctx->bking.rc_brk.mx.name = NULL;
 
     /* Reset some datarefs to match X-Plane's defaults at startup */
     _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com1_power");
@@ -1408,16 +1412,20 @@ int nvp_chandlers_update(void *inContext)
 
         case NVP_ACF_B757_FF:
         case NVP_ACF_B767_FF:
-            ctx->otto.conn.cc.name = "private/ffsts/ap_cmdl";
-            ctx->otto.disc.cc.name = "1-sim/comm/AP/ap_disc";
-            ctx->athr.disc.cc.name = "1-sim/comm/AP/at_disc";
-            ctx->athr.toga.cc.name = "1-sim/comm/AP/at_toga";
+            ctx->otto.conn.cc.name    = "private/ffsts/ap_cmdl";
+            ctx->otto.disc.cc.name    = "1-sim/comm/AP/ap_disc";
+            ctx->athr.disc.cc.name    = "1-sim/comm/AP/at_disc";
+            ctx->athr.toga.cc.name    = "1-sim/comm/AP/at_toga";
+            ctx->bking.rc_brk.rg.name =  "1-sim/brakes_regular";
+            ctx->bking.rc_brk.mx.name =      "1-sim/brakes_max";
             break;
 
         case NVP_ACF_B777_FF:
-            ctx->otto.disc.cc.name = "777/ap_disc";
-            ctx->athr.disc.cc.name = "777/at_disc";
-            ctx->athr.toga.cc.name = "777/at_toga";
+            ctx->otto.disc.cc.name    =          "777/ap_disc";
+            ctx->athr.disc.cc.name    =          "777/at_disc";
+            ctx->athr.toga.cc.name    =          "777/at_toga";
+            ctx->bking.rc_brk.mx.name =     "1-sim/brakes_max";
+            ctx->bking.rc_brk.rg.name = "1-sim/brakes_regular";
             break;
 
         case NVP_ACF_EMBE_SS:
@@ -1749,14 +1757,41 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         return 0;
     }
+    else
+    {
+        if (rcb->mx.name)
+        {
+            if (rcb->mx.xpcr == NULL)
+            {
+                rcb->mx.xpcr = XPLMFindCommand(rcb->mx.name);
+            }
+        }
+        else
+        {
+            rcb->mx.xpcr = NULL;
+        }
+    }
     switch (inPhase)
     {
         case xplm_CommandBegin:
-        case xplm_CommandContinue:
+            if (rcb->mx.xpcr)
+            {
+                XPLMCommandBegin(rcb->mx.xpcr); break;
+            }
             if (p_b_rat < p_ratio) XPLMSetDataf(rcb->p_b_rat, p_ratio);
             break;
-        case xplm_CommandEnd:
-        default:
+        case xplm_CommandContinue:
+            if (rcb->mx.xpcr)
+            {
+                break;
+            }
+            if (p_b_rat < p_ratio) XPLMSetDataf(rcb->p_b_rat, p_ratio);
+            break;
+        default: // xplm_CommandEnd
+            if (rcb->mx.xpcr)
+            {
+                XPLMCommandEnd(rcb->mx.xpcr); break;
+            }
             if (p_b_rat < parkset) XPLMSetDataf(rcb->p_b_rat, 0.0f);
             break;
     }
@@ -1801,14 +1836,41 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         return 0;
     }
+    else
+    {
+        if (rcb->rg.name)
+        {
+            if (rcb->rg.xpcr == NULL)
+            {
+                rcb->rg.xpcr = XPLMFindCommand(rcb->rg.name);
+            }
+        }
+        else
+        {
+            rcb->rg.xpcr = NULL;
+        }
+    }
     switch (inPhase)
     {
         case xplm_CommandBegin:
-        case xplm_CommandContinue:
+            if (rcb->rg.xpcr)
+            {
+                XPLMCommandBegin(rcb->rg.xpcr); break;
+            }
             if (p_b_rat < p_ratio) XPLMSetDataf(rcb->p_b_rat, p_ratio);
             break;
-        case xplm_CommandEnd:
-        default:
+        case xplm_CommandContinue:
+            if (rcb->rg.xpcr)
+            {
+                break;
+            }
+            if (p_b_rat < p_ratio) XPLMSetDataf(rcb->p_b_rat, p_ratio);
+            break;
+        default: // xplm_CommandEnd
+            if (rcb->rg.xpcr)
+            {
+                XPLMCommandEnd(rcb->rg.xpcr); break;
+            }
             if (p_b_rat < parkset) XPLMSetDataf(rcb->p_b_rat, 0.0f);
             break;
     }
@@ -3482,7 +3544,10 @@ static int first_fcall_do(chandler_context *ctx)
         &ctx->otto.conn.cc,
         &ctx->otto.disc.cc,
         &ctx->athr.disc.cc,
-        &ctx->athr.toga.cc, NULL,
+        &ctx->athr.toga.cc,
+        &ctx->bking.rc_brk.rg,
+        &ctx->bking.rc_brk.mx,
+        NULL,
     };
     for (int i = 0; list[i]; i++)
     {
