@@ -56,7 +56,7 @@ int nvp_plugin_start(char *outName,
 
     /* all good */
     XPLMDebugString("navP [info]: version " NDT_VERSION "\n");
-    XPLMDebugString("navP [info]: XPluginStart OK\n"); return 1;
+    XPLMDebugString("navP [info]: nvp_plugin_start OK\n"); return 1;
 }
 
 void nvp_plugin_stop(void)
@@ -82,7 +82,7 @@ int nvp_plugin_enable(void)
     nvp_chandlers_setmnu(chandler_context, navpmenu_context);
 
     /* all good */
-    XPLMDebugString("navP [info]: XPluginEnable OK\n"); return 1;
+    XPLMDebugString("navP [info]: nvp_plugin_enable OK\n"); return 1;
 }
 
 void nvp_plugin_disable(void)
@@ -98,7 +98,7 @@ void nvp_plugin_disable(void)
     }
 
     /* all good */
-    XPLMDebugString("navP [info]: XPluginDisable OK\n");
+    XPLMDebugString("navP [info]: nvp_plugin_disable OK\n");
 }
 
 void nvp_plugin_message(XPLMPluginID inFromWho,
