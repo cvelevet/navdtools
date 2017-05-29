@@ -1711,6 +1711,7 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
         }
         XPLMSetDataf(rcb->p_b_rat, 1.0f);
+        XPLMSetDataf(rcb->p_b_flt, 1.0f);
         if (speak > 0) XPLMSpeakString("park brake set");
     }
     return 0;
@@ -1750,6 +1751,7 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
         }
         XPLMSetDataf(rcb->p_b_rat, 0.0f);
+        XPLMSetDataf(rcb->p_b_flt, 0.0f);
         if (speak > 0) XPLMSpeakString("park brake released");
     }
     return 0;
@@ -1765,9 +1767,8 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     chandler_context *ctx = inRefcon;
-    refcon_braking   *rcb = &ctx->bking.rc_brk;
-    float p_b_rat = XPLMGetDataf(rcb->p_b_rat);
-    float p_ratio = rcb->ratio[1], parkset = p_ratio + .01f;
+    refcon_braking *rcb = &ctx->bking.rc_brk;
+    float p_b_rat = XPLMGetDataf(rcb->p_b_rat), p_ratio = rcb->ratio[1];
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
         if (ctx->acfspec.qpac.ready == 0)
@@ -1819,23 +1820,33 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         case xplm_CommandBegin:
             if (rcb->mx.xpcr)
             {
-                XPLMCommandBegin(rcb->mx.xpcr); break;
+                XPLMCommandBegin(rcb->mx.xpcr);
             }
-            if (p_b_rat < p_ratio) XPLMSetDataf(rcb->p_b_rat, p_ratio);
+            else
+            {
+                if (p_b_rat < p_ratio)
+                {
+                    XPLMSetDataf(rcb->p_b_rat, p_ratio);
+                }
+            }
+            XPLMSetDataf(rcb->p_b_flt, p_b_rat);
             break;
         case xplm_CommandContinue:
             if (rcb->mx.xpcr)
             {
                 break;
             }
-            if (p_b_rat < p_ratio) XPLMSetDataf(rcb->p_b_rat, p_ratio);
+            if (p_b_rat < p_ratio)
+            {
+                XPLMSetDataf(rcb->p_b_rat, p_ratio);
+            }
             break;
         default: // xplm_CommandEnd
             if (rcb->mx.xpcr)
             {
-                XPLMCommandEnd(rcb->mx.xpcr); break;
+                XPLMCommandEnd(rcb->mx.xpcr);
             }
-            if (p_b_rat < parkset) XPLMSetDataf(rcb->p_b_rat, 0.0f);
+            XPLMSetDataf(rcb->p_b_rat, XPLMGetDataf(rcb->p_b_flt));
             break;
     }
     return 0;
@@ -1844,9 +1855,8 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     chandler_context *ctx = inRefcon;
-    refcon_braking   *rcb = &ctx->bking.rc_brk;
-    float p_b_rat = XPLMGetDataf(rcb->p_b_rat);
-    float p_ratio = rcb->ratio[0], parkset = p_ratio + .01f;
+    refcon_braking *rcb = &ctx->bking.rc_brk;
+    float p_b_rat = XPLMGetDataf(rcb->p_b_rat), p_ratio = rcb->ratio[0];
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
         if (ctx->acfspec.qpac.ready == 0)
@@ -1898,23 +1908,33 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         case xplm_CommandBegin:
             if (rcb->rg.xpcr)
             {
-                XPLMCommandBegin(rcb->rg.xpcr); break;
+                XPLMCommandBegin(rcb->rg.xpcr);
             }
-            if (p_b_rat < p_ratio) XPLMSetDataf(rcb->p_b_rat, p_ratio);
+            else
+            {
+                if (p_b_rat < p_ratio)
+                {
+                    XPLMSetDataf(rcb->p_b_rat, p_ratio);
+                }
+            }
+            XPLMSetDataf(rcb->p_b_flt, p_b_rat);
             break;
         case xplm_CommandContinue:
             if (rcb->rg.xpcr)
             {
                 break;
             }
-            if (p_b_rat < p_ratio) XPLMSetDataf(rcb->p_b_rat, p_ratio);
+            if (p_b_rat < p_ratio)
+            {
+                XPLMSetDataf(rcb->p_b_rat, p_ratio);
+            }
             break;
         default: // xplm_CommandEnd
             if (rcb->rg.xpcr)
             {
-                XPLMCommandEnd(rcb->rg.xpcr); break;
+                XPLMCommandEnd(rcb->rg.xpcr);
             }
-            if (p_b_rat < parkset) XPLMSetDataf(rcb->p_b_rat, 0.0f);
+            XPLMSetDataf(rcb->p_b_rat, XPLMGetDataf(rcb->p_b_flt));
             break;
     }
     return 0;
