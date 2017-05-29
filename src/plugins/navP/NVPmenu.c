@@ -221,12 +221,13 @@ typedef struct
 
         struct
         {
+            XPLMDataRef dr_all_snd;
             XPLMDataRef dr_vol_eng;
             XPLMDataRef dr_vol_prs;
             XPLMDataRef dr_vol_grt;
             XPLMDataRef dr_vol_wer;
             XPLMDataRef dr_vol_was;
-            XPLMDataRef dr_vol_coo;
+            XPLMDataRef dr_vol_atc;
             XPLMDataRef dr_vol_avs;
         } volume_prsts;
 
@@ -440,8 +441,9 @@ void* nvp_menu_init(void)
         get_dataref(&ctx->data.volume_prsts.dr_vol_grt, "sim/operation/sound/ground_volume_ratio" ) ||
         get_dataref(&ctx->data.volume_prsts.dr_vol_wer, "sim/operation/sound/weather_volume_ratio") ||
         get_dataref(&ctx->data.volume_prsts.dr_vol_was, "sim/operation/sound/warning_volume_ratio") ||
-        get_dataref(&ctx->data.volume_prsts.dr_vol_coo, "sim/operation/sound/radio_volume_ratio"  ) ||
-        get_dataref(&ctx->data.volume_prsts.dr_vol_avs, "sim/operation/sound/fan_volume_ratio"    ))
+        get_dataref(&ctx->data.volume_prsts.dr_vol_atc, "sim/operation/sound/radio_volume_ratio"  ) ||
+        get_dataref(&ctx->data.volume_prsts.dr_vol_avs, "sim/operation/sound/fan_volume_ratio"    ) ||
+        get_dataref(&ctx->data.volume_prsts.dr_all_snd, "sim/operation/sound/sound_on"            ))
     {
         goto fail;
     }
@@ -1194,7 +1196,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume);
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume);
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_coo, vradio);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_atc, vradio);
         }
         else
         {
@@ -1205,8 +1207,9 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume);
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume);
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_coo, vradio);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_atc, vradio);
         }
+        XPLMSetDatai(ctx->data.volume_prsts.dr_all_snd, 1);
         XPLMSpeakString("Volume set");
         return;
     }
