@@ -28,12 +28,14 @@
 #include "common/common.h"
 
 #include "NVPplugin.h"
+#include "YFSplugin.h"
 
 /* Logging callback */
 static int log_with_sdk(const char *format, va_list ap);
 
 /* Miscellaneous data */
 int navp_init_ok = 0;
+int yfms_init_ok = 0;
 
 #if IBM
 #include <windows.h>
@@ -70,7 +72,10 @@ PLUGIN_API int XPluginStart(char *outName,
     {
         XPLMDebugString("Rodeo314 [error]: couldn't start navP\n");
     }
-
+    if ((yfms_init_ok = yfs_plugin_start(outName, outSig, outDesc)) != 1)
+    {
+        XPLMDebugString("Rodeo314 [error]: couldn't start YFMS\n");
+    }
     return 1;
 }
 
@@ -80,6 +85,10 @@ PLUGIN_API void XPluginStop(void)
     if (navp_init_ok)
     {
         nvp_plugin_stop();
+    }
+    if (yfms_init_ok)
+    {
+        yfs_plugin_stop();
     }
 
     /* unset ndt_log callback */
@@ -97,7 +106,14 @@ PLUGIN_API int XPluginEnable(void)
             navp_init_ok = 0;
         }
     }
-
+    if (yfms_init_ok)
+    {
+        if (yfs_plugin_enable() != 1)
+        {
+            XPLMDebugString("Rodeo314 [error]: couldn't enable YFMS\n");
+            yfms_init_ok = 0;
+        }
+    }
     return 1;
 }
 
@@ -107,6 +123,10 @@ PLUGIN_API void XPluginDisable(void)
     if (navp_init_ok)
     {
         nvp_plugin_disable();
+    }
+    if (yfms_init_ok)
+    {
+        yfs_plugin_disable();
     }
 }
 
@@ -118,6 +138,10 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
     if (navp_init_ok)
     {
         nvp_plugin_message(inFromWho, inMessage, inParam);
+    }
+    if (yfms_init_ok)
+    {
+        yfs_plugin_message(inFromWho, inMessage, inParam);
     }
 }
 
