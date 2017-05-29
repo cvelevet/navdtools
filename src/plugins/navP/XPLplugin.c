@@ -86,11 +86,11 @@ PLUGIN_API int XPluginStart(char *outName,
 PLUGIN_API void XPluginStop(void)
 {
     /* stop our sub-plugins */
-    if (navp_init_ok)
+    if (navp_init_ok == 1)
     {
         nvp_plugin_stop();
     }
-    if (yfms_init_ok)
+    if (yfms_init_ok == 1)
     {
         yfs_plugin_stop();
     }
@@ -102,7 +102,7 @@ PLUGIN_API void XPluginStop(void)
 PLUGIN_API int XPluginEnable(void)
 {
     /* enable our sub-plugins */
-    if (navp_init_ok)
+    if (navp_init_ok == 1)
     {
         if (nvp_plugin_enable() != 1)
         {
@@ -110,7 +110,7 @@ PLUGIN_API int XPluginEnable(void)
             navp_init_ok = 0;
         }
     }
-    if (yfms_init_ok)
+    if (yfms_init_ok == 1)
     {
         if (yfs_plugin_enable() != 1)
         {
@@ -124,11 +124,11 @@ PLUGIN_API int XPluginEnable(void)
 PLUGIN_API void XPluginDisable(void)
 {
     /* disable our sub-plugins */
-    if (navp_init_ok)
+    if (navp_init_ok == 1)
     {
         nvp_plugin_disable();
     }
-    if (yfms_init_ok)
+    if (yfms_init_ok == 1)
     {
         yfs_plugin_disable();
     }
@@ -139,11 +139,11 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
                                       void        *inParam)
 {
     /* forward all messages to out sub-plugins */
-    if (navp_init_ok)
+    if (navp_init_ok == 1)
     {
         nvp_plugin_message(inFromWho, inMessage, inParam);
     }
-    if (yfms_init_ok)
+    if (yfms_init_ok == 1)
     {
         yfs_plugin_message(inFromWho, inMessage, inParam);
     }
