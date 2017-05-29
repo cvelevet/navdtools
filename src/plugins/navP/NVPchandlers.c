@@ -2322,15 +2322,16 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     if (inPhase == xplm_CommandEnd)
     {
         chandler_context *ctx = inRefcon;
-        if (!XPLMGetDatai(ctx->callouts.ref_flap_lever))
+        if (XPLMGetDatai(ctx->callouts.ref_flap_lever) <= 0)
         {
             return 1;
         }
         switch (ctx->atyp)
         {
             case NVP_ACF_A320_JD:
-            case NVP_ACF_A320_QP:
             case NVP_ACF_A330_JD:
+                return 1; // no callouts for J.A.R. addons
+            case NVP_ACF_A320_QP:
             case NVP_ACF_A330_RW:
             case NVP_ACF_A350_FF:
             case NVP_ACF_A380_PH:
