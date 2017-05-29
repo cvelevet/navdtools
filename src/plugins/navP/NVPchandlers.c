@@ -118,6 +118,9 @@ typedef struct
     XPLMDataRef wvr;
     XPLMDataRef wxr;
     XPLMDataRef tmp;
+    XPLMDataRef spc;
+    XPLMDataRef snd;
+    XPLMDataRef txt;
 } refcon_volumes;
 
 typedef struct
@@ -647,7 +650,10 @@ void* nvp_chandlers_init(void)
         (ctx->volumes.gvr = XPLMFindDataRef( "sim/operation/sound/ground_volume_ratio")) == NULL ||
         (ctx->volumes.atc = XPLMFindDataRef(  "sim/operation/sound/radio_volume_ratio")) == NULL ||
         (ctx->volumes.pvr = XPLMFindDataRef(   "sim/operation/sound/prop_volume_ratio")) == NULL ||
-        (ctx->volumes.fvr = XPLMFindDataRef(    "sim/operation/sound/fan_volume_ratio")) == NULL)
+        (ctx->volumes.fvr = XPLMFindDataRef(    "sim/operation/sound/fan_volume_ratio")) == NULL ||
+        (ctx->volumes.spc = XPLMFindDataRef(           "sim/operation/sound/speech_on")) == NULL ||
+        (ctx->volumes.snd = XPLMFindDataRef(            "sim/operation/sound/sound_on")) == NULL ||
+        (ctx->volumes.txt = XPLMFindDataRef(            "sim/operation/prefs/text_out")) == NULL)
     {
         goto fail;
     }
@@ -1708,6 +1714,7 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             if (XPLMGetDatai(ctx->volumes.pe1) == 1)
             {
                 XPLMSetDataf(ctx->volumes.atc, 1.0f);
+                XPLMSetDatai(ctx->volumes.snd,    1);
             }
         }
         XPLMSetDataf(rcb->p_b_rat, 1.0f);
@@ -3688,6 +3695,10 @@ static int first_fcall_do(chandler_context *ctx)
         XPLMSetDataf(ctx->volumes.fvr, 0.25f);
         XPLMSetDataf(ctx->volumes.atc, 0.50f);
     }
+    XPLMSetDatai(ctx->volumes.snd, 1); // ALL sounds
+    XPLMSetDatai(ctx->volumes.txt, 1); // "text" ATC
+    XPLMSetDatai(ctx->volumes.spc, 0); // verbal ATC
+
     /*
      * Slight frame rate bump, but it makes clouds a bit more transparent :|
      */
