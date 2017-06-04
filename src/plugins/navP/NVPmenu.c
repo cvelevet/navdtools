@@ -1165,7 +1165,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
          * NOTE: NVPchandlers.c, first_fcall_do() has code covering the same
          * functionality, don't forget to update it when making changes here
          */
-        XPLMDataRef     ea50;
+        XPLMDataRef ff, ea50;
         float vradio, volume;
         switch (itx->mivalue)
         {
@@ -1200,7 +1200,10 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         }
         else
         {
-            // TODO: different ratios for e.g. radios, props, engines etc.
+            if ((ff = XPLMFindDataRef("volumeX")))
+            {
+                XPLMSetDataf(ff, volume / 4.0f); // FlightFactor master slider
+            }
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume);
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume);
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume);
