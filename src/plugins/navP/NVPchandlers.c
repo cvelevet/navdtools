@@ -2282,32 +2282,38 @@ static int chandler_rt_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
  */
 static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    chandler_context *ctx = inRefcon;
-    if (ctx->revrs.n_engines == -1)
+    if (inPhase == xplm_CommandEnd)
     {
-        ctx->revrs.n_engines = XPLMGetDatai(ctx->revrs.acf_numng);
-        ctx->revrs.n_engines = ctx->revrs.n_engines > 8 ? 8 : ctx->revrs.n_engines;
-        ctx->revrs.n_engines = ctx->revrs.n_engines < 0 ? 0 : ctx->revrs.n_engines;
-    }
-    if (inPhase == xplm_CommandEnd && ctx->revrs.n_engines >= 1)
-    {
-        XPLMSetDatavi(ctx->revrs.prop_mode, propmode_fwd_get(), 0, ctx->revrs.n_engines);
+        chandler_context *ctx = inRefcon;
+        if (ctx->revrs.n_engines == -1)
+        {
+            ctx->revrs.n_engines = XPLMGetDatai(ctx->revrs.acf_numng);
+            if (ctx->revrs.n_engines > 8) ctx->revrs.n_engines = 8;
+            if (ctx->revrs.n_engines < 0) ctx->revrs.n_engines = 0;
+        }
+        if (ctx->revrs.n_engines >= 1)
+        {
+            XPLMSetDatavi(ctx->revrs.prop_mode, propmode_fwd_get(), 0, ctx->revrs.n_engines);
+        }
     }
     return 0;
 }
 
 static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    chandler_context *ctx = inRefcon;
-    if (ctx->revrs.n_engines == -1)
+    if (inPhase == xplm_CommandEnd)
     {
-        ctx->revrs.n_engines = XPLMGetDatai(ctx->revrs.acf_numng);
-        ctx->revrs.n_engines = ctx->revrs.n_engines > 8 ? 8 : ctx->revrs.n_engines;
-        ctx->revrs.n_engines = ctx->revrs.n_engines < 0 ? 0 : ctx->revrs.n_engines;
-    }
-    if (inPhase == xplm_CommandEnd && ctx->revrs.n_engines >= 1)
-    {
-        XPLMSetDatavi(ctx->revrs.prop_mode, propmode_rev_get(), 0, ctx->revrs.n_engines);
+        chandler_context *ctx = inRefcon;
+        if (ctx->revrs.n_engines == -1)
+        {
+            ctx->revrs.n_engines = XPLMGetDatai(ctx->revrs.acf_numng);
+            if (ctx->revrs.n_engines > 8) ctx->revrs.n_engines = 8;
+            if (ctx->revrs.n_engines < 0) ctx->revrs.n_engines = 0;
+        }
+        if (ctx->revrs.n_engines >= 1)
+        {
+            XPLMSetDatavi(ctx->revrs.prop_mode, propmode_rev_get(), 0, ctx->revrs.n_engines);
+        }
     }
     return 0;
 }
@@ -3694,6 +3700,12 @@ static int first_fcall_do(chandler_context *ctx)
             ctx->revrs.prop_fset += 1;
             ctx->revrs.prop_fval = XPLMGetDataf(ctx->revrs.prop_fref) - .01f;
         }
+    }
+    if (ctx->revrs.n_engines == -1)
+    {
+        ctx->revrs.n_engines = XPLMGetDatai(ctx->revrs.acf_numng);
+        if (ctx->revrs.n_engines > 8) ctx->revrs.n_engines = 8;
+        if (ctx->revrs.n_engines < 0) ctx->revrs.n_engines = 0;
     }
 
     /* Custom ground stabilization system (via flight loop callback) */
