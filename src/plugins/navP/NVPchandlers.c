@@ -359,10 +359,12 @@ typedef struct
         } pff;
 
         int         n_engines;
+        int         prop_fset;
+        float       prop_fval;
+        XPLMDataRef prop_fref;
+        XPLMDataRef propspeed;
         XPLMDataRef acf_numng;
         XPLMDataRef prop_mode;
-        XPLMDataRef propspeed;
-        XPLMDataRef prop_maxi;
         XPLMCommandRef propup;
     } revrs;
 
@@ -763,11 +765,11 @@ void* nvp_chandlers_init(void)
     ctx->revrs.propup         = XPLMFindCommand  ("sim/engines/prop_up");
     ctx->revrs.acf_numng      = XPLMFindDataRef  ("sim/aircraft/engine/acf_num_engines");
     ctx->revrs.prop_mode      = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/prop_mode");
-    ctx->revrs.prop_maxi      = XPLMFindDataRef  ("sim/aircraft/controls/acf_RSC_redline_prp");
+    ctx->revrs.prop_fref      = XPLMFindDataRef  ("sim/aircraft/controls/acf_RSC_redline_prp");
     ctx->revrs.propspeed      = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/prop_rotation_speed_rad_sec_all");
     if (!ctx->revrs.fwd.cb.command || !ctx->revrs.rev.cb.command ||
         !ctx->revrs.propup         || !ctx->revrs.acf_numng      ||
-        !ctx->revrs.prop_mode      || !ctx->revrs.prop_maxi      || !ctx->revrs.propspeed)
+        !ctx->revrs.prop_mode      || !ctx->revrs.prop_fref      || !ctx->revrs.propspeed)
     {
         goto fail;
     }
@@ -1025,6 +1027,7 @@ int nvp_chandlers_reset(void *inContext)
     ctx->acfspec.qpac.ready   = 0;
     ctx->acfspec.i733.ready   = 0;
     ctx->acfspec.x738.ready   = 0;
+    ctx->revrs.prop_fset      = 0;
     ctx->otto.ffst.dr         = NULL;
     ctx->otto.conn.cc.name    = NULL;
     ctx->otto.disc.cc.name    = NULL;
@@ -2311,10 +2314,15 @@ static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_r_pff(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    chandler_context *ctx = inRefcon;
     if (inPhase == xplm_CommandEnd)
     {
-        XPLMSetDataf   (ctx->revrs.propspeed, XPLMGetDataf(ctx->revrs.prop_maxi) - .01f);
+        chandler_context *ctx = inRefcon;
+        if (ctx->revrs.prop_fset == 0)
+        {
+            ctx->revrs.prop_fset += 1;
+            ctx->revrs.prop_fval = XPLMGetDataf(ctx->revrs.prop_fref) - .01f;
+        }
+        XPLMSetDataf   (ctx->revrs.propspeed,   ctx->revrs.prop_fval);
         XPLMCommandOnce(ctx->revrs.propup);
     }
     return 0;
@@ -3678,6 +3686,14 @@ static int first_fcall_do(chandler_context *ctx)
     if (ctx->gear.has_retractable_gear == -1)
     {
         ctx->gear.has_retractable_gear = !!XPLMGetDatai(ctx->gear.acf_gear_retract);
+    }
+    if (ctx->athr.disc.cc.xpcr == ctx->revrs.pff.cb.command)
+    {
+        if (ctx->revrs.prop_fset == 0)
+        {
+            ctx->revrs.prop_fset += 1;
+            ctx->revrs.prop_fval = XPLMGetDataf(ctx->revrs.prop_fref) - .01f;
+        }
     }
 
     /* Custom ground stabilization system (via flight loop callback) */
