@@ -364,6 +364,7 @@ typedef struct
         XPLMDataRef prop_fref;
         XPLMDataRef propspeed;
         XPLMDataRef acf_numng;
+        XPLMDataRef acf_ngtyp;
         XPLMDataRef prop_mode;
         XPLMCommandRef propup;
     } revrs;
@@ -763,13 +764,15 @@ void* nvp_chandlers_init(void)
     ctx->revrs.rev.cb.command = XPLMCreateCommand("navP/thrust/reverse", "deploy thrust reversers");
     ctx->revrs.pff.cb.command = XPLMCreateCommand("navP/thrust/propfin", "all props to full fine");
     ctx->revrs.propup         = XPLMFindCommand  ("sim/engines/prop_up");
+    ctx->revrs.acf_ngtyp      = XPLMFindDataRef  ("sim/aircraft/prop/acf_en_type");
     ctx->revrs.acf_numng      = XPLMFindDataRef  ("sim/aircraft/engine/acf_num_engines");
     ctx->revrs.prop_mode      = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/prop_mode");
     ctx->revrs.prop_fref      = XPLMFindDataRef  ("sim/aircraft/controls/acf_RSC_redline_prp");
     ctx->revrs.propspeed      = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/prop_rotation_speed_rad_sec_all");
     if (!ctx->revrs.fwd.cb.command || !ctx->revrs.rev.cb.command ||
-        !ctx->revrs.propup         || !ctx->revrs.acf_numng      ||
-        !ctx->revrs.prop_mode      || !ctx->revrs.prop_fref      || !ctx->revrs.propspeed)
+        !ctx->revrs.acf_numng      || !ctx->revrs.acf_ngtyp      ||
+        !ctx->revrs.prop_mode      || !ctx->revrs.propup         ||
+        !ctx->revrs.prop_fref      || !ctx->revrs.propspeed)
     {
         goto fail;
     }
@@ -1085,6 +1088,7 @@ int nvp_chandlers_update(void *inContext)
     char xaircraft_tail_numb[41] = "";
     char xaircraft_icao_code[41] = "";
     char acf_file[257], acf_path[513];
+    int  engine_type_at_idx_zero = -1;
     chandler_context *ctx = inContext;
     if (!ctx)
     {
@@ -1429,6 +1433,12 @@ int nvp_chandlers_update(void *inContext)
         ctx->bking.rc_brk.ratio[1] = .750f; // values
     }
 
+    /* determine primary engine type */
+    if (XPLMGetDatai(ctx->revrs.acf_numng) > 0)
+    {
+        XPLMGetDatavi(ctx->revrs.acf_ngtyp, &engine_type_at_idx_zero, 0, 1);
+    }
+
     /* plane-specific custom commands for automation disconnects, if any */
     switch (ctx->atyp)
     {
@@ -1505,14 +1515,30 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case NVP_ACF_B737_FJ:
-        case NVP_ACF_GENERIC: // no A/T -> prop full fine
-            ctx->athr.disc.cc.name = "navP/thrust/propfin";
-            ctx->otto.conn.cc.name = "sim/autopilot/fdir_servos_up_one";
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->otto.conn.cc.name = "sim/autopilot/fdir_servos_up_one";
             break;
 
-        default: // not generic but no custom commands
-            ctx->athr.disc.cc.name = "navP/thrust/propfin";
+        case NVP_ACF_GENERIC:
+            {
+                switch (engine_type_at_idx_zero)
+                {
+                    case 4: case 5: // turbojet/turbofan
+                        ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+                        break;
+                    case 0: case 1: // piston
+                    case 2: case 8: // turbine
+                        ctx->athr.disc.cc.name = "navP/thrust/propfin";
+                        break;
+                    default:
+                        break;
+                }
+            }
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->otto.conn.cc.name = "sim/autopilot/fdir_servos_up_one";
+            break;
+
+        default: // not generic but no usable commands
             break;
     }
 
