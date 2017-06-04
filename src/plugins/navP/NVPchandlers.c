@@ -2865,6 +2865,12 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             }
                             cdu->i_disabled = 0; break;
                         }
+                        if (((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup"))  &&
+                             (cdu->command[1] = XPLMFindCommand("sim/GPS/g430n2_popup"))) ||
+                            ((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup"))))
+                        {
+                            cdu->i_disabled = 0; break; // X-Plane GPS
+                        }
                     }
                     if (sfmc != XPLM_NO_PLUGIN_ID)
                     {
