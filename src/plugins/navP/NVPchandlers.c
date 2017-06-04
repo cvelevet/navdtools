@@ -3276,7 +3276,43 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDataf, 0.5f, "1-sim/cond/midTempControl");                // Temp. control (mid ca.) (auto)
             _DO(1, XPLMSetDataf, 0.5f, "1-sim/cond/aftTempControl");                // Temp. control (aft ca.) (auto)
             _DO(1, XPLMSetDataf, 0.5f, "1-sim/cond/fltdkTempControl");              // Temp. control (f. deck) (auto)
-            break;
+            _DO(1, XPLMSetDatai,    0, "params/autosave");                          // do this before changing params
+            _DO(1, XPLMSetDataf, 0.0f, "params/sound/cc");                          // cabin crew: Daniel OFF (yaaaay!)
+            _DO(1, XPLMSetDataf, 0.0f, "params/reflectLevelInstruments");           // custom reflections OFF
+            _DO(1, XPLMSetDataf, 0.0f, "params/reflectLevelWindows");               // custom reflections OFF
+            _DO(1, XPLMSetDataf, 0.0f, "params/reflectLevel");                      // custom reflections OFF
+            _DO(1, XPLMSetDataf, 0.0f, "params/effectLevelGlowScreen");             // custom screen glow OFF
+            _DO(1, XPLMSetDataf, 0.0f, "params/effectLevelGlowCDU");                // custom screen glow OFF
+            _DO(1, XPLMSetDataf, 0.0f, "params/effectLevelBlick");                  // custom screen glow OFF
+            _DO(1, XPLMSetDataf, 0.0f, "params/effectLevel");                       // custom screen glow OFF
+            _DO(1, XPLMSetDataf, 0.1f, "params/wingflexLevel");                     // custom "wing flex" LOW
+            _DO(1, XPLMSetDatai,    0, "params/constrol");                          // F/O. is in control OFF
+            _DO(1, XPLMSetDatai,    0, "params/shakeOnTurb");                       // shake in turb. air OFF
+            _DO(1, XPLMSetDatai,    0, "params/customEffects");                     // custom ef. control OFF
+            _DO(1, XPLMSetDatai,    0, "params/windshearType");                     // advanced windshear OFF
+            _DO(1, XPLMSetDatai,    0, "params/autoGearLever");                     // automatic g. lever OFF
+            _DO(1, XPLMSetDatai,    0, "params/last_position");                     // inter-flight data  OFF
+            _DO(1, XPLMSetDatai,    0, "params/realism_level");                     // "challenge" level  OFF (0)
+            _DO(1, XPLMSetDatai,    1, "757Avionics/fms/type");                     // modern FMGS system ON
+            _DO(1, XPLMSetDatai,    1, "params/throttleblock");                     // throttle level bl. ON
+            _DO(1, XPLMSetDatai,    1, "params/real_limits");                       // real aircr. limits ON
+            _DO(1, XPLMSetDatai,    1, "params/real_time");                         // real aircr. timing ON
+            _DO(1, XPLMSetDatai,    1, "params/realSound");                         // real sound config. ON
+            _DO(1, XPLMSetDatai,    1, "params/yokehide");                          // hide CA & FO yokes ON
+            _DO(1, XPLMSetDatai,    1, "params/wxrType");                           // real weather radar ON
+            _DO(1, XPLMSetDatai,    1, "params/metric");                            // metric measurement ON
+            _DO(1, XPLMSetDatai,    1, "params/wheel");                             // scr. wheel support ON (default behavior)
+            _DO(1, XPLMSetDatai,    1, "params/gpu");                               // minimal ground config
+            _DO(1, XPLMSetDatai,    1, "params/gate");                              // minimal ground config
+            _DO(1, XPLMSetDatai,    1, "params/fuel_truck");                        // minimal ground config
+            _DO(1, XPLMSetDatai,    0, "params/ACU");                               // minimal ground config
+            _DO(1, XPLMSetDatai,    0, "params/LSU");                               // minimal ground config
+            _DO(1, XPLMSetDatai,    0, "params/bus");                               // minimal ground config
+            _DO(1, XPLMSetDatai,    0, "params/cover");                             // minimal ground config
+            _DO(1, XPLMSetDatai,    0, "params/deice");                             // minimal ground config
+            _DO(1, XPLMSetDatai,    0, "params/stairs");                            // minimal ground config
+            _DO(1, XPLMSetDatai,    0, "params/ground_start_unit");                 // minimal ground config
+            break; // note: no datarefs for charts, chocks, doors; some params only affect either of 757/767
 
         case NVP_ACF_B777_FF:
             _DO(1, XPLMSetDatai,    0, "anim/31/switch");                           // VOR1 on ND1 off
@@ -3687,6 +3723,10 @@ static int first_fcall_do(chandler_context *ctx)
     }
     else
     {
+        if ((ctx->volumes.tmp = XPLMFindDataRef("volumeX")))
+        {
+            XPLMSetDataf(ctx->volumes.tmp, 0.0625f); // FF757/767: master slider
+        }
         XPLMSetDataf(ctx->volumes.wxr, 0.25f);
         XPLMSetDataf(ctx->volumes.wvr, 0.25f);
         XPLMSetDataf(ctx->volumes.evr, 0.25f);
