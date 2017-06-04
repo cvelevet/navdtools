@@ -58,8 +58,10 @@ typedef struct
     XPLMDataRef p_b_flt;
     XPLMDataRef p_b_int;
     XPLMDataRef p_b_rat;
+    XPLMDataRef protate;
     chandler_command rg;
     chandler_command mx;
+    chandler_command ro;
 } refcon_braking;
 
 typedef struct
@@ -1038,6 +1040,7 @@ int nvp_chandlers_reset(void *inContext)
     ctx->athr.toga.cc.name    = NULL;
     ctx->bking.rc_brk.rg.name = NULL;
     ctx->bking.rc_brk.mx.name = NULL;
+    ctx->bking.rc_brk.ro.name = NULL;
 
     /* Reset some datarefs to match X-Plane's defaults at startup */
     _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com1_power");
@@ -1508,10 +1511,20 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case NVP_ACF_MD80_RO:
-            ctx->athr.disc.cc.name = "Rotate/md80/autopilot/at_switch_off";
+            if ((ctx->bking.rc_brk.protate = XPLMFindDataRef("Rotate/md80/systems/parking_brake_toggle_clicked")))
+            {
+                // special case: no need for deferred initialization with this command
+                (ctx->bking.rc_brk.ro.name = "Rotate/md80/systems/parking_brake_toggle");
+                (ctx->bking.rc_brk.ro.xpcr = XPLMFindCommand(ctx->bking.rc_brk.ro.name));
+                if (ctx->bking.rc_brk.ro.xpcr == NULL)
+                {
+                    ctx->bking.rc_brk.ro.name  = NULL;
+                }
+            }
             ctx->athr.toga.cc.name = "Rotate/md80/autopilot/to_ga_button";
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->otto.conn.cc.name = "sim/autopilot/fdir_servos_up_one";
+            ctx->athr.disc.cc.name = "Rotate/md80/autopilot/at_disc";
+            ctx->otto.disc.cc.name = "Rotate/md80/autopilot/ap_disc";
             break;
 
         case NVP_ACF_B737_FJ:
@@ -1746,8 +1759,18 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMSetDatai(ctx->volumes.snd,    1);
             }
         }
-        XPLMSetDataf(rcb->p_b_rat, 1.0f);
-        XPLMSetDataf(rcb->p_b_flt, 1.0f);
+        if (rcb->ro.name)
+        {
+            if (XPLMGetDatai(rcb->protate) != 1)
+            {
+                XPLMCommandOnce(rcb->ro.xpcr);
+            }
+        }
+        else
+        {
+            XPLMSetDataf(rcb->p_b_rat, 1.0f);
+            XPLMSetDataf(rcb->p_b_flt, 1.0f);
+        }
         if (speak > 0) XPLMSpeakString("park brake set");
     }
     return 0;
@@ -1786,8 +1809,18 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMSetDataf(ctx->volumes.atc, 1.0f);
             }
         }
-        XPLMSetDataf(rcb->p_b_rat, 0.0f);
-        XPLMSetDataf(rcb->p_b_flt, 0.0f);
+        if (rcb->ro.name)
+        {
+            if (XPLMGetDatai(rcb->protate) != 0)
+            {
+                XPLMCommandOnce(rcb->ro.xpcr);
+            }
+        }
+        else
+        {
+            XPLMSetDataf(rcb->p_b_rat, 0.0f);
+            XPLMSetDataf(rcb->p_b_flt, 0.0f);
+        }
         if (speak > 0) XPLMSpeakString("park brake released");
     }
     return 0;
@@ -3554,6 +3587,7 @@ static int first_fcall_do(chandler_context *ctx)
                 float instrument_brightness_ratio[1] = { 1.0f, };
                 XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 0, 1);        // LED readouts intensity control
             }
+            _DO(1, XPLMSetDatai, 1, "Rotate/md80/electrical/GPU_power_available");
             _DO(1, XPLMSetDatai, 1, "Rotate/md80/misc/hide_yoke_button_clicked");
             _DO(1, XPLMSetDatai, 2, "Rotate/md80/instruments/nav_display_range");
             _DO(1, XPLMSetDatai, 2, "Rotate/md80/instruments/nav_display_mode");
