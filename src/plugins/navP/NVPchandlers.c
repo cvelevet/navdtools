@@ -1433,10 +1433,23 @@ int nvp_chandlers_update(void *inContext)
         ctx->bking.rc_brk.ratio[1] = .750f; // values
     }
 
-    /* determine primary engine type */
-    if (XPLMGetDatai(ctx->revrs.acf_numng) > 0)
+    /* determine engine count and primary engine type */
+    if ((ctx->revrs.n_engines = XPLMGetDatai(ctx->revrs.acf_numng)))
     {
-        XPLMGetDatavi(ctx->revrs.acf_ngtyp, &engine_type_at_idx_zero, 0, 1);
+        if (ctx->revrs.n_engines > 8) ctx->revrs.n_engines = 8;
+        if (ctx->revrs.n_engines < 0) ctx->revrs.n_engines = 0;
+    }
+    if (ctx->revrs.n_engines > 0)
+    {
+        int t[8]; XPLMGetDatavi(ctx->revrs.acf_ngtyp, t, 0, ctx->revrs.n_engines);
+        for (int i = 1; i < ctx->revrs.n_engines; i++)
+        {
+            if (t[i] != t[0])
+            {
+                ctx->revrs.n_engines = i; break; // additional dummy engines, used by e.g. Carenado
+            }
+        }
+        engine_type_at_idx_zero = t[0];
     }
 
     /* plane-specific custom commands for automation disconnects, if any */
@@ -2311,12 +2324,6 @@ static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     if (inPhase == xplm_CommandEnd)
     {
         chandler_context *ctx = inRefcon;
-        if (ctx->revrs.n_engines == -1)
-        {
-            ctx->revrs.n_engines = XPLMGetDatai(ctx->revrs.acf_numng);
-            if (ctx->revrs.n_engines > 8) ctx->revrs.n_engines = 8;
-            if (ctx->revrs.n_engines < 0) ctx->revrs.n_engines = 0;
-        }
         if (ctx->revrs.n_engines >= 1)
         {
             XPLMSetDatavi(ctx->revrs.prop_mode, propmode_fwd_get(), 0, ctx->revrs.n_engines);
@@ -2330,12 +2337,6 @@ static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     if (inPhase == xplm_CommandEnd)
     {
         chandler_context *ctx = inRefcon;
-        if (ctx->revrs.n_engines == -1)
-        {
-            ctx->revrs.n_engines = XPLMGetDatai(ctx->revrs.acf_numng);
-            if (ctx->revrs.n_engines > 8) ctx->revrs.n_engines = 8;
-            if (ctx->revrs.n_engines < 0) ctx->revrs.n_engines = 0;
-        }
         if (ctx->revrs.n_engines >= 1)
         {
             XPLMSetDatavi(ctx->revrs.prop_mode, propmode_rev_get(), 0, ctx->revrs.n_engines);
@@ -3726,12 +3727,6 @@ static int first_fcall_do(chandler_context *ctx)
             ctx->revrs.prop_fset += 1;
             ctx->revrs.prop_fval = XPLMGetDataf(ctx->revrs.prop_fref) - .01f;
         }
-    }
-    if (ctx->revrs.n_engines == -1)
-    {
-        ctx->revrs.n_engines = XPLMGetDatai(ctx->revrs.acf_numng);
-        if (ctx->revrs.n_engines > 8) ctx->revrs.n_engines = 8;
-        if (ctx->revrs.n_engines < 0) ctx->revrs.n_engines = 0;
     }
 
     /* Custom ground stabilization system (via flight loop callback) */
