@@ -3710,10 +3710,17 @@ static int first_fcall_do(chandler_context *ctx)
                 if (!STRN_CASECMP_AUTO(ctx->auth, "Alabeo") ||
                     !STRN_CASECMP_AUTO(ctx->auth, "Carenado"))
                 {
-                    if (!STRN_CASECMP_AUTO(ctx->desc, "C207 Skywagon") ||
-                        !STRN_CASECMP_AUTO(ctx->desc, "Pilatus PC12"))
+                    if (!STRN_CASECMP_AUTO(ctx->desc, "Pilatus PC12"))
                     {
-                        // make these planes less tail-heavy to improve ground handling
+                        // make the aircraft less tail-heavy to improve ground handling
+                        _DO(0, XPLMSetDataf, -0.25f, "sim/aircraft/overflow/acf_cgZ_fwd");
+                        _DO(0, XPLMSetDataf, -0.16f, "sim/flightmodel/misc/cgz_ref_to_default");
+                        _DO(0, XPLMSetDataf, +0.01f, "sim/aircraft/overflow/acf_cgZ_aft");
+                        ctx->ground.nominal_roll_c *= 2.0f; // slow down a bit for taxi
+                    }
+                    if (!STRN_CASECMP_AUTO(ctx->desc, "C207 Skywagon"))
+                    {
+                        // make the aircraft less tail-heavy to improve ground handling
                         _DO(0, XPLMSetDataf, -0.20f, "sim/aircraft/overflow/acf_cgZ_fwd");
                         _DO(0, XPLMSetDataf, -0.10f, "sim/flightmodel/misc/cgz_ref_to_default");
                         _DO(0, XPLMSetDataf, +0.01f, "sim/aircraft/overflow/acf_cgZ_aft");
