@@ -1461,8 +1461,8 @@ int nvp_chandlers_update(void *inContext)
         case NVP_ACF_A320_JD:
         case NVP_ACF_A330_JD:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-/*untested*/ctx->otto.conn.cc.name = "sim/autopilot/fdir_servos_up_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+/*untested*/ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             break;
 
         case NVP_ACF_A320_QP:
@@ -1518,9 +1518,9 @@ int nvp_chandlers_update(void *inContext)
         case NVP_ACF_HA4T_RW:
         case NVP_ACF_SSJ1_RZ:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->otto.conn.cc.name = "sim/autopilot/fdir_servos_up_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             ctx->athr.toga.cc.name = "sim/autopilot/autothrottle_on";
+            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             break;
 
         case NVP_ACF_MD80_RO:
@@ -1535,14 +1535,14 @@ int nvp_chandlers_update(void *inContext)
                 }
             }
             ctx->athr.toga.cc.name = "Rotate/md80/autopilot/to_ga_button";
-            ctx->otto.conn.cc.name = "sim/autopilot/fdir_servos_up_one";
             ctx->athr.disc.cc.name = "Rotate/md80/autopilot/at_disc";
             ctx->otto.disc.cc.name = "Rotate/md80/autopilot/ap_disc";
+            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             break;
 
         case NVP_ACF_B737_FJ:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->otto.conn.cc.name = "sim/autopilot/fdir_servos_up_one";
+            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             break;
 
         case NVP_ACF_GENERIC:
@@ -1561,7 +1561,7 @@ int nvp_chandlers_update(void *inContext)
                 }
             }
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->otto.conn.cc.name = "sim/autopilot/fdir_servos_up_one";
+            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             break;
 
         default: // not generic but no usable commands
