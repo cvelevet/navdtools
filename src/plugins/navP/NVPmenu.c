@@ -1204,6 +1204,10 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             {
                 XPLMSetDataf(ff, volume / 4.0f); // FlightFactor master slider
             }
+            if ((ff = XPLMFindDataRef("com/dkmp/mastervolknob")))
+            {
+                XPLMSetDataf(ff,        volume); // Carenado 3.0 master slider
+            }
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume);
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume);
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume);
