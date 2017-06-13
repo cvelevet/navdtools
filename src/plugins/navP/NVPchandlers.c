@@ -3732,6 +3732,14 @@ static int first_fcall_do(chandler_context *ctx)
                             XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 4, 1); // autopilot/warning annunciator brightness
                         }
                     }
+                    if (!STRN_CASECMP_AUTO(ctx->desc, "Bonanza V35B"))
+                    {
+                        if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
+                        {
+                            int tip_tanks_enabled[1] = { 1, };
+                            XPLMSetDatavi(d_ref, &tip_tanks_enabled[0], 10, 1);
+                        }
+                    }
                 }
             }
             break;
@@ -3821,6 +3829,10 @@ static int first_fcall_do(chandler_context *ctx)
         if ((ctx->volumes.tmp = XPLMFindDataRef("volumeX")))
         {
             XPLMSetDataf(ctx->volumes.tmp, 0.0625f); // FF757/767: master slider
+        }
+        if ((ctx->volumes.tmp = XPLMFindDataRef("com/dkmp/mastervolknob")))
+        {
+            XPLMSetDataf(ctx->volumes.tmp, 0.25f); // Carenado 3.0 master slider
         }
         XPLMSetDataf(ctx->volumes.wxr, 0.25f);
         XPLMSetDataf(ctx->volumes.wvr, 0.25f);
