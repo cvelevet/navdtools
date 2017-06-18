@@ -3710,6 +3710,46 @@ static int first_fcall_do(chandler_context *ctx)
                     }
                 }
             }
+            if (ctx->revrs.n_engines == 1) // single-engine: select default fuel tank
+            {
+                if ((d_ref = XPLMFindDataRef("sim/aircraft/overflow/acf_has_fuel_all")))
+                {
+                    int acf_has_fuel_all, acf_num_tanks = 0; float rat[9];
+                    {
+                        acf_has_fuel_all = XPLMGetDatai(d_ref);
+                    }
+                    if ((d_ref = XPLMFindDataRef("sim/aircraft/overflow/acf_tank_rat")))
+                    {
+                        for (int i = 0, j = XPLMGetDatavf(d_ref, rat, 0, 9); i < j; i++)
+                        {
+                            if (rat[i] > .01f)
+                            {
+                                acf_num_tanks++;
+                            }
+                        }
+                        if (acf_num_tanks == 4 && (fabsf(rat[0] - rat[1]) < .01f &&
+                                                   fabsf(rat[2] - rat[3]) < .01f))
+                        {
+                            acf_num_tanks -= 2; // e.g. Bonanza V35B w/tip tanks
+                        }
+                        if (acf_num_tanks == 2)
+                        {
+                            if (acf_has_fuel_all) // can draw from all tanks at once
+                            {
+                                _DO(0, XPLMSetDatai, 4, "sim/cockpit2/fuel/fuel_tank_selector");
+                            }
+                            else
+                            {
+                                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/fuel/fuel_tank_selector");
+                                _DO(0, XPLMSetDatai, 0, "aerobask/panthera/fuel_position");
+                                _DO(0, XPLMSetDatai, 1, "aerobask/victory/fuel_position");
+                                _DO(0, XPLMSetDatai, 1, "aerobask/E1000/fuel_position");
+                                _DO(0, XPLMSetDatai, 0, "sim/har/fueltank");
+                            }
+                        }
+                    }
+                }
+            }
             break;
 
         default:
