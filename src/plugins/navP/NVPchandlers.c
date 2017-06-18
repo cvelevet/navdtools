@@ -355,20 +355,10 @@ typedef struct
             chandler_callback cb;
         } rev;
 
-        struct
-        {
-            chandler_callback cb;
-        } pff;
-
         int         n_engines;
-        int         prop_fset;
-        float       prop_fval;
-        XPLMDataRef prop_fref;
-        XPLMDataRef propspeed;
         XPLMDataRef acf_numng;
         XPLMDataRef acf_ngtyp;
         XPLMDataRef prop_mode;
-        XPLMCommandRef propup;
     } revrs;
 
     struct
@@ -561,7 +551,6 @@ static int chandler_rt_lt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_rt_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int chandler_r_pff(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_sview(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_qlprv(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -764,17 +753,12 @@ void* nvp_chandlers_init(void)
     /* Custom commands: reverser control */
     ctx->revrs.fwd.cb.command = XPLMCreateCommand("navP/thrust/forward", "stow thrust reversers");
     ctx->revrs.rev.cb.command = XPLMCreateCommand("navP/thrust/reverse", "deploy thrust reversers");
-    ctx->revrs.pff.cb.command = XPLMCreateCommand("navP/thrust/propfin", "all props to full fine");
-    ctx->revrs.propup         = XPLMFindCommand  ("sim/engines/prop_up");
     ctx->revrs.acf_ngtyp      = XPLMFindDataRef  ("sim/aircraft/prop/acf_en_type");
     ctx->revrs.acf_numng      = XPLMFindDataRef  ("sim/aircraft/engine/acf_num_engines");
     ctx->revrs.prop_mode      = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/prop_mode");
-    ctx->revrs.prop_fref      = XPLMFindDataRef  ("sim/aircraft/controls/acf_RSC_redline_prp");
-    ctx->revrs.propspeed      = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/prop_rotation_speed_rad_sec_all");
     if (!ctx->revrs.fwd.cb.command || !ctx->revrs.rev.cb.command ||
         !ctx->revrs.acf_numng      || !ctx->revrs.acf_ngtyp      ||
-        !ctx->revrs.prop_mode      || !ctx->revrs.propup         ||
-        !ctx->revrs.prop_fref      || !ctx->revrs.propspeed)
+        !ctx->revrs.prop_mode)
     {
         goto fail;
     }
@@ -782,7 +766,6 @@ void* nvp_chandlers_init(void)
     {
         REGISTER_CHANDLER(ctx->revrs.fwd.cb, chandler_r_fwd, 0, ctx);
         REGISTER_CHANDLER(ctx->revrs.rev.cb, chandler_r_rev, 0, ctx);
-        REGISTER_CHANDLER(ctx->revrs.pff.cb, chandler_r_pff, 0, ctx);
     }
 
     /* Custom commands: quick look views */
@@ -949,7 +932,6 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->trims.rud.rt.cb);
     UNREGSTR_CHANDLER(ctx->revrs.   fwd.cb);
     UNREGSTR_CHANDLER(ctx->revrs.   rev.cb);
-    UNREGSTR_CHANDLER(ctx->revrs.   pff.cb);
     UNREGSTR_CHANDLER(ctx->otto.   ffst.cb);
     UNREGSTR_CHANDLER(ctx->otto.   conn.cb);
     UNREGSTR_CHANDLER(ctx->otto.   disc.cb);
@@ -1032,7 +1014,6 @@ int nvp_chandlers_reset(void *inContext)
     ctx->acfspec.qpac.ready   = 0;
     ctx->acfspec.i733.ready   = 0;
     ctx->acfspec.x738.ready   = 0;
-    ctx->revrs.prop_fset      = 0;
     ctx->otto.ffst.dr         = NULL;
     ctx->otto.conn.cc.name    = NULL;
     ctx->otto.disc.cc.name    = NULL;
@@ -1551,10 +1532,6 @@ int nvp_chandlers_update(void *inContext)
                 {
                     case 4: case 5: // turbojet/turbofan
                         ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-                        break;
-                    case 0: case 1: // piston
-                    case 2: case 8: // turbine
-                        ctx->athr.disc.cc.name = "navP/thrust/propfin";
                         break;
                     default:
                         break;
@@ -2374,22 +2351,6 @@ static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             XPLMSetDatavi(ctx->revrs.prop_mode, propmode_rev_get(), 0, ctx->revrs.n_engines);
         }
-    }
-    return 0;
-}
-
-static int chandler_r_pff(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
-{
-    if (inPhase == xplm_CommandEnd)
-    {
-        chandler_context *ctx = inRefcon;
-        if (ctx->revrs.prop_fset == 0)
-        {
-            ctx->revrs.prop_fset += 1;
-            ctx->revrs.prop_fval = XPLMGetDataf(ctx->revrs.prop_fref) - .01f;
-        }
-        XPLMSetDataf   (ctx->revrs.propspeed,   ctx->revrs.prop_fval);
-        XPLMCommandOnce(ctx->revrs.propup);
     }
     return 0;
 }
@@ -3773,14 +3734,6 @@ static int first_fcall_do(chandler_context *ctx)
     if (ctx->gear.has_retractable_gear == -1)
     {
         ctx->gear.has_retractable_gear = !!XPLMGetDatai(ctx->gear.acf_gear_retract);
-    }
-    if (ctx->athr.disc.cc.xpcr == ctx->revrs.pff.cb.command)
-    {
-        if (ctx->revrs.prop_fset == 0)
-        {
-            ctx->revrs.prop_fset += 1;
-            ctx->revrs.prop_fval = XPLMGetDataf(ctx->revrs.prop_fref) - .01f;
-        }
     }
 
     /* Custom ground stabilization system (via flight loop callback) */
