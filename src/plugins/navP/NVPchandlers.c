@@ -1320,13 +1320,13 @@ int nvp_chandlers_update(void *inContext)
             dataref_wrte_string(dref_temporary, xaircraft_icao_code, sizeof(xaircraft_icao_code));
             break;
 
-        case NVP_ACF_SSJ1_RZ:
-            sprintf                            (xaircraft_icao_code, "%.4s", "SU95");
+        case NVP_ACF_HA4T_RW:
+            sprintf                            (xaircraft_icao_code, "%.4s", "HA4T");
             dataref_wrte_string(dref_temporary, xaircraft_icao_code, sizeof(xaircraft_icao_code));
             break;
 
-        case NVP_ACF_HA4T_RW:
-            sprintf                            (xaircraft_icao_code, "%.4s", "HA4T");
+        case NVP_ACF_SSJ1_RZ:
+            sprintf                            (xaircraft_icao_code, "%.4s", "SU95");
             dataref_wrte_string(dref_temporary, xaircraft_icao_code, sizeof(xaircraft_icao_code));
             break;
 
@@ -1337,21 +1337,27 @@ int nvp_chandlers_update(void *inContext)
                 dataref_wrte_string(dref_temporary, xaircraft_icao_code, sizeof(xaircraft_icao_code));
                 break;
             }
-            if (!STRN_CASECMP_AUTO(xaircraft_desc_str, "Mother Ship 1"))
-            {
-                sprintf                            (xaircraft_icao_code, "%.4s", "B52");
-                dataref_wrte_string(dref_temporary, xaircraft_icao_code, sizeof(xaircraft_icao_code));
-                break;
-            }
             if (!STRN_CASECMP_AUTO(xaircraft_desc_str, "Lisa Airplanes Akoya"))
             {
                 sprintf                            (xaircraft_icao_code, "%.4s", "AKOY");
                 dataref_wrte_string(dref_temporary, xaircraft_icao_code, sizeof(xaircraft_icao_code));
                 break;
             }
+            if (!STRN_CASECMP_AUTO(xaircraft_desc_str, "Mother Ship 1"))
+            {
+                sprintf                            (xaircraft_icao_code, "%.4s", "B52");
+                dataref_wrte_string(dref_temporary, xaircraft_icao_code, sizeof(xaircraft_icao_code));
+                break;
+            }
             if (!STRN_CASECMP_AUTO(xaircraft_desc_str, "Boeing 787"))
             {
                 sprintf                            (xaircraft_icao_code, "%.4s", "B788");
+                dataref_wrte_string(dref_temporary, xaircraft_icao_code, sizeof(xaircraft_icao_code));
+                break;
+            }
+            if (!STRN_CASECMP_AUTO(xaircraft_desc_str, "Bonanza V35B"))
+            {
+                sprintf                            (xaircraft_icao_code, "%.4s", "BE35");
                 dataref_wrte_string(dref_temporary, xaircraft_icao_code, sizeof(xaircraft_icao_code));
                 break;
             }
@@ -1404,6 +1410,7 @@ int nvp_chandlers_update(void *inContext)
     snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", xaircraft_icao_code);
     snprintf(ctx->auth, sizeof(ctx->auth), "%.40s", xaircraft_auth_str);
     snprintf(ctx->desc, sizeof(ctx->desc), "%.40s", xaircraft_desc_str);
+    ndt_log("navP [info]: ICAO type: \"%.4ss\"\n", xaircraft_icao_code);
 
     /* plane-specific braking ratios */
     if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
