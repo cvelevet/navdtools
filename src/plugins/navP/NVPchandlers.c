@@ -105,6 +105,13 @@ typedef struct
     XPLMDataRef acf_roll_c;
     XPLMDataRef ground_spd;
     XPLMFlightLoop_f flc_g;
+    struct
+    {
+        XPLMDataRef onground_any;
+        XPLMDataRef throttle_all;
+        float ratio;
+        int minimum;
+    } idle;
 } refcon_ground;
 
 typedef struct
@@ -892,9 +899,14 @@ void* nvp_chandlers_init(void)
     }
 
     /* Custom ground stabilization system (via flight loop callback) */
-    ctx->ground.acf_roll_c = XPLMFindDataRef("sim/aircraft/overflow/acf_roll_co");
-    ctx->ground.ground_spd = XPLMFindDataRef("sim/flightmodel/position/groundspeed");
-    if (!ctx->ground.acf_roll_c || !ctx->ground.ground_spd)
+    ctx->ground.acf_roll_c        = XPLMFindDataRef("sim/aircraft/overflow/acf_roll_co");
+    ctx->ground.ground_spd        = XPLMFindDataRef("sim/flightmodel/position/groundspeed");
+    ctx->ground.idle.onground_any = XPLMFindDataRef("sim/flightmodel/failures/onground_any");
+    ctx->ground.idle.throttle_all = XPLMFindDataRef("sim/cockpit2/engine/actuators/throttle_ratio_all");
+    if (!ctx->ground.acf_roll_c        ||
+        !ctx->ground.ground_spd        ||
+        !ctx->ground.idle.onground_any ||
+        !ctx->ground.idle.throttle_all)
     {
         goto fail;
     }
@@ -1034,6 +1046,7 @@ int nvp_chandlers_reset(void *inContext)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
         XPLMSetDataf(ctx->ground.acf_roll_c, ctx->ground.nominal_roll_c);
+        ctx->ground.idle.minimum = 0;
         ctx->ground.flc_g = NULL;
     }
 
@@ -3042,13 +3055,26 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 {
     if (inRefcon)
     {
-        refcon_ground ground = *((refcon_ground*)inRefcon); float acf_roll_c;
+        refcon_ground ground = *((refcon_ground*)inRefcon);
         float ground_spd_kts = XPLMGetDataf(ground.ground_spd) * 3.6f / 1.852f;
-        if   (ground_spd_kts > GS_KT_MIN && ground_spd_kts < GS_KT_MAX)
+
+        // first raise throttle to min. ground idle if needed
+        if (ground.idle.minimum && ground_spd_kts < GS_KT_MID)
         {
-            ACF_ROLL_SET(acf_roll_c, ground_spd_kts, ground.nominal_roll_c);
-            XPLMSetDataf(ground.acf_roll_c, acf_roll_c);
-            return -4; // 1/4 fmodels should be smooth
+            if (XPLMGetDatai(ground.idle.onground_any))
+            {
+                if (XPLMGetDataf(ground.idle.throttle_all) < ground.idle.ratio)
+                {
+                    XPLMSetDataf(ground.idle.throttle_all,   ground.idle.ratio);
+                }
+            }
+        }
+
+        // then, update ground roll friction coefficient as required
+        if (ground_spd_kts > GS_KT_MIN && ground_spd_kts < GS_KT_MAX)
+        {
+            float arc; ACF_ROLL_SET(arc, ground_spd_kts, ground.nominal_roll_c);
+            XPLMSetDataf(ground.acf_roll_c, arc); return -4; // should be smooth
         }
 #if 0
         float gstest[] =
@@ -3784,6 +3810,15 @@ static int first_fcall_do(chandler_context *ctx)
     }
 
     /* Custom ground stabilization system (via flight loop callback) */
+    if (!STRN_CASECMP_AUTO(ctx->auth, "Aerobask") ||
+        !STRN_CASECMP_AUTO(ctx->auth, "Stephane Buon"))
+    {
+        //fixme ctx->ground.idle.minimum and ctx->ground.idle.ratio as required
+    }
+    else
+    {
+        ctx->ground.idle.minimum = 0;
+    }
     if (ctx->ground.flc_g)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
