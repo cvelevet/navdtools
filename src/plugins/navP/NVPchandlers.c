@@ -2848,6 +2848,14 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                     cdu->i_disabled = 0; break; // A/P & EFIS CP
                                 }
                             }
+                            if (!STRN_CASECMP_AUTO(cdu->desc, "CT206H Stationair"))
+                            {
+                                if ((cdu->command[0] = XPLMFindCommand("xap/panels/2")) && // A/P
+                                    (cdu->command[2] = XPLMFindCommand("sim/GPS/g430n1_popup")))
+                                {
+                                    cdu->i_disabled = 0; break; // X-Plane GPS
+                                }
+                            }
                             if (!STRN_CASECMP_AUTO(cdu->desc, "C207 Skywagon"))
                             {
                                 if ((cdu->command[0] = XPLMFindCommand("xap/panels/2")) && // A/P
@@ -3649,16 +3657,14 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0,XPLMSetDataf,0.0f,"aerobask/panthera/reflections_EFIS");          // PIPA
             _DO(0,XPLMSetDataf,0.0f,"aerobask/panthera/reflections_annunciators");  // PIPA
             // datarefs: Alabeo, Carenado, SimCoders REP
-            _DO(0, XPLMSetDataf, 1.0f, "com/dkmp/PassengerDoorHandle");             // BE20
-            _DO(0, XPLMSetDataf, 1.0f, "com/dkmp/winglets");                        // BE20
-            _DO(0, XPLMSetDatai,    1, "com/dkmp/HideYokeL");                       // various aircraft
-            _DO(0, XPLMSetDatai,    1, "com/dkmp/HideYokeR");                       // various aircraft
-            _DO(0, XPLMSetDatai,    0, "thranda/views/InstRefl");                   // various aircraft
-            _DO(0, XPLMSetDatai,    0, "thranda/views/WindowRefl");                 // various aircraft
-            _DO(0, XPLMSetDatai,    0, "thranda/views/staticelements");             // various aircraft
-            _DO(0, XPLMSetDatai,    0, "simcoders/rep/staticelements/visible");     // all REP packages
-            _DO(0, XPLMSetDatai,    1, "thranda/cockpit/actuators/HideYokeL");      // various aircraft
-            _DO(0, XPLMSetDatai,    1, "thranda/cockpit/actuators/HideYokeR");      // various aircraft
+            _DO(0, XPLMSetDatai, 1, "com/dkmp/HideYokeL");                          // various aircraft
+            _DO(0, XPLMSetDatai, 1, "com/dkmp/HideYokeR");                          // various aircraft
+            _DO(0, XPLMSetDatai, 0, "thranda/views/InstRefl");                      // various aircraft
+            _DO(0, XPLMSetDatai, 0, "thranda/views/WindowRefl");                    // various aircraft
+            _DO(0, XPLMSetDatai, 0, "thranda/views/staticelements");                // various aircraft
+            _DO(0, XPLMSetDatai, 0, "simcoders/rep/staticelements/visible");        // all REP packages
+            _DO(0, XPLMSetDatai, 1, "thranda/cockpit/actuators/HideYokeL");         // various aircraft
+            _DO(0, XPLMSetDatai, 1, "thranda/cockpit/actuators/HideYokeR");         // various aircraft
             if ((d_ref = XPLMFindDataRef("com/dkmp/WindowRefl")) &&
                 (xplmType_Int & XPLMGetDataRefTypes(d_ref)))
             {
@@ -3701,6 +3707,17 @@ static int first_fcall_do(chandler_context *ctx)
                     _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/no_smoking");        // HideYokeL
                     _DO(0, XPLMSetDatai, 1, "sim/cockpit2/switches/fasten_seat_belts"); // HideYokeR
                 }
+            }
+            if (!strcasecmp(ctx->icao, "BE20"))
+            {
+                _DO(0, XPLMSetDataf, 1.0f, "com/dkmp/winglets");
+                _DO(0, XPLMSetDataf, 1.0f, "com/dkmp/PassengerDoorHandle");
+            }
+            if (!strcasecmp(ctx->icao, "C206"))
+            {
+                _DO(0, XPLMSetDatai, 1, "com/dkmp/fairings");
+                _DO(0, XPLMSetDatai, 0, "com/dkmp/InstRefl");
+                _DO(0, XPLMSetDatai, 1, "com/dkmp/WindowRefl"); // inverted
             }
             if (!strcasecmp(ctx->icao, "TBM8"))
             {
