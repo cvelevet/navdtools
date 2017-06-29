@@ -3884,14 +3884,14 @@ static int first_fcall_do(chandler_context *ctx)
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Epic Victory"))
                 {
                     ctx->ground.timer        =
-                    ctx->ground.timer_start  = 30.0f;//fixme
+                    ctx->ground.timer_start  = 0.0f;
                     ctx->ground.idle.ratio   = 0.12250f;
                     ctx->ground.idle.minimum = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "The Eclipse 550"))
                 {
                     ctx->ground.timer        =
-                    ctx->ground.timer_start  = 30.0f;//fixme
+                    ctx->ground.timer_start  = 30.0f;
                     ctx->ground.idle.ratio   = 0.16750f;
                     ctx->ground.idle.minimum = 1; break;
                 }
