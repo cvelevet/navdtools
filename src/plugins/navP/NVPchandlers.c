@@ -3094,18 +3094,19 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         }
 #endif
 
+        // timer: don't always increase throttles right after starting engine(s)
         if (all_engines_runn)
         {
             if (ground.timer >= 0)
             {
-                ndt_log("314: ------------------------- remain %+.06f\n", ground.timer);//fixme
-                ground.timer = ground.timer - inElapsedSinceLastCall;
-                ndt_log("" "315: %0.6f since last call, remain %+.06f\n", inElapsedSinceLastCall, ground.timer);//fixme
+                ((refcon_ground*)inRefcon)->timer = (ground.timer -= inElapsedSinceLastCall);
             }
         }
         else
         {
-            ground.timer = ground.timer_start; // 2 wait after last engine start
+            {
+                ((refcon_ground*)inRefcon)->timer = (ground.timer = ground.timer_start);
+            }
         }
 
         // first raise throttle to min. ground idle if needed
@@ -3115,7 +3116,6 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             {
                 XPLMSetDataf(ground.idle.throttle_all, ground.idle.ratio);
             }
-            ndt_log("316: remain %+.06f\n", ground.timer);//fixme
         }
 
         // then, update ground roll friction coefficient as required
@@ -3858,7 +3858,8 @@ static int first_fcall_do(chandler_context *ctx)
             if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
             {
                 {
-                    ctx->ground.timer_start  = 10.0f;
+                    ctx->ground.timer        =
+                    ctx->ground.timer_start  = 0.0f;
                     ctx->ground.idle.ratio   = 0.06250f;
                     ctx->ground.idle.minimum = 1; break;
                 }
@@ -3868,25 +3869,29 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Lancair Legacy FG"))
                 {
-                    ctx->ground.timer_start  = 10.0f;
+                    ctx->ground.timer        =
+                    ctx->ground.timer_start  = 0.0f;
                     ctx->ground.idle.ratio   = 0.06750f;
                     ctx->ground.idle.minimum = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Pipistrel Panthera"))
                 {
-                    ctx->ground.timer_start  = 10.0f;
+                    ctx->ground.timer        =
+                    ctx->ground.timer_start  = 0.0f;
                     ctx->ground.idle.ratio   = 0.09250f;
                     ctx->ground.idle.minimum = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Epic Victory"))
                 {
-                    ctx->ground.timer_start  = 10.0f;
+                    ctx->ground.timer        =
+                    ctx->ground.timer_start  = 30.0f;//fixme
                     ctx->ground.idle.ratio   = 0.12250f;
                     ctx->ground.idle.minimum = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "The Eclipse 550"))
                 {
-                    ctx->ground.timer_start  = 10.0f;
+                    ctx->ground.timer        =
+                    ctx->ground.timer_start  = 30.0f;//fixme
                     ctx->ground.idle.ratio   = 0.16750f;
                     ctx->ground.idle.minimum = 1; break;
                 }
@@ -3896,19 +3901,22 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 if (!STRN_CASECMP_AUTO(ctx->desc, "CT206H Stationair"))
                 {
-                    ctx->ground.timer_start  = 10.0f;
+                    ctx->ground.timer        =
+                    ctx->ground.timer_start  = 0.0f;
                     ctx->ground.idle.ratio   = 0.11250f;
                     ctx->ground.idle.minimum = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "C207 Skywagon"))
                 {
-                    ctx->ground.timer_start  = 10.0f;
+                    ctx->ground.timer        =
+                    ctx->ground.timer_start  = 0.0f;
                     ctx->ground.idle.ratio   = 0.13250f;
                     ctx->ground.idle.minimum = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "T210M Centurion II"))
                 {
-                    ctx->ground.timer_start  = 10.0f;
+                    ctx->ground.timer        =
+                    ctx->ground.timer_start  = 0.0f;
                     ctx->ground.idle.ratio   = 0.13750f;
                     ctx->ground.idle.minimum = 1; break;
                 }
