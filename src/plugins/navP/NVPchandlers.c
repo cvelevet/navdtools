@@ -3092,13 +3092,23 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         }
 #endif
 
-        // first raise throttle to min. ground idle if needed
-        if (ground.idle.minimum && all_engines_runn && ground_spd_kts < GS_KT_MID)
+        if (all_engines_runn)
         {
-            if (XPLMGetDataf(ground.idle.throttle_all) + THRT_ZERO < ground.idle.ratio)
+            // first raise throttle to min. ground idle if needed
+            if (ground.idle.minimum && ground_spd_kts < GS_KT_MID)
             {
-                XPLMSetDataf(ground.idle.throttle_all, ground.idle.ratio);
+                if (XPLMGetDataf(ground.idle.throttle_all) + THRT_ZERO < ground.idle.ratio)
+                {
+                    XPLMSetDataf(ground.idle.throttle_all, ground.idle.ratio);
+                }
             }
+        }
+        else if (ground_spd_kts < GS_KT_MIN)
+        {
+            // not moving and engines are not running, 4-second cooldown
+            // preventing us from accidentally raising throttles as soon
+            // as the last engine is started
+            return 4.0f;
         }
 
         // then, update ground roll friction coefficient as required
@@ -3107,8 +3117,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             float arc; ACF_ROLL_SET(arc, ground_spd_kts, ground.nominal_roll_c);
             XPLMSetDataf(ground.acf_roll_c, arc); return -4; // should be smooth
         }
-        XPLMSetDataf(ground.acf_roll_c, ground.nominal_roll_c);
-        return all_engines_runn ? 0.25f : 1.0f;
+        XPLMSetDataf(ground.acf_roll_c, ground.nominal_roll_c); return 0.25f;
     }
     return 0;
 }
