@@ -107,7 +107,6 @@ typedef struct
     XPLMFlightLoop_f flc_g;
     struct
     {
-        XPLMDataRef onground_any;
         XPLMDataRef throttle_all;
         float ratio;
         int minimum;
@@ -901,11 +900,9 @@ void* nvp_chandlers_init(void)
     /* Custom ground stabilization system (via flight loop callback) */
     ctx->ground.acf_roll_c        = XPLMFindDataRef("sim/aircraft/overflow/acf_roll_co");
     ctx->ground.ground_spd        = XPLMFindDataRef("sim/flightmodel/position/groundspeed");
-    ctx->ground.idle.onground_any = XPLMFindDataRef("sim/flightmodel/failures/onground_any");
     ctx->ground.idle.throttle_all = XPLMFindDataRef("sim/cockpit2/engine/actuators/throttle_ratio_all");
     if (!ctx->ground.acf_roll_c        ||
         !ctx->ground.ground_spd        ||
-        !ctx->ground.idle.onground_any ||
         !ctx->ground.idle.throttle_all)
     {
         goto fail;
@@ -3061,7 +3058,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         // first raise throttle to min. ground idle if needed
         if (ground.idle.minimum && ground_spd_kts < GS_KT_MID)
         {
-            if (XPLMGetDatai(ground.idle.onground_any))
+            if (1)//fixme
             {
                 if (XPLMGetDataf(ground.idle.throttle_all) < ground.idle.ratio)
                 {
@@ -3809,15 +3806,74 @@ static int first_fcall_do(chandler_context *ctx)
         ctx->gear.has_retractable_gear = !!XPLMGetDatai(ctx->gear.acf_gear_retract);
     }
 
-    /* Custom ground stabilization system (via flight loop callback) */
-    if (!STRN_CASECMP_AUTO(ctx->auth, "Aerobask") ||
-        !STRN_CASECMP_AUTO(ctx->auth, "Stephane Buon"))
+    /*
+     * Custom ground stabilization system (via flight loop callback)
+     *
+     * Minimum ground throttle detent.
+     * Testing parameters:
+     * - weather: CAVOK preset
+     * - runways: follow terrain contour OFF
+     * - airport: KNTD (Naval Base Ventura County)
+     * - taxiing: ideal peak speed ~15.0 Knots ground speed
+     * - pistons: minimum propeller speed ~1,000.0 r/minute
+     */
+    switch (ctx->atyp)
     {
-        //fixme ctx->ground.idle.minimum and ctx->ground.idle.ratio as required
-    }
-    else
-    {
-        ctx->ground.idle.minimum = 0;
+        default:
+        {
+            if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
+            {
+                {
+                    ctx->ground.idle.ratio   = 0.06250f;
+                    ctx->ground.idle.minimum = 1; break;
+                }
+            }
+            if (!STRN_CASECMP_AUTO(ctx->auth, "Aerobask") ||
+                !STRN_CASECMP_AUTO(ctx->auth, "Stephane Buon"))
+            {
+                if (!STRN_CASECMP_AUTO(ctx->desc, "Lancair Legacy FG"))
+                {
+                    ctx->ground.idle.ratio   = 0.06750f;
+                    ctx->ground.idle.minimum = 1; break;
+                }
+                if (!STRN_CASECMP_AUTO(ctx->desc, "Pipistrel Panthera"))
+                {
+                    ctx->ground.idle.ratio   = 0.09250f;
+                    ctx->ground.idle.minimum = 1; break;
+                }
+                if (!STRN_CASECMP_AUTO(ctx->desc, "Epic Victory"))
+                {
+                    ctx->ground.idle.ratio   = 0.12250f;
+                    ctx->ground.idle.minimum = 1; break;
+                }
+                if (!STRN_CASECMP_AUTO(ctx->desc, "The Eclipse 550"))
+                {
+                    ctx->ground.idle.ratio   = 0.16750f;
+                    ctx->ground.idle.minimum = 1; break;
+                }
+            }
+            if (!STRN_CASECMP_AUTO(ctx->auth, "Alabeo") ||
+                !STRN_CASECMP_AUTO(ctx->auth, "Carenado"))
+            {
+                if (!STRN_CASECMP_AUTO(ctx->desc, "CT206H Stationair"))
+                {
+                    ctx->ground.idle.ratio   = 0.11250f;
+                    ctx->ground.idle.minimum = 1; break;
+                }
+                if (!STRN_CASECMP_AUTO(ctx->desc, "C207 Skywagon"))
+                {
+                    ctx->ground.idle.ratio   = 0.13250f;
+                    ctx->ground.idle.minimum = 1; break;
+                }
+                if (!STRN_CASECMP_AUTO(ctx->desc, "T210M Centurion II"))
+                {
+                    ctx->ground.idle.ratio   = 0.13750f;
+                    ctx->ground.idle.minimum = 1; break;
+                }
+            }
+            ctx->ground.idle.minimum = 0;
+            break;
+        }
     }
     if (ctx->ground.flc_g)
     {
