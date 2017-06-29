@@ -2835,6 +2835,15 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                     cdu->i_disabled = 0; break; // X-Plane GPS
                                 }
                             }
+                            if (!STRN_CASECMP_AUTO(cdu->desc, "T210M Centurion II"))
+                            {
+                                if ((cdu->command[0] = XPLMFindCommand("xap/panels/2"))/* A/P */&&
+                                    (cdu->command[1] = XPLMFindCommand("sim/GPS/g430n1_popup")) &&
+                                    (cdu->command[2] = XPLMFindCommand("sim/GPS/g430n2_popup")))
+                                {
+                                    cdu->i_disabled = 0; break; // X-Plane GPS
+                                }
+                            }
                             if (!STRN_CASECMP_AUTO(cdu->desc, "C404 Titan"))
                             {
                                 if ((cdu->command[0] = XPLMFindCommand("xap/panels/2"))         && // A/P
