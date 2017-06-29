@@ -1420,7 +1420,7 @@ int nvp_chandlers_update(void *inContext)
     snprintf(ctx->icao, sizeof(ctx->icao), "%.4s", xaircraft_icao_code);
     snprintf(ctx->auth, sizeof(ctx->auth), "%.40s", xaircraft_auth_str);
     snprintf(ctx->desc, sizeof(ctx->desc), "%.40s", xaircraft_desc_str);
-    ndt_log("navP [info]: ICAO type: \"%.4ss\"\n", xaircraft_icao_code);
+    ndt_log ("navP [info]: ICAO type: \"%.4s\"\n", xaircraft_icao_code);
 
     /* plane-specific braking ratios */
     if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
