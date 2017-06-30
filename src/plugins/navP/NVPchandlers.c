@@ -108,6 +108,7 @@ typedef struct
     struct
     {
         XPLMDataRef throttle_all;
+        XPLMDataRef park_b_ratio;
         float r_taxi;
         float r_idle;
         int minimums;
@@ -706,6 +707,7 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->bking.off.cb, chandler_p_off, 0, ctx);
         REGISTER_CHANDLER(ctx->bking.max.cb, chandler_b_max, 0, ctx);
         REGISTER_CHANDLER(ctx->bking.reg.cb, chandler_b_reg, 0, ctx);
+        ctx->ground.idle.park_b_ratio =    ctx->bking.rc_brk.p_b_rat;
     }
 
     /* Custom commands: speedbrakes/spoilers */
@@ -3095,7 +3097,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         // first, raise our throttles to a minimum ground or taxi idle if needed
         if (ground.idle.minimums)
         {
-            if (0)//fixme park brake set
+            if (XPLMGetDataf(ground.idle.park_b_ratio) > 0.1f)
             {
                 if (ground_spd_kts < GS_KT_MIN)
                 {
