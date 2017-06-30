@@ -101,19 +101,16 @@ typedef struct
 
 typedef struct
 {
-    int               engc;
-    float            timer;
-    float      timer_start;
     float   nominal_roll_c;
     XPLMDataRef acf_roll_c;
-    XPLMDataRef ng_running;
     XPLMDataRef ground_spd;
     XPLMFlightLoop_f flc_g;
     struct
     {
         XPLMDataRef throttle_all;
-        float ratio;
-        int minimum;
+        float r_taxi;
+        float r_idle;
+        int minimums;
     } idle;
 } refcon_ground;
 
@@ -486,19 +483,6 @@ static void flap_callout_speak(void)
     {
         XPLMSpeakString(_flap_callout_st);
     }
-}
-
-/* engine off vs. running constants */
-static int _NG_RUNNNG[8] = { 1, 1, 1, 1, 1, 1, 1, 1, };
-static int* ng_runnng_get(void)
-{
-    return _NG_RUNNNG;
-}
-static int all_eng_running(XPLMDataRef ref, int eng_count)
-{
-    size_t cmp_size = (size_t)eng_count * sizeof(int);
-    int eng_tmp[8]; XPLMGetDatavi(ref, eng_tmp, 0, 8);
-    return memcmp(eng_tmp, ng_runnng_get(), cmp_size) == 0;
 }
 
 /* thrust reverser mode constants */
@@ -916,11 +900,9 @@ void* nvp_chandlers_init(void)
 
     /* Custom ground stabilization system (via flight loop callback) */
     ctx->ground.acf_roll_c        = XPLMFindDataRef("sim/aircraft/overflow/acf_roll_co");
-    ctx->ground.ng_running        = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running");
     ctx->ground.ground_spd        = XPLMFindDataRef("sim/flightmodel/position/groundspeed");
     ctx->ground.idle.throttle_all = XPLMFindDataRef("sim/cockpit2/engine/actuators/throttle_ratio_all");
     if (!ctx->ground.acf_roll_c        ||
-        !ctx->ground.ng_running        ||
         !ctx->ground.ground_spd        ||
         !ctx->ground.idle.throttle_all)
     {
@@ -1062,7 +1044,7 @@ int nvp_chandlers_reset(void *inContext)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
         XPLMSetDataf(ctx->ground.acf_roll_c, ctx->ground.nominal_roll_c);
-        ctx->ground.idle.minimum = 0;
+        ctx->ground.idle.minimums = 0;
         ctx->ground.flc_g = NULL;
     }
 
@@ -1471,7 +1453,6 @@ int nvp_chandlers_update(void *inContext)
         }
         engine_type_at_idx_zero = t[0];
     }
-    ctx->ground.engc = ctx->revrs.n_engines;
 
     /* plane-specific custom commands for automation disconnects, if any */
     switch (ctx->atyp)
@@ -3069,7 +3050,7 @@ static float flc_flap_func(float inElapsedSinceLastCall,
     return 0;
 }
 
-#define THRT_ZERO             (.0001f)
+#define T_ZERO                (.0001f)
 #define GS_KT_MIN             (2.500f)
 #define GS_KT_MID             (26.25f)
 #define GS_KT_MAX             (50.00f)
@@ -3092,7 +3073,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
     {
         refcon_ground ground = *((refcon_ground*)inRefcon);
         float ground_spd_kts = XPLMGetDataf(ground.ground_spd) * 3.6f / 1.852f;
-        int all_engines_runn = all_eng_running(ground.ng_running, ground.engc);
+        float thrott_cmd_all = XPLMGetDataf(ground.idle.throttle_all) + T_ZERO;
 
 #if 0
         float gstest[] =
@@ -3111,27 +3092,23 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         }
 #endif
 
-        // timer: don't always increase throttles right after starting engine(s)
-        if (all_engines_runn)
+        // first, raise our throttles to a minimum ground or taxi idle if needed
+        if (ground.idle.minimums)
         {
-            if (ground.timer >= 0)
+            if (0)//fixme park brake set
             {
-                ((refcon_ground*)inRefcon)->timer = (ground.timer -= inElapsedSinceLastCall);
+                if (ground_spd_kts < GS_KT_MIN)
+                {
+                    XPLMSetDataf(ground.idle.throttle_all, ground.idle.r_idle);
+                }
             }
-        }
-        else
-        {
+            else
             {
-                ((refcon_ground*)inRefcon)->timer = (ground.timer = ground.timer_start);
-            }
-        }
-
-        // first raise throttle to min. ground idle if needed
-        if (ground.idle.minimum && ground.timer < 0 && ground_spd_kts < GS_KT_MID)
-        {
-            if (XPLMGetDataf(ground.idle.throttle_all) + THRT_ZERO < ground.idle.ratio)
-            {
-                XPLMSetDataf(ground.idle.throttle_all, ground.idle.ratio);
+                if (ground_spd_kts < GS_KT_MID &&
+                    thrott_cmd_all < ground.idle.r_taxi)
+                {
+                    XPLMSetDataf(ground.idle.throttle_all, ground.idle.r_taxi);
+                }
             }
         }
 
@@ -3889,10 +3866,9 @@ static int first_fcall_do(chandler_context *ctx)
             if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
             {
                 {
-                    ctx->ground.timer        =
-                    ctx->ground.timer_start  = 0.0f;
-                    ctx->ground.idle.ratio   = 0.06250f;
-                    ctx->ground.idle.minimum = 1; break;
+                    ctx->ground.idle.r_idle   =
+                    ctx->ground.idle.r_taxi   = 0.06250f;
+                    ctx->ground.idle.minimums = 1; break;
                 }
             }
             if (!STRN_CASECMP_AUTO(ctx->auth, "Aerobask") ||
@@ -3900,31 +3876,27 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Lancair Legacy FG"))
                 {
-                    ctx->ground.timer        =
-                    ctx->ground.timer_start  = 0.0f;
-                    ctx->ground.idle.ratio   = 0.06750f;
-                    ctx->ground.idle.minimum = 1; break;
+                    ctx->ground.idle.r_idle   =
+                    ctx->ground.idle.r_taxi   = 0.06750f;
+                    ctx->ground.idle.minimums = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Pipistrel Panthera"))
                 {
-                    ctx->ground.timer        =
-                    ctx->ground.timer_start  = 0.0f;
-                    ctx->ground.idle.ratio   = 0.09250f;
-                    ctx->ground.idle.minimum = 1; break;
+                    ctx->ground.idle.r_idle   =
+                    ctx->ground.idle.r_taxi   = 0.09250f;
+                    ctx->ground.idle.minimums = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Epic Victory"))
                 {
-                    ctx->ground.timer        =
-                    ctx->ground.timer_start  = 0.0f;
-                    ctx->ground.idle.ratio   = 0.12250f;
-                    ctx->ground.idle.minimum = 1; break;
+                    ctx->ground.idle.r_idle   = 0.00000f;
+                    ctx->ground.idle.r_taxi   = 0.12250f;
+                    ctx->ground.idle.minimums = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "The Eclipse 550"))
                 {
-                    ctx->ground.timer        =
-                    ctx->ground.timer_start  = 30.0f;
-                    ctx->ground.idle.ratio   = 0.16750f;
-                    ctx->ground.idle.minimum = 1; break;
+                    ctx->ground.idle.r_idle   = 0.00000f;
+                    ctx->ground.idle.r_taxi   = 0.16750f;
+                    ctx->ground.idle.minimums = 1; break;
                 }
             }
             if (!STRN_CASECMP_AUTO(ctx->auth, "Alabeo") ||
@@ -3932,27 +3904,24 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 if (!STRN_CASECMP_AUTO(ctx->desc, "CT206H Stationair"))
                 {
-                    ctx->ground.timer        =
-                    ctx->ground.timer_start  = 0.0f;
-                    ctx->ground.idle.ratio   = 0.11250f;
-                    ctx->ground.idle.minimum = 1; break;
+                    ctx->ground.idle.r_idle   =
+                    ctx->ground.idle.r_taxi   = 0.11250f;
+                    ctx->ground.idle.minimums = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "C207 Skywagon"))
                 {
-                    ctx->ground.timer        =
-                    ctx->ground.timer_start  = 0.0f;
-                    ctx->ground.idle.ratio   = 0.13250f;
-                    ctx->ground.idle.minimum = 1; break;
+                    ctx->ground.idle.r_idle   =
+                    ctx->ground.idle.r_taxi   = 0.13250f;
+                    ctx->ground.idle.minimums = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "T210M Centurion II"))
                 {
-                    ctx->ground.timer        =
-                    ctx->ground.timer_start  = 0.0f;
-                    ctx->ground.idle.ratio   = 0.13750f;
-                    ctx->ground.idle.minimum = 1; break;
+                    ctx->ground.idle.r_idle   =
+                    ctx->ground.idle.r_taxi   = 0.13750f;
+                    ctx->ground.idle.minimums = 1; break;
                 }
             }
-            ctx->ground.idle.minimum = 0;
+            ctx->ground.idle.minimums = 0;
             break;
         }
     }
@@ -4135,5 +4104,5 @@ static void priv_setdata_f(void *inRefcon, float inValue)
 #undef GS_KT_MIN
 #undef GS_KT_MID
 #undef GS_KT_MAX
-#undef THRT_ZERO
+#undef T_ZERO
 #undef _DO
