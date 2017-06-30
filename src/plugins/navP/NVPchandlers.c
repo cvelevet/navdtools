@@ -101,10 +101,20 @@ typedef struct
 
 typedef struct
 {
+    int               engc;
+    float            timer;
+    float      timer_start;
     float   nominal_roll_c;
     XPLMDataRef acf_roll_c;
+    XPLMDataRef ng_running;
     XPLMDataRef ground_spd;
     XPLMFlightLoop_f flc_g;
+    struct
+    {
+        XPLMDataRef throttle_all;
+        float ratio;
+        int minimum;
+    } idle;
 } refcon_ground;
 
 typedef struct
@@ -476,6 +486,19 @@ static void flap_callout_speak(void)
     {
         XPLMSpeakString(_flap_callout_st);
     }
+}
+
+/* engine off vs. running constants */
+static int _NG_RUNNNG[8] = { 1, 1, 1, 1, 1, 1, 1, 1, };
+static int* ng_runnng_get(void)
+{
+    return _NG_RUNNNG;
+}
+static int all_eng_running(XPLMDataRef ref, int eng_count)
+{
+    size_t cmp_size = (size_t)eng_count * sizeof(int);
+    int eng_tmp[8]; XPLMGetDatavi(ref, eng_tmp, 0, 8);
+    return memcmp(eng_tmp, ng_runnng_get(), cmp_size) == 0;
 }
 
 /* thrust reverser mode constants */
@@ -892,9 +915,14 @@ void* nvp_chandlers_init(void)
     }
 
     /* Custom ground stabilization system (via flight loop callback) */
-    ctx->ground.acf_roll_c = XPLMFindDataRef("sim/aircraft/overflow/acf_roll_co");
-    ctx->ground.ground_spd = XPLMFindDataRef("sim/flightmodel/position/groundspeed");
-    if (!ctx->ground.acf_roll_c || !ctx->ground.ground_spd)
+    ctx->ground.acf_roll_c        = XPLMFindDataRef("sim/aircraft/overflow/acf_roll_co");
+    ctx->ground.ng_running        = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running");
+    ctx->ground.ground_spd        = XPLMFindDataRef("sim/flightmodel/position/groundspeed");
+    ctx->ground.idle.throttle_all = XPLMFindDataRef("sim/cockpit2/engine/actuators/throttle_ratio_all");
+    if (!ctx->ground.acf_roll_c        ||
+        !ctx->ground.ng_running        ||
+        !ctx->ground.ground_spd        ||
+        !ctx->ground.idle.throttle_all)
     {
         goto fail;
     }
@@ -1034,6 +1062,7 @@ int nvp_chandlers_reset(void *inContext)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
         XPLMSetDataf(ctx->ground.acf_roll_c, ctx->ground.nominal_roll_c);
+        ctx->ground.idle.minimum = 0;
         ctx->ground.flc_g = NULL;
     }
 
@@ -1442,6 +1471,7 @@ int nvp_chandlers_update(void *inContext)
         }
         engine_type_at_idx_zero = t[0];
     }
+    ctx->ground.engc = ctx->revrs.n_engines;
 
     /* plane-specific custom commands for automation disconnects, if any */
     switch (ctx->atyp)
@@ -3039,6 +3069,7 @@ static float flc_flap_func(float inElapsedSinceLastCall,
     return 0;
 }
 
+#define THRT_ZERO             (.0001f)
 #define GS_KT_MIN             (2.500f)
 #define GS_KT_MID             (26.25f)
 #define GS_KT_MAX             (50.00f)
@@ -3059,14 +3090,10 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 {
     if (inRefcon)
     {
-        refcon_ground ground = *((refcon_ground*)inRefcon); float acf_roll_c;
+        refcon_ground ground = *((refcon_ground*)inRefcon);
         float ground_spd_kts = XPLMGetDataf(ground.ground_spd) * 3.6f / 1.852f;
-        if   (ground_spd_kts > GS_KT_MIN && ground_spd_kts < GS_KT_MAX)
-        {
-            ACF_ROLL_SET(acf_roll_c, ground_spd_kts, ground.nominal_roll_c);
-            XPLMSetDataf(ground.acf_roll_c, acf_roll_c);
-            return -4; // 1/4 fmodels should be smooth
-        }
+        int all_engines_runn = all_eng_running(ground.ng_running, ground.engc);
+
 #if 0
         float gstest[] =
         {
@@ -3083,8 +3110,38 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                     gstest[i], acf_roll_c, ground.nominal_roll_c, acf_roll_c - ground.nominal_roll_c);
         }
 #endif
-        XPLMSetDataf(ground.acf_roll_c, ground.nominal_roll_c);
-        return 0.25f; // 1/4 sec. should be responsive enough
+
+        // timer: don't always increase throttles right after starting engine(s)
+        if (all_engines_runn)
+        {
+            if (ground.timer >= 0)
+            {
+                ((refcon_ground*)inRefcon)->timer = (ground.timer -= inElapsedSinceLastCall);
+            }
+        }
+        else
+        {
+            {
+                ((refcon_ground*)inRefcon)->timer = (ground.timer = ground.timer_start);
+            }
+        }
+
+        // first raise throttle to min. ground idle if needed
+        if (ground.idle.minimum && ground.timer < 0 && ground_spd_kts < GS_KT_MID)
+        {
+            if (XPLMGetDataf(ground.idle.throttle_all) + THRT_ZERO < ground.idle.ratio)
+            {
+                XPLMSetDataf(ground.idle.throttle_all, ground.idle.ratio);
+            }
+        }
+
+        // then, update ground roll friction coefficient as required
+        if (ground_spd_kts > GS_KT_MIN && ground_spd_kts < GS_KT_MAX)
+        {
+            float arc; ACF_ROLL_SET(arc, ground_spd_kts, ground.nominal_roll_c);
+            XPLMSetDataf(ground.acf_roll_c, arc); return -4; // should be smooth
+        }
+        XPLMSetDataf(ground.acf_roll_c, ground.nominal_roll_c); return 0.25f;
     }
     return 0;
 }
@@ -3809,7 +3866,91 @@ static int first_fcall_do(chandler_context *ctx)
         ctx->gear.has_retractable_gear = !!XPLMGetDatai(ctx->gear.acf_gear_retract);
     }
 
-    /* Custom ground stabilization system (via flight loop callback) */
+    /*
+     * Custom ground stabilization system (via flight loop callback)
+     *
+     * Minimum ground throttle detent.
+     * Testing parameters:
+     * - weather: CAVOK preset
+     * - runways: follow terrain contour OFF
+     * - airport: KNTD (Naval Base Ventura County)
+     * - taxiing: ideal peak speed ~15.0 Knots ground speed
+     * - pistons: minimum propeller speed ~1,000.0 r/minute
+     */
+    switch (ctx->atyp)
+    {
+        default:
+        {
+            if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
+            {
+                {
+                    ctx->ground.timer        =
+                    ctx->ground.timer_start  = 0.0f;
+                    ctx->ground.idle.ratio   = 0.06250f;
+                    ctx->ground.idle.minimum = 1; break;
+                }
+            }
+            if (!STRN_CASECMP_AUTO(ctx->auth, "Aerobask") ||
+                !STRN_CASECMP_AUTO(ctx->auth, "Stephane Buon"))
+            {
+                if (!STRN_CASECMP_AUTO(ctx->desc, "Lancair Legacy FG"))
+                {
+                    ctx->ground.timer        =
+                    ctx->ground.timer_start  = 0.0f;
+                    ctx->ground.idle.ratio   = 0.06750f;
+                    ctx->ground.idle.minimum = 1; break;
+                }
+                if (!STRN_CASECMP_AUTO(ctx->desc, "Pipistrel Panthera"))
+                {
+                    ctx->ground.timer        =
+                    ctx->ground.timer_start  = 0.0f;
+                    ctx->ground.idle.ratio   = 0.09250f;
+                    ctx->ground.idle.minimum = 1; break;
+                }
+                if (!STRN_CASECMP_AUTO(ctx->desc, "Epic Victory"))
+                {
+                    ctx->ground.timer        =
+                    ctx->ground.timer_start  = 0.0f;
+                    ctx->ground.idle.ratio   = 0.12250f;
+                    ctx->ground.idle.minimum = 1; break;
+                }
+                if (!STRN_CASECMP_AUTO(ctx->desc, "The Eclipse 550"))
+                {
+                    ctx->ground.timer        =
+                    ctx->ground.timer_start  = 30.0f;
+                    ctx->ground.idle.ratio   = 0.16750f;
+                    ctx->ground.idle.minimum = 1; break;
+                }
+            }
+            if (!STRN_CASECMP_AUTO(ctx->auth, "Alabeo") ||
+                !STRN_CASECMP_AUTO(ctx->auth, "Carenado"))
+            {
+                if (!STRN_CASECMP_AUTO(ctx->desc, "CT206H Stationair"))
+                {
+                    ctx->ground.timer        =
+                    ctx->ground.timer_start  = 0.0f;
+                    ctx->ground.idle.ratio   = 0.11250f;
+                    ctx->ground.idle.minimum = 1; break;
+                }
+                if (!STRN_CASECMP_AUTO(ctx->desc, "C207 Skywagon"))
+                {
+                    ctx->ground.timer        =
+                    ctx->ground.timer_start  = 0.0f;
+                    ctx->ground.idle.ratio   = 0.13250f;
+                    ctx->ground.idle.minimum = 1; break;
+                }
+                if (!STRN_CASECMP_AUTO(ctx->desc, "T210M Centurion II"))
+                {
+                    ctx->ground.timer        =
+                    ctx->ground.timer_start  = 0.0f;
+                    ctx->ground.idle.ratio   = 0.13750f;
+                    ctx->ground.idle.minimum = 1; break;
+                }
+            }
+            ctx->ground.idle.minimum = 0;
+            break;
+        }
+    }
     if (ctx->ground.flc_g)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
@@ -3985,4 +4126,9 @@ static void priv_setdata_f(void *inRefcon, float inValue)
 #undef CALLOUT_FLAPLEVER
 #undef CALLOUT_GEARLEVER
 #undef STRN_CASECMP_AUTO
+#undef ACF_ROLL_SET
+#undef GS_KT_MIN
+#undef GS_KT_MID
+#undef GS_KT_MAX
+#undef THRT_ZERO
 #undef _DO
