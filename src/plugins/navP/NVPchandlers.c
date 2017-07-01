@@ -3889,6 +3889,12 @@ static int first_fcall_do(chandler_context *ctx)
             ctx->ground.idle.r_taxi   = 0.09975f;
             ctx->ground.idle.minimums = 1; break;
 
+        case NVP_ACF_EMBE_XC:
+            ctx->ground.idle.r_idle   = 0.00000f;
+            ctx->ground.idle.r_taxi   = 0.07777f;
+            ctx->ground.idle.minimums = 1; break;
+            break;
+
         default:
         {
             if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
