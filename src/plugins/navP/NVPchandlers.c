@@ -3872,7 +3872,7 @@ static int first_fcall_do(chandler_context *ctx)
             if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
             {
                 {
-                    ctx->ground.idle.r_idle   =
+                    ctx->ground.idle.r_idle   = 0.06250f;
                     ctx->ground.idle.r_taxi   = 0.06250f;
                     ctx->ground.idle.minimums = 1; break;
                 }
@@ -3882,25 +3882,25 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Lancair Legacy FG"))
                 {
-                    ctx->ground.idle.r_idle   =
+                    ctx->ground.idle.r_idle   = 0.01750f;
                     ctx->ground.idle.r_taxi   = 0.06750f;
                     ctx->ground.idle.minimums = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Pipistrel Panthera"))
                 {
-                    ctx->ground.idle.r_idle   =
+                    ctx->ground.idle.r_idle   = 0.03750f;
                     ctx->ground.idle.r_taxi   = 0.09250f;
                     ctx->ground.idle.minimums = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Epic Victory"))
                 {
-                    ctx->ground.idle.r_idle   = 0.00000f;
+                    ctx->ground.idle.r_idle   = 0.01250f;
                     ctx->ground.idle.r_taxi   = 0.12250f;
                     ctx->ground.idle.minimums = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "The Eclipse 550"))
                 {
-                    ctx->ground.idle.r_idle   = 0.00000f;
+                    ctx->ground.idle.r_idle   = 0.06500f;
                     ctx->ground.idle.r_taxi   = 0.16750f;
                     ctx->ground.idle.minimums = 1; break;
                 }
