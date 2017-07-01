@@ -3893,7 +3893,11 @@ static int first_fcall_do(chandler_context *ctx)
             ctx->ground.idle.r_idle   = 0.00000f;
             ctx->ground.idle.r_taxi   = 0.07777f;
             ctx->ground.idle.minimums = 1; break;
-            break;
+
+        case NVP_ACF_HA4T_RW:
+            ctx->ground.idle.r_idle   = 0.00000f;
+            ctx->ground.idle.r_taxi   = 0.16666f;
+            ctx->ground.idle.minimums = 1; break;
 
         default:
         {
