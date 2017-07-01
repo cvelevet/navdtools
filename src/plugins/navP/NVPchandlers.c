@@ -3752,6 +3752,15 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
             _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+            if (!STRN_CASECMP_AUTO(ctx->icao, "EPIC") ||
+                !STRN_CASECMP_AUTO(ctx->icao, "EVIC"))
+            {
+                _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_detect_on");
+                _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
+                _DO(0, XPLMSetDatai, 0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
+                _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_weather_on");
+                _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_tcas_on");
+            }
             if (!XPLMFindCommand("aerobask/skyview/toggle_left"))
             {
                 _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
