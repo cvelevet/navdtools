@@ -3097,10 +3097,12 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         // first, raise our throttles to a minimum ground or taxi idle if needed
         if (ground.idle.minimums)
         {
-            if (XPLMGetDataf(ground.idle.park_b_ratio) > 0.1f)
+            if (XPLMGetDataf(ground.idle.park_b_ratio) >= 0.1f)
             {
-                if (ground_spd_kts < GS_KT_MIN)
+                if (ground_spd_kts < GS_KT_MIN &&
+                    thrott_cmd_all < ground.idle.r_taxi * 1.1f) // see below
                 {
+                    // if we ask 4 higher thrust manually, don't force-set idle
                     XPLMSetDataf(ground.idle.throttle_all, ground.idle.r_idle);
                 }
             }
@@ -3871,11 +3873,20 @@ static int first_fcall_do(chandler_context *ctx)
         {
             if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
             {
+                if (!STRN_CASECMP_AUTO(ctx->icao, "BE33") ||
+                    !STRN_CASECMP_AUTO(ctx->icao, "BE35"))
                 {
                     ctx->ground.idle.r_idle   = 0.06250f;
                     ctx->ground.idle.r_taxi   = 0.06250f;
                     ctx->ground.idle.minimums = 1; break;
                 }
+                if (!STRN_CASECMP_AUTO(ctx->icao, "BE58"))
+                {
+                    ctx->ground.idle.r_idle   = 0.08250f;
+                    ctx->ground.idle.r_taxi   = 0.08250f;
+                    ctx->ground.idle.minimums = 1; break;
+                }
+                break;
             }
             if (!STRN_CASECMP_AUTO(ctx->auth, "Aerobask") ||
                 !STRN_CASECMP_AUTO(ctx->auth, "Stephane Buon"))
@@ -3910,19 +3921,19 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 if (!STRN_CASECMP_AUTO(ctx->desc, "CT206H Stationair"))
                 {
-                    ctx->ground.idle.r_idle   =
+                    ctx->ground.idle.r_idle   = 0.07250f;
                     ctx->ground.idle.r_taxi   = 0.11250f;
                     ctx->ground.idle.minimums = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "C207 Skywagon"))
                 {
-                    ctx->ground.idle.r_idle   =
+                    ctx->ground.idle.r_idle   = 0.03250f;
                     ctx->ground.idle.r_taxi   = 0.13250f;
                     ctx->ground.idle.minimums = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "T210M Centurion II"))
                 {
-                    ctx->ground.idle.r_idle   =
+                    ctx->ground.idle.r_idle   = 0.09250f;
                     ctx->ground.idle.r_taxi   = 0.13750f;
                     ctx->ground.idle.minimums = 1; break;
                 }
