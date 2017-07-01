@@ -3869,6 +3869,26 @@ static int first_fcall_do(chandler_context *ctx)
      */
     switch (ctx->atyp)
     {
+        case NVP_ACF_B737_XG:
+            ctx->ground.idle.r_idle   = 0.00000f;
+            ctx->ground.idle.r_taxi   = 0.12500f;
+            ctx->ground.idle.minimums = 1; break;
+
+        case NVP_ACF_B757_FF:
+            ctx->ground.idle.r_idle   = 0.00000f;
+            ctx->ground.idle.r_taxi   = 0.08050f;
+            ctx->ground.idle.minimums = 1; break;
+
+        case NVP_ACF_B767_FF:
+            ctx->ground.idle.r_idle   = 0.00000f;
+            ctx->ground.idle.r_taxi   = 0.15375f;
+            ctx->ground.idle.minimums = 1; break;
+
+        case NVP_ACF_B777_FF:
+            ctx->ground.idle.r_idle   = 0.00000f;
+            ctx->ground.idle.r_taxi   = 0.09975f;
+            ctx->ground.idle.minimums = 1; break;
+
         default:
         {
             if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
