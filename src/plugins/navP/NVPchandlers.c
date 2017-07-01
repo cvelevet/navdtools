@@ -3720,8 +3720,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "cl300/fms/alt_rep");
             _DO(0, XPLMSetDatai, 1, "cl300/hide_pilots");
             // datarefs: X-Plane default
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_detect_on");
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
             _DO(0, XPLMSetDatai, 0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
@@ -3730,12 +3728,18 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_weather_on");
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_tcas_on");
             _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
             _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+            if (!STRN_CASECMP_AUTO(ctx->icao, "EPIC") ||
+                !STRN_CASECMP_AUTO(ctx->icao, "EVIC"))
+            {
+                _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_detect_on");
+                _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
+                _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_weather_on");
+                _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_tcas_on");
+            }
             if (!XPLMFindCommand("aerobask/skyview/toggle_left"))
             {
                 _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
