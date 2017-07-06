@@ -29,7 +29,6 @@
 #include "lib/flightplan.h"
 #include "lib/navdata.h"
 #include "lib/waypoint.h"
-#include "wmm/wmm.h"
 
 #include "YFSdrto.h"
 #include "YFSfpln.h"
@@ -928,170 +927,25 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
 
 static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
 {
-    char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
-    double brg1, brg2, dstce, lat, lon, latm, lonm;
-    char plce1[8], plce2[8], de1[2], de2[2];
-    ndt_waypoint *wpt, *place1, *place2;
-    ndt_date now = ndt_date_now();
-    ndt_distance distance;
-    if (sscanf(buf, "%7[^/]/%lf/%lf%c", plce1, &brg1, &dstce, plce2) == 3)
+    char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); ndt_waypoint *wpt;
+    if ((wpt = yfs_main_usrwp(yfms, buf)))
     {
-        /* PLACE/BRG/DIST (PBD) */
-        {
-            distance = ndt_distance_init((int64_t)(dstce * 1852.), NDT_ALTUNIT_ME);
-        }
-        if ((ndt_distance_get(distance, NDT_ALTUNIT_ME) && brg1 >= 0. && brg1 <= 360.) &&
-            (place1 = yfs_main_getwp(yfms, plce1)))
-        {
-            if ((wpt = ndt_waypoint_pbd(place1, brg1, distance, now, yfms->ndt.ndb->wmm)))
-            {
-                if (yfms->data.fpln.usridx >= 20)
-                {
-                    ndt_waypoint_close(&wpt);
-                    yfs_spad_reset(yfms, "MAX 20 USER WPTS", -1); return NULL; // TODO: wording
-                }
-                snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "PBD%02d", yfms->data.fpln.usridx + 1);
-                ndt_navdata_add_waypoint(yfms->ndt.ndb, wpt); // after setting ID (for correct sorting)
-                return (yfms->data.fpln.usrwpt[yfms->data.fpln.usridx++] = wpt);
-            }
-        }
-        yfs_spad_reset(yfms, "FORMAT ERROR", -1); return NULL;
+        return wpt;
     }
-    if (sscanf(buf, "%7[^-]-%lf/%7[^-]-%lf%c", plce1, &brg1, plce2, &brg2, plce2) == 4)
+    else if (*buf)
     {
-        /* PLACE-BRG/PLACE-BRG (PBX) */
-        if ((brg1 >= 0. && brg1 <= 360. && brg2 >= 0. && brg2 <= 360.) &&
-            (place1 = yfs_main_getwp(yfms, plce1)) &&
-            (place2 = yfs_main_getwp(yfms, plce2)))
-        {
-            int pbx = ndt_position_calcpos4pbpb(NULL,
-                                                place1->position,
-                                                ndt_wmm_getbearing_tru(yfms->ndt.ndb->wmm, brg1, place1->position, now),
-                                                place2->position,
-                                                ndt_wmm_getbearing_tru(yfms->ndt.ndb->wmm, brg2, place1->position, now));
-            if (pbx == EDOM)
-            {
-                yfs_spad_reset(yfms, "INFINITE INTERSECTS", -1); return NULL;
-            }
-            if (pbx == ERANGE)
-            {
-                yfs_spad_reset(yfms, "NO INTERSECT", -1); return NULL;
-            }
-            if ((wpt = ndt_waypoint_pbpb(place1, brg1, place2, brg2, now, yfms->ndt.ndb->wmm)))
-            {
-                if (yfms->data.fpln.usridx >= 20)
-                {
-                    ndt_waypoint_close(&wpt);
-                    yfs_spad_reset(yfms, "MAX 20 USER WPTS", -1); return NULL; // TODO: wording
-                }
-                snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "PBX%02d", yfms->data.fpln.usridx + 1);
-                ndt_navdata_add_waypoint(yfms->ndt.ndb, wpt); // after setting ID (for correct sorting)
-                return (yfms->data.fpln.usrwpt[yfms->data.fpln.usridx++] = wpt);
-            }
-        }
-        yfs_spad_reset(yfms, "FORMAT ERROR", -1); return NULL;
+        // yfs_main_usrwp found a match but encountered an error, we must abort
+        yfs_spad_reset(yfms, buf, -1); return NULL;
     }
-    if (sscanf(buf, "%7[^/]/%lf%c", plce1, &dstce, plce2) == 2)
+    else
     {
-        /* PLACE/DIST (PD), a.k.a. along track distance */
-        {
-            distance = ndt_distance_init((int64_t)(dstce * 1852.), NDT_ALTUNIT_ME);
-        }
-        if ((ndt_distance_get(distance, NDT_ALTUNIT_ME)) &&
-            (place1 = yfs_main_getwp(yfms, plce1)))
-        {
-            yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return NULL;
-        }
-        yfs_spad_reset(yfms, "FORMAT ERROR", -1); return NULL;
+        yfs_spad_copy2(yfms, buf); // yfs_main_usrwp didn't match, let's go on
     }
-#if 0
-    if (0)
+    if ((wpt = yfs_main_getwp(yfms, buf)))
     {
-        /* Abeam reference point (AB) -- only via PAGE_DRTO */
+        return wpt;
     }
-#endif
-    char *suffix = buf, *prefix = strsep(&suffix, "/");
-    if   (suffix && strnlen(suffix, 1) && prefix && strnlen(prefix, 1))
-    {
-        /*
-         * LAT/LONG (LL)
-         *
-         * Latitude:   DDMM.MB or BDDMM.M
-         * Longitude: DDDMM.MB or BDDDMM.M
-         *
-         * 16-character format: N4411.9/W06622.1 (N 44° 11.9' W 066° 22.1')
-         * 16-character format: 4411.9N/06622.1W (N 44° 11.9' W 066° 22.1')
-         *
-         * Note: leading zeroes should be strictly optional.
-         * TODO: prepend them (implement the above feature).
-         */
-        if (sscanf(prefix, "%1[NS]%2lf%4lf", de1, &lat, &latm) == 3 ||
-            sscanf(prefix, "%2lf%4lf%1[NS]", &lat, &latm, de1) == 3)
-        {
-            lat = ((lat + latm / 60.));
-            switch (*de1)
-            {
-                case 'N': // north latitude
-                    break;
-                case 'S': // south latitude
-                    lat = -lat;
-                    break;
-                default:  // invalid value
-                    *de1 = '\0';
-                    break;
-            }
-        }
-        else
-        {
-            *de1 = '\0';
-        }
-        if (sscanf(suffix, "%1[EW]%3lf%4lf", de2, &lon, &lonm) == 3 ||
-            sscanf(suffix, "%3lf%4lf%1[EW]", &lon, &lonm, de2) == 3)
-        {
-            lon = ((lon + lonm / 60.));
-            switch (*de2)
-            {
-                case 'E': // east longitude
-                    break;
-                case 'W': // west longitude
-                    lon = -lon;
-                    break;
-                default:  // invalid value
-                    *de2 = '\0';
-                    break;
-            }
-        }
-        else
-        {
-            *de2 = '\0';
-        }
-        if (*de1 != '\0' && *de2 != '\0')
-        {
-            char fmt[23]; snprintf(fmt, sizeof(fmt), "%+.6lf/%+.6lf", lat, lon);
-            if ((wpt = ndt_waypoint_llc(fmt)))
-            {
-                if (yfms->data.fpln.usridx >= 20)
-                {
-                    ndt_waypoint_close(&wpt);
-                    yfs_spad_reset(yfms, "MAX 20 USER WPTS", -1); return NULL; // TODO: wording
-                }
-                snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "LL%02d", yfms->data.fpln.usridx + 1);
-                ndt_navdata_add_waypoint(yfms->ndt.ndb, wpt); // after setting ID (for correct sorting)
-                return (yfms->data.fpln.usrwpt[yfms->data.fpln.usridx++] = wpt);
-            }
-        }
-        yfs_spad_reset(yfms, "FORMAT ERROR", -1); return NULL;
-    }
-    if (prefix == NULL || strnlen(prefix, 1) == 0)
-    {
-        yfs_spad_reset(yfms, "FORMAT ERROR", -1); return NULL;
-    }
-    if ((wpt = yfs_main_getwp(yfms, prefix)) == NULL)
-    {
-        // TODO: disambiguation page
-        yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return NULL;
-    }
-    return wpt;
+    yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return NULL;
 }
 
 static void lsk_callback_awys(yfms_context *yfms, int key[2], intptr_t refcon)

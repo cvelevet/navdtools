@@ -49,6 +49,7 @@
 #include "lib/flightplan.h"
 #include "lib/navdata.h"
 #include "lib/waypoint.h"
+#include "wmm/wmm.h"
 
 #include "YFSfpln.h"
 #include "YFSkeys.h"
@@ -1225,6 +1226,170 @@ ndt_waypoint* yfs_main_getwp(yfms_context *yfms, char *name)
         }
     }
     return NULL;
+}
+
+ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *buffer)
+{
+    if (yfms && buffer && *buffer)
+    {
+        double brg1, brg2, dstce, lat, lon, latm, lonm;
+        int userwpt_index = yfms->data.fpln.usridx + 1;
+        char plce1[8], plce2[8], de1[2], de2[2];
+        ndt_waypoint *wpt, *place1, *place2;
+        ndt_date now = ndt_date_now();
+        ndt_distance distance;
+        if (sscanf(buffer, "%7[^/]/%lf/%lf%c", plce1, &brg1, &dstce, plce2) == 3)
+        {
+            /* PLACE/BRG/DIST (PBD) */
+            {
+                distance = ndt_distance_init((int64_t)(dstce * 1852.), NDT_ALTUNIT_ME);
+            }
+            if ((ndt_distance_get(distance, NDT_ALTUNIT_ME) && brg1 >= 0. && brg1 <= 360.) &&
+                (place1 = yfs_main_getwp(yfms, plce1)))
+            {
+                if ((wpt = ndt_waypoint_pbd(place1, brg1, distance, now, yfms->ndt.ndb->wmm)))
+                {
+                    snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "PBD%02d", userwpt_index);
+                    goto wpt_created;
+                }
+            }
+            snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
+        }
+        if (sscanf(buffer, "%7[^-]-%lf/%7[^-]-%lf%c", plce1, &brg1, plce2, &brg2, plce2) == 4)
+        {
+            /* PLACE-BRG/PLACE-BRG (PBX) */
+            if ((brg1 >= 0. && brg1 <= 360. && brg2 >= 0. && brg2 <= 360.) &&
+                (place1 = yfs_main_getwp(yfms, plce1)) &&
+                (place2 = yfs_main_getwp(yfms, plce2)))
+            {
+                int pbx = ndt_position_calcpos4pbpb(NULL,
+                                                    place1->position,
+                                                    ndt_wmm_getbearing_tru(yfms->ndt.ndb->wmm, brg1, place1->position, now),
+                                                    place2->position,
+                                                    ndt_wmm_getbearing_tru(yfms->ndt.ndb->wmm, brg2, place1->position, now));
+                if (pbx == EDOM)
+                {
+                    snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "INFINITE INTERSECTS"); return NULL;
+                }
+                if (pbx == ERANGE)
+                {
+                    snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "NO INTERSECT"); return NULL;
+                }
+                if ((wpt = ndt_waypoint_pbpb(place1, brg1, place2, brg2, now, yfms->ndt.ndb->wmm)))
+                {
+                    snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "PBX%02d", userwpt_index);
+                    goto wpt_created;
+                }
+            }
+            snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
+        }
+        if (sscanf(buffer, "%7[^/]/%lf%c", plce1, &dstce, plce2) == 2)
+        {
+            /* PLACE/DIST (PD), a.k.a. along track distance */
+            {
+                distance = ndt_distance_init((int64_t)(dstce * 1852.), NDT_ALTUNIT_ME);
+            }
+            if ((ndt_distance_get(distance, NDT_ALTUNIT_ME)) &&
+                (place1 = yfs_main_getwp(yfms, plce1)))
+            {
+                snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "NOT IMPLEMENTED"); return NULL;
+            }
+            snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
+        }
+#if 0
+        if (0)
+        {
+            /* Abeam reference point (AB) -- only via PAGE_DRTO */
+        }
+#endif
+        char *suffix = buffer, *prefix = strsep(&suffix, "/");
+        if   (suffix && strnlen(suffix, 1) && prefix && strnlen(prefix, 1))
+        {
+            /*
+             * LAT/LONG (LL)
+             *
+             * Latitude:   DDMM.MB or BDDMM.M
+             * Longitude: DDDMM.MB or BDDDMM.M
+             *
+             * 16-character format: N4411.9/W06622.1 (N 44° 11.9' W 066° 22.1')
+             * 16-character format: 4411.9N/06622.1W (N 44° 11.9' W 066° 22.1')
+             *
+             * Note: leading zeroes should be strictly optional.
+             * TODO: prepend them (implement the above feature).
+             */
+            if (sscanf(prefix, "%1[NS]%2lf%4lf", de1, &lat, &latm) == 3 ||
+                sscanf(prefix, "%2lf%4lf%1[NS]", &lat, &latm, de1) == 3)
+            {
+                lat = ((lat + latm / 60.));
+                switch (*de1)
+                {
+                    case 'N': // north latitude
+                        break;
+                    case 'S': // south latitude
+                        lat = -lat;
+                        break;
+                    default:  // invalid value
+                        *de1 = '\0';
+                        break;
+                }
+            }
+            else
+            {
+                *de1 = '\0';
+            }
+            if (sscanf(suffix, "%1[EW]%3lf%4lf", de2, &lon, &lonm) == 3 ||
+                sscanf(suffix, "%3lf%4lf%1[EW]", &lon, &lonm, de2) == 3)
+            {
+                lon = ((lon + lonm / 60.));
+                switch (*de2)
+                {
+                    case 'E': // east longitude
+                        break;
+                    case 'W': // west longitude
+                        lon = -lon;
+                        break;
+                    default:  // invalid value
+                        *de2 = '\0';
+                        break;
+                }
+            }
+            else
+            {
+                *de2 = '\0';
+            }
+            if (*de1 != '\0' && *de2 != '\0')
+            {
+                char fmt[23]; snprintf(fmt, sizeof(fmt), "%+.6lf/%+.6lf", lat, lon);
+                if ((wpt = ndt_waypoint_llc(fmt)))
+                {
+                    snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "LL%02d", userwpt_index);
+                    goto wpt_created;
+                }
+            }
+            snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
+        }
+        goto no_match;
+
+    wpt_created:
+        if (yfms->data.fpln.usridx >= 20)
+        {
+            snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "MAX 20 USER WPTS"); // TODO: wording???
+            ndt_waypoint_close(&wpt); return NULL;
+        }
+        else
+        {
+            ndt_navdata_add_waypoint(yfms->ndt.ndb, wpt);
+        }
+        return (yfms->data.fpln.usrwpt[yfms->data.fpln.usridx++] = wpt);
+    }
+
+no_match:
+    /*
+     * signalling of an optional error is done via an empty error string
+     * no matching format found: format error here, but make it optional
+     * (the caller may decide to look for named waypoints instead, etc.)
+     */
+    snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", ""); return NULL;
 }
 
 void yfs_printf_lft(void *context, int index, int offset, int color, char *fmt, ...)

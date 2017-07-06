@@ -535,6 +535,7 @@ void          yfs_main_rline(yfms_context*,   int, int       );
 int           yfs_main_close(yfms_context**                  );
 int           yfs_main_newpg(yfms_context*,   int            );
 ndt_waypoint* yfs_main_getwp(yfms_context*,        char*     );
+ndt_waypoint* yfs_main_usrwp(yfms_context*,        char*     );
 void          yfs_printf_lft(void*, int, int, int, char*, ...);
 void          yfs_printf_rgt(void*, int, int, int, char*, ...);
 void          yfs_printf_ctr(void*, int,      int, char*, ...);
