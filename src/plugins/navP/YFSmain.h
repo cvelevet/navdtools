@@ -529,13 +529,14 @@ typedef struct
 }
 yfms_context;
 
-void* yfs_main_init (void                            );
-void  yfs_main_toggl(yfms_context*                   );
-void  yfs_main_rline(yfms_context*,     int, int     );
-int   yfs_main_close(yfms_context**                  );
-int   yfs_main_newpg(yfms_context*,          int     );
-void  yfs_printf_lft(void*, int, int, int, char*, ...);
-void  yfs_printf_rgt(void*, int, int, int, char*, ...);
-void  yfs_printf_ctr(void*, int,      int, char*, ...);
+void*         yfs_main_init (void                            );
+void          yfs_main_toggl(yfms_context*                   );
+void          yfs_main_rline(yfms_context*,   int, int       );
+int           yfs_main_close(yfms_context**                  );
+int           yfs_main_newpg(yfms_context*,   int            );
+ndt_waypoint* yfs_main_getwp(yfms_context*,        char*     );
+void          yfs_printf_lft(void*, int, int, int, char*, ...);
+void          yfs_printf_rgt(void*, int, int, int, char*, ...);
+void          yfs_printf_ctr(void*, int,      int, char*, ...);
 
 #endif /* YFS_MAIN_H */

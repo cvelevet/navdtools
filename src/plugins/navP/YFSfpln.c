@@ -941,7 +941,7 @@ static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
             distance = ndt_distance_init((int64_t)(dstce * 1852.), NDT_ALTUNIT_ME);
         }
         if ((ndt_distance_get(distance, NDT_ALTUNIT_ME) && brg1 >= 0. && brg1 <= 360.) &&
-            (place1 = ndt_navdata_get_wptnear2(yfms->ndt.ndb, plce1, NULL, yfms->data.aircraft_pos)))
+            (place1 = yfs_main_getwp(yfms, plce1)))
         {
             if ((wpt = ndt_waypoint_pbd(place1, brg1, distance, now, yfms->ndt.ndb->wmm)))
             {
@@ -961,8 +961,8 @@ static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
     {
         /* PLACE-BRG/PLACE-BRG (PBX) */
         if ((brg1 >= 0. && brg1 <= 360. && brg2 >= 0. && brg2 <= 360.) &&
-            (place1 = ndt_navdata_get_wptnear2(yfms->ndt.ndb, plce1, NULL, yfms->data.aircraft_pos)) &&
-            (place2 = ndt_navdata_get_wptnear2(yfms->ndt.ndb, plce2, NULL, yfms->data.aircraft_pos)))
+            (place1 = yfs_main_getwp(yfms, plce1)) &&
+            (place2 = yfs_main_getwp(yfms, plce2)))
         {
             int pbx = ndt_position_calcpos4pbpb(NULL,
                                                 place1->position,
@@ -998,7 +998,7 @@ static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
             distance = ndt_distance_init((int64_t)(dstce * 1852.), NDT_ALTUNIT_ME);
         }
         if ((ndt_distance_get(distance, NDT_ALTUNIT_ME)) &&
-            (place1 = ndt_navdata_get_wptnear2(yfms->ndt.ndb, plce1, NULL, yfms->data.aircraft_pos)))
+            (place1 = yfs_main_getwp(yfms, plce1)))
         {
             yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return NULL;
         }
@@ -1086,7 +1086,7 @@ static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
     {
         yfs_spad_reset(yfms, "FORMAT ERROR", -1); return NULL;
     }
-    if ((wpt = ndt_navdata_get_wptnear2(yfms->ndt.ndb, prefix, NULL, yfms->data.aircraft_pos)) == NULL)
+    if ((wpt = yfs_main_getwp(yfms, prefix)) == NULL)
     {
         // TODO: disambiguation page
         yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return NULL;

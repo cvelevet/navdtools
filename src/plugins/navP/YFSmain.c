@@ -48,6 +48,7 @@
 #include "common/common.h"
 #include "lib/flightplan.h"
 #include "lib/navdata.h"
+#include "lib/waypoint.h"
 
 #include "YFSfpln.h"
 #include "YFSkeys.h"
@@ -1211,6 +1212,19 @@ int yfs_main_newpg(yfms_context *yfms, int new_page)
     yfms->spcs.cback_lnup  = yfms->spcs.cback_lndn  = (YFS_SPC_f)NULL;
     // YFMS should always know which page is being displayed
     yfms->mwindow.current_page = new_page; return 0;
+}
+
+ndt_waypoint* yfs_main_getwp(yfms_context *yfms, char *name)
+{
+    if (yfms && name && *name)
+    {
+        ndt_waypoint *wpt = ndt_navdata_get_wptnear2(yfms->ndt.ndb, name, NULL, yfms->data.aircraft_pos);
+        if (wpt)
+        {
+            return wpt;
+        }
+    }
+    return NULL;
 }
 
 void yfs_printf_lft(void *context, int index, int offset, int color, char *fmt, ...)

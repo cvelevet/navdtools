@@ -150,7 +150,7 @@ static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refco
         }
         // TODO: place/bearing/distance and others
         // TODO: disambiguation page for duplicates
-        if ((wpt = ndt_navdata_get_wptnear2(yfms->ndt.ndb, buf, NULL, yfms->data.aircraft_pos)) == NULL)
+        if ((wpt = yfs_main_getwp(yfms, buf)) == NULL)
         {
             yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return;
         }

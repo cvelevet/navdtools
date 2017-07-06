@@ -200,8 +200,7 @@ static void yfs_lsk_callback_drto(yfms_context *yfms, int key[2], intptr_t refco
             {
                 yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
             }
-            if ((yfms->data.drto.dctwp = ndt_navdata_get_wptnear2(yfms->ndt.ndb, buf, NULL,
-                                                                  yfms->data.aircraft_pos)) == NULL)
+            if ((yfms->data.drto.dctwp = yfs_main_getwp(yfms, buf)) == NULL)
             {
                 // TODO: disambiguation page
                 yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return;
