@@ -1273,7 +1273,7 @@ ndt_waypoint* yfs_main_getwp(yfms_context *yfms, char *name)
             }
             if ((wpt = ndt_waypoint_llc(fmt)) == NULL)
             {
-                ndt_log("YFMS [debug]: ndt_waypoint_llc(\"%s\" %04d %+9.6f %+10.6f) failed\n", outID, outTypes, outLat, outLon);
+                ndt_log("YFMS [debug]: ndt_waypoint_llc(\"%s\" %04d %+9.6f/%+10.6f) failed\n", outID, outTypes, outLat, outLon);
                 return NULL;
             }
             switch (outTypes)
@@ -1314,8 +1314,8 @@ ndt_waypoint* yfs_main_getwp(yfms_context *yfms, char *name)
             }
             if (wpt->type != NDT_WPTYPE_XPA)
             {
-                ndt_log("YFMS [debug]: added XPLM-only waypoint \"%s\", "
-                        "of type %04d (internal %2d) at %+9.6f %+10.6f\n",
+                ndt_log("YFMS [info]: added XPLM-only waypoint: \"%s\", "
+                        "of type %04d (internal %2d) at %+9.6f/%+10.6f\n",
                         outID, outTypes, wpt->type, outLat, outLon);
             }
             snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", outID);
