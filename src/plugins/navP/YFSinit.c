@@ -454,6 +454,7 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                     snprintf(icao, sizeof(icao),  "%s", prefix);
                 }
                 src = ndt_navdata_get_airport(yfms->ndt.ndb, icao);
+                //fixme if (src == NULL) try again with prefix and allow create_airport()
             }
             else
             {
@@ -470,6 +471,7 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                     snprintf(icao, sizeof(icao),  "%s", suffix);
                 }
                 dst = ndt_navdata_get_airport(yfms->ndt.ndb, icao);
+                //fixme if (dst == NULL) try again with suffix and allow create_airport()
             }
             else
             {
