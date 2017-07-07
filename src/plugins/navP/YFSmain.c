@@ -1230,8 +1230,8 @@ ndt_waypoint* yfs_main_getwp(yfms_context *yfms, char *name)
         XPLMNavRef navRef = XPLMFindNavAid(NULL, name, &inLatitude, &inLongitude, NULL, nav_aid_types);
         if (XPLM_NAV_NOT_FOUND != navRef)
         {
-            XPLMNavType outTypes; size_t sname = strlen(name); char outID[33]; float outLat[1], outLon[1];
-            XPLMGetNavAidInfo(navRef, &outTypes, outLat, outLon, NULL, NULL, NULL, outID, NULL, NULL);
+            XPLMNavType outTypes; size_t sname = strlen(name); char outID[33]; float outLat, outLon;
+            XPLMGetNavAidInfo(navRef, &outTypes, &outLat, &outLon, NULL, NULL, NULL, outID, NULL, NULL);
             /*
              * Example (Navigraph data, AIRAC 1707):
              * > $ grep TRS Waypoints.txt Navaids.txt | grep \,ES
@@ -1257,11 +1257,11 @@ ndt_waypoint* yfs_main_getwp(yfms_context *yfms, char *name)
             }
             char fmt[23]; ndt_waypoint *wpt;
             {
-                snprintf(fmt, sizeof(fmt), "%+.6lf/%+.6lf", *outLat, *outLon);
+                snprintf(fmt, sizeof(fmt), "%+.6lf/%+.6lf", outLat, outLon);
             }
             if ((wpt = ndt_waypoint_llc(fmt)) == NULL)
             {
-                ndt_log("YFMS [debug]: XPLM-only \"%s\" invalid at %+9.6f/%+10.6f\n", outID, *outLat, *outLon);
+                ndt_log("YFMS [debug]: ndt_waypoint_llc(\"%s\" %04d %+9.6f %+10.6f) failed\n", outID, outTypes, outLat, outLon);
                 return NULL;
             }
             switch (outTypes)
@@ -1302,7 +1302,9 @@ ndt_waypoint* yfs_main_getwp(yfms_context *yfms, char *name)
             }
             if (wpt->type != NDT_WPTYPE_XPA)
             {
-                ndt_log("YFMS [debug]: found XPLM-only waypoint \"%s\" with types %d (%d)\n", outID, outTypes, wpt->type);
+                ndt_log("YFMS [debug]: added XPLM-only waypoint \"%s\", "
+                        "of type %04d (internal %2d) at %+9.6f %+10.6f\n",
+                        outID, outTypes, wpt->type, outLat, outLon);
             }
             snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", outID);
             wpt->xplm.navRef = navRef; wpt->xplm.refSet = 1;
