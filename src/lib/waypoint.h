@@ -123,20 +123,23 @@ typedef struct ndt_waypoint
     // sorted as per X-Plane earth_nav.dat format
     enum
     {
-        NDT_WPTYPE_APT =  1, // airport (ICAO code or equivalent)
+        NDT_WPTYPE_APT =  1, // airport (ICAO code only)
         NDT_WPTYPE_NDB =  2, // NDB radio beacon
         NDT_WPTYPE_VOR =  3, // VOR radio beacon
-//      NDT_WPTYPE_ILS =  4, // localizer (ILS) (use the next one for all LOCs)
+        NDT_WPTYPE_ILS =  4, // localizer (unused, use next type for all LOCs)
         NDT_WPTYPE_LOC =  5, // localizer (standalone)
         NDT_WPTYPE_FIX = 11, // RNAV fix
         NDT_WPTYPE_DME = 13, // standalone DME
         NDT_WPTYPE_LLC = 28, // latitude/longitude coordinates
-        NDT_WPTYPE_RWY = 31, // runway threshold                    (not XP type)
-        NDT_WPTYPE_PBD = 41, // place/bearing/distance              (not XP type)
-        NDT_WPTYPE_PPB = 42, // place/bearing, place/bearing        (not XP type)
-        NDT_WPTYPE_PPD = 43, // place/bearing, place/distance       (not XP type)
-        NDT_WPTYPE_TOC = 51, // top of climb   (pseudo-waypoint)    (not XP type)
-        NDT_WPTYPE_TOD = 52, // top of descent (pseudo-waypoint)    (not XP type)
+        NDT_WPTYPE_XPA = 31, // airport (if only matches during XPLM database lookup)
+        NDT_WPTYPE_RWY = 32, // runway threshold                 (no XPLM equivalent)
+        NDT_WPTYPE_PBD = 41, // place/bearing/distance           (no XPLM equivalent)
+        NDT_WPTYPE_PBX = 42, // place/bearing-place/bearing      (no XPLM equivalent)
+        NDT_WPTYPE_INT = 43, // place/bearing-place/distance     (no XPLM equivalent)
+        NDT_WPTYPE_ATD = 44, // place/distance (along track)     (no XPLM equivalent)
+        NDT_WPTYPE_ARP = 45, // abeam reference point            (no XPLM equivalent)
+        NDT_WPTYPE_TOC = 51, // top of climb   (pseudo-waypoint) (no XPLM equivalent)
+        NDT_WPTYPE_TOD = 52, // top of descent (pseudo-waypoint) (no XPLM equivalent)
     } type;
 } ndt_waypoint;
 

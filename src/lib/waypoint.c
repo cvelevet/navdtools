@@ -373,7 +373,7 @@ ndt_waypoint* ndt_waypoint_pbpb(ndt_waypoint *src1, double mag1, ndt_waypoint *s
     wpt->pbpb.brg1 = mag1;
     wpt->pbpb.wpt2 = src2;
     wpt->pbpb.brg2 = mag2;
-    wpt->type      = NDT_WPTYPE_PPB;
+    wpt->type      = NDT_WPTYPE_PBX;
     int rtval      = ndt_position_calcpos4pbpb(&wpt->position,
                                                src1->position,
                                                ndt_wmm_getbearing_tru(wmm, mag1, src1->position, date),
@@ -413,7 +413,7 @@ ndt_waypoint* ndt_waypoint_pbpd(ndt_waypoint *src1, double magb, ndt_waypoint *s
     wpt->pbpd.bearing  = magb;
     wpt->pbpd.navaid   = src2;
     wpt->pbpd.distance = dist;
-    wpt->type          = NDT_WPTYPE_PPD;
+    wpt->type          = NDT_WPTYPE_INT;
     int rtval          = ndt_position_calcpos4pbpd(&wpt->position,
                                                    src1->position,
                                                    ndt_wmm_getbearing_tru(wmm, magb, src1->position, date),
