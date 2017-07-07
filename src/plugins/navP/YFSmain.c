@@ -1224,6 +1224,91 @@ ndt_waypoint* yfs_main_getwp(yfms_context *yfms, char *name)
         {
             return wpt;
         }
+        XPLMNavType nav_aid_types = xplm_Nav_Airport|xplm_Nav_NDB|xplm_Nav_VOR|xplm_Nav_ILS|xplm_Nav_Localizer|xplm_Nav_Fix|xplm_Nav_DME;
+        float inLatitude  = (float)ndt_position_getlatitude (yfms->data.aircraft_pos, NDT_ANGUNIT_DEG);
+        float inLongitude = (float)ndt_position_getlongitude(yfms->data.aircraft_pos, NDT_ANGUNIT_DEG);
+        XPLMNavRef navRef = XPLMFindNavAid(NULL, name, &inLatitude, &inLongitude, NULL, nav_aid_types);
+        if (XPLM_NAV_NOT_FOUND != navRef)
+        {
+            XPLMNavType outTypes; size_t sname = strlen(name); char outID[33]; float outLat[1], outLon[1];
+            XPLMGetNavAidInfo(navRef, &outTypes, outLat, outLon, NULL, NULL, NULL, outID, NULL, NULL);
+            /*
+             * Example (Navigraph data, AIRAC 1707):
+             * > $ grep TRS Waypoints.txt Navaids.txt | grep \,ES
+             * > Waypoints.txt:TRS29,59.286033,18.150856,ES
+             * > Navaids.txt:TRS,TROSA,114.300,1,1,195,58.937917,17.502222,213,ES,0
+             *
+             * Even worse (Aerosoft data, AIRAC 1707):
+             * > $ grep TRS Waypoints.txt Navaids.txt | grep \,ES
+             * > Waypoints.txt:27TRS,59.20740,18.17919,ES
+             * > Waypoints.txt:65TRS,59.00434,17.66729,ES
+             * > Waypoints.txt:TRS10,58.82436,17.26767,ES
+             * > Waypoints.txt:TRS22,59.20709,17.98320,ES
+             * > Waypoints.txt:TRS27,59.38652,17.47173,ES
+             * > Waypoints.txt:TRS65,59.04594,17.49621,ES
+             * > Navaids.txt:TRS,TROSA,114.300,1,1,195,58.93792,17.50222,213,ES,0
+             *
+             * Because of how XPLMFindNavAid works (by design), it could
+             * e.g. find and return any of the above when inIDFrag is TRS.
+             */
+            if (strnlen(outID, 1 + sname) != sname)
+            {
+                return NULL;
+            }
+            char fmt[23]; ndt_waypoint *wpt;
+            {
+                snprintf(fmt, sizeof(fmt), "%+.6lf/%+.6lf", *outLat, *outLon);
+            }
+            if ((wpt = ndt_waypoint_llc(fmt)) == NULL)
+            {
+                ndt_log("YFMS [debug]: XPLM-only \"%s\" invalid at %+9.6f/%+10.6f\n", outID, *outLat, *outLon);
+                return NULL;
+            }
+            switch (outTypes)
+            {
+                default: // we don't need cases, but we have to be able to break
+                    if ((outTypes & xplm_Nav_Airport))
+                    {
+                        wpt->type = NDT_WPTYPE_XPA;
+                        break;
+                    }
+                    if ((outTypes & xplm_Nav_NDB))
+                    {
+                        wpt->type = NDT_WPTYPE_NDB;
+                        break;
+                    }
+                    if ((outTypes & xplm_Nav_VOR))
+                    {
+                        wpt->type = NDT_WPTYPE_VOR;
+                        break;
+                    }
+                    if ((outTypes & xplm_Nav_ILS) ||
+                        (outTypes & xplm_Nav_Localizer))
+                    {
+                        wpt->type = NDT_WPTYPE_LOC;
+                        break;
+                    }
+                    if ((outTypes & xplm_Nav_Fix))
+                    {
+                        wpt->type = NDT_WPTYPE_FIX;
+                        break;
+                    }
+                    if ((outTypes & xplm_Nav_DME))
+                    {
+                        wpt->type = NDT_WPTYPE_DME;
+                        break;
+                    }
+                    ndt_waypoint_close(&wpt); return NULL;
+            }
+            if (wpt->type != NDT_WPTYPE_XPA)
+            {
+                ndt_log("YFMS [debug]: found XPLM-only waypoint \"%s\" with types %d (%d)\n", outID, outTypes, wpt->type);
+            }
+            snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", outID);
+            wpt->xplm.navRef = navRef; wpt->xplm.refSet = 1;
+            ndt_navdata_add_waypoint(yfms->ndt.ndb, wpt);
+            return wpt;
+        }
     }
     return NULL;
 }
