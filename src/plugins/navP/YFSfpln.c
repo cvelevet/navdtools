@@ -83,6 +83,12 @@ static XPLMNavRef xplm_find_navaid(ndt_waypoint *wpt)
         *inLatit = (float)ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG);
         *inLongi = (float)ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG);
         navRefpt = XPLMFindNavAid(NULL, inIDFrag, inLatit, inLongi, NULL, navTypes);
+        if (XPLM_NAV_NOT_FOUND == navRefpt && navTypes == xplm_Nav_Airport && inIDFrag_len == 4)
+        {
+            // try our luck converting the 4-letter ICAO code to an FAA LID code
+            inIDFrag = (char*)(wpt->info.idnt + 1); inIDFrag_len = strlen(inIDFrag);
+            navRefpt = XPLMFindNavAid(NULL, inIDFrag, inLatit, inLongi, NULL, navTypes);
+        }
         if (XPLM_NAV_NOT_FOUND != navRefpt)
         {
             XPLMGetNavAidInfo(navRefpt, NULL, outLati, outLong, NULL, NULL, NULL, outID, NULL, NULL);

@@ -1224,6 +1224,18 @@ ndt_waypoint* yfs_main_getwp(yfms_context *yfms, char *name)
         {
             return wpt;
         }
+        if (strnlen(name, 4) == 3) // could also be the FAA location identifier
+        {
+            // use the 4-letter ICAO equivalent instead, if present in database
+            char icao[5]; ndt_airport *apt;
+            {
+                snprintf(icao, sizeof(icao), "K%s", name);
+            }
+            if ((apt = ndt_navdata_get_airport(yfms->ndt.ndb, icao)))
+            {
+                return apt->waypoint;
+            }
+        }
         XPLMNavType nav_aid_types = xplm_Nav_Airport|xplm_Nav_NDB|xplm_Nav_VOR|xplm_Nav_ILS|xplm_Nav_Localizer|xplm_Nav_Fix|xplm_Nav_DME;
         float inLatitude  = (float)ndt_position_getlatitude (yfms->data.aircraft_pos, NDT_ANGUNIT_DEG);
         float inLongitude = (float)ndt_position_getlongitude(yfms->data.aircraft_pos, NDT_ANGUNIT_DEG);
