@@ -436,15 +436,24 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
         char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if  (strnlen(buf, 1))
         {
-            ndt_airport *dst = NULL, *src = NULL;
+            ndt_airport *dst = NULL, *src = NULL; char icao[5];
             char *suffix = buf, *prefix = strsep(&suffix, "/");
+            if  (!strcmp  (buf, "CLR"))
+            {
+                yfs_flightplan_reinit(yfms, NULL, NULL, NULL);
+                yfs_spad_clear(yfms); return yfs_init_pageupdt(yfms);
+            }
             if (prefix && prefix[0])
             {
-                if (strcmp(prefix, "CLR") == 0)
+                if (strnlen(prefix, 4) == 3)
                 {
-                    yfs_spad_clear(yfms); yfs_flightplan_reinit(yfms, NULL, NULL, NULL); return yfs_init_pageupdt(yfms);
+                    snprintf(icao, sizeof(icao), "K%s", prefix); // accept FAA LIDs but convert them
                 }
-                src = ndt_navdata_get_airport(yfms->ndt.ndb, prefix);
+                else
+                {
+                    snprintf(icao, sizeof(icao),  "%s", prefix);
+                }
+                src = ndt_navdata_get_airport(yfms->ndt.ndb, icao);
             }
             else
             {
@@ -452,7 +461,15 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
             }
             if (suffix && suffix[0])
             {
-                dst = ndt_navdata_get_airport(yfms->ndt.ndb, suffix);
+                if (strnlen(suffix, 4) == 3)
+                {
+                    snprintf(icao, sizeof(icao), "K%s", suffix); // accept FAA LIDs but convert them
+                }
+                else
+                {
+                    snprintf(icao, sizeof(icao),  "%s", suffix);
+                }
+                dst = ndt_navdata_get_airport(yfms->ndt.ndb, icao);
             }
             else
             {
