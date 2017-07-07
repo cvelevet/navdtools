@@ -94,8 +94,18 @@ static XPLMNavRef xplm_find_navaid(ndt_waypoint *wpt)
              * > Waypoints.txt:TRS29,59.286033,18.150856,ES
              * > Navaids.txt:TRS,TROSA,114.300,1,1,195,58.937917,17.502222,213,ES,0
              *
-             * Because of how XPLMFindNavAid works (by design), it
-             * may e.g. find and return TRS29 when inIDFrag is TRS.
+             * Even worse (Aerosoft data, AIRAC 1707):
+             * > $ grep TRS Waypoints.txt Navaids.txt | grep \,ES
+             * > Waypoints.txt:27TRS,59.20740,18.17919,ES
+             * > Waypoints.txt:65TRS,59.00434,17.66729,ES
+             * > Waypoints.txt:TRS10,58.82436,17.26767,ES
+             * > Waypoints.txt:TRS22,59.20709,17.98320,ES
+             * > Waypoints.txt:TRS27,59.38652,17.47173,ES
+             * > Waypoints.txt:TRS65,59.04594,17.49621,ES
+             * > Navaids.txt:TRS,TROSA,114.300,1,1,195,58.93792,17.50222,213,ES,0
+             *
+             * Because of how XPLMFindNavAid works (by design), it could
+             * e.g. find and return any of the above when inIDFrag is TRS.
              */
             if (strnlen(outID, 1 + inIDFrag_len) != inIDFrag_len)
             {
