@@ -57,6 +57,7 @@ static XPLMNavRef xplm_find_navaid(ndt_waypoint *wpt)
         switch (wpt->type)
         {
             case NDT_WPTYPE_APT:
+            case NDT_WPTYPE_XPA:
                 navTypes = xplm_Nav_Airport;
                 break;
             case NDT_WPTYPE_NDB:
@@ -65,6 +66,7 @@ static XPLMNavRef xplm_find_navaid(ndt_waypoint *wpt)
             case NDT_WPTYPE_VOR:
                 navTypes = xplm_Nav_VOR;
                 break;
+            case NDT_WPTYPE_ILS:
             case NDT_WPTYPE_LOC:
                 navTypes = xplm_Nav_ILS|xplm_Nav_Localizer;
                 break;
