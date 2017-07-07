@@ -43,6 +43,83 @@ static void            fpl_print_airport_rwy(yfms_context *yfms, int row, ndt_ai
 static int             fpl_getindex_for_line(yfms_context *yfms, int line                                  );
 static ndt_flightplan* fpl_getfplan_for_leg(yfms_context *yfms,                          ndt_route_leg *leg);
 
+static XPLMNavRef xplm_find_navaid(ndt_waypoint *wpt)
+{
+    if (wpt)
+    {
+        char outID[33]; float outLati[1], outLong[1]; XPLMNavType navTypes;
+        char *inIDFrag; float inLatit[1], inLongi[1]; XPLMNavRef  navRefpt;
+        ndt_distance distce_zero = NDT_DISTANCE_ZERO; size_t  inIDFrag_len;
+        /*
+         * Always match target waypoint type pretty exactly, to avoid e.g.
+         * cases where we match an NDB adjacent to a identically-named NDB.
+         */
+        switch (wpt->type)
+        {
+            case NDT_WPTYPE_APT:
+                navTypes = xplm_Nav_Airport;
+                break;
+            case NDT_WPTYPE_NDB:
+                navTypes = xplm_Nav_NDB;
+                break;
+            case NDT_WPTYPE_VOR:
+                navTypes = xplm_Nav_VOR;
+                break;
+            case NDT_WPTYPE_LOC:
+                navTypes = xplm_Nav_ILS|xplm_Nav_Localizer;
+                break;
+            case NDT_WPTYPE_FIX:
+                navTypes = xplm_Nav_Fix;
+                break;
+            case NDT_WPTYPE_DME:
+                navTypes = xplm_Nav_DME;
+                break;
+            default:
+                return XPLM_NAV_NOT_FOUND;
+        }
+        inIDFrag = (char*)wpt->info.idnt; inIDFrag_len = strlen(inIDFrag);
+        *inLatit = (float)ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG);
+        *inLongi = (float)ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG);
+        navRefpt = XPLMFindNavAid(NULL, inIDFrag, inLatit, inLongi, NULL, navTypes);
+        if (XPLM_NAV_NOT_FOUND != navRefpt)
+        {
+            XPLMGetNavAidInfo(navRefpt, NULL, outLati, outLong, NULL, NULL, NULL, outID, NULL, NULL);
+            ndt_position positn = ndt_position_init((double)*outLati, (double)*outLong, distce_zero);
+            ndt_distance dstnce = ndt_position_calcdistance(wpt->position, positn);
+            /*
+             * Example (Navigraph data, AIRAC 1707):
+             * > $ grep TRS Waypoints.txt Navaids.txt | grep \,ES
+             * > Waypoints.txt:TRS29,59.286033,18.150856,ES
+             * > Navaids.txt:TRS,TROSA,114.300,1,1,195,58.937917,17.502222,213,ES,0
+             *
+             * Because of how XPLMFindNavAid works (by design), it
+             * may e.g. find and return TRS29 when inIDFrag is TRS.
+             */
+            if (strnlen(outID, 1 + inIDFrag_len) != inIDFrag_len)
+            {
+                return XPLM_NAV_NOT_FOUND;
+            }
+            if (navTypes == xplm_Nav_Airport)
+            {
+                // airports can be within a few miles from our target
+                if (ndt_distance_get(dstnce, NDT_ALTUNIT_NM) < INT64_C(3))
+                {
+                    return navRefpt;
+                }
+            }
+            else
+            {
+                // other navaids must be within a furlong from target
+                if (ndt_distance_get(dstnce, NDT_ALTUNIT_FT) < INT64_C(660))
+                {
+                    return navRefpt;
+                }
+            }
+        }
+    }
+    return XPLM_NAV_NOT_FOUND;
+}
+
 static void xplm_fpln_sync(yfms_context *yfms)
 {
     /*
@@ -103,7 +180,6 @@ static void xplm_fpln_sync(yfms_context *yfms)
                 yfms->data.fpln.xplm_last++; // i == -1; xplm_last: -1 -> +0
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud = (float)ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG);
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude = (float)ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG);
-                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = XPLM_NAV_NOT_FOUND;
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].cst = ndt_leg_const_init();
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].legindex = i;
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].altitude = 0;
@@ -113,18 +189,7 @@ static void xplm_fpln_sync(yfms_context *yfms)
                 }
                 else
                 {
-                    XPLMNavRef waypnt;
-                    if (XPLM_NAV_NOT_FOUND != (waypnt = XPLMFindNavAid(NULL, wpt->info.idnt,
-                                                                       &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude,
-                                                                       &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud, NULL, xplm_Nav_Airport)))
-                    {
-                        float la, lo; XPLMGetNavAidInfo(waypnt, NULL, &la, &lo, NULL, NULL, NULL, NULL, NULL, NULL);
-                        ndt_distance dist = ndt_position_calcdistance(wpt->position, ndt_position_init((double)la, (double)lo, NDT_DISTANCE_ZERO));
-                        if (INT64_C(3) > ndt_distance_get(dist, NDT_ALTUNIT_NM))
-                        {
-                            yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = waypnt; // a furlong (660ft) or less from waypoint
-                        }
-                    }
+                    yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = xplm_find_navaid(wpt);
                     wpt->xplm.navRef = yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint;
                     wpt->xplm.refSet = 1;
                 }
@@ -139,10 +204,19 @@ static void xplm_fpln_sync(yfms_context *yfms)
                 yfms->data.fpln.xplm_last++; // i == -1; xplm_last: +0 -> +1
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud = (float)ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG);
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude = (float)ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG);
-                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = wpt->xplm.refSet ? wpt->xplm.navRef : XPLM_NAV_NOT_FOUND;
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].cst = ndt_leg_const_init();
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].legindex = i;
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].altitude = 0;
+                if (wpt->xplm.refSet)
+                {
+                    yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = wpt->xplm.navRef;
+                }
+                else // wpt == yfms->ndt.flp.rte->dep.rwy->waypoint
+                {
+                    yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = XPLM_NAV_NOT_FOUND;
+                    wpt->xplm.navRef = yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint;
+                    wpt->xplm.refSet = 1;
+                }
             }
         }
         else if ((leg = ndt_list_item(yfms->data.fpln.legs, i)))
@@ -158,7 +232,7 @@ static void xplm_fpln_sync(yfms_context *yfms)
                     yfms->data.fpln.xplm_last++;
                     yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud = (float)ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG);
                     yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude = (float)ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG);
-                    yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = XPLM_NAV_NOT_FOUND;
+                    yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = XPLM_NAV_NOT_FOUND; // xpfms waypoints are always lat/lon based
                     yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].cst = leg->constraints;
                     yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].legindex = i;
                     yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].altitude = 0;
@@ -173,7 +247,6 @@ static void xplm_fpln_sync(yfms_context *yfms)
                 yfms->data.fpln.xplm_last++;
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud = (float)ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG);
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude = (float)ndt_position_getlatitude (wpt->position, NDT_ANGUNIT_DEG);
-                yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = XPLM_NAV_NOT_FOUND;
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].cst = leg->constraints;
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].legindex = i;
                 yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].altitude = 0;
@@ -183,53 +256,7 @@ static void xplm_fpln_sync(yfms_context *yfms)
                 }
                 else
                 {
-                    XPLMNavRef waypnt;
-                    switch (wpt->type)
-                    {
-                        case NDT_WPTYPE_APT:
-                            waypnt = XPLMFindNavAid(NULL, wpt->info.idnt,
-                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude,
-                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud, NULL, xplm_Nav_Airport);
-                            break;
-                        case NDT_WPTYPE_NDB:
-                            waypnt = XPLMFindNavAid(NULL, wpt->info.idnt,
-                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude,
-                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud, NULL, xplm_Nav_NDB);
-                            break;
-                        case NDT_WPTYPE_VOR:
-                            waypnt = XPLMFindNavAid(NULL, wpt->info.idnt,
-                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude,
-                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud, NULL, xplm_Nav_VOR);
-                            break;
-                        case NDT_WPTYPE_LOC:
-                            waypnt = XPLMFindNavAid(NULL, wpt->info.idnt,
-                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude,
-                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud, NULL, xplm_Nav_ILS|xplm_Nav_Localizer);
-                            break;
-                        case NDT_WPTYPE_FIX:
-                            waypnt = XPLMFindNavAid(NULL, wpt->info.idnt,
-                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude,
-                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud, NULL, xplm_Nav_Fix);
-                            break;
-                        case NDT_WPTYPE_DME:
-                            waypnt = XPLMFindNavAid(NULL, wpt->info.idnt,
-                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].latitude,
-                                                    &yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].longitud, NULL, xplm_Nav_DME);
-                            break;
-                        default:
-                            waypnt = XPLM_NAV_NOT_FOUND;
-                            break;
-                    }
-                    if (waypnt != XPLM_NAV_NOT_FOUND)
-                    {
-                        float la, lo; XPLMGetNavAidInfo(waypnt, NULL, &la, &lo, NULL, NULL, NULL, NULL, NULL, NULL);
-                        ndt_distance d = ndt_position_calcdistance(wpt->position, ndt_position_init((double)la, (double)lo, NDT_DISTANCE_ZERO));
-                        if ((INT64_C(003) > ndt_distance_get(d, NDT_ALTUNIT_NM) && wpt->type == NDT_WPTYPE_APT) ||
-                            (INT64_C(660) > ndt_distance_get(d, NDT_ALTUNIT_FT)))
-                        {
-                            yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = waypnt; // a furlong (660ft) or less from waypoint
-                        }
-                    }
+                    yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint = xplm_find_navaid(wpt);
                     wpt->xplm.navRef = yfms->data.fpln.xplm_info[yfms->data.fpln.xplm_last].waypoint;
                     wpt->xplm.refSet = 1;
                 }
