@@ -3048,12 +3048,16 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     if (inPhase == xplm_CommandEnd)
     {
         refcon_ground ground = *((refcon_ground*)inRefcon);
-        if (ground.idle.minimums > 0)
+        if (XPLMGetDataf(ground.idle.throttle_all) < 0.5f)
         {
-            XPLMSetDataf(ground.idle.throttle_all, ground.idle.r_taxi);
+            if (ground.idle.minimums > 0)
+            {
+                XPLMSetDataf(ground.idle.throttle_all, ground.idle.r_taxi);
+                return 0;
+            }
+            XPLMSetDataf(ground.idle.throttle_all, 0.125f);
             return 0;
         }
-        XPLMSetDataf(ground.idle.throttle_all, 0.125f);
         return 0;
     }
     return 0;
