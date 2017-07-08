@@ -860,6 +860,7 @@ ndt_airport* ndt_ndb_xpgns_navdata_init_airport(ndt_navdatabase *ndb, ndt_airpor
     if (apt->allprocs)
     {
         // success (already parsed)
+        err = 000;
         ret = apt;
         goto  end;
     }
@@ -911,6 +912,7 @@ ndt_airport* ndt_ndb_xpgns_navdata_init_airport(ndt_navdatabase *ndb, ndt_airpor
     }
 
     // success
+    err = 000;
     ret = apt;
 
 end:
