@@ -1232,10 +1232,18 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
     {
         if (key[0] == 0 && yfms->data.fpln.lrev.idx == -1)
         {
+            if (!ndt_list_count(yfms->ndt.flp.rte->dep.apt->runways)) // XPLM-only airport
+            {
+                return yfs_spad_reset(yfms, "NO RUNWAY DATA", -1);
+            }
             yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO        // DEPARTURE
         }
         if (key[0] == 1 && yfms->data.fpln.lrev.idx == yfms->data.fpln.dindex)
         {
+            if (!ndt_list_count(yfms->ndt.flp.rte->arr.apt->runways)) // XPLM-only airport
+            {
+                return yfs_spad_reset(yfms, "NO RUNWAY DATA", -1);
+            }
             yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // TODO        // ARRIVAL
         }
         return;
