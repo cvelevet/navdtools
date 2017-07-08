@@ -108,6 +108,7 @@ typedef struct
     XPLMFlightLoop_f flc_g;
     struct
     {
+        chandler_callback preset;
         XPLMDataRef throttle_all;
         XPLMDataRef park_b_ratio;
         float r_taxi;
@@ -567,6 +568,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_ffap1(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_flap_func (                                        float, float, int, void*);
 static float gnd_stab_hdlr (                                        float, float, int, void*);
 static int   first_fcall_do(                                           chandler_context *ctx);
@@ -902,16 +904,22 @@ void* nvp_chandlers_init(void)
     }
 
     /* Custom ground stabilization system (via flight loop callback) */
-    ctx->ground.acf_roll_c        = XPLMFindDataRef("sim/aircraft/overflow/acf_roll_co");
-    ctx->ground.ground_spd        = XPLMFindDataRef("sim/flightmodel/position/groundspeed");
-    ctx->ground.idle.throttle_all = XPLMFindDataRef("sim/cockpit2/engine/actuators/throttle_ratio_all");
+    ctx->ground.acf_roll_c          = XPLMFindDataRef  ("sim/aircraft/overflow/acf_roll_co");
+    ctx->ground.ground_spd          = XPLMFindDataRef  ("sim/flightmodel/position/groundspeed");
+    ctx->ground.idle.throttle_all   = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/throttle_ratio_all");
+    ctx->ground.idle.preset.command = XPLMCreateCommand("navP/thrust/idle_boost", "apply just a bit of throttle");
     if (!ctx->ground.acf_roll_c        ||
         !ctx->ground.ground_spd        ||
-        !ctx->ground.idle.throttle_all)
+        !ctx->ground.idle.throttle_all ||
+        !ctx->ground.idle.preset.command)
     {
         goto fail;
     }
-    ctx->bking.rc_brk.g_speed = ctx->ground.ground_spd;
+    else
+    {
+        REGISTER_CHANDLER(ctx->ground.idle.preset, chandler_idleb, 0, &ctx->ground);
+        ctx->bking.rc_brk.g_speed = ctx->ground.ground_spd;
+    }
 
     /* all good */
     return ctx;
@@ -960,6 +968,7 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->gear.landing_gear_toggle);
     UNREGSTR_CHANDLER(ctx->gear.  landing_gear_down);
     UNREGSTR_CHANDLER(ctx->gear.    landing_gear_up);
+    UNREGSTR_CHANDLER(ctx->ground.      idle.preset);
     UNREGSTR_CHANDLER(ctx->callouts.       cb_flapu);
     UNREGSTR_CHANDLER(ctx->callouts.       cb_flapd);
     UNREGSTR_CHANDLER(ctx->mcdu.                 cb);
@@ -3032,6 +3041,22 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         return 1; // let X-Plane actually move the handle
     }
     return 1; // let X-Plane actually move the handle
+}
+
+static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        refcon_ground ground = *((refcon_ground*)inRefcon);
+        if (ground.idle.minimums > 0)
+        {
+            XPLMSetDataf(ground.idle.throttle_all, ground.idle.r_taxi);
+            return 0;
+        }
+        XPLMSetDataf(ground.idle.throttle_all, 0.125f);
+        return 0;
+    }
+    return 0;
 }
 
 static float flc_flap_func(float inElapsedSinceLastCall,
