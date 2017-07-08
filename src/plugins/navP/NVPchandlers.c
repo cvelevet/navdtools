@@ -3094,25 +3094,12 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         }
 #endif
 
-        // first, raise our throttles to a minimum ground or taxi idle if needed
-        if (ground.idle.minimums)
+        // first, raise our throttles to a minimum idle if required
+        if (ground.idle.minimums >= 2 && ground_spd_kts < GS_KT_MAX)
         {
-            if (XPLMGetDataf(ground.idle.park_b_ratio) >= 0.1f)
+            if (thrott_cmd_all < ground.idle.r_idle)
             {
-                if (ground_spd_kts < GS_KT_MIN &&
-                    thrott_cmd_all < ground.idle.r_taxi * 1.1f) // see below
-                {
-                    // if we ask 4 higher thrust manually, don't force-set idle
-                    XPLMSetDataf(ground.idle.throttle_all, ground.idle.r_idle);
-                }
-            }
-            else
-            {
-                if (ground_spd_kts < GS_KT_MID &&
-                    thrott_cmd_all < ground.idle.r_taxi)
-                {
-                    XPLMSetDataf(ground.idle.throttle_all, ground.idle.r_taxi);
-                }
+                XPLMSetDataf(ground.idle.throttle_all, ground.idle.r_idle);
             }
         }
 
@@ -3870,32 +3857,26 @@ static int first_fcall_do(chandler_context *ctx)
     switch (ctx->atyp)
     {
         case NVP_ACF_B737_XG:
-            ctx->ground.idle.r_idle   = 0.00000f;
             ctx->ground.idle.r_taxi   = 0.12500f;
             ctx->ground.idle.minimums = 1; break;
 
         case NVP_ACF_B757_FF:
-            ctx->ground.idle.r_idle   = 0.00000f;
             ctx->ground.idle.r_taxi   = 0.08050f;
             ctx->ground.idle.minimums = 1; break;
 
         case NVP_ACF_B767_FF:
-            ctx->ground.idle.r_idle   = 0.00000f;
             ctx->ground.idle.r_taxi   = 0.15375f;
             ctx->ground.idle.minimums = 1; break;
 
         case NVP_ACF_B777_FF:
-            ctx->ground.idle.r_idle   = 0.00000f;
             ctx->ground.idle.r_taxi   = 0.09975f;
             ctx->ground.idle.minimums = 1; break;
 
         case NVP_ACF_EMBE_XC:
-            ctx->ground.idle.r_idle   = 0.00000f;
             ctx->ground.idle.r_taxi   = 0.07777f;
             ctx->ground.idle.minimums = 1; break;
 
         case NVP_ACF_HA4T_RW:
-            ctx->ground.idle.r_idle   = 0.00000f;
             ctx->ground.idle.r_taxi   = 0.16666f;
             ctx->ground.idle.minimums = 1; break;
 
@@ -3906,15 +3887,15 @@ static int first_fcall_do(chandler_context *ctx)
                 if (!STRN_CASECMP_AUTO(ctx->icao, "BE33") ||
                     !STRN_CASECMP_AUTO(ctx->icao, "BE35"))
                 {
-                    ctx->ground.idle.r_idle   = 0.06250f;
-                    ctx->ground.idle.r_taxi   = 0.06250f;
-                    ctx->ground.idle.minimums = 1; break;
+                    ctx->ground.idle.r_idle   = 0.06500f;
+                    ctx->ground.idle.r_taxi   = 0.15000f;
+                    ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->icao, "BE58"))
                 {
-                    ctx->ground.idle.r_idle   = 0.08250f;
-                    ctx->ground.idle.r_taxi   = 0.08250f;
-                    ctx->ground.idle.minimums = 1; break;
+                    ctx->ground.idle.r_idle   = 0.08500f;
+                    ctx->ground.idle.r_taxi   = 0.15000f;
+                    ctx->ground.idle.minimums = 2; break;
                 }
                 break;
             }
@@ -3924,26 +3905,26 @@ static int first_fcall_do(chandler_context *ctx)
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Lancair Legacy FG"))
                 {
                     ctx->ground.idle.r_idle   = 0.01750f;
-                    ctx->ground.idle.r_taxi   = 0.06750f;
-                    ctx->ground.idle.minimums = 1; break;
+                    ctx->ground.idle.r_taxi   = 0.07500f;
+                    ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Pipistrel Panthera"))
                 {
                     ctx->ground.idle.r_idle   = 0.03750f;
-                    ctx->ground.idle.r_taxi   = 0.09250f;
-                    ctx->ground.idle.minimums = 1; break;
+                    ctx->ground.idle.r_taxi   = 0.10000f;
+                    ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Epic Victory"))
                 {
                     ctx->ground.idle.r_idle   = 0.01250f;
-                    ctx->ground.idle.r_taxi   = 0.12250f;
-                    ctx->ground.idle.minimums = 1; break;
+                    ctx->ground.idle.r_taxi   = 0.13750f;
+                    ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "The Eclipse 550"))
                 {
                     ctx->ground.idle.r_idle   = 0.06500f;
-                    ctx->ground.idle.r_taxi   = 0.16750f;
-                    ctx->ground.idle.minimums = 1; break;
+                    ctx->ground.idle.r_taxi   = 0.17500f;
+                    ctx->ground.idle.minimums = 2; break;
                 }
             }
             if (!STRN_CASECMP_AUTO(ctx->auth, "Alabeo") ||
@@ -3952,19 +3933,24 @@ static int first_fcall_do(chandler_context *ctx)
                 if (!STRN_CASECMP_AUTO(ctx->desc, "CT206H Stationair"))
                 {
                     ctx->ground.idle.r_idle   = 0.07250f;
-                    ctx->ground.idle.r_taxi   = 0.11250f;
-                    ctx->ground.idle.minimums = 1; break;
+                    ctx->ground.idle.r_taxi   = 0.12500f;
+                    ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "C207 Skywagon"))
                 {
                     ctx->ground.idle.r_idle   = 0.03250f;
-                    ctx->ground.idle.r_taxi   = 0.13250f;
-                    ctx->ground.idle.minimums = 1; break;
+                    ctx->ground.idle.r_taxi   = 0.13750f;
+                    ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "T210M Centurion II"))
                 {
                     ctx->ground.idle.r_idle   = 0.09250f;
                     ctx->ground.idle.r_taxi   = 0.13750f;
+                    ctx->ground.idle.minimums = 2; break;
+                }
+                if (!STRN_CASECMP_AUTO(ctx->desc, "Pilatus PC12"))
+                {
+                    ctx->ground.idle.r_taxi   = 0.30000f;
                     ctx->ground.idle.minimums = 1; break;
                 }
             }
