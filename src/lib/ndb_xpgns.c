@@ -313,6 +313,7 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
 
             strncpy(apt->waypoint->region,    "",             sizeof(apt->waypoint->region));
             strncpy(apt->waypoint->info.idnt, apt->info.idnt, sizeof(apt->waypoint->info.idnt));
+            strncpy(apt->waypoint->info.misc, apt->info.misc, sizeof(apt->waypoint->info.misc));
             strncpy(apt->waypoint->info.desc, apt->info.desc, sizeof(apt->waypoint->info.desc));
 
             ndt_distance airprt_alt = ndt_distance_init(elevation, NDT_ALTUNIT_FT);
