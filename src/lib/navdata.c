@@ -202,19 +202,19 @@ void ndt_navdata_rem_waypoint(ndt_navdatabase *ndb, ndt_waypoint *wpt)
     }
 }
 
-void ndt_navdata_user_airport(ndt_navdatabase *ndb, const char *idnt, const char *misc, ndt_position coordinates)
+int ndt_navdata_user_airport(ndt_navdatabase *ndb, const char *idnt, const char *misc, ndt_position coordinates)
 {
     if (ndb && misc && idnt && *idnt)
     {
         if (ndt_navdata_get_airport(ndb, idnt))
         {
             ndt_log("navdata: can't add user airport \"%s\" (ICAO in use)\n", idnt);
-            return;
+            return EINVAL;
         }
         ndt_airport *apt = ndt_airport_init();
         if (!apt)
         {
-            return; // ndt_airport_init will log the error
+            return -1; // ndt_airport_init will log the error
         }
         else
         {
@@ -245,7 +245,7 @@ void ndt_navdata_user_airport(ndt_navdatabase *ndb, const char *idnt, const char
         {
             if ((wpt = ndt_waypoint_init()) == NULL)
             {
-                return; // ndt_waypoint_init will log the error
+                return -1; // ndt_waypoint_init will log the error
             }
             // set sorting-relevant information prior to adding
             strncpy(wpt->info.idnt, idnt, sizeof(wpt->info.idnt));
@@ -256,8 +256,9 @@ void ndt_navdata_user_airport(ndt_navdatabase *ndb, const char *idnt, const char
         strncpy(wpt->info.misc, apt->info.misc, sizeof(wpt->info.misc));
         wpt->position = apt->coordinates;
         apt->waypoint = wpt;
+        return 0;
     }
-    return;
+    return ENOMEM;
 }
 
 ndt_airport* ndt_navdata_get_airport(ndt_navdatabase *ndb, const char *idt)

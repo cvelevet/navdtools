@@ -18,6 +18,8 @@
  *     Timothy D. Walker
  */
 
+#include <ctype.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -393,7 +395,7 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
     return;
 }
 
-static ndt_airport* xplm_create_airport(yfms_context *yfms, const char *code)//fixme
+static ndt_airport* xplm_create_airport(yfms_context *yfms, const char *code)
 {
     if (yfms && code && *code)
     {
@@ -403,11 +405,31 @@ static ndt_airport* xplm_create_airport(yfms_context *yfms, const char *code)//f
         XPLMNavRef xpap = XPLMFindNavAid(NULL, code, &inLatitud, &inLongitu, NULL, xplm_Nav_Airport);
         if (XPLM_NAV_NOT_FOUND != xpap)
         {
-            char id[33]; XPLMGetNavAidInfo(xpap, NULL, NULL, NULL, NULL, NULL, NULL, id, NULL, NULL);
-            if (strnlen(id, 1 + code_len) != code_len)
+            char outID[33]; char outName[257]; float outLat[01]; float outLon[01]; float outHeight[01];
+            XPLMGetNavAidInfo(xpap, NULL, outLat, outLon, outHeight, NULL, NULL, outID, outName, NULL);
+            if (strnlen(outID, 1 + code_len) != code_len)
             {
                 return NULL;
             }
+            // our database should be uppercase-only
+            for (size_t i = 0; outID[i] != '\0'; i++)
+            {
+                outID[i] = toupper(outID[i]);
+            }
+            for (size_t i = 0; outName[i] != '\0'; i++)
+            {
+                outName[i] = toupper(outName[i]);
+            }
+            int airfieldelevation = round((double)*outHeight / 0.3048);
+            ndt_distance altitude = ndt_distance_init(airfieldelevation, NDT_ALTUNIT_FT);
+            ndt_position position = ndt_position_init((double)*outLat, (double)*outLon, altitude);
+            int ret = ndt_navdata_user_airport(yfms->ndt.ndb, outID, outName, position);
+            if (ret)
+            {
+                ndt_log("YFMS [debug] ndt_navdata_user_airport failed (%d)\n", ret);
+                return NULL;
+            }
+            return ndt_navdata_get_airport(yfms->ndt.ndb, outID);
         }
     }
     return NULL;
