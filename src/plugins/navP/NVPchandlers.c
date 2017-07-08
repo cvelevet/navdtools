@@ -52,13 +52,14 @@ typedef struct
 
 typedef struct
 {
-    float      ratio[2];
+    float       rtio[3];
     float       flt_var;
     int         int_var;
     XPLMDataRef p_b_flt;
     XPLMDataRef p_b_int;
     XPLMDataRef p_b_rat;
     XPLMDataRef protate;
+    XPLMDataRef g_speed;
     chandler_command rg;
     chandler_command mx;
     chandler_command ro;
@@ -910,6 +911,7 @@ void* nvp_chandlers_init(void)
     {
         goto fail;
     }
+    ctx->bking.rc_brk.g_speed = ctx->ground.ground_spd;
 
     /* all good */
     return ctx;
@@ -1428,13 +1430,15 @@ int nvp_chandlers_update(void *inContext)
     /* plane-specific braking ratios */
     if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
     {
-        ctx->bking.rc_brk.ratio[0] = .500f;
-        ctx->bking.rc_brk.ratio[1] = .875f;
+        ctx->bking.rc_brk.rtio[0] = 0.5f;
+        ctx->bking.rc_brk.rtio[1] = .75f;
+        ctx->bking.rc_brk.rtio[2] = 1.0f;
     }
-    else
+    else // default values
     {
-        ctx->bking.rc_brk.ratio[0] = .375f; // default
-        ctx->bking.rc_brk.ratio[1] = .750f; // values
+        ctx->bking.rc_brk.rtio[0] = 1.0f / 3.0f;
+        ctx->bking.rc_brk.rtio[1] = 2.0f / 3.0f;
+        ctx->bking.rc_brk.rtio[2] = 1.0f;
     }
 
     /* determine engine count and primary engine type */
@@ -1847,7 +1851,6 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     chandler_context *ctx = inRefcon;
     refcon_braking *rcb = &ctx->bking.rc_brk;
-    float p_b_rat = XPLMGetDataf(rcb->p_b_rat), p_ratio = rcb->ratio[1];
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
         if (ctx->acfspec.qpac.ready == 0)
@@ -1900,25 +1903,16 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             if (rcb->mx.xpcr)
             {
                 XPLMCommandBegin(rcb->mx.xpcr);
+                break;
             }
-            else
-            {
-                if (p_b_rat < p_ratio)
-                {
-                    XPLMSetDataf(rcb->p_b_rat, p_ratio);
-                }
-            }
-            XPLMSetDataf(rcb->p_b_flt, p_b_rat);
+            XPLMSetDataf(rcb->p_b_rat, 1.0f);
             break;
         case xplm_CommandContinue:
             if (rcb->mx.xpcr)
             {
                 break;
             }
-            if (p_b_rat < p_ratio)
-            {
-                XPLMSetDataf(rcb->p_b_rat, p_ratio);
-            }
+            XPLMSetDataf(rcb->p_b_rat, 1.0f);
             break;
         default: // xplm_CommandEnd
             if (rcb->mx.xpcr)
@@ -1935,7 +1929,13 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     chandler_context *ctx = inRefcon;
     refcon_braking *rcb = &ctx->bking.rc_brk;
-    float p_b_rat = XPLMGetDataf(rcb->p_b_rat), p_ratio = rcb->ratio[0];
+    float p_b_flt = XPLMGetDataf(rcb->p_b_flt);
+    float g_speed = XPLMGetDataf(rcb->g_speed) * 3.6f / 1.852f;
+    float p_ratio = (g_speed < 30.0f) ? rcb->rtio[0] : (g_speed < 60.0f) ? rcb->rtio[1] : rcb->rtio[2];
+    if (p_ratio < p_b_flt)
+    {
+        p_ratio = p_b_flt;
+    }
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
         if (ctx->acfspec.qpac.ready == 0)
@@ -1988,25 +1988,16 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             if (rcb->rg.xpcr)
             {
                 XPLMCommandBegin(rcb->rg.xpcr);
+                break;
             }
-            else
-            {
-                if (p_b_rat < p_ratio)
-                {
-                    XPLMSetDataf(rcb->p_b_rat, p_ratio);
-                }
-            }
-            XPLMSetDataf(rcb->p_b_flt, p_b_rat);
+            XPLMSetDataf(rcb->p_b_rat, p_ratio);
             break;
         case xplm_CommandContinue:
             if (rcb->rg.xpcr)
             {
                 break;
             }
-            if (p_b_rat < p_ratio)
-            {
-                XPLMSetDataf(rcb->p_b_rat, p_ratio);
-            }
+            XPLMSetDataf(rcb->p_b_rat, p_ratio);
             break;
         default: // xplm_CommandEnd
             if (rcb->rg.xpcr)
