@@ -53,6 +53,7 @@ void             ndt_navdatabase_close(ndt_navdatabase **ptr                    
 
 void          ndt_navdata_add_waypoint(ndt_navdatabase *ndb, ndt_waypoint *wpt                                                                                                        );
 void          ndt_navdata_rem_waypoint(ndt_navdatabase *ndb, ndt_waypoint *wpt                                                                                                        );
+void          ndt_navdata_user_airport(ndt_navdatabase *ndb, const char   *idt, const char *apname, ndt_position   pos                                                                );
 ndt_airport*  ndt_navdata_get_airport (ndt_navdatabase *ndb, const char   *idt                                                                                                        );
 ndt_airport*  ndt_navdata_init_airport(ndt_navdatabase *ndb, ndt_airport  *apt                                                                                                        );
 ndt_airway*   ndt_navdata_get_airway  (ndt_navdatabase *ndb, const char   *idt, size_t        *idx                                                                                    );

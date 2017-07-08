@@ -180,8 +180,17 @@ void ndt_navdata_add_waypoint(ndt_navdatabase *ndb, ndt_waypoint *wpt)
 {
     if (ndb && wpt)
     {
-        ndt_list_add (ndb->waypoints, wpt); // TODO: use insert (no sorting req)
-        ndt_list_sort(ndb->waypoints, sizeof(ndt_waypoint*), &compare_wpt);
+        ndt_waypoint *wp; int ii;
+        ndt_list *l = ndb->waypoints;
+        size_t jj = ndt_list_count(l);
+        for (ii = 0; ii < jj; ii++)
+        {
+            if ((wp = ndt_list_item(l, ii)) && (compare_wpt(wpt, wp) < 0))
+            {
+                break;
+            }
+        }
+        ndt_list_insert(l, wpt, ii);
     }
 }
 
@@ -191,6 +200,64 @@ void ndt_navdata_rem_waypoint(ndt_navdatabase *ndb, ndt_waypoint *wpt)
     {
         ndt_list_rem(ndb->waypoints, wpt);
     }
+}
+
+void ndt_navdata_user_airport(ndt_navdatabase *ndb, const char *idnt, const char *misc, ndt_position coordinates)
+{
+    if (ndb && misc && idnt && *idnt)
+    {
+        if (ndt_navdata_get_airport(ndb, idnt))
+        {
+            ndt_log("navdata: can't add user airport \"%s\" (ICAO in use)\n", idnt);
+            return;
+        }
+        ndt_airport *apt = ndt_airport_init();
+        if (!apt)
+        {
+            return; // ndt_airport_init will log the error
+        }
+        else
+        {
+            apt->coordinates = coordinates;
+            apt->tr_altitude = NDT_DISTANCE_ZERO;
+            apt->trans_level = NDT_DISTANCE_ZERO;
+            apt->rwy_longest = NDT_DISTANCE_ZERO;
+            snprintf(apt->info.idnt, sizeof(apt->info.idnt), "%s", idnt);
+            snprintf(apt->info.misc, sizeof(apt->info.misc), "%s", misc);
+            int feet = ndt_distance_get(ndt_position_getaltitude(coordinates), NDT_ALTUNIT_FT);
+            snprintf(apt->info.desc, sizeof(apt->info.desc), "Airport %s (%s), elevation %d", idnt, misc, feet);
+            {
+                ndt_airport *ap; int ii;
+                ndt_list *l = ndb->airports;
+                size_t jj = ndt_list_count(l);
+                for (ii = 0; ii < jj; ii++)
+                {
+                    if ((ap = ndt_list_item(l, ii)) && (compare_apt(apt, ap) < 0))
+                    {
+                        break;
+                    }
+                }
+                ndt_list_insert(l, apt, ii);
+            }
+        }
+        ndt_waypoint *wpt = ndt_navdata_get_wptnear2(ndb, idnt, NULL, coordinates);
+        if (!wpt || wpt->type != NDT_WPTYPE_XPA)
+        {
+            if ((wpt = ndt_waypoint_init()) == NULL)
+            {
+                return; // ndt_waypoint_init will log the error
+            }
+            // set sorting-relevant information prior to adding
+            strncpy(wpt->info.idnt, idnt, sizeof(wpt->info.idnt));
+            wpt->type = NDT_WPTYPE_XPA; ndt_navdata_add_waypoint(ndb, wpt);
+        }
+        // update waypoint information to match corresponding airport
+        strncpy(wpt->info.desc, apt->info.desc, sizeof(wpt->info.desc));
+        strncpy(wpt->info.misc, apt->info.misc, sizeof(wpt->info.misc));
+        wpt->position = apt->coordinates;
+        apt->waypoint = wpt;
+    }
+    return;
 }
 
 ndt_airport* ndt_navdata_get_airport(ndt_navdatabase *ndb, const char *idt)
@@ -473,6 +540,7 @@ static int compare_wpt(const void *p1, const void *p2)
             return -1;
 
         case NDT_WPTYPE_APT:
+        case NDT_WPTYPE_XPA:
             if (wpt2->type == NDT_WPTYPE_APT)
             {
                 goto latitude;
