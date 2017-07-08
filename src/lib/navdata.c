@@ -185,7 +185,7 @@ void ndt_navdata_add_waypoint(ndt_navdatabase *ndb, ndt_waypoint *wpt)
         size_t jj = ndt_list_count(l);
         for (ii = 0; ii < jj; ii++)
         {
-            if ((wp = ndt_list_item(l, ii)) && (compare_wpt(wpt, wp) < 0))
+            if ((wp = ndt_list_item(l, ii)) && (compare_wpt(&wpt, &wp) < 0))
             {
                 break;
             }
@@ -232,7 +232,7 @@ void ndt_navdata_user_airport(ndt_navdatabase *ndb, const char *idnt, const char
                 size_t jj = ndt_list_count(l);
                 for (ii = 0; ii < jj; ii++)
                 {
-                    if ((ap = ndt_list_item(l, ii)) && (compare_apt(apt, ap) < 0))
+                    if ((ap = ndt_list_item(l, ii)) && (compare_apt(&apt, &ap) < 0))
                     {
                         break;
                     }
