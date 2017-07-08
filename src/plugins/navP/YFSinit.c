@@ -393,6 +393,11 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
     return;
 }
 
+static ndt_airport* xplm_create_airport(yfms_context *yfms, const char *code)//fixme
+{
+    return NULL;
+}
+
 static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refcon)
 {
     if (key[0] == 0 && key[1] == 0) // company route
@@ -453,8 +458,10 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                 {
                     snprintf(icao, sizeof(icao),  "%s", prefix);
                 }
-                src = ndt_navdata_get_airport(yfms->ndt.ndb, icao);
-                //fixme if (src == NULL) try again with prefix and allow create_airport()
+                if ((src = ndt_navdata_get_airport(yfms->ndt.ndb, icao)) == NULL)
+                {
+                    (src = xplm_create_airport(yfms, prefix));
+                }
             }
             else
             {
@@ -470,8 +477,10 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                 {
                     snprintf(icao, sizeof(icao),  "%s", suffix);
                 }
-                dst = ndt_navdata_get_airport(yfms->ndt.ndb, icao);
-                //fixme if (dst == NULL) try again with suffix and allow create_airport()
+                if ((dst = ndt_navdata_get_airport(yfms->ndt.ndb, icao)) == NULL)
+                {
+                    (dst = xplm_create_airport(yfms, suffix));
+                }
             }
             else
             {
