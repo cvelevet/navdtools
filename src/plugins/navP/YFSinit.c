@@ -395,6 +395,21 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
 
 static ndt_airport* xplm_create_airport(yfms_context *yfms, const char *code)//fixme
 {
+    if (yfms && code && *code)
+    {
+        size_t code_len = (size_t)strlen(code);
+        float inLatitud = (float)ndt_position_getlatitude (yfms->data.aircraft_pos, NDT_ANGUNIT_DEG);
+        float inLongitu = (float)ndt_position_getlongitude(yfms->data.aircraft_pos, NDT_ANGUNIT_DEG);
+        XPLMNavRef xpap = XPLMFindNavAid(NULL, code, &inLatitud, &inLongitu, NULL, xplm_Nav_Airport);
+        if (XPLM_NAV_NOT_FOUND != xpap)
+        {
+            char id[33]; XPLMGetNavAidInfo(xpap, NULL, NULL, NULL, NULL, NULL, NULL, id, NULL, NULL);
+            if (strnlen(id, 1 + code_len) != code_len)
+            {
+                return NULL;
+            }
+        }
+    }
     return NULL;
 }
 
