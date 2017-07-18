@@ -1698,47 +1698,56 @@ static int dataref_wrte_string(XPLMDataRef dataref, char *string_buffer, size_t 
 static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     chandler_context *ctx = inRefcon;
-    int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
-    /*
-     * Do any additional aircraft-specific stuff that can't be done earlier.
-     */
-    if (ctx->atyp & NVP_ACF_MASK_QPC)
+    if (inPhase == xplm_CommandEnd)
     {
-        if (ctx->acfspec.qpac.ready == 0)
+        int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
+        /* this can happen after calling XPLMReloadPlugins() */
+        if (ctx->initialized == 0)
         {
-            aibus_fbw_init(&ctx->acfspec.qpac);
+            nvp_chandlers_reset (inRefcon);
+            nvp_chandlers_update(inRefcon);
         }
-    }
-    if (ctx->first_fcall && inPhase == xplm_CommandEnd)
-    {
-        // if set to automatic, callouts become enabled on first turnaround
-        if (XPLMGetDatai(ctx->callouts.ref_park_brake) == -1)
+        /*
+         * Do any additional aircraft-specific stuff that can't be done earlier.
+         */
+        if (ctx->atyp & NVP_ACF_MASK_QPC)
         {
-            XPLMSetDatai(ctx->callouts.ref_park_brake, (speak = 1));
-        }
-        if (XPLMGetDatai(ctx->callouts.ref_speedbrake) == -1)
-        {
-            XPLMSetDatai(ctx->callouts.ref_speedbrake,     1);
-        }
-        if (XPLMGetDatai(ctx->callouts.ref_flap_lever) == -1)
-        {
-            XPLMSetDatai(ctx->callouts.ref_flap_lever,     1);
-        }
-        if (XPLMGetDatai(ctx->callouts.ref_gear_lever) == -1)
-        {
-            XPLMSetDatai(ctx->callouts.ref_gear_lever,     1);
-        }
-        if (first_fcall_do(ctx) == 0 && ctx->first_fcall == 0)
-        {
-            if ((ctx->atyp & NVP_ACF_MASK_JDN) == 0)
+            if (ctx->acfspec.qpac.ready == 0)
             {
-                XPLMSpeakString("turn around set");
+                aibus_fbw_init(&ctx->acfspec.qpac);
             }
-            XPLMCommandOnce(ctx->views.cbs[1].command);
         }
-        if (speak > 0) XPLMSetDatai(ctx->callouts.ref_park_brake, 0);
-        XPLMCommandOnce            (ctx->      bking.prk.cb.command);
-        if (speak > 0) XPLMSetDatai(ctx->callouts.ref_park_brake, 1);
+        if (ctx->first_fcall)
+        {
+            // if set to automatic, callouts become enabled on first turnaround
+            if (XPLMGetDatai(ctx->callouts.ref_park_brake) == -1)
+            {
+                XPLMSetDatai(ctx->callouts.ref_park_brake, (speak = 1));
+            }
+            if (XPLMGetDatai(ctx->callouts.ref_speedbrake) == -1)
+            {
+                XPLMSetDatai(ctx->callouts.ref_speedbrake,     1);
+            }
+            if (XPLMGetDatai(ctx->callouts.ref_flap_lever) == -1)
+            {
+                XPLMSetDatai(ctx->callouts.ref_flap_lever,     1);
+            }
+            if (XPLMGetDatai(ctx->callouts.ref_gear_lever) == -1)
+            {
+                XPLMSetDatai(ctx->callouts.ref_gear_lever,     1);
+            }
+            if (first_fcall_do(ctx) == 0 && ctx->first_fcall == 0)
+            {
+                if ((ctx->atyp & NVP_ACF_MASK_JDN) == 0)
+                {
+                    XPLMSpeakString("turn around set");
+                }
+                XPLMCommandOnce(ctx->views.cbs[1].command);
+            }
+            XPLMSetDatai    (ctx->callouts.ref_park_brake, 0);
+            XPLMCommandOnce (ctx->      bking.prk.cb.command);
+            XPLMSetDatai(ctx->callouts.ref_park_brake, speak);
+        }
     }
     return 0;
 }
