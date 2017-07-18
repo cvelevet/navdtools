@@ -3983,8 +3983,8 @@ static int first_fcall_do(chandler_context *ctx)
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Pipistrel Panthera"))
                 {
-                    ctx->ground.idle.r_idle   = 0.03750f;
-                    ctx->ground.idle.r_taxi   = 0.10000f;
+                    ctx->ground.idle.r_idle   = 0.04000f;
+                    ctx->ground.idle.r_taxi   = 0.11000f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Epic Victory"))
