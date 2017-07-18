@@ -3124,7 +3124,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 #endif
 
         // first, raise our throttles to a minimum idle if required
-        if (ground.idle.minimums >= 2 && ground_spd_kts < GS_KT_MAX)
+        if (ground.idle.minimums >= 2)
         {
             if (thrott_cmd_all < ground.idle.r_idle)
             {
