@@ -3842,6 +3842,22 @@ static int first_fcall_do(chandler_context *ctx)
                         }
                     }
                 }
+                if (!STRN_CASECMP_AUTO(ctx->auth, "Aerobask") ||
+                    !STRN_CASECMP_AUTO(ctx->auth, "Stephane Buon"))
+                {
+                    if (!STRN_CASECMP_AUTO(ctx->desc, "Pipistrel Panthera"))
+                    {
+                        _DO(0, XPLMSetDatai,   0, "sim/cockpit2/autopilot/airspeed_is_mach");
+                        _DO(0, XPLMSetDatai, 125, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+                    }
+                    if (!STRN_CASECMP_AUTO(ctx->desc, "Epic E1000")   ||
+                        !STRN_CASECMP_AUTO(ctx->desc, "Epic Victory") ||
+                        !STRN_CASECMP_AUTO(ctx->desc, "The Eclipse 550"))
+                    {
+                        _DO(0, XPLMSetDatai,   0, "sim/cockpit2/autopilot/airspeed_is_mach");
+                        _DO(0, XPLMSetDatai, 175, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+                    }
+                }
             }
             if (ctx->revrs.n_engines == 1) // single-engine: select default fuel tank
             {
