@@ -4006,13 +4006,13 @@ static int first_fcall_do(chandler_context *ctx)
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Epic Victory"))
                 {
                     ctx->ground.idle.r_idle   = 0.01250f;
-                    ctx->ground.idle.r_taxi   = 0.13750f;
+                    ctx->ground.idle.r_taxi   = 0.16666f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "The Eclipse 550"))
                 {
                     ctx->ground.idle.r_idle   = 0.06500f;
-                    ctx->ground.idle.r_taxi   = 0.17500f;
+                    ctx->ground.idle.r_taxi   = 0.20000f;
                     ctx->ground.idle.minimums = 2; break;
                 }
             }
