@@ -3848,14 +3848,14 @@ static int first_fcall_do(chandler_context *ctx)
                     if (!STRN_CASECMP_AUTO(ctx->desc, "Pipistrel Panthera"))
                     {
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
-                        _DO(0, XPLMSetDataf, 125.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+                        _DO(0, XPLMSetDataf, 120.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
                     }
                     if (!STRN_CASECMP_AUTO(ctx->desc, "Epic E1000")   ||
                         !STRN_CASECMP_AUTO(ctx->desc, "Epic Victory") ||
                         !STRN_CASECMP_AUTO(ctx->desc, "The Eclipse 550"))
                     {
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
-                        _DO(0, XPLMSetDataf, 175.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+                        _DO(0, XPLMSetDataf, 160.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
                     }
                 }
             }
@@ -4039,7 +4039,7 @@ static int first_fcall_do(chandler_context *ctx)
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Pilatus PC12"))
                 {
-                    ctx->ground.idle.r_taxi   = 0.30000f;
+                    ctx->ground.idle.r_taxi   = 0.33333f;
                     ctx->ground.idle.minimums = 1; break;
                 }
             }
