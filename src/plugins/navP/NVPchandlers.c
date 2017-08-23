@@ -3940,33 +3940,72 @@ static int first_fcall_do(chandler_context *ctx)
      * - weather: CAVOK preset
      * - runways: follow terrain contour OFF
      * - airport: KNTD (Naval Base Ventura County)
-     * - taxiing: ideal peak speed ~15.0 Knots ground speed
+     * - taxiing: ideal peak speed ~20.0 Knots ground speed
      * - pistons: minimum propeller speed ~1,000.0 r/minute
      */
     switch (ctx->atyp)
     {
         case NVP_ACF_B737_XG:
-            ctx->ground.idle.r_taxi   = 0.12500f;
+            ctx->ground.idle.r_taxi   = 0.13333f; // ~33.3% N1
             ctx->ground.idle.minimums = 1; break;
 
         case NVP_ACF_B757_FF:
-            ctx->ground.idle.r_taxi   = 0.08333f;
-            ctx->ground.idle.minimums = 1; break;
+            if ((d_ref = XPLMFindDataRef("757Avionics/engine")))
+            {
+                switch (XPLMGetDatai(d_ref))
+                {
+                    case 0: // Pratt & Whitney
+                        ctx->ground.idle.r_taxi   = 0.09000f; // ~26.1% N1
+                        ctx->ground.idle.minimums = 1; break;
+                    case 1: // Rolls-Royce
+                        ctx->ground.idle.r_taxi   = 0.15555f; // ~26.1% N1
+                        ctx->ground.idle.minimums = 1; break;
+                    default:
+                        ndt_log("navP [warning]: couldn't determine engine type for FF757\n");
+                        break;
+                }
+            }
+            ndt_log("navP [warning]: couldn't obtain engine type data reference for FF757\n");
+            break;
 
         case NVP_ACF_B767_FF:
-            ctx->ground.idle.r_taxi   = 0.16666f;
-            ctx->ground.idle.minimums = 1; break;
+            if ((d_ref = XPLMFindDataRef("757Avionics/engine")))
+            {
+                switch (XPLMGetDatai(d_ref))
+                {
+                    case 0: // Pratt & Whitney
+                        ctx->ground.idle.r_taxi   = 0.16666f; // ~26.1% N1
+                        ctx->ground.idle.minimums = 1; break;
+                    default:
+                        ndt_log("navP [warning]: couldn't determine engine type for FF767\n");
+                        break;
+                }
+            }
+            ndt_log("navP [warning]: couldn't obtain engine type data reference for FF767\n");
+            break;
 
         case NVP_ACF_B777_FF:
-            ctx->ground.idle.r_taxi   = 0.10000f;
-            ctx->ground.idle.minimums = 1; break;
+            if ((d_ref = XPLMFindDataRef("757Avionics/engine")))
+            {
+                switch (XPLMGetDatai(d_ref))
+                {
+                    case 1: // General Electric
+                        ctx->ground.idle.r_taxi   = 0.09765f; // ~28.1% N1
+                        ctx->ground.idle.minimums = 1; break;
+                    default:
+                        ndt_log("navP [warning]: couldn't determine engine type for FF777\n");
+                        break;
+                }
+            }
+            ndt_log("navP [warning]: couldn't obtain engine type data reference for FF777\n");
+            break;
 
         case NVP_ACF_EMBE_XC:
-            ctx->ground.idle.r_taxi   = 0.08333f;
+            ctx->ground.idle.r_taxi   = 0.09100f; // ~33.3% N1
             ctx->ground.idle.minimums = 1; break;
 
         case NVP_ACF_HA4T_RW:
-            ctx->ground.idle.r_taxi   = 0.16666f;
+            ctx->ground.idle.r_taxi   = 0.16666f; // ~35.7% N1
             ctx->ground.idle.minimums = 1; break;
 
         default:
@@ -3976,13 +4015,13 @@ static int first_fcall_do(chandler_context *ctx)
                 if (!STRN_CASECMP_AUTO(ctx->icao, "BE33") ||
                     !STRN_CASECMP_AUTO(ctx->icao, "BE35"))
                 {
-                    ctx->ground.idle.r_idle   = 0.06500f;
+                    ctx->ground.idle.r_idle   = 0.06666f;
                     ctx->ground.idle.r_taxi   = 0.16666f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->icao, "BE58"))
                 {
-                    ctx->ground.idle.r_idle   = 0.08500f;
+                    ctx->ground.idle.r_idle   = 0.08333f;
                     ctx->ground.idle.r_taxi   = 0.16666f;
                     ctx->ground.idle.minimums = 2; break;
                 }
@@ -3993,24 +4032,24 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Lancair Legacy FG"))
                 {
-                    ctx->ground.idle.r_idle   = 0.01750f;
+                    ctx->ground.idle.r_idle   = 0.02000f;
                     ctx->ground.idle.r_taxi   = 0.06666f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Pipistrel Panthera"))
                 {
-                    ctx->ground.idle.r_idle   = 0.04000f;
+                    ctx->ground.idle.r_idle   = 0.04166f;
                     ctx->ground.idle.r_taxi   = 0.11111f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Epic Victory"))
                 {
-                    ctx->ground.idle.r_taxi   = 0.16666f;
+                    ctx->ground.idle.r_taxi   = 0.16666f; // ~45.0% N1
                     ctx->ground.idle.minimums = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "The Eclipse 550"))
                 {
-                    ctx->ground.idle.r_taxi   = 0.23875f;
+                    ctx->ground.idle.r_taxi   = 0.23875f; // ~50.0% N1
                     ctx->ground.idle.minimums = 1; break;
                 }
             }
@@ -4019,21 +4058,20 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 if (!STRN_CASECMP_AUTO(ctx->desc, "CT206H Stationair"))
                 {
-                    ctx->ground.idle.r_idle   = 0.07250f;
-                    ctx->ground.idle.r_taxi   = 0.12500f;
+                    ctx->ground.idle.r_idle   = 0.06666f;
+                    ctx->ground.idle.r_taxi   = 0.13333f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "C207 Skywagon"))
                 {
-                    ctx->ground.idle.r_idle   = 0.03250f;
+                    ctx->ground.idle.r_idle   = 0.03333f;
                     ctx->ground.idle.r_taxi   = 0.13333f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "T210M Centurion II"))
                 {
-                    ctx->ground.idle.r_idle   = 0.09250f;
                     ctx->ground.idle.r_taxi   = 0.13333f;
-                    ctx->ground.idle.minimums = 2; break;
+                    ctx->ground.idle.minimums = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Pilatus PC12"))
                 {
