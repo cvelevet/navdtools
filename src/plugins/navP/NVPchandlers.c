@@ -3950,19 +3950,19 @@ static int first_fcall_do(chandler_context *ctx)
             ctx->ground.idle.minimums = 1; break;
 
         case NVP_ACF_B757_FF:
-            ctx->ground.idle.r_taxi   = 0.08050f;
+            ctx->ground.idle.r_taxi   = 0.08333f;
             ctx->ground.idle.minimums = 1; break;
 
         case NVP_ACF_B767_FF:
-            ctx->ground.idle.r_taxi   = 0.15375f;
+            ctx->ground.idle.r_taxi   = 0.16666f;
             ctx->ground.idle.minimums = 1; break;
 
         case NVP_ACF_B777_FF:
-            ctx->ground.idle.r_taxi   = 0.09975f;
+            ctx->ground.idle.r_taxi   = 0.10000f;
             ctx->ground.idle.minimums = 1; break;
 
         case NVP_ACF_EMBE_XC:
-            ctx->ground.idle.r_taxi   = 0.07777f;
+            ctx->ground.idle.r_taxi   = 0.08333f;
             ctx->ground.idle.minimums = 1; break;
 
         case NVP_ACF_HA4T_RW:
@@ -3977,13 +3977,13 @@ static int first_fcall_do(chandler_context *ctx)
                     !STRN_CASECMP_AUTO(ctx->icao, "BE35"))
                 {
                     ctx->ground.idle.r_idle   = 0.06500f;
-                    ctx->ground.idle.r_taxi   = 0.15000f;
+                    ctx->ground.idle.r_taxi   = 0.16666f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->icao, "BE58"))
                 {
                     ctx->ground.idle.r_idle   = 0.08500f;
-                    ctx->ground.idle.r_taxi   = 0.15000f;
+                    ctx->ground.idle.r_taxi   = 0.16666f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 break;
@@ -3994,26 +3994,24 @@ static int first_fcall_do(chandler_context *ctx)
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Lancair Legacy FG"))
                 {
                     ctx->ground.idle.r_idle   = 0.01750f;
-                    ctx->ground.idle.r_taxi   = 0.07500f;
+                    ctx->ground.idle.r_taxi   = 0.06666f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Pipistrel Panthera"))
                 {
                     ctx->ground.idle.r_idle   = 0.04000f;
-                    ctx->ground.idle.r_taxi   = 0.11000f;
+                    ctx->ground.idle.r_taxi   = 0.11111f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Epic Victory"))
                 {
-                    ctx->ground.idle.r_idle   = 0.01250f;
                     ctx->ground.idle.r_taxi   = 0.16666f;
-                    ctx->ground.idle.minimums = 2; break;
+                    ctx->ground.idle.minimums = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "The Eclipse 550"))
                 {
-                    ctx->ground.idle.r_idle   = 0.06500f;
-                    ctx->ground.idle.r_taxi   = 0.20000f;
-                    ctx->ground.idle.minimums = 2; break;
+                    ctx->ground.idle.r_taxi   = 0.23875f;
+                    ctx->ground.idle.minimums = 1; break;
                 }
             }
             if (!STRN_CASECMP_AUTO(ctx->auth, "Alabeo") ||
@@ -4028,13 +4026,13 @@ static int first_fcall_do(chandler_context *ctx)
                 if (!STRN_CASECMP_AUTO(ctx->desc, "C207 Skywagon"))
                 {
                     ctx->ground.idle.r_idle   = 0.03250f;
-                    ctx->ground.idle.r_taxi   = 0.13750f;
+                    ctx->ground.idle.r_taxi   = 0.13333f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "T210M Centurion II"))
                 {
                     ctx->ground.idle.r_idle   = 0.09250f;
-                    ctx->ground.idle.r_taxi   = 0.13750f;
+                    ctx->ground.idle.r_taxi   = 0.13333f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Pilatus PC12"))
