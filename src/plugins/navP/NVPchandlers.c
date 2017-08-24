@@ -3946,7 +3946,7 @@ static int first_fcall_do(chandler_context *ctx)
     switch (ctx->atyp)
     {
         case NVP_ACF_B737_XG:
-            ctx->ground.idle.r_taxi   = 0.13333f; // ~33.3% N1
+            ctx->ground.idle.r_taxi   = 0.13333f; // ~33.3% N1 @ NTD
             ctx->ground.idle.minimums = 1; break;
 
         case NVP_ACF_B757_FF:
@@ -3955,10 +3955,10 @@ static int first_fcall_do(chandler_context *ctx)
                 switch (XPLMGetDatai(d_ref))
                 {
                     case 0: // Pratt & Whitney
-                        ctx->ground.idle.r_taxi   = 0.09000f; // ~26.1% N1
+                        ctx->ground.idle.r_taxi   = 0.09000f; // ~26.1% N1 @ NTD
                         ctx->ground.idle.minimums = 1; break;
                     case 1: // Rolls-Royce
-                        ctx->ground.idle.r_taxi   = 0.15555f; // ~26.1% N1
+                        ctx->ground.idle.r_taxi   = 0.15555f; // ~26.1% N1 @ NTD
                         ctx->ground.idle.minimums = 1; break;
                     default:
                         ndt_log("navP [warning]: couldn't determine engine type for FF757\n");
@@ -3975,7 +3975,7 @@ static int first_fcall_do(chandler_context *ctx)
                 switch (XPLMGetDatai(d_ref))
                 {
                     case 0: // Pratt & Whitney
-                        ctx->ground.idle.r_taxi   = 0.16666f; // ~26.1% N1
+                        ctx->ground.idle.r_taxi   = 0.16666f; // ~26.1% N1 @ NTD
                         ctx->ground.idle.minimums = 1; break;
                     default:
                         ndt_log("navP [warning]: couldn't determine engine type for FF767\n");
@@ -3992,7 +3992,7 @@ static int first_fcall_do(chandler_context *ctx)
                 switch (XPLMGetDatai(d_ref))
                 {
                     case 1: // General Electric
-                        ctx->ground.idle.r_taxi   = 0.09765f; // ~28.1% N1
+                        ctx->ground.idle.r_taxi   = 0.09765f; // ~28.1% N1 @ NTD
                         ctx->ground.idle.minimums = 1; break;
                     default:
                         ndt_log("navP [warning]: couldn't determine engine type for FF777\n");
@@ -4004,11 +4004,11 @@ static int first_fcall_do(chandler_context *ctx)
             break;
 
         case NVP_ACF_EMBE_XC:
-            ctx->ground.idle.r_taxi   = 0.09100f; // ~33.3% N1
+            ctx->ground.idle.r_taxi   = 0.09100f; // ~33.3% N1 @ NTD
             ctx->ground.idle.minimums = 1; break;
 
         case NVP_ACF_HA4T_RW:
-            ctx->ground.idle.r_taxi   = 0.16666f; // ~35.7% N1
+            ctx->ground.idle.r_taxi   = 0.16666f; // ~35.7% N1 @ NTD
             ctx->ground.idle.minimums = 1; break;
 
         default:
@@ -4047,12 +4047,12 @@ static int first_fcall_do(chandler_context *ctx)
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "Epic Victory"))
                 {
-                    ctx->ground.idle.r_taxi   = 0.16666f; // ~45.0% N1
+                    ctx->ground.idle.r_taxi   = 0.16666f; // ~45.0% N1 @ NTD
                     ctx->ground.idle.minimums = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->desc, "The Eclipse 550"))
                 {
-                    ctx->ground.idle.r_taxi   = 0.23875f; // ~50.0% N1
+                    ctx->ground.idle.r_taxi   = 0.23875f; // ~50.0% N1 @ NTD
                     ctx->ground.idle.minimums = 1; break;
                 }
                 break;
