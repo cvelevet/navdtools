@@ -3964,6 +3964,7 @@ static int first_fcall_do(chandler_context *ctx)
                         ndt_log("navP [warning]: couldn't determine engine type for FF757\n");
                         break;
                 }
+                break;
             }
             ndt_log("navP [warning]: couldn't obtain engine type data reference for FF757\n");
             break;
@@ -3980,6 +3981,7 @@ static int first_fcall_do(chandler_context *ctx)
                         ndt_log("navP [warning]: couldn't determine engine type for FF767\n");
                         break;
                 }
+                break;
             }
             ndt_log("navP [warning]: couldn't obtain engine type data reference for FF767\n");
             break;
@@ -3996,6 +3998,7 @@ static int first_fcall_do(chandler_context *ctx)
                         ndt_log("navP [warning]: couldn't determine engine type for FF777\n");
                         break;
                 }
+                break;
             }
             ndt_log("navP [warning]: couldn't obtain engine type data reference for FF777\n");
             break;
@@ -4052,6 +4055,7 @@ static int first_fcall_do(chandler_context *ctx)
                     ctx->ground.idle.r_taxi   = 0.23875f; // ~50.0% N1
                     ctx->ground.idle.minimums = 1; break;
                 }
+                break;
             }
             if (!STRN_CASECMP_AUTO(ctx->auth, "Alabeo") ||
                 !STRN_CASECMP_AUTO(ctx->auth, "Carenado"))
@@ -4078,8 +4082,8 @@ static int first_fcall_do(chandler_context *ctx)
                     ctx->ground.idle.r_taxi   = 0.33333f;
                     ctx->ground.idle.minimums = 1; break;
                 }
+                break;
             }
-            ctx->ground.idle.minimums = 0;
             break;
         }
     }
