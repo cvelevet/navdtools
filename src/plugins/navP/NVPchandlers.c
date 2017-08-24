@@ -3064,7 +3064,7 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMSetDataf(ground.idle.throttle_all, ground.idle.r_taxi);
                 return 0;
             }
-            XPLMSetDataf(ground.idle.throttle_all, 0.125f);
+            XPLMSetDataf(ground.idle.throttle_all, 0.2f);
             return 0;
         }
         return 0;
