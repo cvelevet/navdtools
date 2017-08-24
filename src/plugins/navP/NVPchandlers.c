@@ -3132,8 +3132,9 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 
 static int first_fcall_do(chandler_context *ctx)
 {
-    XPLMCommandRef cr;
     XPLMDataRef d_ref;
+    XPLMCommandRef cr;
+    int __skyview = 0;
     switch (ctx->atyp)
     {
         case NVP_ACF_A320_QP:
@@ -3780,19 +3781,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
             _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
-            if (!STRN_CASECMP_AUTO(ctx->icao, "EPIC") ||
-                !STRN_CASECMP_AUTO(ctx->icao, "EVIC"))
-            {
-                _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_detect_on");
-                _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
-                _DO(0, XPLMSetDatai, 0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
-                _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_weather_on");
-                _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_tcas_on");
-            }
-            if (!XPLMFindCommand("aerobask/skyview/toggle_left"))
-            {
-                _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
-            }
             if (ctx->auth[0] && ctx->desc[0])
             {
                 if (!STRN_CASECMP_AUTO(ctx->auth, "Alabeo") ||
@@ -3834,17 +3822,34 @@ static int first_fcall_do(chandler_context *ctx)
                 {
                     if (!STRN_CASECMP_AUTO(ctx->desc, "Pipistrel Panthera"))
                     {
+                        __skyview = 1;
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
                         _DO(0, XPLMSetDataf, 120.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
                     }
-                    if (!STRN_CASECMP_AUTO(ctx->desc, "Epic E1000")   ||
-                        !STRN_CASECMP_AUTO(ctx->desc, "Epic Victory") ||
-                        !STRN_CASECMP_AUTO(ctx->desc, "The Eclipse 550"))
+                    if (!STRN_CASECMP_AUTO(ctx->desc, "Epic E1000") ||
+                        !STRN_CASECMP_AUTO(ctx->desc, "Epic Victory"))
                     {
+                        __skyview = 1;
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
                         _DO(0, XPLMSetDataf, 160.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
+                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
+                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/EFIS/EFIS_weather_on");
+                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/EFIS/EFIS_tcas_on");
+                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/ice/ice_detect_on");
+                    }
+                    if (!STRN_CASECMP_AUTO(ctx->desc, "The Eclipse 550"))
+                    {
+                        __skyview = 1;
+                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
+                        _DO(0, XPLMSetDataf, 160.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
                     }
                 }
+            }
+            if (__skyview == 0) // don't mess w/Aerobask's WXR radar
+            {
+                _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
             }
             if (ctx->revrs.n_engines == 1) // single-engine: select default fuel tank
             {
