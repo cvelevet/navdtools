@@ -93,7 +93,6 @@ typedef struct
     const char          *auth;
     const char          *desc;
     int                  atyp;
-    int            garmin_gtn;
     int            i_disabled;
     int            i_value[2];
     XPLMDataRef    dataref[3];
@@ -1643,11 +1642,10 @@ int nvp_chandlers_update(void *inContext)
             }
         }
     }
-    ctx->mcdu.rc.auth       = ctx->auth;
-    ctx->mcdu.rc.desc       = ctx->desc;
-    ctx->mcdu.rc.atyp       = ctx->atyp;
-    ctx->mcdu.rc.garmin_gtn = -1;
     ctx->mcdu.rc.i_disabled = -1;
+    ctx->mcdu.rc.auth = ctx->auth;
+    ctx->mcdu.rc.desc = ctx->desc;
+    ctx->mcdu.rc.atyp = ctx->atyp;
 
     /* for the gear handle callouts */
     ctx->gear.callouts.atype = ctx->atyp;
@@ -2808,17 +2806,12 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         if (!STRN_CASECMP_AUTO(cdu->auth, "Aerobask") ||
                             !STRN_CASECMP_AUTO(cdu->auth, "Stephane Buon"))
                         {
-                            if ((cdu->dataref[0] = XPLMFindDataRef("aerobask/eclipse/gtn650_Show")) &&
-                                (cdu->dataref[1] = XPLMFindDataRef("aerobask/eclipse/gtn750_Show")))
+                            if ((cdu->command[0] = XPLMFindCommand("aerobask/gtn650/Popup")) &&
+                                (cdu->command[1] = XPLMFindCommand("aerobask/skyview/toggle_left")))
                             {
-                                cdu->i_disabled = 0; cdu->garmin_gtn = 1; break; // Aerobask GTN
+                                cdu->i_disabled = 0; break; // Aerobask GTN
                             }
-                            if ((cdu->dataref[0] = XPLMFindDataRef("aerobask/panthera/gtn650_Show")) &&
-                                (cdu->dataref[1] = XPLMFindDataRef("aerobask/panthera/gtn750_Show")))
-                            {
-                                cdu->i_disabled = 0; cdu->garmin_gtn = 1; break; // Aerobask GTN
-                            }
-                            if ((cdu->command[0] = XPLMFindCommand("aerobask/skyview/toggle_center")))
+                            if ((cdu->command[0] = XPLMFindCommand("aerobask/skyview/toggle_left")))
                             {
                                 cdu->i_disabled = 0; break; // Aerobask SkyView
                             }
@@ -2978,12 +2971,6 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 // fall through
             default:
-                if (cdu->garmin_gtn == 1)
-                {
-                    XPLMSetDatai(cdu->dataref[0], !XPLMGetDatai(cdu->dataref[0]));
-                    XPLMSetDatai(cdu->dataref[1], !XPLMGetDatai(cdu->dataref[1]));
-                    return 0;
-                }
                 if (cdu->command[0]) XPLMCommandOnce(cdu->command[0]);
                 if (cdu->command[1]) XPLMCommandOnce(cdu->command[1]);
                 if (cdu->command[2]) XPLMCommandOnce(cdu->command[2]);
