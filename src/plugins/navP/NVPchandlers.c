@@ -1562,9 +1562,13 @@ int nvp_chandlers_update(void *inContext)
             {
                 switch (engine_type_at_idx_zero)
                 {
-                    case 4: case 5: // turbojet/turbofan
-                        ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-                        break;
+                    case 4: case 5: // twin turbojet/turbofan
+                        if (ctx->revrs.n_engines >= 2)
+                        {
+                            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+                            ctx->athr.toga.cc.name = "sim/autopilot/autothrottle_on";
+                            break;
+                        }
                     default:
                         break;
                 }
