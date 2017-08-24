@@ -2774,8 +2774,8 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     cdu->i_disabled = 0; break;
 
                 case NVP_ACF_EMBE_XC:
-                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")) ||
-                        NULL == (cdu->command[0] = XPLMFindCommand("sim/operation/slider_17")))
+                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("sim/cockpit2/switches/generic_lights_switch")) ||
+                        NULL == (cdu->dataref[1] = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
                     {
                         cdu->i_disabled = 1; return 0;
                     }
@@ -2945,12 +2945,18 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         switch (cdu->atyp)
         {
             case NVP_ACF_EMBE_XC:
-                cdu->i_value[0] = 1;
-                XPLMCommandOnce(cdu->command[0]);
-                XPLMSetDatavi  (cdu->dataref[0], &cdu->i_value[0], 14, 1); // hide yoke L
-                XPLMSetDatavi  (cdu->dataref[0], &cdu->i_value[0], 15, 1); // hide yoke R
-                XPLMSetDatavi  (cdu->dataref[0], &cdu->i_value[0], 20, 1); // expand popups' toggle buttons
+            {
+                XPLMGetDatavi(cdu->dataref[1], &cdu->i_value[1], 16, 1);
+                int ione = 1, itog = !cdu->i_value[1]; float ftog = itog;
+                XPLMSetDatavf(cdu->dataref[0], &ftog, 22, 1); // toggle ND
+                XPLMSetDatavf(cdu->dataref[0], &ftog, 21, 1); // toggle PFD
+                XPLMSetDatavi(cdu->dataref[1], &itog, 16, 1); // toggle CDU
+                XPLMSetDatavi(cdu->dataref[1], &itog, 19, 1); // toggle radios
+                XPLMSetDatavi(cdu->dataref[1], &ione, 14, 1); // hide yoke left
+                XPLMSetDatavi(cdu->dataref[1], &ione, 15, 1); // hide yoke right
+                XPLMSetDatavi(cdu->dataref[1], &ione, 20, 1); // show toggle buttons
                 return 0;
+            }
 
             case NVP_ACF_B757_FF:
             case NVP_ACF_B767_FF:
