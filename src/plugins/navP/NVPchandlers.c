@@ -3987,7 +3987,7 @@ static int first_fcall_do(chandler_context *ctx)
             break;
 
         case NVP_ACF_B777_FF:
-            if ((d_ref = XPLMFindDataRef("757Avionics/engine")))
+            if ((d_ref = XPLMFindDataRef("1-sim/engineType")))
             {
                 switch (XPLMGetDatai(d_ref))
                 {
