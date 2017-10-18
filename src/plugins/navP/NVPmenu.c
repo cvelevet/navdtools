@@ -1202,7 +1202,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         {
             if ((ff = XPLMFindDataRef("volumeX")))
             {
-                XPLMSetDataf(ff, volume / 4.0f); // FlightFactor master slider
+                XPLMSetDataf(ff, volume / 2.5f); // FlightFactor master slider
             }
             if ((ff = XPLMFindDataRef("com/dkmp/mastervolknob")))
             {

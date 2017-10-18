@@ -3389,6 +3389,8 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDataf, 0.5f, "1-sim/cond/aftTempControl");                // Temp. control (aft ca.) (auto)
             _DO(1, XPLMSetDataf, 0.5f, "1-sim/cond/fltdkTempControl");              // Temp. control (f. deck) (auto)
             _DO(1, XPLMSetDatai,    0, "params/autosave");                          // DO THIS FIRST prior any changes
+            _DO(1, XPLMSetDataf, 0.1f, "params/sound/avionics");                    // sounds: turn down whiny avionics
+            _DO(1, XPLMSetDataf, 1.0f, "params/sound/pa");                          // sounds: hear PA from flight deck
             _DO(1, XPLMSetDataf, 0.0f, "params/sound/cc");                          // cabin crew: Daniel OFF (yaaaay!)
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
             {
@@ -3404,10 +3406,20 @@ static int first_fcall_do(chandler_context *ctx)
                 _DO(1, XPLMSetDatai, 1, "1-sim/ndpanel/1/hsiRangeRotary");              // ND r. sel. (cap. side) ( 20)
                 _DO(1, XPLMSetDatai, 0, "757Avionics/options/ND/advEfisPanel");         // avionics: Modern EFIS Panel     (off) required for EGPWS, Terrain
                 _DO(1, XPLMSetDatai, 0, "757Avionics/options/PFD/SpdTrendVector");      // avionics: Trend Vector          (off) requires speedtape, FMA/Top
-                _DO(1, XPLMSetDatai, 0, "757Avionics/options/PFD/speedTape");           // avionics: Airspeed Tape         (off) always linked to fma on top
-                _DO(1, XPLMSetDatai, 0, "757Avionics/options/PFD/fmaOnTop");            // avionics: FMA on Top            (off) always linked to speed tape
+                _DO(1, XPLMSetDatai, 1, "757Avionics/options/PFD/speedTape");           // avionics: Airspeed Tape         (yes) always linked to fma on top
+                _DO(1, XPLMSetDatai, 1, "757Avionics/options/PFD/fmaOnTop");            // avionics: FMA on Top            (yes) always linked to speed tape
                 _DO(1, XPLMSetDatai, 0, "757Avionics/options/ND/tasGs");                // avionics: TAS and GS            (off) GS on PFD (even w/out tape)
                 _DO(1, XPLMSetDatai, 0, "params/gpwsType");                             // avionics: EGPWS                 (off) requires: Modern EFIS Panel
+                _DO(1, XPLMSetDatai, 2, "params/redDisplays");                          // avionics: red displays          (all)
+                _DO(1, XPLMSetDatai, 0, "757Avionics/options/PFD/IlsDevWarning");       // avionics: ILS Deviation Warning (off)
+                _DO(1, XPLMSetDatai, 1, "757Avionics/options/PFD/advRaAlerts");         // avionics: RA Alerts         (1,000ft)
+                _DO(1, XPLMSetDatai, 1, "1-sim/optoins/eicas/apuRPM");                  // avionics: EICAS display settings
+                _DO(1, XPLMSetDatai, 1, "1-sim/optoins/eicas/EngineFuelFlow");          // avionics: EICAS display settings
+                _DO(1, XPLMSetDatai, 1, "1-sim/optoins/eicas/HydraulicPressure");       // avionics: EICAS display settings
+                _DO(1, XPLMSetDatai, 0, "1-sim/optoins/eicas/TirePressureDisplay");     // avionics: EICAS display settings
+                _DO(1, XPLMSetDatai, 0, "1-sim/optoins/eicas/APUOilQuantityDisplay");   // avionics: EICAS display settings
+                _DO(1, XPLMSetDatai, 0, "1-sim/optoins/eicas/BrakeTemperatureDisplay"); // avionics: EICAS display settings
+                _DO(1, XPLMSetDatai, 0, "1-sim/optoins/eicas/BulkCargoCompartmentTemperature");   // EICAS display settings
             }
             else
             {
@@ -3422,24 +3434,31 @@ static int first_fcall_do(chandler_context *ctx)
                 _DO(1, XPLMSetDatai, 1, "757Avionics/options/PFD/fmaOnTop");            // avionics: FMA on Top            (yes) always linked to speed tape
                 _DO(1, XPLMSetDatai, 0, "757Avionics/options/ND/tasGs");                // avionics: TAS and GS            (off) GS on PFD (even w/out tape)
                 _DO(1, XPLMSetDatai, 1, "params/gpwsType");                             // avionics: EGPWS                 (yes) requires: Modern EFIS Panel
+                _DO(1, XPLMSetDatai, 1, "params/redDisplays");                          // avionics: red displays          (mix)
+                _DO(1, XPLMSetDatai, 1, "757Avionics/options/PFD/IlsDevWarning");       // avionics: ILS Deviation Warning (yes)
+                _DO(1, XPLMSetDatai, 2, "757Avionics/options/PFD/advRaAlerts");         // avionics: RA Alerts         (2,500ft)
+                _DO(1, XPLMSetDatai, 1, "1-sim/optoins/eicas/apuRPM");                  // avionics: EICAS display settings
+                _DO(1, XPLMSetDatai, 1, "1-sim/optoins/eicas/EngineFuelFlow");          // avionics: EICAS display settings
+                _DO(1, XPLMSetDatai, 1, "1-sim/optoins/eicas/HydraulicPressure");       // avionics: EICAS display settings
+                _DO(1, XPLMSetDatai, 0, "1-sim/optoins/eicas/TirePressureDisplay");     // avionics: EICAS display settings
+                _DO(1, XPLMSetDatai, 0, "1-sim/optoins/eicas/APUOilQuantityDisplay");   // avionics: EICAS display settings
+                _DO(1, XPLMSetDatai, 1, "1-sim/optoins/eicas/BrakeTemperatureDisplay"); // avionics: EICAS display settings
+                _DO(1, XPLMSetDatai, 0, "1-sim/optoins/eicas/BulkCargoCompartmentTemperature");   // EICAS display settings
             }
             _DO(1, XPLMSetDatai,    1, "757Avionics/options/AP/attHldAtApEngagement");  // avionics: ATT on CMD engage     (yes)
             _DO(1, XPLMSetDatai,    0, "757Avionics/options/AP/gsCaptBeforeLocCapt");   // avionics: GS before LOC         (N/A)
             _DO(1, XPLMSetDatai,    1, "757Avionics/options/AP/manualCmdSelForApp");    // avionics: CMD manual arm        (yes)
             _DO(1, XPLMSetDatai,    1, "757Avionics/options/ND/DigitWindBearing");      // avionics: Digital Wind Bearing  (yes)
-            _DO(1, XPLMSetDatai,    1, "757Avionics/options/PFD/IlsDevWarning");        // avionics: ILS Deviation Warning (yes)
             _DO(1, XPLMSetDatai,    0, "757Avionics/options/PFD/roundDialRa");          // avionics: Round Dial RA         (N/A)
-            _DO(1, XPLMSetDatai,    2, "757Avionics/options/PFD/advRaAlerts");          // avionics: RA Alerts         (2,500ft)
             _DO(1, XPLMSetDatai,    1, "757Avionics/options/ND/advRangeArcs");          // avionics: Range Arcs            (yes)
             _DO(1, XPLMSetDatai,    0, "757Avionics/options/ND/adfPointers");           // avionics: ADF Pointers          (N/A)
             _DO(1, XPLMSetDatai,    0, "757Avionics/options/PFD/RisingRwy");            // avionics: Rising Runway         (N/A)
             _DO(1, XPLMSetDatai,    0, "757Avionics/options/ND/hdgUpMap");              // avionics: Heading Up Map        (N/A)
             _DO(1, XPLMSetDatai,    0, "757Avionics/options/PFD/FdType");               // avionics: Integrated Cue FD     (off)
-            _DO(1, XPLMSetDatai,    1, "757Avionics/options/FMS/isGPS");                // avionics: GPS EQUIPED           (yes)
+            _DO(1, XPLMSetDatai,    1, "757Avionics/options/FMS/isGPS");                // avionics: GPS EQUIPPED          (yes)
             _DO(1, XPLMSetDatai,    1, "757Avionics/fms/type");                         // avionics: PIP FMC               (yes)
 //          _DO(1, XPLMSetDatai,    1, "757Avionics/engine");                           // needs setting non-dataref variable(s)
             _DO(1, XPLMSetDatai,    0, "WINGLETS/WINGLETS");                            // airplane: winglets              (off)
-                                                            // TODO: dynamic blinds off, red displays configuration, EICAS items
             _DO(1, XPLMSetDataf, 0.0f, "params/reflectLevelInstruments");           // custom reflections OFF
             _DO(1, XPLMSetDataf, 0.0f, "params/reflectLevelWindows");               // custom reflections OFF
             _DO(1, XPLMSetDataf, 0.0f, "params/reflectLevel");                      // custom reflections OFF
@@ -3452,9 +3471,11 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,    0, "params/shakeOnTurb");                       // shake in turb. air OFF
             _DO(1, XPLMSetDatai,    0, "params/customEffects");                     // custom ef. control OFF
             _DO(1, XPLMSetDatai,    0, "params/windshearType");                     // advanced windshear OFF
+            _DO(1, XPLMSetDatai,    0, "params/dynamicBlinds");                     // dyn. window blinds OFF
             _DO(1, XPLMSetDatai,    0, "params/autoGearLever");                     // automatic g. lever OFF
             _DO(1, XPLMSetDatai,    0, "params/last_position");                     // inter-flight data  OFF
             _DO(1, XPLMSetDatai,    0, "params/realism_level");                     // "challenge" level  OFF (0)
+            _DO(1, XPLMSetDatai,    1, "params/betterpushback");                    // use BetterPushback ON
             _DO(1, XPLMSetDatai,    1, "params/throttleblock");                     // throttle level bl. ON
             _DO(1, XPLMSetDatai,    1, "params/real_limits");                       // real aircr. limits ON
             _DO(1, XPLMSetDatai,    1, "params/real_time");                         // real aircr. timing ON
@@ -3463,6 +3484,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,    1, "params/wxrType");                           // real weather radar ON
             _DO(1, XPLMSetDatai,    1, "params/metric");                            // metric measurement ON
             _DO(1, XPLMSetDatai,    1, "params/wheel");                             // scr. wheel support ON (default behavior)
+            _DO(1, XPLMSetDatai,    1, "params/ground_start_unit");                 // minimal ground config
             _DO(1, XPLMSetDatai,    1, "params/gpu");                               // minimal ground config
             _DO(1, XPLMSetDatai,    1, "params/gate");                              // minimal ground config
             _DO(1, XPLMSetDatai,    1, "params/fuel_truck");                        // minimal ground config
@@ -3472,7 +3494,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,    0, "params/cover");                             // minimal ground config
             _DO(1, XPLMSetDatai,    0, "params/deice");                             // minimal ground config
             _DO(1, XPLMSetDatai,    0, "params/stairs");                            // minimal ground config
-            _DO(1, XPLMSetDatai,    0, "params/ground_start_unit");                 // minimal ground config
             break; // note: no datarefs for e.g. charts, chocks; some settings only affect either of 757/767
 
         case NVP_ACF_B777_FF:
@@ -4133,7 +4154,7 @@ static int first_fcall_do(chandler_context *ctx)
     {
         if ((ctx->volumes.tmp = XPLMFindDataRef("volumeX")))
         {
-            XPLMSetDataf(ctx->volumes.tmp, 0.0625f); // FF757/767: master slider
+            XPLMSetDataf(ctx->volumes.tmp, 0.10f); // FlightFactor master slider
         }
         if ((ctx->volumes.tmp = XPLMFindDataRef("com/dkmp/mastervolknob")))
         {
