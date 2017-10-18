@@ -1165,7 +1165,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
          * NOTE: NVPchandlers.c, first_fcall_do() has code covering the same
          * functionality, don't forget to update it when making changes here
          */
-        XPLMDataRef ff, ea50;
+        XPLMDataRef tp, cust;
         float vradio, volume;
         switch (itx->mivalue)
         {
@@ -1187,35 +1187,37 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             default:
                 return;
         }
-        if ((ea50 = XPLMFindDataRef("aerobask/eclipse/custom_volume_ratio")))
+        if ((tp = XPLMFindDataRef("aerobask/eclipse/m_trk")) && (XPLMGetDataf(tp)))
         {
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume * .4f);
-            XPLMSetDataf(                             ea50, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_atc, vradio);
+            if ((cust = XPLMFindDataRef("aerobask/eclipse/custom_volume_ratio")))
+            {
+                XPLMSetDataf(cust, volume);
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume / 2.5f);
+            }
+            else
+            {
+                XPLMSpeakString("Volume error");
+                return;
+            }
         }
         else
         {
-            if ((ff = XPLMFindDataRef("volumeX")))
+            if ((cust = XPLMFindDataRef("volumeX")))
             {
-                XPLMSetDataf(ff, volume / 2.5f); // FlightFactor master slider
+                XPLMSetDataf(cust, volume / 2.5f); // FlightFactor master slider
             }
-            if ((ff = XPLMFindDataRef("com/dkmp/mastervolknob")))
+            if ((cust = XPLMFindDataRef("com/dkmp/mastervolknob")))
             {
-                XPLMSetDataf(ff,        volume); // Carenado 3.0 master slider
+                XPLMSetDataf(cust,        volume); // Carenado 3.0 master slider
             }
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_atc, vradio);
         }
+        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume);
+        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume);
+        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume);
+        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume);
+        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume);
+        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_atc, vradio);
         XPLMSetDatai(ctx->data.volume_prsts.dr_all_snd, 1);
         XPLMSpeakString("Volume set");
         return;
