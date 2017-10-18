@@ -63,6 +63,7 @@ typedef struct
         MENUITEM_VOLUME_PRST2,
         MENUITEM_VOLUME_PRST3,
         MENUITEM_VOLUME_PRST4,
+        MENUITEM_VOLUME_PRST5,
         MENUITEM_FILDOV_SM_IC,
         MENUITEM_FILDOV_45DEG,
         MENUITEM_FILDOV_50DEG,
@@ -108,6 +109,7 @@ typedef struct
             item_context    prst2;
             item_context    prst3;
             item_context    prst4;
+            item_context    prst5;
         } volume;
         struct
         {
@@ -420,10 +422,11 @@ void* nvp_menu_init(void)
     volume_items[] =
     {
         { "  0 %", MENUITEM_VOLUME_PRST0, &ctx->items.volume.prst0, },
-        { " 25 %", MENUITEM_VOLUME_PRST1, &ctx->items.volume.prst1, },
-        { " 50 %", MENUITEM_VOLUME_PRST2, &ctx->items.volume.prst2, },
-        { " 75 %", MENUITEM_VOLUME_PRST3, &ctx->items.volume.prst3, },
-        { "100 %", MENUITEM_VOLUME_PRST4, &ctx->items.volume.prst4, },
+        { " 10 %", MENUITEM_VOLUME_PRST1, &ctx->items.volume.prst1, },
+        { " 25 %", MENUITEM_VOLUME_PRST2, &ctx->items.volume.prst2, },
+        { " 50 %", MENUITEM_VOLUME_PRST3, &ctx->items.volume.prst3, },
+        { " 75 %", MENUITEM_VOLUME_PRST4, &ctx->items.volume.prst4, },
+        { "100 %", MENUITEM_VOLUME_PRST5, &ctx->items.volume.prst5, },
         {    NULL,                     0,                     NULL, },
     };
     for (int i = 0; volume_items[i].name; i++)
@@ -1159,7 +1162,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
 #undef SPEEDBOOSTER_SETVALUE
 
     if (itx->mivalue >= MENUITEM_VOLUME_PRST0 &&
-        itx->mivalue <= MENUITEM_VOLUME_PRST4)
+        itx->mivalue <= MENUITEM_VOLUME_PRST5)
     {
         /*
          * NOTE: NVPchandlers.c, first_fcall_do() has code covering the same
@@ -1173,15 +1176,18 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
                 volume = 0.00f; vradio = sqrtf(volume);
                 break;
             case MENUITEM_VOLUME_PRST1:
-                volume = 0.25f; vradio = sqrtf(volume);
+                volume = 0.10f; vradio = sqrtf(volume);
                 break;
             case MENUITEM_VOLUME_PRST2:
-                volume = 0.50f; vradio = sqrtf(volume);
+                volume = 0.25f; vradio = sqrtf(volume);
                 break;
             case MENUITEM_VOLUME_PRST3:
-                volume = 0.75f; vradio = sqrtf(volume);
+                volume = 0.50f; vradio = sqrtf(volume);
                 break;
             case MENUITEM_VOLUME_PRST4:
+                volume = 0.75f; vradio = sqrtf(volume);
+                break;
+            case MENUITEM_VOLUME_PRST5:
                 volume = 1.00f; vradio = sqrtf(volume);
                 break;
             default:
