@@ -4139,30 +4139,28 @@ static int first_fcall_do(chandler_context *ctx)
     {
         XPLMSetDataf(ctx->volumes.atc, 0.50f);
     }
-    else if ((ctx->volumes.tmp = XPLMFindDataRef("aerobask/eclipse/custom_volume_ratio")))
-    {
-        XPLMSetDataf(ctx->volumes.evr, 0.10f); // engines are a bit loud in this plane :(
-        XPLMSetDataf(ctx->volumes.tmp, 0.25f); // all other custom sounds (excl. engines)
-        XPLMSetDataf(ctx->volumes.wxr, 0.25f);
-        XPLMSetDataf(ctx->volumes.wvr, 0.25f);
-        XPLMSetDataf(ctx->volumes.gvr, 0.25f);
-        XPLMSetDataf(ctx->volumes.pvr, 0.25f);
-        XPLMSetDataf(ctx->volumes.fvr, 0.25f);
-        XPLMSetDataf(ctx->volumes.atc, 0.50f);
-    }
     else
     {
-        if ((ctx->volumes.tmp = XPLMFindDataRef("volumeX")))
+        if ((ctx->volumes.tmp = XPLMFindDataRef("aerobask/eclipse/custom_volume_ratio")) &&
+            (!STRN_CASECMP_AUTO(ctx->desc, "The Eclipse 550")))
         {
-            XPLMSetDataf(ctx->volumes.tmp, 0.10f); // FlightFactor master slider
+            XPLMSetDataf(ctx->volumes.evr, 0.10f); // engines are a bit loud in this plane :(
+            XPLMSetDataf(ctx->volumes.tmp, 0.25f); // all other custom sounds (excl. engines)
         }
-        if ((ctx->volumes.tmp = XPLMFindDataRef("com/dkmp/mastervolknob")))
+        else
         {
-            XPLMSetDataf(ctx->volumes.tmp, 0.25f); // Carenado 3.0 master slider
+            if ((ctx->volumes.tmp = XPLMFindDataRef("volumeX")))
+            {
+                XPLMSetDataf(ctx->volumes.tmp, 0.10f); // FlightFactor master slider
+            }
+            if ((ctx->volumes.tmp = XPLMFindDataRef("com/dkmp/mastervolknob")))
+            {
+                XPLMSetDataf(ctx->volumes.tmp, 0.25f); // Carenado 3.0 master slider
+            }
+            XPLMSetDataf(ctx->volumes.evr, 0.25f);
         }
         XPLMSetDataf(ctx->volumes.wxr, 0.25f);
         XPLMSetDataf(ctx->volumes.wvr, 0.25f);
-        XPLMSetDataf(ctx->volumes.evr, 0.25f);
         XPLMSetDataf(ctx->volumes.gvr, 0.25f);
         XPLMSetDataf(ctx->volumes.pvr, 0.25f);
         XPLMSetDataf(ctx->volumes.fvr, 0.25f);
