@@ -607,7 +607,7 @@ void* nvp_menu_init(void)
     {
         goto fail;
     }
-    if (append_menu_item("Inoperative clouds", &ctx->items.cloud_killer,
+    if (append_menu_item("Disable cloud draw", &ctx->items.cloud_killer,
                          MENUITEM_CLOUD_KILLER, ctx->id))
     {
         goto fail;
