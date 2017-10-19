@@ -931,6 +931,10 @@ int nvp_menu_reset(void *_menu_context)
     return ctx ? 0 : -1;
 }
 
+#define SPEEDBOOSTER_DEFAULTV(_function, _dataref, _default) \
+    { if (ctx->data.speedbooster._dataref) { _function(ctx->data.speedbooster._dataref, ctx->data.speedbooster._default); } }
+#define SPEEDBOOSTER_SETVALUE(_function, _dataref, _value) \
+    { if (ctx->data.speedbooster._dataref) { _function(ctx->data.speedbooster._dataref,                        (_value)); } }
 int nvp_menu_close(void **_menu_context)
 {
     menu_context *ctx = *_menu_context;
@@ -951,6 +955,28 @@ int nvp_menu_close(void **_menu_context)
     {
         XPLMUnregisterFlightLoopCallback(ctx->data.refuel_dialg.rfc, ctx);
     }
+
+    /*
+     * reset default art control values when closing the menu so we'll get the
+     * initial default values if we close and re-open the menu within the same
+     * X-Plane session (e.g. when reloading plugins w/Tachyon Enhancement on)
+     */
+    SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_frstr3d, df_frstr3d);
+    SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_lastr3d, df_lastr3d);
+    SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_plotrad, df_plotrad);
+    SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_shadrad, df_shadrad);
+    SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_limitfr, df_limitfr);
+    SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_difgain, df_difgain);
+    SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_ovrdctl, df_ovrdctl);
+    SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_use_csm, df_use_csm);
+    SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_disprep, df_disprep);
+    SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_disrcam, df_disrcam);
+    ndt_log(    "navP [info]: disabling Tachyon Enhancement\n");
+    SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_kill_2d,      0.00f);
+    SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_kill_3d,      0.00f);
+    SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_skpdraw,      0.00f);
+    SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_k3drain,      0.00f);
+    ndt_log(          "navP [info]: enabling default clouds\n");
 
     /* all good */
     free(ctx);
@@ -1109,10 +1135,6 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         return;
     }
 
-#define SPEEDBOOSTER_DEFAULTV(_function, _dataref, _default) \
-{ if (ctx->data.speedbooster._dataref) { _function(ctx->data.speedbooster._dataref, ctx->data.speedbooster._default); } }
-#define SPEEDBOOSTER_SETVALUE(_function, _dataref, _value) \
-{ if (ctx->data.speedbooster._dataref) { _function(ctx->data.speedbooster._dataref,                        (_value)); } }
     if (itx->mivalue == MENUITEM_SPEEDBOOSTER || itx->mivalue == MENUITEM_CLOUD_KILLER)
     {
         XPLMMenuCheck speedb = xplm_Menu_Checked, cloudk = xplm_Menu_Checked;
@@ -1184,8 +1206,6 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         }
         return;
     }
-#undef SPEEDBOOSTER_DEFAULTV
-#undef SPEEDBOOSTER_SETVALUE
 
     if (itx->mivalue >= MENUITEM_VOLUME_PRST0 &&
         itx->mivalue <= MENUITEM_VOLUME_PRST5)
@@ -1789,3 +1809,5 @@ static float refuel_hdlr1(float inElapsedSinceLastCall,
 #undef REFUEL_DIALG_TXTH
 #undef REFUEL_FUEL_KHSEC
 #undef REFUEL_PLOD_KHSEC
+#undef SPEEDBOOSTER_DEFAULTV
+#undef SPEEDBOOSTER_SETVALUE
