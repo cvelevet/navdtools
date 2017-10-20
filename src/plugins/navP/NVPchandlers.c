@@ -2786,6 +2786,21 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     }
                     cdu->i_disabled = 0; break;
 
+                case NVP_ACF_HA4T_RW:
+                    if (NULL == (cdu->command[0] = XPLMFindCommand("xap/panels/tim314/0")) ||
+                        NULL == (cdu->command[1] = XPLMFindCommand("xap/panels/tim314/5")) ||
+                        NULL == (cdu->command[2] = XPLMFindCommand("xap/panels/tim314/6")))
+                    {
+                        if (NULL == (cdu->command[0] = XPLMFindCommand("xap/panels/0")) ||
+                            NULL == (cdu->command[1] = XPLMFindCommand("xap/panels/5")) ||
+                            NULL == (cdu->command[2] = XPLMFindCommand("xap/panels/6")))
+                        {
+                            cdu->i_disabled = 1; return 0;
+                        }
+                        cdu->i_disabled = 0; break;
+                    }
+                    cdu->i_disabled = 0; break;
+
                 case NVP_ACF_B737_EA:
                     if (x737 != XPLM_NO_PLUGIN_ID)
                     {
