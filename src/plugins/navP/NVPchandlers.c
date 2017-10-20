@@ -1046,10 +1046,11 @@ int nvp_chandlers_reset(void *inContext)
     ctx->bking.rc_brk.ro.name = NULL;
 
     /* Reset some datarefs to match X-Plane's defaults at startup */
-    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com1_power");
-    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com2_power");
-    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/nav1_power");
-    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/nav2_power");
+    _DO(1, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com1_power");
+    _DO(1, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com2_power");
+    _DO(1, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/nav1_power");
+    _DO(1, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/nav2_power");
+    _DO(1, XPLMSetDatai, 0, "sim/graphics/misc/kill_map_fms_line");
 
     /* Reset turnaround-enabled flight loop callback */
     if (ctx->ground.flc_g)
@@ -3823,6 +3824,10 @@ static int first_fcall_do(chandler_context *ctx)
                         _DO(0, XPLMSetDataf, -0.30f, "sim/aircraft/overflow/acf_cgZ_fwd");
                         _DO(0, XPLMSetDataf, -0.20f, "sim/flightmodel/misc/cgz_ref_to_default");
                         _DO(0, XPLMSetDataf, +0.10f, "sim/aircraft/overflow/acf_cgZ_aft");
+                        // let's also skip drawing the FMS line from the HSI display's map
+                        _DO(1, XPLMSetDatai, 1, "sim/graphics/misc/kill_map_fms_line");
+                        // and fully declutter the HSI/Avidyne displays by default
+                        _DO(0, XPLMSetDatai, 0, "com/dkmp/Avidyne/Declutter");
                     }
                     if (!STRN_CASECMP_AUTO(ctx->desc, "C207 Skywagon"))
                     {
