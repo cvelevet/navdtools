@@ -109,7 +109,9 @@ typedef struct
     {
         chandler_callback preset;
         XPLMDataRef throttle_all;
+        XPLMDataRef thrott_array;
         XPLMDataRef park_b_ratio;
+        float r_t[2];
         float r_taxi;
         float r_idle;
         int minimums;
@@ -1057,6 +1059,7 @@ int nvp_chandlers_reset(void *inContext)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
         XPLMSetDataf(ctx->ground.acf_roll_c, ctx->ground.nominal_roll_c);
+        ctx->ground.idle.thrott_array = NULL;
         ctx->ground.idle.minimums = 0;
         ctx->ground.flc_g = NULL;
     }
@@ -3074,6 +3077,11 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             if (ground.idle.minimums > 0)
             {
+                if (ground.idle.thrott_array)
+                {
+                    XPLMSetDatavf(ground.idle.thrott_array, ground.idle.r_t, 0, 2);
+                    return 0;
+                }
                 XPLMSetDataf(ground.idle.throttle_all, ground.idle.r_taxi);
                 return 0;
             }
@@ -3988,6 +3996,31 @@ static int first_fcall_do(chandler_context *ctx)
      */
     switch (ctx->atyp)
     {
+        case NVP_ACF_A320_QP:
+            ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
+            ctx->ground.idle.r_t[0]   = 0.10875f; // ~26.1% N1 @ NTD
+            ctx->ground.idle.r_t[1]   = 0.10875f; // ~26.1% N1 @ NTD
+            ctx->ground.idle.minimums = 1; break;
+
+        case NVP_ACF_A330_RW:
+            ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
+            ctx->ground.idle.r_t[0]   = 0.10625f; // ~30.1% N1 @ NTD (CF6 engine)
+            ctx->ground.idle.r_t[1]   = 0.10625f; // ~30.1% N1 @ NTD (CF6 engine)
+            ctx->ground.idle.minimums = 1; break;
+
+        case NVP_ACF_A350_FF:
+            ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
+            ctx->ground.idle.r_t[0]   = 0.10000f; // ~25.3% N1 @ NTD
+            ctx->ground.idle.r_t[1]   = 0.10000f; // ~25.3% N1 @ NTD
+            ctx->ground.idle.minimums = 1; break;
+
+        // will only work so long as you don't touch any hardware throttles
+        // in this particular aircraft during any given X-Plane session :-(
+        // also the QPAC-equivalent dataref isn't writable in this aircraft
+        case NVP_ACF_A380_PH:
+            ctx->ground.idle.r_taxi   = 0.17500f; // ~29.7% N1 @ NTD
+            ctx->ground.idle.minimums = 1; break;
+
         case NVP_ACF_B737_XG:
             ctx->ground.idle.r_taxi   = 0.13333f; // ~33.3% N1 @ NTD
             ctx->ground.idle.minimums = 1; break;
