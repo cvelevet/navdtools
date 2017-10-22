@@ -742,7 +742,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         else
         {
-            hz8 = (int)round(freq * 1000.);
+            hz8 = (int)round((freq * 1000.));
             mhz = (int)floor((freq + YVP_FLOORDBL));
             khz = (int)round((freq - (double)mhz) * 1000.);
         }
