@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "XPLM/XPLMDataAccess.h"
+#include "XPLM/XPLMProcessing.h"
 #include "XPLM/XPLMUtilities.h"
 
 #include "common/common.h"
@@ -338,6 +339,13 @@ void yfs_rdio_pageupdt(yfms_context *yfms)
 
 static void yfs_rad1_pageupdt(yfms_context *yfms)
 {
+    /* don't print updated data before processing delayed swap, if any */
+    if (yfms->data.rdio.delayed_swap)
+    {
+        /* half the usual delay of a quarter second should work well enough */
+        XPLMSetFlightLoopCallbackInterval(yfms->xpl.fl_callback, .125f, 1, yfms); return;
+    }
+
     /* reset lines before drawing */
     for (int i = 0; i < YFS_DISPLAY_NUMR - 1; i++)
     {
@@ -714,7 +722,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[1] == 1)
     {
-        int mhz, khz; double freq; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
+        int hz8, mhz, khz; double freq; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             if (key[0] == 0)
@@ -734,6 +742,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         else
         {
+            hz8 = (int)round(freq * 1000.);
             mhz = (int)floor((freq + YVP_FLOORDBL));
             khz = (int)round((freq - (double)mhz) * 1000.);
         }
@@ -742,37 +751,9 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             if (yfms->xpl.atyp == YFS_ATYP_QPAC)
             {
                 XPLMCommandOnce(yfms->xpl.qpac.VHF1Capt);
-                khz = khz / 25 * 25; // QPAC radios only have 25 kHz precision
-                int qpac_mhz = XPLMGetDatai(yfms->xpl.com1_standby_frequency_Mhz);
-                int qpac_khz = XPLMGetDatai(yfms->xpl.com1_standby_frequency_khz);
-                if (qpac_mhz < mhz)
-                {
-                    for (int i = 0; i < mhz - qpac_mhz; i++)
-                    {
-                        XPLMCommandOnce(yfms->xpl.qpac.RMP1FreqUpLrg);
-                    }
-                }
-                if (qpac_mhz > mhz)
-                {
-                    for (int i = 0; i < qpac_mhz - mhz; i++)
-                    {
-                        XPLMCommandOnce(yfms->xpl.qpac.RMP1FreqDownLrg);
-                    }
-                }
-                if (qpac_khz < khz)
-                {
-                    for (int i = 0; i < khz - qpac_khz; i += 25)
-                    {
-                        XPLMCommandOnce(yfms->xpl.qpac.RMP1FreqUpSml);
-                    }
-                }
-                if (qpac_khz > khz)
-                {
-                    for (int i = 0; i < qpac_khz - khz; i += 25)
-                    {
-                        XPLMCommandOnce(yfms->xpl.qpac.RMP1FreqDownSml);
-                    }
-                }
+                XPLMCommandOnce(yfms->xpl.qpac.RMPSwapCapt);
+                XPLMSetDatai(yfms->xpl.com1_left_frequency_hz_833, hz8);
+                yfms->data.rdio.delayed_swap = yfms->xpl.qpac.RMPSwapCapt;
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
             XPLMSetDatai(yfms->xpl.com1_standby_frequency_Mhz, mhz);
@@ -784,37 +765,9 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             if (yfms->xpl.atyp == YFS_ATYP_QPAC)
             {
                 XPLMCommandOnce(yfms->xpl.qpac.VHF2Co);
-                khz = khz / 25 * 25; // QPAC radios only have 25 kHz precision
-                int qpac_mhz = XPLMGetDatai(yfms->xpl.com2_standby_frequency_Mhz);
-                int qpac_khz = XPLMGetDatai(yfms->xpl.com2_standby_frequency_khz);
-                if (qpac_mhz < mhz)
-                {
-                    for (int i = 0; i < mhz - qpac_mhz; i++)
-                    {
-                        XPLMCommandOnce(yfms->xpl.qpac.RMP2FreqUpLrg);
-                    }
-                }
-                if (qpac_mhz > mhz)
-                {
-                    for (int i = 0; i < qpac_mhz - mhz; i++)
-                    {
-                        XPLMCommandOnce(yfms->xpl.qpac.RMP2FreqDownLrg);
-                    }
-                }
-                if (qpac_khz < khz)
-                {
-                    for (int i = 0; i < khz - qpac_khz; i += 25)
-                    {
-                        XPLMCommandOnce(yfms->xpl.qpac.RMP2FreqUpSml);
-                    }
-                }
-                if (qpac_khz > khz)
-                {
-                    for (int i = 0; i < qpac_khz - khz; i += 25)
-                    {
-                        XPLMCommandOnce(yfms->xpl.qpac.RMP2FreqDownSml);
-                    }
-                }
+                XPLMCommandOnce(yfms->xpl.qpac.RMPSwapCo);
+                XPLMSetDatai(yfms->xpl.com2_left_frequency_hz_833, hz8);
+                yfms->data.rdio.delayed_swap = yfms->xpl.qpac.RMPSwapCo;
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
             XPLMSetDatai(yfms->xpl.com2_standby_frequency_Mhz, mhz);

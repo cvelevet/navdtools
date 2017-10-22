@@ -328,6 +328,19 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
 
     //fixme implement our own transponder automatic mode???
 
+    /*
+     * process delayed standby <=> active frequency swap from the radio page
+     *
+     * do it here because yfs_rad1_pageupdt can't, as it's called for the same
+     * flight model iteration as the frequency is being written to the dataref
+     */
+    if (yfms->data.rdio.delayed_swap)
+    {
+        XPLMCommandOnce(yfms->data.rdio.delayed_swap);
+        yfms->data.rdio.delayed_swap = NULL;
+        return .125f; // give time for the swap to occur before printing again
+    }
+
     /* if main window visible, update currently displayed page */
     yfs_curr_pageupdt(yfms);
 

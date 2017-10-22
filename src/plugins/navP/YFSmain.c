@@ -1026,6 +1026,8 @@ void* yfs_main_init(void)
         (yfms->xpl.com2_standby_frequency_Mhz      = XPLMFindDataRef("sim/cockpit2/radios/actuators/com2_standby_frequency_Mhz"     )) == NULL ||
         (yfms->xpl.com2_frequency_khz              = XPLMFindDataRef("sim/cockpit2/radios/actuators/com2_frequency_khz"             )) == NULL ||
         (yfms->xpl.com2_standby_frequency_khz      = XPLMFindDataRef("sim/cockpit2/radios/actuators/com2_standby_frequency_khz"     )) == NULL ||
+        (yfms->xpl.com1_left_frequency_hz_833      = XPLMFindDataRef("sim/cockpit2/radios/actuators/com1_left_frequency_hz_833"     )) == NULL ||
+        (yfms->xpl.com2_left_frequency_hz_833      = XPLMFindDataRef("sim/cockpit2/radios/actuators/com2_left_frequency_hz_833"     )) == NULL ||
         (yfms->xpl.barometer_setting_in_hg_pilot   = XPLMFindDataRef("sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot"  )) == NULL ||
         (yfms->xpl.barometer_setting_in_hg_copilot = XPLMFindDataRef("sim/cockpit2/gauges/actuators/barometer_setting_in_hg_copilot")) == NULL ||
         (yfms->xpl.nav1_type                       = XPLMFindDataRef("sim/cockpit2/radios/indicators/nav1_type"                     )) == NULL || // PAGE_RAD2

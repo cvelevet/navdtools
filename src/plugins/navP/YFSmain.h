@@ -335,6 +335,11 @@ typedef struct
             ndt_waypoint *fix;
         }
         prog;
+        struct
+        {
+            XPLMCommandRef delayed_swap;
+        }
+        rdio;
     }
     data;
 
@@ -377,6 +382,8 @@ typedef struct
         XPLMDataRef com2_standby_frequency_Mhz;
         XPLMDataRef com2_frequency_khz;
         XPLMDataRef com2_standby_frequency_khz;
+        XPLMDataRef com1_left_frequency_hz_833;
+        XPLMDataRef com2_left_frequency_hz_833;
         XPLMDataRef barometer_setting_in_hg_pilot;
         XPLMDataRef barometer_setting_in_hg_copilot;
         // PAGE_RAD2
