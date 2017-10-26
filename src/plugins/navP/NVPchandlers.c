@@ -31,6 +31,16 @@
 #include "XPLM/XPLMProcessing.h"
 #include "XPLM/XPLMUtilities.h"
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wignored-attributes"
+#endif
+#include <stdbool.h>
+#include "assert/sharedvalue.h"
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "common/common.h"
 
 #include "NVPchandlers.h"
@@ -153,6 +163,13 @@ typedef struct
 
 typedef struct
 {
+    int           initialized;
+    XPLMPluginID    plugin_id;
+    SharedValuesInterface api;
+} refcon_assert1;
+
+typedef struct
+{
     int initialized;
     int first_fcall;
     int kill_daniel;
@@ -178,6 +195,7 @@ typedef struct
         NVP_ACF_B757_FF = 0x0001000,
         NVP_ACF_B767_FF = 0x0002000,
         NVP_ACF_B777_FF = 0x0004000,
+        NVP_ACF_A320ULT = 0x0008000,
         NVP_ACF_DH8D_FJ = 0x0010000,
         NVP_ACF_EMBE_SS = 0x0020000,
         NVP_ACF_EMBE_XC = 0x0040000,
@@ -186,13 +204,13 @@ typedef struct
         NVP_ACF_HA4T_RW = 0x0200000,
         NVP_ACF_MD80_RO = 0x0400000,
     } atyp;
-#define NVP_ACF_MASK_FFR  0x0107010 // all FlightFactor addons
+#define NVP_ACF_MASK_FFR  0x010F010 // all FlightFactor addons
 #define NVP_ACF_MASK_FJS  0x0010140 // all of FlyJSim's addons
 #define NVP_ACF_MASK_JDN  0x0000005 // all J.A.R.Design addons
 #define NVP_ACF_MASK_QPC  0x000003A // all QPAC-powered addons
 #define NVP_ACF_MASK_SSG  0x0020000 // all SSGroup/FJCC addons
 #define NVP_ACF_MASK_XCR  0x0040000 // all X-Crafts/S.W addons
-#define NVP_ACF_MASK_320  0x0000003 // all A320 series aircraft
+#define NVP_ACF_MASK_320  0x0008003 // all A320 series aircraft
 #define NVP_ACF_MASK_330  0x000000C // all A330 series aircraft
 #define NVP_ACF_MASK_350  0x0000010 // all A350 series aircraft
 #define NVP_ACF_MASK_380  0x0000020 // all A380 series aircraft
@@ -228,6 +246,8 @@ typedef struct
      * RMP3 should be the backup radio panel located overhead the pilots.
      */
     refcon_volumes volumes;
+
+    refcon_assert1 assert;
 
     refcon_ground ground;
 
@@ -576,6 +596,7 @@ static int   first_fcall_do(                                           chandler_
 static int   aibus_fbw_init(                                             refcon_qpacfbw *fbw);
 static int   boing_733_init(                                             refcon_ixeg733 *i33);
 static int   boing_738_init(                                             refcon_eadt738 *x38);
+static int   ff_assert_init(                                             refcon_assert1 *ffa);
 static int   priv_getdata_i(                                   void *inRefcon               );
 static void  priv_setdata_i(                                   void *inRefcon, int   inValue);
 static float priv_getdata_f(                                   void *inRefcon               );
@@ -1135,6 +1156,15 @@ int nvp_chandlers_update(void *inContext)
     /* check enabled plugins to determine which plane we're flying */
     do // dummy loop we can break out of
     {
+        XPLMPluginID pluginid;
+        if (XPLM_NO_PLUGIN_ID != (pluginid = XPLMFindPluginBySignature(XPLM_FF_SIGNATURE)))
+        {
+            ndt_log("navP [info]: plane is FlightFactor Airbus A320-214 CFM56-5B4 Ultimate\n");
+            ctx->assert.plugin_id = pluginid;
+            ctx->assert.initialized = 0;
+            ctx->atyp = NVP_ACF_A320ULT;
+            break;
+        }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.airbus.fbw") ||
             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.A380.airbus.fbw"))
         {
@@ -1475,6 +1505,9 @@ int nvp_chandlers_update(void *inContext)
     /* plane-specific custom commands for automation disconnects, if any */
     switch (ctx->atyp)
     {
+        case NVP_ACF_A320ULT:
+            break; // TODO
+
         case NVP_ACF_A320_JD:
         case NVP_ACF_A330_JD:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
@@ -2476,6 +2509,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             case NVP_ACF_A350_FF:
             case NVP_ACF_A380_PH:
             case NVP_ACF_SSJ1_RZ:
+            case NVP_ACF_A320ULT:
                 flap_callout_setst(_flap_names_AIB1, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
 //          case NVP_ACF_B727_FJ:
@@ -2738,6 +2772,9 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             XPLMPluginID xfmc = XPLMFindPluginBySignature("x-fmc.com");
             switch (cdu->atyp)
             {
+                case NVP_ACF_A320ULT:
+                    cdu->i_disabled = 1; return 0; // TODO
+
                 case NVP_ACF_A320_JD:
                 case NVP_ACF_A330_JD:
                 case NVP_ACF_B737_XG:
@@ -3171,6 +3208,10 @@ static int first_fcall_do(chandler_context *ctx)
     int __skyview = 0;
     switch (ctx->atyp)
     {
+        case NVP_ACF_A320ULT: // TODO
+            ff_assert_init(&ctx->assert);
+            break;
+
         case NVP_ACF_A320_QP:
             if ((d_ref = XPLMFindDataRef("AirbusFBW/DUBrightness")))
             {
@@ -4212,6 +4253,10 @@ static int first_fcall_do(chandler_context *ctx)
             }
             XPLMSetDataf(ctx->volumes.evr, 0.25f);
         }
+        if (ctx->atyp == NVP_ACF_A320ULT)
+        {
+            // TODO
+        }
         XPLMSetDataf(ctx->volumes.wxr, 0.25f);
         XPLMSetDataf(ctx->volumes.wvr, 0.25f);
         XPLMSetDataf(ctx->volumes.gvr, 0.25f);
@@ -4305,6 +4350,42 @@ static int boing_738_init(refcon_eadt738 *x38)
             (x38->ready = 1); return 0;
         }
         return -1;
+    }
+    return 0;
+}
+
+static int ff_assert_init(refcon_assert1 *ffa)
+{
+    if (ffa && !ffa->initialized)
+    {
+        XPLMSendMessageToPlugin(ffa->plugin_id, XPLM_FF_MSG_GET_SHARED_INTERFACE, &ffa->api);
+        if (ffa->api.DataVersion == NULL || ffa->api.DataAddUpdate == NULL)
+        {
+            return EAGAIN;
+        }
+        else
+        {
+            ffa->initialized = 1;
+        }
+#if 1
+        int valueID, parentValueID;
+        unsigned int valueType, valueFlags;
+        const char *valueName, *valueDescription;
+        ndt_log("navP [debug] =======================\n");
+        unsigned int valuesCount = ffa->api.ValuesCount();
+        ndt_log("navP [debug]: valuesCount: %u\n", valuesCount);
+        for (unsigned int ii = 0; ii < valuesCount; ii++)
+        {
+            valueID          = ffa->api.ValueIdByIndex  (ii);
+            valueType        = ffa->api.ValueType  (valueID);
+            valueFlags       = ffa->api.ValueFlags (valueID);
+            valueName        = ffa->api.ValueName  (valueID);
+            valueDescription = ffa->api.ValueDesc  (valueID);
+            parentValueID    = ffa->api.ValueParent(valueID);
+            ndt_log("navP [debug]: ID: %d, parent: %d, name: \"%s\", \"%s\", %u, %u\n", parentValueID, valueID, valueName, valueDescription, valueType, valueFlags);
+        }
+        ndt_log("navP [debug] =======================\n");
+#endif
     }
     return 0;
 }
