@@ -46,6 +46,7 @@
 #include "XPLM/XPLMUtilities.h"
 
 #include "common/common.h"
+#include "compat/compat.h"
 #include "lib/flightplan.h"
 #include "lib/navdata.h"
 #include "lib/waypoint.h"
