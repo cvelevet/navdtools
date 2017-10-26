@@ -4382,7 +4382,7 @@ static int ff_assert_init(refcon_assert1 *ffa)
             valueName        = ffa->api.ValueName  (valueID);
             valueDescription = ffa->api.ValueDesc  (valueID);
             parentValueID    = ffa->api.ValueParent(valueID);
-            ndt_log("navP [debug]: ID: %d, parent: %d, name: \"%s\", \"%s\", %u, %u\n", parentValueID, valueID, valueName, valueDescription, valueType, valueFlags);
+            ndt_log("navP [debug]: ID: %d, parent: %d, name: \"%s\", desc: \"%s\", type: %u, flags: %u\n", valueID, parentValueID, valueName, valueDescription, valueType, valueFlags);
         }
         ndt_log("navP [debug] =======================\n");
 #endif
