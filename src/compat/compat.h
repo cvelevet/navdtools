@@ -21,17 +21,27 @@
 #ifndef NDT_COMPAT_H
 #define NDT_COMPAT_H
 
+#if COMPAT_MINGW_DEFAULT
+#define COMPAT_STRCASESTR 1
+#define COMPAT_STRERROR_R 1
+#define COMPAT_STRNDUP    1
+#define COMPAT_STRSEP     1
+#endif
+
 #if COMPAT_STRCASESTR
 char* strcasestr(const char *s1, const char *s2);
 #endif
 
 #if COMPAT_STRERROR_R
 #include <string.h>
-int strerror_r(int errnum, char *strerrbuf, size_t buflen);
+#if defined(_WIN32)
+#ifndef strerror_r
+#define strerror_r(ERRNO, BUF, LEN) strerror_s(BUF, LEN, ERRNO)
+#endif
+#endif
 #endif
 
 #if COMPAT_STRNDUP
-#include <string.h>
 char* strndup(const char *s1, size_t n);
 #endif
 

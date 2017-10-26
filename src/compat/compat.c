@@ -24,10 +24,6 @@
 #include "strcasestr.c"
 #endif
 
-#if COMPAT_STRERROR_R
-#include "strerror_r.c"
-#endif
-
 #if COMPAT_STRNDUP
 #include "strndup.c"
 #endif
