@@ -166,6 +166,16 @@ typedef struct
     int           initialized;
     XPLMPluginID    plugin_id;
     SharedValuesInterface api;
+    struct
+    {
+        int id_f_ltb_pedal;
+        int id_f_rtb_pedal;
+        int id_u_xpdr_code;
+        int id_u_fl_handle;
+        int id_f_sb_handle;
+        int id_f_pb_handle;
+        int id_i_athr_disc;
+    } dat;
 } refcon_assert1;
 
 typedef struct
@@ -4363,29 +4373,56 @@ static int ff_assert_init(refcon_assert1 *ffa)
         {
             return EAGAIN;
         }
-        else
-        {
-            ffa->initialized = 1;
-        }
 #if 1
-        int valueID, parentValueID;
-        unsigned int valueType, valueFlags;
-        const char *valueName, *valueDescription;
-        ndt_log("navP [debug] =======================\n");
-        unsigned int valuesCount = ffa->api.ValuesCount();
-        ndt_log("navP [debug]: valuesCount: %u\n", valuesCount);
-        for (unsigned int ii = 0; ii < valuesCount; ii++)
         {
-            valueID          = ffa->api.ValueIdByIndex  (ii);
-            valueType        = ffa->api.ValueType  (valueID);
-            valueFlags       = ffa->api.ValueFlags (valueID);
-            valueName        = ffa->api.ValueName  (valueID);
-            valueDescription = ffa->api.ValueDesc  (valueID);
-            parentValueID    = ffa->api.ValueParent(valueID);
-            ndt_log("navP [debug]: ID: %d, parent: %d, name: \"%s\", desc: \"%s\", type: %u, flags: %u\n", valueID, parentValueID, valueName, valueDescription, valueType, valueFlags);
+            int valueID, parentValueID;
+            const char *valueDescription;
+            char tmp[2048], fullname[2048];
+            unsigned int valueType, valueFlags;
+            ndt_log("navP [debug] =======================\n");
+            unsigned int valuesCount = ffa->api.ValuesCount();
+            ndt_log("navP [debug]: valuesCount: %u\n", valuesCount);
+            for (unsigned int ii = 0; ii < valuesCount; ii++)
+            {
+                valueID               = ffa->api.ValueIdByIndex  (ii);
+                valueType             = ffa->api.ValueType  (valueID);
+                valueFlags            = ffa->api.ValueFlags (valueID);
+                valueDescription      = ffa->api.ValueDesc  (valueID);
+                sprintf(fullname, "%s", ffa->api.ValueName  (valueID));
+                while ((parentValueID = ffa->api.ValueParent(valueID)) >= 0)
+                {
+                    valueID = parentValueID;
+                    sprintf(tmp, "%s", fullname);
+                    sprintf(fullname, "%s.%s", ffa->api.ValueName(valueID), tmp);
+                }
+                ndt_log("navP [debug]: ID: %d, name: \"%s\", desc: \"%s\", type: %u, flags: %u\n", valueID, parentValueID, fullname, valueDescription, valueType, valueFlags);
+            }
+            ndt_log("navP [debug] =======================\n");
         }
-        ndt_log("navP [debug] =======================\n");
 #endif
+        //fixme: the following should be about all we need for everything we want to do:
+        //fixme: AP  1 button, pilot AP disconnect switch, transponder mode switch (STBY/AUTO/ON)
+        //fixme: autopilot constants, baroaltimeter-value/STD-button(s), ND mode/range control(s)
+        //fixme: altitude selector 100-100 switch, popup panels show/hide/size/position controls
+        ffa->dat.id_f_ltb_pedal = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.BrakesL");
+        ffa->dat.id_f_rtb_pedal = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.BrakesR");
+        ffa->dat.id_u_xpdr_code = ffa->api.ValueIdByName("Aircraft.Navigation.ATC.CodeSet");
+        ffa->dat.id_u_fl_handle = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.FlapsLever");
+        ffa->dat.id_f_sb_handle = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.SpoilersLever");
+        ffa->dat.id_f_pb_handle = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.ParkBrake.Position");
+        ffa->dat.id_i_athr_disc = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click");
+        if (ffa->dat.id_f_ltb_pedal <= 0 ||
+            ffa->dat.id_f_rtb_pedal <= 0 ||
+            ffa->dat.id_u_xpdr_code <= 0 ||
+            ffa->dat.id_u_fl_handle <= 0 ||
+            ffa->dat.id_f_sb_handle <= 0 ||
+            ffa->dat.id_f_pb_handle <= 0 ||
+            ffa->dat.id_i_athr_disc <= 0)
+        {
+            ndt_log("navP [debug]: ff_assert_init: can't find required data\n");
+            return EINVAL;
+        }
+        ffa->initialized = 1; return 0;
     }
     return 0;
 }
