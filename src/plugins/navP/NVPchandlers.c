@@ -4400,6 +4400,7 @@ static int ff_assert_init(refcon_assert1 *ffa)
             ndt_log("navP [debug] =======================\n");
         }
 #endif
+        //fixme: bonus: gear lever position and/or target values???
         //fixme: the following should be about all we need for everything we want to do:
         //fixme: AP  1 button, pilot AP disconnect switch, transponder mode switch (STBY/AUTO/ON)
         //fixme: autopilot constants, baroaltimeter-value/STD-button(s), ND mode/range control(s)
