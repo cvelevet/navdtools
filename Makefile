@@ -65,7 +65,10 @@ linux:
 	$(MAKE) -f Makefile.linux
 
 mingw:
-	$(MAKE) -f Makefile.mingw
+	$(MAKE) -f Makefile.mingw navdconv yfmsonly
+
+mingw2:
+	$(MAKE) -f Makefile.mingw navdconv yfmsnavp
 
 .PHONY: version
 version:
