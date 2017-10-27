@@ -4382,7 +4382,7 @@ static int ff_assert_init(refcon_assert1 *ffa)
             ndt_log("navP [debug] =======================\n");
             unsigned int valuesCount = ffa->api.ValuesCount();
             ndt_log("navP [debug]: valuesCount: %u\n", valuesCount);
-            for (unsigned int ii = 1; ii < valuesCount; ii++)
+            for (unsigned int ii = 0; ii < valuesCount; ii++)
             {
                 valueID               = ffa->api.ValueIdByIndex  (ii);
                 valueType             = ffa->api.ValueType  (valueID);
