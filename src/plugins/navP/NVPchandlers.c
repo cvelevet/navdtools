@@ -173,7 +173,22 @@ typedef struct
         int id_u_xpdr_code;
         int id_u_fl_handle;
         int id_f_sb_handle;
+        int id_f_lg_handle;
         int id_f_pb_handle;
+        int id_i_nd_l_but1;
+        int id_i_nd_l_but2;
+        int id_i_nd_l_but3;
+        int id_i_nd_l_but4;
+        int id_i_nd_l_but5;
+        int id_i_nd_r_but1;
+        int id_i_nd_r_but2;
+        int id_i_nd_r_but3;
+        int id_i_nd_r_but4;
+        int id_i_nd_r_but5;
+        int id_u_nd_rangel;
+        int id_u_nd_ranger;
+        int id_u_nd_mode_l;
+        int id_u_nd_mode_r;
         int id_i_athr_disc;
     } dat;
 } refcon_assert1;
@@ -4400,24 +4415,44 @@ static int ff_assert_init(refcon_assert1 *ffa)
             ndt_log("navP [debug] =======================\n");
         }
 #endif
-        //fixme: bonus: gear lever position and/or target values???
         //fixme: the following should be about all we need for everything we want to do:
         //fixme: AP  1 button, pilot AP disconnect switch, transponder mode switch (STBY/AUTO/ON)
-        //fixme: autopilot constants, baroaltimeter-value/STD-button(s), ND mode/range control(s)
+        //fixme: autopilot constants, baroaltimeter-value/STD-button(s)
         //fixme: altitude selector 100-100 switch, popup panels show/hide/size/position controls
+        
         ffa->dat.id_f_ltb_pedal = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.BrakesL");
         ffa->dat.id_f_rtb_pedal = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.BrakesR");
         ffa->dat.id_u_xpdr_code = ffa->api.ValueIdByName("Aircraft.Navigation.ATC.CodeSet");
         ffa->dat.id_u_fl_handle = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.FlapsLever");
         ffa->dat.id_f_sb_handle = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.SpoilersLever");
+        ffa->dat.id_f_lg_handle = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.GearsLever.Position");
         ffa->dat.id_f_pb_handle = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.ParkBrake.Position");
+        ffa->dat.id_i_nd_l_but1 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType1L.State");
+        ffa->dat.id_i_nd_l_but2 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType2L.State");
+        ffa->dat.id_i_nd_l_but3 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType3L.State");
+        ffa->dat.id_i_nd_l_but4 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType4L.State");
+        ffa->dat.id_i_nd_l_but5 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType5L.State");
+        ffa->dat.id_i_nd_r_but1 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType1R.State");
+        ffa->dat.id_i_nd_r_but2 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType2R.State");
+        ffa->dat.id_i_nd_r_but3 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType3R.State");
+        ffa->dat.id_i_nd_r_but4 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType4R.State");
+        ffa->dat.id_i_nd_r_but5 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType5R.State");
+        ffa->dat.id_u_nd_rangel = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavRangeL.Value");
+        ffa->dat.id_u_nd_ranger = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavRangeR.Value");
+        ffa->dat.id_u_nd_mode_l = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeL.Position");
+        ffa->dat.id_u_nd_mode_r = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeR.Position");
         ffa->dat.id_i_athr_disc = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click");
         if (ffa->dat.id_f_ltb_pedal <= 0 ||
             ffa->dat.id_f_rtb_pedal <= 0 ||
             ffa->dat.id_u_xpdr_code <= 0 ||
             ffa->dat.id_u_fl_handle <= 0 ||
             ffa->dat.id_f_sb_handle <= 0 ||
+            ffa->dat.id_f_lg_handle <= 0 ||
+            ffa->dat.id_u_nd_rangel <= 0 ||
+            ffa->dat.id_u_nd_ranger <= 0 ||
             ffa->dat.id_f_pb_handle <= 0 ||
+            ffa->dat.id_u_nd_mode_l <= 0 ||
+            ffa->dat.id_u_nd_mode_l <= 0 ||
             ffa->dat.id_i_athr_disc <= 0)
         {
             ndt_log("navP [debug]: ff_assert_init: can't find required data\n");
