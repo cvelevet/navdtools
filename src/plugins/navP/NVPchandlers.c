@@ -4416,43 +4416,37 @@ static int ff_assert_init(refcon_assert1 *ffa)
         }
 #endif
         //fixme: the following should be about all we need for everything we want to do:
-        //fixme: AP  1 button, pilot AP disconnect switch, transponder mode switch (STBY/AUTO/ON)
-        //fixme: autopilot constants, baroaltimeter-value/STD-button(s)
-        //fixme: altitude selector 100-100 switch, popup panels show/hide/size/position controls
-        
-        ffa->dat.id_f_ltb_pedal = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.BrakesL");
-        ffa->dat.id_f_rtb_pedal = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.BrakesR");
-        ffa->dat.id_u_xpdr_code = ffa->api.ValueIdByName("Aircraft.Navigation.ATC.CodeSet");
-        ffa->dat.id_u_fl_handle = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.FlapsLever");
-        ffa->dat.id_f_sb_handle = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.SpoilersLever");
-        ffa->dat.id_f_lg_handle = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.GearsLever.Position");
-        ffa->dat.id_f_pb_handle = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.ParkBrake.Position");
-        ffa->dat.id_i_nd_l_but1 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType1L.State");
-        ffa->dat.id_i_nd_l_but2 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType2L.State");
-        ffa->dat.id_i_nd_l_but3 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType3L.State");
-        ffa->dat.id_i_nd_l_but4 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType4L.State");
-        ffa->dat.id_i_nd_l_but5 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType5L.State");
-        ffa->dat.id_i_nd_r_but1 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType1R.State");
-        ffa->dat.id_i_nd_r_but2 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType2R.State");
-        ffa->dat.id_i_nd_r_but3 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType3R.State");
-        ffa->dat.id_i_nd_r_but4 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType4R.State");
-        ffa->dat.id_i_nd_r_but5 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavType5R.State");
-        ffa->dat.id_u_nd_rangel = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavRangeL.Value");
-        ffa->dat.id_u_nd_ranger = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavRangeR.Value");
-        ffa->dat.id_u_nd_mode_l = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeL.Position");
-        ffa->dat.id_u_nd_mode_r = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeR.Position");
-        ffa->dat.id_i_athr_disc = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click");
-        if (ffa->dat.id_f_ltb_pedal <= 0 ||
-            ffa->dat.id_f_rtb_pedal <= 0 ||
-            ffa->dat.id_u_xpdr_code <= 0 ||
-            ffa->dat.id_u_fl_handle <= 0 ||
-            ffa->dat.id_f_sb_handle <= 0 ||
-            ffa->dat.id_f_lg_handle <= 0 ||
-            ffa->dat.id_u_nd_rangel <= 0 ||
-            ffa->dat.id_u_nd_ranger <= 0 ||
-            ffa->dat.id_f_pb_handle <= 0 ||
-            ffa->dat.id_u_nd_mode_l <= 0 ||
-            ffa->dat.id_u_nd_mode_l <= 0 ||
+        //fixme: popup panels show/hide/size/position controls
+        //fixme gear lever toggle
+        //fixme autopilot on
+        //fixme autopilot disconnect
+        //fixme autothrottle disconnect
+        //Aircraft.Cockpit.Pedestal.EngineDisconnect1.Target untested
+        //Aircraft.FMGS.FCU1.Lateral heading??
+        //Aircraft.FMGS.FCU1.Vertical commanded V/S???
+        //Aircraft.FMGS.FCU1.Speed knots or 0.01M
+        //Aircraft.Cockpit.Panel.FCU_Mach.Target
+        //Aircraft.FMGS.FCU1.Altitude 100ft
+        //Aircraft.FMGS.FCU1.BaroL inhg*100 or hpa
+        //Aircraft.FMGS.FCU1.BaroR inhg*100 or hpa
+        //Aircraft.FMGS.FCU1.BaroModeL QNH/STD (+2/-2)
+        //Aircraft.FMGS.FCU1.BaroModeR QNH/STD (+2/-2)
+        //Aircraft.FMGS.FCU1.BaroTypeL inhg/hpa
+        //Aircraft.FMGS.FCU1.BaroTypeR inhg/hpa
+        //Aircraft.Cockpit.Pedestal.TCAS_Traffic.Target
+        //Aircraft.Cockpit.Pedestal.ATC_Alt.Target
+        //Aircraft.Cockpit.Pedestal.ATC_Mode.Target
+        //Aircraft.Navigation.ATC.CodeSet (quicker than setting each digit via pedestal)
+        //Aircraft.Cockpit.Panel.BrakesL need to set continuously and/or using callback
+        //Aircraft.Cockpit.Panel.BrakesR need to set continuously and/or using callback
+        //Aircraft.Cockpit.Panel.EFIS_NavRangeL.Target
+        //Aircraft.Cockpit.Panel.EFIS_NavRangeR.Target
+        //Aircraft.Cockpit.Panel.EFIS_NavModeL.Target
+        //Aircraft.Cockpit.Panel.EFIS_NavModeR.Target
+        //Aircraft.Cockpit.Panel.FCU_AltitudeStep.Target
+        //sim/flight_controls_brakes_toggle_max and parking_brake_ratio dataref
+        //sim/flight_controls_speed_brakes_up/down_one commands
+        if (ffa->dat.id_i_alti_step <= 0 ||
             ffa->dat.id_i_athr_disc <= 0)
         {
             ndt_log("navP [debug]: ff_assert_init: can't find required data\n");
