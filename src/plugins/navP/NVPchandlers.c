@@ -4424,6 +4424,7 @@ static int ff_assert_init(refcon_assert1 *ffa)
         //Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click to 1 (now tested) ATdisconnect
         //Aircraft.Cockpit.Overhead.LightBelts.Target to auto???
         //Aircraft.Cockpit.Overhead.LightSmoke.Target to auto???
+        //>>> also arm emergency exit lights for convenience????
         //Aircraft.FMGS.FCU1.Lateral heading degree (beware managed NAV)
         //Aircraft.FMGS.FCU1.Vertical commanded V/S 100ft
         //Aircraft.FMGS.FCU1.Speed knots or 0.01M
