@@ -4394,6 +4394,10 @@ static int ff_assert_init(refcon_assert1 *ffa)
                     valueID = parentValueID;
                     sprintf(tmp, "%s", fullname);
                     sprintf(fullname, "%s.%s", ffa->api.ValueName(valueID), tmp);
+                    if (valueID == 0)
+                    {
+                        break;
+                    }
                 }
                 ndt_log("navP [debug]: ID: %d, name: \"%s\", desc: \"%s\", type: %u, flags: %u\n", valueID, parentValueID, fullname, valueDescription, valueType, valueFlags);
             }
