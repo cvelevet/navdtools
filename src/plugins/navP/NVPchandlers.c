@@ -4373,7 +4373,7 @@ static int ff_assert_init(refcon_assert1 *ffa)
         {
             return EAGAIN;
         }
-#if 1
+#if 0
         {
             int valueID, parentValueID;
             const char *valueDescription;
