@@ -4415,37 +4415,37 @@ static int ff_assert_init(refcon_assert1 *ffa)
             ndt_log("navP [debug] =======================\n");
         }
 #endif
-        //fixme: the following should be about all we need for everything we want to do:
-        //fixme: popup panels show/hide/size/position controls
-        //fixme gear lever toggle
-        //fixme autopilot on
-        //fixme autopilot disconnect
-        //fixme autothrottle disconnect
-        //Aircraft.Cockpit.Pedestal.EngineDisconnect1.Target untested
-        //Aircraft.FMGS.FCU1.Lateral heading??
-        //Aircraft.FMGS.FCU1.Vertical commanded V/S???
+        //commands: landing_gear_down/up/toggle (check why callouts don't work)
+        //>>> must use model/controls/gears_lever (1.0f means down)
+        //commands: sim/flight_controls/brakes_toggle_max and parking_brake_ratio dataref
+        //commands: sim/flight_controls/speed_brakes_up/down_one commands
+        //Aircraft.Cockpit.Panel.FCU_AutoPilot1.Click to 1 (now tested) AP1push
+        //Aircraft.Cockpit.Panel.SidestickTakeoverL.Click to 1 (now tested) APdisconnect
+        //Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click to 1 (now tested) ATdisconnect
+        //Aircraft.Cockpit.Overhead.LightBelts.Target to auto???
+        //Aircraft.Cockpit.Overhead.LightSmoke.Target to auto???
+        //Aircraft.FMGS.FCU1.Lateral heading degree (beware managed NAV)
+        //Aircraft.FMGS.FCU1.Vertical commanded V/S 100ft
         //Aircraft.FMGS.FCU1.Speed knots or 0.01M
-        //Aircraft.Cockpit.Panel.FCU_Mach.Target
+        //Aircraft.Cockpit.Panel.FCU_Mach.Click to 1 (now Tested)
         //Aircraft.FMGS.FCU1.Altitude 100ft
         //Aircraft.FMGS.FCU1.BaroL inhg*100 or hpa
         //Aircraft.FMGS.FCU1.BaroR inhg*100 or hpa
         //Aircraft.FMGS.FCU1.BaroModeL QNH/STD (+2/-2)
         //Aircraft.FMGS.FCU1.BaroModeR QNH/STD (+2/-2)
-        //Aircraft.FMGS.FCU1.BaroTypeL inhg/hpa
-        //Aircraft.FMGS.FCU1.BaroTypeR inhg/hpa
-        //Aircraft.Cockpit.Pedestal.TCAS_Traffic.Target
-        //Aircraft.Cockpit.Pedestal.ATC_Alt.Target
-        //Aircraft.Cockpit.Pedestal.ATC_Mode.Target
+        //Aircraft.FMGS.FCU1.BaroTypeL inhg/hpa (index 0-based)
+        //Aircraft.FMGS.FCU1.BaroTypeR inhg/hpa (index 0-based)
+        //Aircraft.Cockpit.Pedestal.TCAS_Traffic.Target (index 0-based)
+        //Aircraft.Cockpit.Pedestal.ATC_Alt.Target (index 0-based)
+        //Aircraft.Cockpit.Pedestal.ATC_Mode.Target (index 0-based)
         //Aircraft.Navigation.ATC.CodeSet (quicker than setting each digit via pedestal)
         //Aircraft.Cockpit.Panel.BrakesL need to set continuously and/or using callback
         //Aircraft.Cockpit.Panel.BrakesR need to set continuously and/or using callback
-        //Aircraft.Cockpit.Panel.EFIS_NavRangeL.Target
-        //Aircraft.Cockpit.Panel.EFIS_NavRangeR.Target
-        //Aircraft.Cockpit.Panel.EFIS_NavModeL.Target
-        //Aircraft.Cockpit.Panel.EFIS_NavModeR.Target
-        //Aircraft.Cockpit.Panel.FCU_AltitudeStep.Target
-        //sim/flight_controls_brakes_toggle_max and parking_brake_ratio dataref
-        //sim/flight_controls_speed_brakes_up/down_one commands
+        //Aircraft.Cockpit.Panel.EFIS_NavRangeL.Target (index 0-based)
+        //Aircraft.Cockpit.Panel.EFIS_NavRangeR.Target (index 0-based)
+        //Aircraft.Cockpit.Panel.EFIS_NavModeL.Target (index 0-based)
+        //Aircraft.Cockpit.Panel.EFIS_NavModeR.Target (index 0-based)
+        //Aircraft.Cockpit.Panel.FCU_AltitudeStep.Target (index 0-based)
         if (ffa->dat.id_i_alti_step <= 0 ||
             ffa->dat.id_i_athr_disc <= 0)
         {
