@@ -62,6 +62,30 @@ typedef struct
 
 typedef struct
 {
+    int           initialized;
+    XPLMPluginID    plugin_id;
+    SharedValuesInterface api;
+    struct//fixme
+    {
+        XPLMCommandRef p_brk_toggle;
+        XPLMDataRef ldg_gears_lever;
+        int id_s32_click_autopilot1;
+        int id_s32_click_ss_tkovr_l;
+        int id_s32_click_thr_disc_l;
+        int id_flt_pedal_brake_left;
+        int id_flt_pedal_brake_rigt;
+        int id_u32_emer_lights_mode;
+        int id_u32_efis_nav_rng_lft;
+        int id_u32_efis_nav_rng_rgt;
+        int id_u32_efis_nav_mod_lft;
+        int id_u32_efis_nav_mod_rgt;
+        int id_u32_fcu_tgt_alt_step;
+    } dat;
+} refcon_assert1;
+
+typedef struct
+{
+    void        *assert;
     float       rtio[3];
     float       flt_var;
     int         int_var;
@@ -154,44 +178,13 @@ typedef struct
     XPLMDataRef          acf_gear_retract;
     XPLMDataRef          gear_handle_down;
     int              has_retractable_gear;
+    void                          *assert;
     struct
     {
         XPLMDataRef ref;
         int       atype;
     } callouts;
 } refcon_gear;
-
-typedef struct
-{
-    int           initialized;
-    XPLMPluginID    plugin_id;
-    SharedValuesInterface api;
-    struct
-    {
-        int id_f_ltb_pedal;
-        int id_f_rtb_pedal;
-        int id_u_xpdr_code;
-        int id_u_fl_handle;
-        int id_f_sb_handle;
-        int id_f_lg_handle;
-        int id_f_pb_handle;
-        int id_i_nd_l_but1;
-        int id_i_nd_l_but2;
-        int id_i_nd_l_but3;
-        int id_i_nd_l_but4;
-        int id_i_nd_l_but5;
-        int id_i_nd_r_but1;
-        int id_i_nd_r_but2;
-        int id_i_nd_r_but3;
-        int id_i_nd_r_but4;
-        int id_i_nd_r_but5;
-        int id_u_nd_rangel;
-        int id_u_nd_ranger;
-        int id_u_nd_mode_l;
-        int id_u_nd_mode_r;
-        int id_i_athr_disc;
-    } dat;
-} refcon_assert1;
 
 typedef struct
 {
@@ -1084,6 +1077,7 @@ int nvp_chandlers_reset(void *inContext)
     ctx->acfspec.qpac.ready   = 0;
     ctx->acfspec.i733.ready   = 0;
     ctx->acfspec.x738.ready   = 0;
+    ctx->gear.assert          = NULL;
     ctx->otto.ffst.dr         = NULL;
     ctx->otto.conn.cc.name    = NULL;
     ctx->otto.disc.cc.name    = NULL;
@@ -3095,10 +3089,18 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     if (inPhase == xplm_CommandBegin) // before X-Plane moves the handle
     {
-        refcon_gear *gear = inRefcon;
+        refcon_gear    *gear = inRefcon;
+        refcon_assert1 *a320 = gear->assert;
         if (gear->has_retractable_gear == -1)
         {
-            gear->has_retractable_gear = !!XPLMGetDatai(gear->acf_gear_retract);
+            if (a320)
+            {
+                gear->has_retractable_gear = 1;
+            }
+            else
+            {
+                gear->has_retractable_gear = !!XPLMGetDatai(gear->acf_gear_retract);
+            }
         }
         if (gear->has_retractable_gear ==  1)
         {
@@ -3110,6 +3112,13 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             if (inCommand == gear->landing_gear_toggle.command ||
                 inCommand == gear->landing_gear_down  .command)
             {
+                if (a320)
+                {
+                    if (XPLMGetDataf(a320->dat.ldg_gears_lever) < 0.5f) // 0 -> 1
+                    {
+                        if (speak > 0) XPLMSpeakString("gear down"); return 1;
+                    }
+                }
                 if (XPLMGetDatai(gear->gear_handle_down) == 0) // 0 -> 1
                 {
                     if (speak > 0) XPLMSpeakString("gear down"); return 1;
@@ -3118,6 +3127,13 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             if (inCommand == gear->landing_gear_toggle.command ||
                 inCommand == gear->landing_gear_up    .command)
             {
+                if (a320)
+                {
+                    if (XPLMGetDataf(a320->dat.ldg_gears_lever) > 0.5f) // 1 -> 0
+                    {
+                        if (speak > 0) XPLMSpeakString("gear up"); return 1;
+                    }
+                }
                 if (XPLMGetDatai(gear->gear_handle_down) != 0) // 1 -> 0
                 {
                     if (speak > 0) XPLMSpeakString("gear up");   return 1;
@@ -3234,7 +3250,11 @@ static int first_fcall_do(chandler_context *ctx)
     switch (ctx->atyp)
     {
         case NVP_ACF_A320ULT: // TODO
-            ff_assert_init(&ctx->assert);
+            if (ff_assert_init(&ctx->assert))
+            {
+                break;
+            }
+            ctx->gear.assert = &ctx->assert;
             break;
 
         case NVP_ACF_A320_QP:
@@ -4415,40 +4435,73 @@ static int ff_assert_init(refcon_assert1 *ffa)
             ndt_log("navP [debug] =======================\n");
         }
 #endif
-        //commands: landing_gear_down/up/toggle (check why callouts don't work)
-        //>>> must use model/controls/gears_lever (1.0f means down)
-        //commands: sim/flight_controls/brakes_toggle_max and parking_brake_ratio dataref
-        //commands: sim/flight_controls/speed_brakes_up/down_one commands
-        //Aircraft.Cockpit.Panel.FCU_AutoPilot1.Click to 1 (now tested) AP1push
-        //Aircraft.Cockpit.Panel.SidestickTakeoverL.Click to 1 (now tested) APdisconnect
-        //Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click to 1 (now tested) ATdisconnect
-        //Aircraft.Cockpit.Overhead.LightBelts.Target to auto???
-        //Aircraft.Cockpit.Overhead.LightSmoke.Target to auto???
-        //>>> also arm emergency exit lights for convenience????
-        //Aircraft.FMGS.FCU1.Lateral heading degree (beware managed NAV)
-        //Aircraft.FMGS.FCU1.Vertical commanded V/S 100ft
-        //Aircraft.FMGS.FCU1.Speed knots or 0.01M
-        //Aircraft.Cockpit.Panel.FCU_Mach.Click to 1 (now Tested)
-        //Aircraft.FMGS.FCU1.Altitude 100ft
-        //Aircraft.FMGS.FCU1.BaroL inhg*100 or hpa
-        //Aircraft.FMGS.FCU1.BaroR inhg*100 or hpa
-        //Aircraft.FMGS.FCU1.BaroModeL QNH/STD (+2/-2)
-        //Aircraft.FMGS.FCU1.BaroModeR QNH/STD (+2/-2)
-        //Aircraft.FMGS.FCU1.BaroTypeL inhg/hpa (index 0-based)
-        //Aircraft.FMGS.FCU1.BaroTypeR inhg/hpa (index 0-based)
-        //Aircraft.Cockpit.Pedestal.TCAS_Traffic.Target (index 0-based)
-        //Aircraft.Cockpit.Pedestal.ATC_Alt.Target (index 0-based)
-        //Aircraft.Cockpit.Pedestal.ATC_Mode.Target (index 0-based)
-        //Aircraft.Navigation.ATC.CodeSet (quicker than setting each digit via pedestal)
-        //Aircraft.Cockpit.Panel.BrakesL need to set continuously and/or using callback
-        //Aircraft.Cockpit.Panel.BrakesR need to set continuously and/or using callback
-        //Aircraft.Cockpit.Panel.EFIS_NavRangeL.Target (index 0-based)
-        //Aircraft.Cockpit.Panel.EFIS_NavRangeR.Target (index 0-based)
-        //Aircraft.Cockpit.Panel.EFIS_NavModeL.Target (index 0-based)
-        //Aircraft.Cockpit.Panel.EFIS_NavModeR.Target (index 0-based)
-        //Aircraft.Cockpit.Panel.FCU_AltitudeStep.Target (index 0-based)
-        if (ffa->dat.id_i_alti_step <= 0 ||
-            ffa->dat.id_i_athr_disc <= 0)
+
+        /*
+         * fixme
+         *
+         //commands: landing_gear_down/up/toggle (check why callouts don't work)
+         //>>> must use model/controls/gears_lever (1.0f means down)
+         //commands: sim/flight_controls/brakes_toggle_max and parking_brake_ratio dataref
+         //commands: sim/flight_controls/speed_brakes_up/down_one commands
+         *
+         //Aircraft.Cockpit.Panel.FCU_AutoPilot1.Click to 1 AP1push
+         //Aircraft.Cockpit.Panel.SidestickTakeoverL.Click to 1 APdisconnect
+         //Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click to 1 ATdisconnect
+         //Aircraft.Cockpit.Panel.BrakesL need to set continuously and/or using callback
+         //Aircraft.Cockpit.Panel.BrakesR need to set continuously and/or using callback
+         //>>> also arm emergency exit lights for convenience????
+         //Aircraft.Cockpit.Panel.EFIS_NavRangeL.Target (index 0-based)
+         //Aircraft.Cockpit.Panel.EFIS_NavRangeR.Target (index 0-based)
+         //Aircraft.Cockpit.Panel.EFIS_NavModeL.Target (index 0-based)
+         //Aircraft.Cockpit.Panel.EFIS_NavModeR.Target (index 0-based)
+         //Aircraft.Cockpit.Panel.FCU_AltitudeStep.Target (index 0-based)
+         */
+        /*
+         * For YFMS
+         *
+         * s32 Aircraft.FMGS.FCU1.Lateral                           heading     DEG
+         * s32 Aircraft.FMGS.FCU1.Vertical                          v/speed     100FT
+         * s32 Aircraft.FMGS.FCU1.Altitude                          altitude    100FT
+         * s32 Aircraft.FMGS.FCU1.Speed                             airspeed    KTS/0.01M
+         * s32 Aircraft.FMGS.FCU1.SpeedIsMach                                   boolean
+         * s32 Aircraft.Cockpit.Panel.FCU_Mach.Click                            boolean
+         * s32 Aircraft.FMGS.FCU1.BaroL                             pressure    100INHG/1HPA
+         * s32 Aircraft.FMGS.FCU1.BaroR                             pressure    100INHG/1HPA
+         * s32 Aircraft.FMGS.FCU1.BaroModeL                         QNH2/QFE1,STD:QNH-2/QFE-1
+         * s32 Aircraft.FMGS.FCU1.BaroModeR                         QNH2/QFE1,STD:QNH-2/QFE-1
+         * s32 Aircraft.FMGS.FCU1.BaroTypeL                         InHg/hPa    0/1
+         * s32 Aircraft.FMGS.FCU1.BaroTypeR                         InHg/hPa    0/1
+         * u32 Aircraft.Cockpit.Pedestal.TCAS_Traffic.Target        index       0-based
+         * u32 Aircraft.Cockpit.Pedestal.ATC_Alt.Target             index       0-based
+         * u32 Aircraft.Cockpit.Pedestal.ATC_Mode.Target            index       0-based
+         * u32 Aircraft.Navigation.ATC.CodeSet                      squawk      4-digit
+         */
+        ffa->dat.ldg_gears_lever         = XPLMFindDataRef       ("model/controls/gears_lever");
+        ffa->dat.id_flt_pedal_brake_left = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.BrakesL");
+        ffa->dat.id_flt_pedal_brake_rigt = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.BrakesR");
+        ffa->dat.p_brk_toggle            = XPLMFindCommand       ("sim/flight_controls/brakes_toggle_max");
+        ffa->dat.id_u32_efis_nav_mod_lft = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeL.Target");
+        ffa->dat.id_u32_efis_nav_mod_rgt = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeR.Target");
+        ffa->dat.id_u32_efis_nav_rng_lft = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavRangeL.Target");
+        ffa->dat.id_u32_efis_nav_rng_rgt = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavRangeR.Target");
+        ffa->dat.id_u32_fcu_tgt_alt_step = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.FCU_AltitudeStep.Target");
+        ffa->dat.id_u32_emer_lights_mode = ffa->api.ValueIdByName("Aircraft.Cockpit.Overhead.LightEmerMode.Target");
+        ffa->dat.id_s32_click_thr_disc_l = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click");
+        ffa->dat.id_s32_click_ss_tkovr_l = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.SidestickTakeoverL.Click");
+        ffa->dat.id_s32_click_autopilot1 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.FCU_AutoPilot1.Click");
+        if (ffa->dat.id_flt_pedal_brake_left <= 0 ||
+            ffa->dat.id_flt_pedal_brake_rigt <= 0 ||
+            ffa->dat.id_u32_efis_nav_mod_lft <= 0 ||
+            ffa->dat.id_u32_efis_nav_mod_rgt <= 0 ||
+            ffa->dat.id_u32_efis_nav_rng_lft <= 0 ||
+            ffa->dat.id_u32_efis_nav_rng_rgt <= 0 ||
+            ffa->dat.id_u32_fcu_tgt_alt_step <= 0 ||
+            ffa->dat.id_u32_emer_lights_mode <= 0 ||
+            ffa->dat.id_s32_click_thr_disc_l <= 0 ||
+            ffa->dat.id_s32_click_ss_tkovr_l <= 0 ||
+            ffa->dat.id_s32_click_autopilot1 <= 0 ||
+            ffa->dat.ldg_gears_lever      == NULL ||
+            ffa->dat.p_brk_toggle         == NULL)
         {
             ndt_log("navP [debug]: ff_assert_init: can't find required data\n");
             return EINVAL;
