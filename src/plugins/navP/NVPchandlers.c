@@ -4388,21 +4388,22 @@ static int ff_assert_init(refcon_assert1 *ffa)
                 valueType             = ffa->api.ValueType  (valueID);
                 valueFlags            = ffa->api.ValueFlags (valueID);
                 valueDescription      = ffa->api.ValueDesc  (valueID);
-/*debug*///     sprintf(fullname, "%s", ffa->api.ValueName  (valueID));
-/*debug*/       ndt_log("%s", ffa->api.ValueName(valueID));
-                while ((parentValueID = ffa->api.ValueParent(valueID)) >= 0)
+/*debug*/       sprintf(fullname, "%s", ffa->api.ValueName  (valueID));
+/*debug*///     ndt_log("%s", ffa->api.ValueName(valueID));
+                while ((00 < (valueID)) &&
+                       (0 <= (parentValueID = ffa->api.ValueParent(valueID))))
                 {
                     valueID = parentValueID;
-/*debug*/           ndt_log(", %s", ffa->api.ValueName(valueID));
-/*debug*///         sprintf(tmp, "%s", fullname);
-/*debug*///         sprintf(fullname, "%s.%s", ffa->api.ValueName(valueID), tmp);
+/*debug*///         ndt_log(", %s", ffa->api.ValueName(valueID));
+/*debug*/           sprintf(tmp, "%s", fullname);
+/*debug*/           sprintf(fullname, "%s.%s", ffa->api.ValueName(valueID), tmp);
                     if (valueID == 0)
                     {
                         break;
                     }
                 }
-/*debug*/       ndt_log("\n");//debug
-/*debug*///     ndt_log("navP [debug]: ID: %d, name: \"%s\", desc: \"%s\", type: %u, flags: %u\n", valueID, fullname/*""debug*/, valueDescription, valueType, valueFlags);
+/*debug*///     ndt_log("\n");//debug
+/*debug*/       ndt_log("navP [debug]: ID: %d, name: \"%s\", desc: \"%s\", type: %u, flags: %u\n", valueID, fullname/*""debug*/, valueDescription, valueType, valueFlags);
             }
             ndt_log("navP [debug] =======================\n");
         }
