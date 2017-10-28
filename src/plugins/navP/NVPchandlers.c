@@ -1551,7 +1551,10 @@ int nvp_chandlers_update(void *inContext)
     switch (ctx->atyp)
     {
         case NVP_ACF_A320ULT:
-            break; // TODO
+            ctx->otto.conn.cc.name = "private/ff320/ap_conn";
+            ctx->otto.disc.cc.name = "private/ff320/ap_disc";
+            ctx->athr.disc.cc.name = "private/ff320/at_disc";
+            break;
 
         case NVP_ACF_A320_JD:
         case NVP_ACF_A330_JD:
