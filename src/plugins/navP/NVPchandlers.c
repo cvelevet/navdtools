@@ -1978,8 +1978,8 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         if (inPhase != xplm_CommandEnd)
         {
-            rca->api.ValueSet(rca->dat.id_flt_pedal_brake_left, &p_ratio);
-            rca->api.ValueSet(rca->dat.id_flt_pedal_brake_rigt, &p_ratio);
+            rca->api.ValueSet(rca->dat.id_flt_pedal_brake_left, &p_ratio);//fixme not working
+            rca->api.ValueSet(rca->dat.id_flt_pedal_brake_rigt, &p_ratio);//fixme not working
         } // else { auto-reset; }
         return 0;
     }
@@ -3275,7 +3275,9 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 if (a320)
                 {
-                    if (XPLMGetDataf(a320->dat.ldg_gears_lever) < 0.5f) // 0 -> 1
+                    // command already handled by the aircraft's plugin
+                    // thus the check value for the dataref is inverted
+                    if (XPLMGetDataf(a320->dat.ldg_gears_lever) > 0.5f) // -> 1
                     {
                         if (speak > 0) XPLMSpeakString("gear down"); return 1;
                     }
@@ -3290,7 +3292,9 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 if (a320)
                 {
-                    if (XPLMGetDataf(a320->dat.ldg_gears_lever) > 0.5f) // 1 -> 0
+                    // command already handled by the aircraft's plugin
+                    // thus the check value for the dataref is inverted
+                    if (XPLMGetDataf(a320->dat.ldg_gears_lever) < 0.5f) // -> 0
                     {
                         if (speak > 0) XPLMSpeakString("gear up"); return 1;
                     }
@@ -3418,7 +3422,7 @@ static int first_fcall_do(chandler_context *ctx)
             else
             {
                 // TODO: power & doors
-                int index[] = { 1, 4, 3, 1, 4, 1, };
+                int index[] = { 1, 3, 2, 1, 4, 1, };
                 refcon_assert1 *rca = ctx->bking.rc_brk.assert = ctx->gear.assert = &ctx->assert;
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &index[0]);     // FCU alt. sel. increm.  (1000ft)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &index[1]);     // ND m. sel. (cap. side) (arc)
