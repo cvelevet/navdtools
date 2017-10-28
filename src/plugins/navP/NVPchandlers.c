@@ -3407,13 +3407,14 @@ static int first_fcall_do(chandler_context *ctx)
     int __skyview = 0;
     switch (ctx->atyp)
     {
-        case NVP_ACF_A320ULT: // TODO
+        case NVP_ACF_A320ULT:
             if (ff_assert_init(&ctx->assert))
             {
                 break;
             }
             else
             {
+                // TODO: power & doors
                 int index[] = { 1, 4, 3, 1, 4, 1, };
                 refcon_assert1 *rca = ctx->bking.rc_brk.assert = ctx->gear.assert = &ctx->assert;
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &index[0]);     // FCU alt. sel. increm.  (1000ft)
