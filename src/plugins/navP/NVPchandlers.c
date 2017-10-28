@@ -65,7 +65,7 @@ typedef struct
     int           initialized;
     XPLMPluginID    plugin_id;
     SharedValuesInterface api;
-    struct//fixme
+    struct
     {
         XPLMCommandRef p_brk_toggle;
         XPLMDataRef ldg_gears_lever;
@@ -3298,7 +3298,17 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 break;
             }
-            ctx->bking.rc_brk.assert = ctx->gear.assert = &ctx->assert;
+            else
+            {
+                int index[] = { 1, 4, 3, 1, 4, 1, };
+                refcon_assert1 *rca = ctx->bking.rc_brk.assert = ctx->gear.assert = &ctx->assert;
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &index[0]);     // FCU alt. sel. increm.  (1000ft)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &index[1]);     // ND m. sel. (cap. side) (arc)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_rgt, &index[2]);     // ND m. sel. (f/o. side) (nav)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_lft, &index[3]);     // ND r. sel. (cap. side) ( 20)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_rgt, &index[4]);     // ND r. sel. (f/o. side) (160)
+                rca->api.ValueSet(rca->dat.id_u32_emer_lights_mode, &index[5]);     // arm em. exit lts
+            }
             break;
 
         case NVP_ACF_A320_QP:
@@ -4482,11 +4492,6 @@ static int ff_assert_init(refcon_assert1 *ffa)
 
         /*
          * fixme
-         *
-         //commands: landing_gear_down/up/toggle (check why callouts don't work)
-         //>>> must use model/controls/gears_lever (1.0f means down)
-         //commands: sim/flight_controls/brakes_toggle_max and parking_brake_ratio dataref
-         //commands: sim/flight_controls/speed_brakes_up/down_one commands
          *
          //Aircraft.Cockpit.Panel.FCU_AutoPilot1.Click to 1 AP1push
          //Aircraft.Cockpit.Panel.SidestickTakeoverL.Click to 1 APdisconnect
