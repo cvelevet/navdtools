@@ -2907,6 +2907,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         refcon_cdu_pop *cdu = inRefcon;
         if (cdu->i_disabled == -1)
         {
+            cdu->command[0] = cdu->command[1] = cdu->command[2] = cdu->command[3] = NULL;
             XPLMPluginID sfmc = XPLMFindPluginBySignature("pikitanga.xplane10.SimpleFMC");
             XPLMPluginID x737 = XPLMFindPluginBySignature("FJCC.x737FMC");
             XPLMPluginID xfmc = XPLMFindPluginBySignature("x-fmc.com");
@@ -2942,7 +2943,8 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
                 case NVP_ACF_A320_QP:
                 case NVP_ACF_A330_RW:
-                    if (NULL == (cdu->command[0] = XPLMFindCommand("AirbusFBW/UndockMCDU1")))
+                    if (NULL == (cdu->command[0] = XPLMFindCommand("AirbusFBW/UndockMCDU1")) ||
+                        NULL == (cdu->command[1] = XPLMFindCommand("AirbusFBW/UndockMCDU2")))
                     {
                         cdu->i_disabled = 1; return 0;
                     }
@@ -2997,10 +2999,6 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     // fall through
                 default:
                 {
-                    cdu->command[0] = // reset commands (default
-                    cdu->command[1] = // branch will always call
-                    cdu->command[2] = // every non-NULL command)
-                    cdu->command[3] = NULL; // :)
                     if (*cdu->auth && *cdu->desc)
                     {
                         if (!STRN_CASECMP_AUTO(cdu->auth, "Aerobask") ||
@@ -3428,6 +3426,10 @@ static int first_fcall_do(chandler_context *ctx)
             break;
 
         case NVP_ACF_A320_QP:
+            if ((cr = XPLMFindCommand("AirbusFBW/PopUpPedestal1")))
+            {
+                XPLMCommandOnce(cr);
+            }
             if ((d_ref = XPLMFindDataRef("AirbusFBW/DUBrightness")))
             {
                 float DUBrightness[1] = { 0.8f, };
