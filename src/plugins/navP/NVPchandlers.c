@@ -20,6 +20,7 @@
 
 #include <errno.h>
 #include <math.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -65,6 +66,9 @@ typedef struct
     int           initialized;
     XPLMPluginID    plugin_id;
     SharedValuesInterface api;
+    chandler_callback ap_conn;
+    chandler_callback ap_disc;
+    chandler_callback at_disc;
     struct
     {
         XPLMCommandRef p_brk_toggle;
@@ -606,6 +610,9 @@ static int chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_ffap1(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_32apc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_32apd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_32atd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_flap_func (                                        float, float, int, void*);
@@ -871,26 +878,35 @@ void* nvp_chandlers_init(void)
     }
 
     /* Custom commands: autopilot and autothrottle */
-    ctx->otto.ffst.cb.command = XPLMCreateCommand("private/ffsts/ap_cmdl", "NOT TO BE USED");
-    ctx->otto.conn.cb.command = XPLMCreateCommand("navP/switches/ap_conn", "A/P engagement");
-    ctx->otto.disc.cb.command = XPLMCreateCommand("navP/switches/ap_disc", "A/P disconnect");
-    ctx->athr.disc.cb.command = XPLMCreateCommand("navP/switches/at_disc", "A/T disconnect");
-    ctx->athr.toga.cb.command = XPLMCreateCommand("navP/switches/at_toga", "A/T takeoff/GA");
-    if (!ctx->otto.ffst.cb.command ||
-        !ctx->otto.conn.cb.command ||
-        !ctx->otto.disc.cb.command ||
-        !ctx->athr.disc.cb.command ||
-        !ctx->athr.toga.cb.command)
+    ctx->assert.ap_conn.command = XPLMCreateCommand("private/ff320/ap_conn", "NOT TO BE USED");
+    ctx->assert.ap_disc.command = XPLMCreateCommand("private/ff320/ap_disc", "NOT TO BE USED");
+    ctx->assert.at_disc.command = XPLMCreateCommand("private/ff320/at_disc", "NOT TO BE USED");
+    ctx->otto.ffst.cb.  command = XPLMCreateCommand("private/ffsts/ap_cmdl", "NOT TO BE USED");
+    ctx->otto.conn.cb.  command = XPLMCreateCommand("navP/switches/ap_conn", "A/P engagement");
+    ctx->otto.disc.cb.  command = XPLMCreateCommand("navP/switches/ap_disc", "A/P disconnect");
+    ctx->athr.disc.cb.  command = XPLMCreateCommand("navP/switches/at_disc", "A/T disconnect");
+    ctx->athr.toga.cb.  command = XPLMCreateCommand("navP/switches/at_toga", "A/T takeoff/GA");
+    if (!ctx->assert.ap_conn.command ||
+        !ctx->assert.ap_disc.command ||
+        !ctx->assert.at_disc.command ||
+        !ctx->otto.ffst.cb.  command ||
+        !ctx->otto.conn.cb.  command ||
+        !ctx->otto.disc.cb.  command ||
+        !ctx->athr.disc.cb.  command ||
+        !ctx->athr.toga.cb.  command)
     {
         goto fail;
     }
     else
     {
-        REGISTER_CHANDLER(ctx->otto.ffst.cb, chandler_ffap1, 0, &ctx->otto.ffst.dr);
-        REGISTER_CHANDLER(ctx->otto.conn.cb, chandler_swtch, 0, &ctx->otto.conn.cc);
-        REGISTER_CHANDLER(ctx->otto.disc.cb, chandler_swtch, 0, &ctx->otto.disc.cc);
-        REGISTER_CHANDLER(ctx->athr.disc.cb, chandler_swtch, 0, &ctx->athr.disc.cc);
-        REGISTER_CHANDLER(ctx->athr.toga.cb, chandler_swtch, 0, &ctx->athr.toga.cc);
+        REGISTER_CHANDLER(ctx->assert.ap_conn, chandler_32apc, 0, &ctx->assert);
+        REGISTER_CHANDLER(ctx->assert.ap_disc, chandler_32apd, 0, &ctx->assert);
+        REGISTER_CHANDLER(ctx->assert.at_disc, chandler_32atd, 0, &ctx->assert);
+        REGISTER_CHANDLER(ctx->otto.ffst.cb,   chandler_ffap1, 0, &ctx->otto.ffst.dr);
+        REGISTER_CHANDLER(ctx->otto.conn.cb,   chandler_swtch, 0, &ctx->otto.conn.cc);
+        REGISTER_CHANDLER(ctx->otto.disc.cb,   chandler_swtch, 0, &ctx->otto.disc.cc);
+        REGISTER_CHANDLER(ctx->athr.disc.cb,   chandler_swtch, 0, &ctx->athr.disc.cc);
+        REGISTER_CHANDLER(ctx->athr.toga.cb,   chandler_swtch, 0, &ctx->athr.toga.cc);
     }
 
     /* Default commands' handlers: flaps up or down */
@@ -994,6 +1010,9 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->trims.rud.rt.cb);
     UNREGSTR_CHANDLER(ctx->revrs.   fwd.cb);
     UNREGSTR_CHANDLER(ctx->revrs.   rev.cb);
+    UNREGSTR_CHANDLER(ctx->assert. ap_conn);
+    UNREGSTR_CHANDLER(ctx->assert. ap_disc);
+    UNREGSTR_CHANDLER(ctx->assert. at_disc);
     UNREGSTR_CHANDLER(ctx->otto.   ffst.cb);
     UNREGSTR_CHANDLER(ctx->otto.   conn.cb);
     UNREGSTR_CHANDLER(ctx->otto.   disc.cb);
@@ -3187,6 +3206,45 @@ static int chandler_ffap1(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
+static int chandler_32apc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        refcon_assert1 *a32 = inRefcon;
+        if (a32->initialized)
+        {
+            int32_t clicknow = 1; a32->api.ValueSet(a32->dat.id_s32_click_autopilot1, &clicknow);
+        }
+    }
+    return 0;
+}
+
+static int chandler_32apd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        refcon_assert1 *a32 = inRefcon;
+        if (a32->initialized)
+        {
+            int32_t clicknow = 1; a32->api.ValueSet(a32->dat.id_s32_click_ss_tkovr_l, &clicknow);
+        }
+    }
+    return 0;
+}
+
+static int chandler_32atd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        refcon_assert1 *a32 = inRefcon;
+        if (a32->initialized)
+        {
+            int32_t clicknow = 1; a32->api.ValueSet(a32->dat.id_s32_click_thr_disc_l, &clicknow);
+        }
+    }
+    return 0;
+}
+
 static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandBegin) // before X-Plane moves the handle
@@ -4521,48 +4579,6 @@ static int ff_assert_init(refcon_assert1 *ffa)
             return EAGAIN;
         }
 #if 0
-        {
-            int valueID, parentValueID;
-            const char *valueDescription;
-            char tmp[2048], fullname[2048];
-            unsigned int valueType, valueFlags;
-            ndt_log("navP [debug] =======================\n");
-            unsigned int valuesCount = ffa->api.ValuesCount();
-            ndt_log("navP [debug]: valuesCount: %u\n", valuesCount);
-            for (unsigned int ii = 0; ii < valuesCount; ii++)
-            {
-                valueID               = ffa->api.ValueIdByIndex (ii);
-                valueType             = ffa->api.ValueType (valueID);
-                valueFlags            = ffa->api.ValueFlags(valueID);
-                valueDescription      = ffa->api.ValueDesc (valueID);
-                sprintf(fullname, "%s", ffa->api.ValueName (valueID));
-                while (valueID && (parentValueID = ffa->api.ValueParent(valueID)) >= 0)
-                {
-                    valueID = parentValueID;
-                    sprintf(tmp, "%s", fullname);
-                    sprintf(fullname, "%s.%s", ffa->api.ValueName(valueID), tmp);
-                }
-                ndt_log("navP [debug]: ID: %d, name: \"%s\", desc: \"%s\", type: %u, flags: %u\n", valueID, fullname, valueDescription, valueType, valueFlags);
-            }
-            ndt_log("navP [debug] =======================\n");
-        }
-#endif
-
-        /*
-         * fixme
-         *
-         //Aircraft.Cockpit.Panel.FCU_AutoPilot1.Click to 1 AP1push
-         //Aircraft.Cockpit.Panel.SidestickTakeoverL.Click to 1 APdisconnect
-         //Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click to 1 ATdisconnect
-         //Aircraft.Cockpit.Panel.BrakesL need to set continuously and/or using callback
-         //Aircraft.Cockpit.Panel.BrakesR need to set continuously and/or using callback
-         //>>> also arm emergency exit lights for convenience????
-         //Aircraft.Cockpit.Panel.EFIS_NavRangeL.Target (index 0-based)
-         //Aircraft.Cockpit.Panel.EFIS_NavRangeR.Target (index 0-based)
-         //Aircraft.Cockpit.Panel.EFIS_NavModeL.Target (index 0-based)
-         //Aircraft.Cockpit.Panel.EFIS_NavModeR.Target (index 0-based)
-         //Aircraft.Cockpit.Panel.FCU_AltitudeStep.Target (index 0-based)
-         */
         /*
          * For YFMS
          *
@@ -4583,6 +4599,34 @@ static int ff_assert_init(refcon_assert1 *ffa)
          * u32 Aircraft.Cockpit.Pedestal.ATC_Mode.Target            index       0-based
          * u32 Aircraft.Navigation.ATC.CodeSet                      squawk      4-digit
          */
+        {
+            const char *valueDescription;
+            char tmp[2048], fullname[2048];
+            int vID, valueID, parentValueID;
+            unsigned int valueType, valueFlags;
+            ndt_log("navP [debug] =======================\n");
+            unsigned int valuesCount = ffa->api.ValuesCount();
+            ndt_log("navP [debug]: valuesCount: %u\n", valuesCount);
+            for (unsigned int ii = 0; ii < valuesCount; ii++)
+            {
+                vID = valueID         = ffa->api.ValueIdByIndex (ii);
+                valueType             = ffa->api.ValueType (valueID);
+                valueFlags            = ffa->api.ValueFlags(valueID);
+                valueDescription      = ffa->api.ValueDesc (valueID);
+                sprintf(fullname, "%s", ffa->api.ValueName (valueID));
+                while (valueID && (parentValueID = ffa->api.ValueParent(valueID)) >= 0)
+                {
+                    valueID = parentValueID;
+                    sprintf(tmp, "%s", fullname);
+                    sprintf(fullname, "%s.%s", ffa->api.ValueName(valueID), tmp);
+                }
+                ndt_log("navP [debug]: ID: %d, name: \"%s\", desc: \"%s\", type: %u, flags: %u\n", vID, fullname, valueDescription, valueType, valueFlags);
+            }
+            ndt_log("navP [debug] =======================\n");
+        }
+#endif
+
+        /* Initialize the aircraft's data references via the provided API */
         ffa->dat.ldg_gears_lever         = XPLMFindDataRef       ("model/controls/gears_lever");
         ffa->dat.id_flt_pedal_brake_left = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.BrakesL");
         ffa->dat.id_flt_pedal_brake_rigt = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.BrakesR");
