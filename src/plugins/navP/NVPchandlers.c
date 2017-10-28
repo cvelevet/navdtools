@@ -2155,6 +2155,35 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         switch (ctx->atyp)
         {
+            case NVP_ACF_A320ULT:
+            {
+                float current_ratio = XPLMGetDataf(ctx->spbrk.srat);
+                if (current_ratio < 0.49f)
+                {
+                    // spoilers armed, disarm but don't extend
+                    {
+                        XPLMSetDataf(ctx->spbrk.srat, 0.5f);
+                    }
+                    if (XPLMGetDataf(ctx->spbrk.srat) > 0.49f)
+                    {
+                        if (speak > 0) XPLMSpeakString("spoilers disarmed");
+                    }
+                    return 0;
+                }
+                if (current_ratio < 0.88f)
+                {
+                    {
+                        XPLMSetDataf(ctx->spbrk.srat, current_ratio + 0.125f);
+                    }
+                    if (XPLMGetDataf(ctx->spbrk.srat) > 0.51f)
+                    {
+                        if (speak > 0) XPLMSpeakString("speedbrake");
+                    }
+                    return 0;
+                }
+                return 0;
+            }
+
             case NVP_ACF_B737_EA:
                 x38 = &ctx->acfspec.x738;
                 if (x38->ready == 0)
@@ -2249,6 +2278,35 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         switch (ctx->atyp)
         {
+            case NVP_ACF_A320ULT:
+            {
+                float current_ratio = XPLMGetDataf(ctx->spbrk.srat);
+                if (current_ratio < 0.51f)
+                {
+                    // already retracted: arm spoilers
+                    {
+                        XPLMSetDataf(ctx->spbrk.srat, 0.0f);
+                    }
+                    if (XPLMGetDataf(ctx->spbrk.srat) < 0.01f)
+                    {
+                        if (speak > 0) XPLMSpeakString("spoilers armed");
+                    }
+                    return 0;
+                }
+                if (current_ratio > 0.62f)
+                {
+                    {
+                        XPLMSetDataf(ctx->spbrk.srat, current_ratio - 0.125f);
+                    }
+                    if (XPLMGetDataf(ctx->spbrk.srat) < 0.51f)
+                    {
+                        if (speak > 0) XPLMSpeakString("speedbrake retracted");
+                    }
+                    return 0;
+                }
+                return 0;
+            }
+
             case NVP_ACF_B737_EA:
                 x38 = &ctx->acfspec.x738;
                 if (x38->ready == 0)
