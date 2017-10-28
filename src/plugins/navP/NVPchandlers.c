@@ -4262,6 +4262,9 @@ static int first_fcall_do(chandler_context *ctx)
      */
     switch (ctx->atyp)
     {
+        case NVP_ACF_A320ULT:
+            break; // TODO
+
         case NVP_ACF_A320_QP:
             ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
             ctx->ground.idle.r_t[0]   = 0.10875f; // ~26.1% N1 @ NTD
