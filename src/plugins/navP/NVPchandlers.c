@@ -1086,6 +1086,7 @@ int nvp_chandlers_reset(void *inContext)
     ctx->bking.rc_brk.rg.name = NULL;
     ctx->bking.rc_brk.mx.name = NULL;
     ctx->bking.rc_brk.ro.name = NULL;
+    ctx->bking.rc_brk. assert = NULL;
 
     /* Reset some datarefs to match X-Plane's defaults at startup */
     _DO(1, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com1_power");
@@ -1495,6 +1496,12 @@ int nvp_chandlers_update(void *inContext)
         ctx->bking.rc_brk.rtio[1] = .75f;
         ctx->bking.rc_brk.rtio[2] = 1.0f;
     }
+    else if (ctx->atyp == NVP_ACF_A320ULT)
+    {
+        ctx->bking.rc_brk.rtio[0] = 0.2f;
+        ctx->bking.rc_brk.rtio[1] = 0.4f;
+        ctx->bking.rc_brk.rtio[2] = 0.6f;
+    }
     else // default values
     {
         ctx->bking.rc_brk.rtio[0] = 1.0f / 3.0f;
@@ -1821,6 +1828,7 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         chandler_context *ctx = inRefcon;
         refcon_braking   *rcb = &ctx->bking.rc_brk;
+        refcon_assert1   *rca = rcb->assert;
         int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
         if (ctx->atyp & NVP_ACF_MASK_JDN)
         {
@@ -1856,6 +1864,13 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMCommandOnce(rcb->ro.xpcr);
             }
         }
+        else if (rca)
+        {
+            if (XPLMGetDataf(rcb->p_b_rat) < 0.5f)
+            {
+                XPLMCommandOnce(rca->dat.p_brk_toggle);
+            }
+        }
         else
         {
             XPLMSetDataf(rcb->p_b_rat, 1.0f);
@@ -1872,6 +1887,7 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         chandler_context *ctx = inRefcon;
         refcon_braking   *rcb = &ctx->bking.rc_brk;
+        refcon_assert1   *rca = rcb->assert;
         int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
         if (ctx->atyp & NVP_ACF_MASK_JDN)
         {
@@ -1906,6 +1922,13 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMCommandOnce(rcb->ro.xpcr);
             }
         }
+        else if (rca)
+        {
+            if (XPLMGetDataf(rcb->p_b_rat) > 0.5f)
+            {
+                XPLMCommandOnce(rca->dat.p_brk_toggle);
+            }
+        }
         else
         {
             XPLMSetDataf(rcb->p_b_rat, 0.0f);
@@ -1925,8 +1948,19 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
  */
 static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
+    float p_ratio = 1.0f;
     chandler_context *ctx = inRefcon;
     refcon_braking *rcb = &ctx->bking.rc_brk;
+    refcon_assert1 *rca = rcb->assert;
+    if (rca)
+    {
+        if (inPhase != xplm_CommandEnd)
+        {
+            rca->api.ValueSet(rca->dat.id_flt_pedal_brake_left, &p_ratio);
+            rca->api.ValueSet(rca->dat.id_flt_pedal_brake_rigt, &p_ratio);
+        } // else { auto-reset; }
+        return 0;
+    }
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
         if (ctx->acfspec.qpac.ready == 0)
@@ -1981,14 +2015,14 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMCommandBegin(rcb->mx.xpcr);
                 break;
             }
-            XPLMSetDataf(rcb->p_b_rat, 1.0f);
+            XPLMSetDataf(rcb->p_b_rat, p_ratio);
             break;
         case xplm_CommandContinue:
             if (rcb->mx.xpcr)
             {
                 break;
             }
-            XPLMSetDataf(rcb->p_b_rat, 1.0f);
+            XPLMSetDataf(rcb->p_b_rat, p_ratio);
             break;
         default: // xplm_CommandEnd
             if (rcb->mx.xpcr)
@@ -2008,6 +2042,16 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     float p_b_flt = XPLMGetDataf(rcb->p_b_flt);
     float g_speed = XPLMGetDataf(rcb->g_speed) * 3.6f / 1.852f;
     float p_ratio = (g_speed < 30.0f) ? rcb->rtio[0] : (g_speed < 60.0f) ? rcb->rtio[1] : rcb->rtio[2];
+    refcon_assert1 *rca = rcb->assert;
+    if (rca)
+    {
+        if (inPhase != xplm_CommandEnd)
+        {
+            rca->api.ValueSet(rca->dat.id_flt_pedal_brake_left, &p_ratio);
+            rca->api.ValueSet(rca->dat.id_flt_pedal_brake_rigt, &p_ratio);
+        } // else { auto-reset; }
+        return 0;
+    }
     if (p_ratio < p_b_flt)
     {
         p_ratio = p_b_flt;
@@ -3254,7 +3298,7 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 break;
             }
-            ctx->gear.assert = &ctx->assert;
+            ctx->bking.rc_brk.assert = ctx->gear.assert = &ctx->assert;
             break;
 
         case NVP_ACF_A320_QP:
