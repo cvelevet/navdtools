@@ -3276,7 +3276,7 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 if (a320)
                 {
                     // command already handled by the aircraft's plugin
-                    // thus the check value for the dataref is inverted
+                    // thus the check value for the dataref is inverted //fixme still doesn't work
                     if (XPLMGetDataf(a320->dat.ldg_gears_lever) > 0.5f) // -> 1
                     {
                         if (speak > 0) XPLMSpeakString("gear down"); return 1;
@@ -3293,7 +3293,7 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 if (a320)
                 {
                     // command already handled by the aircraft's plugin
-                    // thus the check value for the dataref is inverted
+                    // thus the check value for the dataref is inverted //fixme still doesn't work
                     if (XPLMGetDataf(a320->dat.ldg_gears_lever) < 0.5f) // -> 0
                     {
                         if (speak > 0) XPLMSpeakString("gear up"); return 1;
