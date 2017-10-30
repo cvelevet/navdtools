@@ -3435,7 +3435,7 @@ static int first_fcall_do(chandler_context *ctx)
             }
             else
             {
-                // TODO: power & doors
+                // TODO: power, doors, fuel/payload
                 int index[] = { 1, 3, 2, 1, 4, 1, };
                 refcon_assert1 *rca = ctx->bking.rc_brk.assert = ctx->gear.assert = &ctx->assert;
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &index[0]);     // FCU alt. sel. increm.  (1000ft)
@@ -4497,13 +4497,20 @@ static int first_fcall_do(chandler_context *ctx)
         }
         if (ctx->atyp == NVP_ACF_A320ULT)
         {
-            // TODO
+            XPLMSetDataf(ctx->volumes.wxr, .125f);
+            XPLMSetDataf(ctx->volumes.wvr, .125f);
+            XPLMSetDataf(ctx->volumes.gvr, .125f);
+            XPLMSetDataf(ctx->volumes.pvr, .125f);
+            XPLMSetDataf(ctx->volumes.fvr, .125f);
         }
-        XPLMSetDataf(ctx->volumes.wxr, 0.25f);
-        XPLMSetDataf(ctx->volumes.wvr, 0.25f);
-        XPLMSetDataf(ctx->volumes.gvr, 0.25f);
-        XPLMSetDataf(ctx->volumes.pvr, 0.25f);
-        XPLMSetDataf(ctx->volumes.fvr, 0.25f);
+        else
+        {
+            XPLMSetDataf(ctx->volumes.wxr, 0.25f);
+            XPLMSetDataf(ctx->volumes.wvr, 0.25f);
+            XPLMSetDataf(ctx->volumes.gvr, 0.25f);
+            XPLMSetDataf(ctx->volumes.pvr, 0.25f);
+            XPLMSetDataf(ctx->volumes.fvr, 0.25f);
+        }
         XPLMSetDataf(ctx->volumes.atc, 0.50f);
     }
     XPLMSetDatai(ctx->volumes.snd, 1); // ALL sounds
