@@ -72,9 +72,13 @@ typedef struct
     struct
     {
         XPLMCommandRef p_brk_toggle;
+        XPLMCommandRef h_brk_regulr;
+        XPLMCommandRef h_brk_mximum;
+        XPLMCommandRef toggle_r_ng1;
+        XPLMCommandRef toggle_r_ng2;
         XPLMDataRef ldg_gears_lever;
-        XPLMDataRef brake_ratio_lft;
-        XPLMDataRef brake_ratio_rgt;
+        XPLMDataRef engine_reverse1;
+        XPLMDataRef engine_reverse2;
         int id_s32_click_autopilot1;
         int id_s32_click_ss_tkovr_l;
         int id_s32_click_thr_disc_l;
@@ -1976,15 +1980,17 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     refcon_assert1 *rca = rcb->assert;
     if (rca)
     {
-        if (inPhase != xplm_CommandEnd)
+        switch (inPhase)
         {
-            XPLMSetDataf(rca->dat.brake_ratio_lft, p_ratio);//fixme test
-            XPLMSetDataf(rca->dat.brake_ratio_rgt, p_ratio);//fixme test
-            return 0;
+            case xplm_CommandBegin:
+                XPLMCommandBegin(rca->dat.h_brk_mximum);
+                return 0;
+            case xplm_CommandContinue:
+                return 0;
+            default:
+                XPLMCommandEnd(rca->dat.h_brk_mximum);
+                return 0;
         }
-        XPLMSetDataf(rca->dat.brake_ratio_lft, 0.0f);//fixme test
-        XPLMSetDataf(rca->dat.brake_ratio_rgt, 0.0f);//fixme test
-        return 0;
     }
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
@@ -2070,15 +2076,17 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     refcon_assert1 *rca = rcb->assert;
     if (rca)
     {
-        if (inPhase != xplm_CommandEnd)
+        switch (inPhase)
         {
-            XPLMSetDataf(rca->dat.brake_ratio_lft, p_ratio);//fixme test
-            XPLMSetDataf(rca->dat.brake_ratio_rgt, p_ratio);//fixme test
-            return 0;
+            case xplm_CommandBegin:
+                XPLMCommandBegin(rca->dat.h_brk_regulr);
+                return 0;
+            case xplm_CommandContinue:
+                return 0;
+            default:
+                XPLMCommandEnd(rca->dat.h_brk_regulr);
+                return 0;
         }
-        XPLMSetDataf(rca->dat.brake_ratio_lft, 0.0f);//fixme test
-        XPLMSetDataf(rca->dat.brake_ratio_rgt, 0.0f);//fixme test
-        return 0;
     }
     if (p_ratio < p_b_flt)
     {
@@ -4662,9 +4670,13 @@ static int ff_assert_init(refcon_assert1 *ffa)
 
         /* Initialize the aircraft's data references via the provided API */
         ffa->dat.ldg_gears_lever         = XPLMFindDataRef       ("model/controls/gears_lever");
-        ffa->dat.brake_ratio_lft         = XPLMFindDataRef       ("sim/cockpit2/controls/left_brake_ratio");
-        ffa->dat.brake_ratio_rgt         = XPLMFindDataRef       ("sim/cockpit2/controls/right_brake_ratio");
+        ffa->dat.engine_reverse1         = XPLMFindDataRef       ("model/controls/engine_reverse1");
+        ffa->dat.engine_reverse2         = XPLMFindDataRef       ("model/controls/engine_reverse2");
+        ffa->dat.h_brk_mximum            = XPLMFindCommand       ("sim/flight_controls/brakes_max");
+        ffa->dat.h_brk_regulr            = XPLMFindCommand       ("sim/flight_controls/brakes_regular");
         ffa->dat.p_brk_toggle            = XPLMFindCommand       ("sim/flight_controls/brakes_toggle_max");
+        ffa->dat.toggle_r_ng1            = XPLMFindCommand       ("sim/engines/thrust_reverse_toggle_1");
+        ffa->dat.toggle_r_ng2            = XPLMFindCommand       ("sim/engines/thrust_reverse_toggle_2");
         ffa->dat.id_u32_efis_nav_mod_lft = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeL.Target");
         ffa->dat.id_u32_efis_nav_mod_rgt = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeR.Target");
         ffa->dat.id_u32_efis_nav_rng_lft = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavRangeL.Target");
@@ -4683,10 +4695,14 @@ static int ff_assert_init(refcon_assert1 *ffa)
             ffa->dat.id_s32_click_thr_disc_l <= 0 ||
             ffa->dat.id_s32_click_ss_tkovr_l <= 0 ||
             ffa->dat.id_s32_click_autopilot1 <= 0 ||
-            ffa->dat.brake_ratio_lft      == NULL ||
-            ffa->dat.brake_ratio_rgt      == NULL ||
             ffa->dat.ldg_gears_lever      == NULL ||
-            ffa->dat.p_brk_toggle         == NULL)
+            ffa->dat.engine_reverse1      == NULL ||
+            ffa->dat.engine_reverse2      == NULL ||
+            ffa->dat.h_brk_mximum         == NULL ||
+            ffa->dat.h_brk_regulr         == NULL ||
+            ffa->dat.p_brk_toggle         == NULL ||
+            ffa->dat.toggle_r_ng1         == NULL ||
+            ffa->dat.toggle_r_ng2         == NULL)
         {
             ndt_log("navP [debug]: ff_assert_init: can't find required data\n");
             return EINVAL;
