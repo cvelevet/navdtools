@@ -73,11 +73,11 @@ typedef struct
     {
         XPLMCommandRef p_brk_toggle;
         XPLMDataRef ldg_gears_lever;
+        XPLMDataRef brake_ratio_lft;
+        XPLMDataRef brake_ratio_rgt;
         int id_s32_click_autopilot1;
         int id_s32_click_ss_tkovr_l;
         int id_s32_click_thr_disc_l;
-        int id_flt_pedal_brake_left;
-        int id_flt_pedal_brake_rigt;
         int id_u32_emer_lights_mode;
         int id_u32_efis_nav_rng_lft;
         int id_u32_efis_nav_rng_rgt;
@@ -1978,9 +1978,12 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         if (inPhase != xplm_CommandEnd)
         {
-            rca->api.ValueSet(rca->dat.id_flt_pedal_brake_left, &p_ratio);//fixme not working
-            rca->api.ValueSet(rca->dat.id_flt_pedal_brake_rigt, &p_ratio);//fixme not working
-        } // else { auto-reset; }
+            XPLMSetDataf(rca->dat.brake_ratio_lft, p_ratio);//fixme test
+            XPLMSetDataf(rca->dat.brake_ratio_rgt, p_ratio);//fixme test
+            return 0;
+        }
+        XPLMSetDataf(rca->dat.brake_ratio_lft, 0.0f);//fixme test
+        XPLMSetDataf(rca->dat.brake_ratio_rgt, 0.0f);//fixme test
         return 0;
     }
     if (ctx->atyp & NVP_ACF_MASK_QPC)
@@ -2069,9 +2072,12 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         if (inPhase != xplm_CommandEnd)
         {
-            rca->api.ValueSet(rca->dat.id_flt_pedal_brake_left, &p_ratio);
-            rca->api.ValueSet(rca->dat.id_flt_pedal_brake_rigt, &p_ratio);
-        } // else { auto-reset; }
+            XPLMSetDataf(rca->dat.brake_ratio_lft, p_ratio);//fixme test
+            XPLMSetDataf(rca->dat.brake_ratio_rgt, p_ratio);//fixme test
+            return 0;
+        }
+        XPLMSetDataf(rca->dat.brake_ratio_lft, 0.0f);//fixme test
+        XPLMSetDataf(rca->dat.brake_ratio_rgt, 0.0f);//fixme test
         return 0;
     }
     if (p_ratio < p_b_flt)
@@ -4641,8 +4647,8 @@ static int ff_assert_init(refcon_assert1 *ffa)
 
         /* Initialize the aircraft's data references via the provided API */
         ffa->dat.ldg_gears_lever         = XPLMFindDataRef       ("model/controls/gears_lever");
-        ffa->dat.id_flt_pedal_brake_left = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.BrakesL");
-        ffa->dat.id_flt_pedal_brake_rigt = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.BrakesR");
+        ffa->dat.brake_ratio_lft         = XPLMFindDataRef       ("sim/cockpit2/controls/left_brake_ratio");
+        ffa->dat.brake_ratio_rgt         = XPLMFindDataRef       ("sim/cockpit2/controls/right_brake_ratio");
         ffa->dat.p_brk_toggle            = XPLMFindCommand       ("sim/flight_controls/brakes_toggle_max");
         ffa->dat.id_u32_efis_nav_mod_lft = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeL.Target");
         ffa->dat.id_u32_efis_nav_mod_rgt = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeR.Target");
@@ -4653,9 +4659,7 @@ static int ff_assert_init(refcon_assert1 *ffa)
         ffa->dat.id_s32_click_thr_disc_l = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click");
         ffa->dat.id_s32_click_ss_tkovr_l = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.SidestickTakeoverL.Click");
         ffa->dat.id_s32_click_autopilot1 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.FCU_AutoPilot1.Click");
-        if (ffa->dat.id_flt_pedal_brake_left <= 0 ||
-            ffa->dat.id_flt_pedal_brake_rigt <= 0 ||
-            ffa->dat.id_u32_efis_nav_mod_lft <= 0 ||
+        if (ffa->dat.id_u32_efis_nav_mod_lft <= 0 ||
             ffa->dat.id_u32_efis_nav_mod_rgt <= 0 ||
             ffa->dat.id_u32_efis_nav_rng_lft <= 0 ||
             ffa->dat.id_u32_efis_nav_rng_rgt <= 0 ||
@@ -4664,6 +4668,8 @@ static int ff_assert_init(refcon_assert1 *ffa)
             ffa->dat.id_s32_click_thr_disc_l <= 0 ||
             ffa->dat.id_s32_click_ss_tkovr_l <= 0 ||
             ffa->dat.id_s32_click_autopilot1 <= 0 ||
+            ffa->dat.brake_ratio_lft      == NULL ||
+            ffa->dat.brake_ratio_rgt      == NULL ||
             ffa->dat.ldg_gears_lever      == NULL ||
             ffa->dat.p_brk_toggle         == NULL)
         {
