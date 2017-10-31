@@ -3309,7 +3309,7 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 gear->has_retractable_gear = !!XPLMGetDatai(gear->acf_gear_retract);
             }
         }
-        if (gear->has_retractable_gear ==  1)
+        if (gear->has_retractable_gear)
         {
             ndt_log("DEBUG FOUR");//debug
             int speak = XPLMGetDatai(gear->callouts.ref);
@@ -3324,9 +3324,7 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 if (a320)
                 {
                     ndt_log("DEBUG SIX");//debug
-                    // command already handled by the aircraft's plugin
-                    // thus the check value for the dataref is inverted //fixme still doesn't work
-                    if (XPLMGetDataf(a320->dat.ldg_gears_lever) > 0.5f) // -> 1
+                    if (XPLMGetDataf(a320->dat.ldg_gears_lever) < 0.5f) // -> 1
                     {
                         if (speak > 0) XPLMSpeakString("gear down"); return 1;
                     }
@@ -3343,9 +3341,7 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 if (a320)
                 {
                     ndt_log("DEBUG ATE");//debug
-                    // command already handled by the aircraft's plugin
-                    // thus the check value for the dataref is inverted //fixme still doesn't work
-                    if (XPLMGetDataf(a320->dat.ldg_gears_lever) < 0.5f) // -> 0
+                    if (XPLMGetDataf(a320->dat.ldg_gears_lever) > 0.5f) // -> 0
                     {
                         if (speak > 0) XPLMSpeakString("gear up"); return 1;
                     }
@@ -3481,6 +3477,15 @@ static int first_fcall_do(chandler_context *ctx)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_lft, &index[3]);     // ND r. sel. (cap. side) ( 20)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_rgt, &index[4]);     // ND r. sel. (f/o. side) (160)
                 rca->api.ValueSet(rca->dat.id_u32_emer_lights_mode, &index[5]);     // arm em. exit lts
+
+                //fixme test below
+                /* Re-register some callbacks: to get calls before the plugin */
+                UNREGSTR_CHANDLER(ctx->gear.landing_gear_toggle);
+                UNREGSTR_CHANDLER(ctx->gear.  landing_gear_down);
+                UNREGSTR_CHANDLER(ctx->gear.    landing_gear_up);
+                REGISTER_CHANDLER(ctx->gear.    landing_gear_up, chandler_ghndl, 1, &ctx->gear);
+                REGISTER_CHANDLER(ctx->gear.  landing_gear_down, chandler_ghndl, 1, &ctx->gear);
+                REGISTER_CHANDLER(ctx->gear.landing_gear_toggle, chandler_ghndl, 1, &ctx->gear);
             }
             break;
 
