@@ -412,6 +412,7 @@ typedef struct
             chandler_callback cb;
         } rev;
 
+        void          *assert;
         int         n_engines;
         XPLMDataRef acf_numng;
         XPLMDataRef acf_ngtyp;
@@ -1092,15 +1093,14 @@ int nvp_chandlers_reset(void *inContext)
     }
 
     /* Reset aircraft properties (type, engine count, retractable gear, etc.) */
-    ctx->atyp                      = NVP_ACF_GENERIC;
-    ctx->revrs.n_engines           = -1;
-    ctx->gear.has_retractable_gear = -1;
+    ctx->bking.rc_brk.assert = ctx->gear.assert = ctx->revrs.assert = NULL;
+    ctx->gear.has_retractable_gear = -1; ctx->revrs.n_engines = -1;
+    ctx->atyp = NVP_ACF_GENERIC;
 
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
     ctx->acfspec.qpac.ready   = 0;
     ctx->acfspec.i733.ready   = 0;
     ctx->acfspec.x738.ready   = 0;
-    ctx->gear.assert          = NULL;
     ctx->otto.ffst.dr         = NULL;
     ctx->otto.conn.cc.name    = NULL;
     ctx->otto.disc.cc.name    = NULL;
@@ -1109,7 +1109,6 @@ int nvp_chandlers_reset(void *inContext)
     ctx->bking.rc_brk.rg.name = NULL;
     ctx->bking.rc_brk.mx.name = NULL;
     ctx->bking.rc_brk.ro.name = NULL;
-    ctx->bking.rc_brk. assert = NULL;
 
     /* Reset some datarefs to match X-Plane's defaults at startup */
     _DO(1, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com1_power");
@@ -2559,10 +2558,25 @@ static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     if (inPhase == xplm_CommandEnd)
     {
         chandler_context *ctx = inRefcon;
+        refcon_assert1   *a32 = ctx->revrs.assert;
+        if (a32)
+        {
+            if (XPLMGetDataf(a32->dat.engine_reverse1) > 0.5f)
+            {
+                XPLMCommandOnce(a32->dat.toggle_r_ng1);
+            }
+            if (XPLMGetDataf(a32->dat.engine_reverse2) > 0.5f)
+            {
+                XPLMCommandOnce(a32->dat.toggle_r_ng2);
+            }
+            return 0;
+        }
         if (ctx->revrs.n_engines >= 1)
         {
             XPLMSetDatavi(ctx->revrs.prop_mode, propmode_fwd_get(), 0, ctx->revrs.n_engines);
+            return 0;
         }
+        return 0;
     }
     return 0;
 }
@@ -2572,10 +2586,25 @@ static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     if (inPhase == xplm_CommandEnd)
     {
         chandler_context *ctx = inRefcon;
+        refcon_assert1   *a32 = ctx->revrs.assert;
+        if (a32)
+        {
+            if (XPLMGetDataf(a32->dat.engine_reverse1) < 0.5f)
+            {
+                XPLMCommandOnce(a32->dat.toggle_r_ng1);
+            }
+            if (XPLMGetDataf(a32->dat.engine_reverse2) < 0.5f)
+            {
+                XPLMCommandOnce(a32->dat.toggle_r_ng2);
+            }
+            return 0;
+        }
         if (ctx->revrs.n_engines >= 1)
         {
             XPLMSetDatavi(ctx->revrs.prop_mode, propmode_rev_get(), 0, ctx->revrs.n_engines);
+            return 0;
         }
+        return 0;
     }
     return 0;
 }
@@ -3445,7 +3474,7 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 // TODO: power, doors, fuel/payload
                 int index[] = { 1, 3, 2, 1, 4, 1, };
-                refcon_assert1 *rca = ctx->bking.rc_brk.assert = ctx->gear.assert = &ctx->assert;
+                refcon_assert1 *rca = ctx->bking.rc_brk.assert = ctx->gear.assert = ctx->revrs.assert = &ctx->assert;
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &index[0]);     // FCU alt. sel. increm.  (1000ft)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &index[1]);     // ND m. sel. (cap. side) (arc)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_rgt, &index[2]);     // ND m. sel. (f/o. side) (nav)
