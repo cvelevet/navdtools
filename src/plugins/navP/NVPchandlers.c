@@ -71,6 +71,8 @@ typedef struct
     chandler_callback at_disc;
     struct
     {
+        XPLMCommandRef throttles_up;
+        XPLMCommandRef throttles_dn;
         XPLMCommandRef p_brk_toggle;
         XPLMCommandRef h_brk_regulr;
         XPLMCommandRef h_brk_mximum;
@@ -88,6 +90,7 @@ typedef struct
         int id_u32_efis_nav_mod_lft;
         int id_u32_efis_nav_mod_rgt;
         int id_u32_fcu_tgt_alt_step;
+        int id_f32_engine_lever_lft;
     } dat;
 } refcon_assert1;
 
@@ -143,6 +146,7 @@ typedef struct
 
 typedef struct
 {
+    void           *assert;
     float   nominal_roll_c;
     XPLMDataRef acf_roll_c;
     XPLMDataRef ground_spd;
@@ -1093,7 +1097,7 @@ int nvp_chandlers_reset(void *inContext)
     }
 
     /* Reset aircraft properties (type, engine count, retractable gear, etc.) */
-    ctx->bking.rc_brk.assert = ctx->gear.assert = ctx->revrs.assert = NULL;
+    ctx->bking.rc_brk.assert = ctx->gear.assert = ctx->ground.assert = ctx->revrs.assert = NULL;
     ctx->gear.has_retractable_gear = -1; ctx->revrs.n_engines = -1;
     ctx->atyp = NVP_ACF_GENERIC;
 
@@ -3358,11 +3362,62 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 1; // let X-Plane actually move the handle
 }
 
+#define A320T_IDLE  20.0f
+#define A320T_TAXI  25.0f//fixme
+#define A320T_HALF  20.0f
+#define A320T_TOGA 100.0f
 static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandEnd)
     {
         refcon_ground ground = *((refcon_ground*)inRefcon);
+        refcon_assert1 *a320 = ground.assert; float thrott;
+        if (a320)
+        {
+            a320->api.ValueGet(a320->dat.id_f32_engine_lever_lft, &thrott);
+            if (thrott < A320T_HALF)
+            {
+                if (XPLMGetDataf(a320->dat.engine_reverse1) > 0.5f ||
+                    XPLMGetDataf(a320->dat.engine_reverse2) > 0.5f)
+                {
+                    return 0;
+                }
+                if (thrott < A320T_TAXI)
+                {
+                    int timeout = 10;
+                    do
+                    {
+                        if (timeout <= 0)
+                        {
+                            ndt_log("navP [debug]: chandler_idleb, throttles stuck?\n");
+                            return 0;
+                        }
+                        XPLMCommandOnce(a320->dat.throttles_up); timeout--;
+                        a320->api.ValueGet(a320->dat.id_f32_engine_lever_lft, &thrott);
+                    }
+                    while (thrott < A320T_TAXI);
+                    return 0;
+                }
+                if (thrott > A320T_TAXI)
+                {
+                    int timeout = 10;
+                    do
+                    {
+                        if (timeout <= 0)
+                        {
+                            ndt_log("navP [debug]: chandler_idleb, throttles stuck?\n");
+                            return 0;
+                        }
+                        XPLMCommandOnce(a320->dat.throttles_dn); timeout--;
+                        a320->api.ValueGet(a320->dat.id_f32_engine_lever_lft, &thrott);
+                    }
+                    while (thrott > A320T_TAXI);
+                    return 0;
+                }
+                return 0;
+            }
+            return 0;
+        }
         if (XPLMGetDataf(ground.idle.throttle_all) < 0.5f)
         {
             if (ground.idle.minimums > 0)
@@ -3470,7 +3525,7 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 // TODO: power, doors, fuel/payload
                 int index[] = { 1, 3, 2, 1, 4, 1, };
-                refcon_assert1 *rca = ctx->bking.rc_brk.assert = ctx->gear.assert = ctx->revrs.assert = &ctx->assert;
+                refcon_assert1 *rca = ctx->bking.rc_brk.assert = ctx->gear.assert = ctx->ground.assert = ctx->revrs.assert = &ctx->assert;
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &index[0]);     // FCU alt. sel. increm.  (1000ft)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &index[1]);     // ND m. sel. (cap. side) (arc)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_rgt, &index[2]);     // ND m. sel. (f/o. side) (nav)
@@ -4318,9 +4373,6 @@ static int first_fcall_do(chandler_context *ctx)
      */
     switch (ctx->atyp)
     {
-        case NVP_ACF_A320ULT:
-            break; // TODO
-
         case NVP_ACF_A320_QP:
             ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
             ctx->ground.idle.r_t[0]   = 0.10875f; // ~26.1% N1 @ NTD
@@ -4706,6 +4758,8 @@ static int ff_assert_init(refcon_assert1 *ffa)
         ffa->dat.ldg_gears_lever         = XPLMFindDataRef       ("model/controls/gears_lever");
         ffa->dat.engine_reverse1         = XPLMFindDataRef       ("model/controls/engine_reverse1");
         ffa->dat.engine_reverse2         = XPLMFindDataRef       ("model/controls/engine_reverse2");
+        ffa->dat.throttles_up            = XPLMFindCommand       ("sim/engines/throttle_up");
+        ffa->dat.throttles_dn            = XPLMFindCommand       ("sim/engines/throttle_down");
         ffa->dat.h_brk_mximum            = XPLMFindCommand       ("sim/flight_controls/brakes_max");
         ffa->dat.h_brk_regulr            = XPLMFindCommand       ("sim/flight_controls/brakes_regular");
         ffa->dat.p_brk_toggle            = XPLMFindCommand       ("sim/flight_controls/brakes_toggle_max");
@@ -4720,6 +4774,7 @@ static int ff_assert_init(refcon_assert1 *ffa)
         ffa->dat.id_s32_click_thr_disc_l = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click");
         ffa->dat.id_s32_click_ss_tkovr_l = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.SidestickTakeoverL.Click");
         ffa->dat.id_s32_click_autopilot1 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.FCU_AutoPilot1.Click");
+        ffa->dat.id_f32_engine_lever_lft = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineLever1");
         if (ffa->dat.id_u32_efis_nav_mod_lft <= 0 ||
             ffa->dat.id_u32_efis_nav_mod_rgt <= 0 ||
             ffa->dat.id_u32_efis_nav_rng_lft <= 0 ||
@@ -4729,9 +4784,12 @@ static int ff_assert_init(refcon_assert1 *ffa)
             ffa->dat.id_s32_click_thr_disc_l <= 0 ||
             ffa->dat.id_s32_click_ss_tkovr_l <= 0 ||
             ffa->dat.id_s32_click_autopilot1 <= 0 ||
+            ffa->dat.id_f32_engine_lever_lft <= 0 ||
             ffa->dat.ldg_gears_lever      == NULL ||
             ffa->dat.engine_reverse1      == NULL ||
             ffa->dat.engine_reverse2      == NULL ||
+            ffa->dat.throttles_up         == NULL ||
+            ffa->dat.throttles_dn         == NULL ||
             ffa->dat.h_brk_mximum         == NULL ||
             ffa->dat.h_brk_regulr         == NULL ||
             ffa->dat.p_brk_toggle         == NULL ||
@@ -4774,6 +4832,10 @@ static void priv_setdata_f(void *inRefcon, float inValue)
 #undef CALLOUT_GEARLEVER
 #undef STRN_CASECMP_AUTO
 #undef ACF_ROLL_SET
+#undef A320T_IDLE
+#undef A320T_TAXI
+#undef A320T_HALF
+#undef A320T_TOGA
 #undef GS_KT_MIN
 #undef GS_KT_MID
 #undef GS_KT_MAX
