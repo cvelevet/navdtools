@@ -31,6 +31,8 @@
 #include "XPLM/XPLMNavigation.h"
 #include "XPLM/XPLMUtilities.h"
 
+#include "assert/includes.h"
+
 #include "common/common.h"
 #include "lib/flightplan.h"
 #include "lib/navdata.h"
@@ -435,6 +437,7 @@ typedef struct
             YFS_ATYP_IXEG = 73,
             YFS_ATYP_FB76 = 76,
             YFS_ATYP_FB77 = 77,
+            YFS_ATYP_ASRT = 99,
         }
         atyp;
         struct
@@ -517,6 +520,30 @@ typedef struct
 //          XPLMDataRef E195_mouse_x_pos; // TODO
         }
         tekt;
+        struct
+        {
+            XPLMPluginID          xid;
+            SharedValuesInterface api;
+            struct
+            {
+                int id_u32_altr;
+                int id_u32_code;
+                int id_u32_mode;
+                int id_u32_tcas;
+            }
+            xpdr;
+            struct
+            {
+                int id_s32_lmode;
+                int id_s32_rmode;
+                int id_s32_lunit;
+                int id_s32_runit;
+                int id_s32_lvalu;
+                int id_s32_rvalu;
+            }
+            baro;
+        }
+        asrt;
         struct
         {
             int vmax_auto;

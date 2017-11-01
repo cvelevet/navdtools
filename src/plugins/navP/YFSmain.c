@@ -42,8 +42,11 @@
 #include "XPLM/XPLMDisplay.h"
 #include "XPLM/XPLMGraphics.h"
 #include "XPLM/XPLMMenus.h"
+#include "XPLM/XPLMPlugin.h"
 #include "XPLM/XPLMProcessing.h"
 #include "XPLM/XPLMUtilities.h"
+
+#include "assert/includes.h"
 
 #include "common/common.h"
 #include "compat/compat.h"
@@ -815,6 +818,40 @@ static void toggle_main_window(yfms_context *yfms)
             * u32 Aircraft.Cockpit.Pedestal.ATC_Mode.Target            index       0-based
             * u32 Aircraft.Navigation.ATC.CodeSet                      squawk      4-digit
             */
+            if (XPLM_NO_PLUGIN_ID != (yfms->xpl.asrt.xid = XPLMFindPluginBySignature(XPLM_FF_SIGNATURE)))
+            {
+                XPLMSendMessageToPlugin(yfms->xpl.asrt.xid, XPLM_FF_MSG_GET_SHARED_INTERFACE, &yfms->xpl.asrt.api);
+                if (yfms->xpl.asrt.api.DataVersion == NULL || yfms->xpl.asrt.api.DataAddUpdate == NULL)
+                {
+                    ndt_log("YFMS [warning]: couldn't initialize \"%s\" API\n", XPLM_FF_SIGNATURE);
+                    yfms->xpl.atyp = YFS_ATYP_XPLN; break;
+                }
+                yfms->xpl.asrt.baro.id_s32_lvalu = yfms->xpl.asrt.api.ValueIdByName("Aircraft.FMGS.FCU1.BaroL");
+                yfms->xpl.asrt.baro.id_s32_rvalu = yfms->xpl.asrt.api.ValueIdByName("Aircraft.FMGS.FCU1.BaroR");
+                yfms->xpl.asrt.baro.id_s32_lmode = yfms->xpl.asrt.api.ValueIdByName("Aircraft.FMGS.FCU1.BaroModeL");
+                yfms->xpl.asrt.baro.id_s32_rmode = yfms->xpl.asrt.api.ValueIdByName("Aircraft.FMGS.FCU1.BaroModeR");
+                yfms->xpl.asrt.baro.id_s32_lunit = yfms->xpl.asrt.api.ValueIdByName("Aircraft.FMGS.FCU1.BaroTypeL");
+                yfms->xpl.asrt.baro.id_s32_runit = yfms->xpl.asrt.api.ValueIdByName("Aircraft.FMGS.FCU1.BaroTypeR");
+                yfms->xpl.asrt.xpdr.id_u32_code  = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Navigation.ATC.CodeSet");
+                yfms->xpl.asrt.xpdr.id_u32_altr  = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Pedestal.ATC_Alt.Target");
+                yfms->xpl.asrt.xpdr.id_u32_mode  = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Pedestal.ATC_Mode.Target");
+                yfms->xpl.asrt.xpdr.id_u32_tcas  = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Pedestal.TCAS_Traffic.Target");
+                if (yfms->xpl.asrt.baro.id_s32_lvalu <= 0 ||
+                    yfms->xpl.asrt.baro.id_s32_rvalu <= 0 ||
+                    yfms->xpl.asrt.baro.id_s32_lmode <= 0 ||
+                    yfms->xpl.asrt.baro.id_s32_rmode <= 0 ||
+                    yfms->xpl.asrt.baro.id_s32_lunit <= 0 ||
+                    yfms->xpl.asrt.baro.id_s32_runit <= 0 ||
+                    yfms->xpl.asrt.xpdr.id_u32_code  <= 0 ||
+                    yfms->xpl.asrt.xpdr.id_u32_altr  <= 0 ||
+                    yfms->xpl.asrt.xpdr.id_u32_mode  <= 0 ||
+                    yfms->xpl.asrt.xpdr.id_u32_tcas  <= 0)
+                {
+                    ndt_log("YFMS [warning]: couldn't initialize \"%s\" data\n", XPLM_FF_SIGNATURE);
+                    yfms->xpl.atyp = YFS_ATYP_XPLN; break;
+                }
+                yfms->xpl.atyp = YFS_ATYP_ASRT; break;
+            }
             if (yfms->xpl.ixeg.xpdr_mode_act       && yfms->xpl.ixeg.xpdr_stby_act       &&
                 yfms->xpl.ixeg.radios_adf1_100_act && yfms->xpl.ixeg.radios_adf2_100_act &&
                 yfms->xpl.ixeg.radios_adf1_010_act && yfms->xpl.ixeg.radios_adf2_010_act &&
