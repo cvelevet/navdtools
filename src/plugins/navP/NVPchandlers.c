@@ -2984,20 +2984,21 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                     XPLMSetHotKeyCombination(hot_key, XPLM_KEY_ESCAPE, xplm_UpFlag);
                                     continue;
                                 }
-                                if (!STRN_CASECMP_AUTO(outp_descr, "mcdu1"))
+                                if (!STRN_CASECMP_AUTO(outp_descr, "mcdu 2"))
                                 {
                                     XPLMSetHotKeyCombination(hot_key, XPLM_VK_F19, xplm_DownFlag);
                                     continue;
                                 }
-                                if (!STRN_CASECMP_AUTO(outp_descr, "mcdu2"))
+                                if (!STRN_CASECMP_AUTO(outp_descr, "mcdu 1"))
                                 {
                                     XPLMSetHotKeyCombination(hot_key, XPLM_VK_F19, xplm_UpFlag);
                                     continue;
                                 }
                                 // set combination to a key almost guaranteed to be unused
                                 XPLMSetHotKeyCombination(hot_key, XPLM_VK_F24, xplm_DownFlag);
-                                ndt_log("DEBUG314: \"%s\" disabled\n", outp_descr);
+                                continue;
                             }
+                            continue;
                         }
                     }
                     cdu->i_disabled = 1; return 0;
@@ -3005,16 +3006,30 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
                 case NVP_ACF_EMBE_SS:
                 {
-                    //fixme check plugin ID???
-                    for (int i = 0; i < XPLMCountHotKeys(); i++)
+                    if (XPLM_NO_PLUGIN_ID != (plugin = XPLMFindPluginBySignature("FJCC.SSGERJ")))
                     {
-                        char outDescr[513]; XPLMHotKeyID h_key = XPLMGetNthHotKey(i);
-                        XPLMGetHotKeyInfo(h_key, NULL, NULL, outDescr, NULL);
-                        if (!STRN_CASECMP_AUTO(outDescr, "F8"))
+                        for (int i = 0; i < XPLMCountHotKeys(); i++)
                         {
-                            /* This awful hack ain't going anywhere, GG SSG :-( */
-                            XPLMSetHotKeyCombination(h_key, XPLM_VK_F19, xplm_DownFlag);
-                            break;
+                            XPLMPluginID outp_id; char outp_descr[513];
+                            XPLMHotKeyID hot_key = XPLMGetNthHotKey(i);
+                            if (hot_key == NULL)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                XPLMGetHotKeyInfo(hot_key, NULL, NULL, outp_descr, &outp_id);
+                            }
+                            if (outp_id == plugin)
+                            {
+                                if (!STRN_CASECMP_AUTO(outp_descr, "F8"))
+                                {
+                                    XPLMSetHotKeyCombination(hot_key, XPLM_VK_F19, xplm_UpFlag);
+                                    break;
+                                }
+                                continue;
+                            }
+                            continue;
                         }
                     }
                     cdu->i_disabled = 1; return 0;
