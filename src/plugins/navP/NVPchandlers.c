@@ -2046,7 +2046,7 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 return 0;
             }
             XPLMSetDataf(rcb->p_b_rat, p_ratio);
-            break;
+            return 0;
         case xplm_CommandContinue:
             if (rcb->mx.xpcr)
             {
