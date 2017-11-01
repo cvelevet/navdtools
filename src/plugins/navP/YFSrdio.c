@@ -381,7 +381,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     {
         uint32_t code; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_code, &code);
         uint32_t mode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
-        switch (mode)
+        switch  (mode)
         {
             case 0:
                 yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04"PRIu32"", code);
@@ -461,32 +461,71 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
 
     /* line 10: barometric altimeter information */
     char buf[6]; float alt, alt_inhg = XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot);
-    switch (yfms->ndt.alt.unit)
+    if (yfms->xpl.atyp == YFS_ATYP_ASRT)
     {
-        case 1: // hectoPascals
-            alt = roundf(alt_inhg * 33.86389f);
-            snprintf(buf, sizeof(buf), "%04.0f", alt);
-            yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s", "hPa");
-            break;
-        default: // inches of mercury
-            alt = roundf(alt_inhg * 100.0f);
-            snprintf(buf, sizeof(buf), "%05.2f", alt / 100.0f);
-            yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s", "InHg");
-            break;
-    }
-    if ((yfms->xpl.atyp == YFS_ATYP_QPAC && XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt)) ||
-        (yfms->xpl.atyp == YFS_ATYP_Q380 && XPLMGetDatai(yfms->xpl.q380.BaroStdCapt)) ||
-        (yfms->xpl.atyp == YFS_ATYP_Q350 && XPLMGetDatai(yfms->xpl.q350.pressLeftButton)))
-    {
-        yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%s", "STD");
+        int32_t lmode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
+        int32_t lunit; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lunit, &lunit);
+        int32_t lvalu; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lvalu, &lvalu);
+        if (0 > lmode)
+        {
+            yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%s", "STD");
+        }
+        else
+        {
+            if (lunit)
+            {
+                yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s",                    "hPa");
+                yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%04.0f", roundf((float)lvalu));
+            }
+            else
+            {
+                yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s",                            "InHg");
+                yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%05.2f", roundf((float)lvalu) / 100.0f);
+            }
+        }
     }
     else
     {
-        yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%s", buf);
+        switch (yfms->ndt.alt.unit)
+        {
+            case 1: // hectoPascals
+                alt = roundf(alt_inhg * 33.86389f);
+                snprintf(buf, sizeof(buf), "%04.0f", alt);
+                yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s", "hPa");
+                break;
+            default: // inches of mercury
+                alt = roundf(alt_inhg * 100.0f);
+                snprintf(buf, sizeof(buf), "%05.2f", alt / 100.0f);
+                yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s", "InHg");
+                break;
+        }
+        if ((yfms->xpl.atyp == YFS_ATYP_QPAC && XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt)) ||
+            (yfms->xpl.atyp == YFS_ATYP_Q380 && XPLMGetDatai(yfms->xpl.q380.BaroStdCapt)) ||
+            (yfms->xpl.atyp == YFS_ATYP_Q350 && XPLMGetDatai(yfms->xpl.q350.pressLeftButton)))
+        {
+            yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%s", "STD");
+        }
+        else
+        {
+            yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%s", buf);
+        }
     }
 
     /* line 12: switches (white) */
-    if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+    if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+    {
+        int32_t lmode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
+        if (0 < lmode)
+        {
+            yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "<ALT STD");
+            yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
+        }
+        else
+        {
+            yfms->lsks[0][5].cback = (YFS_LSK_f)NULL;
+        }
+    }
+    else if (yfms->xpl.atyp == YFS_ATYP_QPAC)
     {
         if (!XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt))
         {
