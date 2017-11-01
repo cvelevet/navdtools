@@ -2951,6 +2951,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     if (inPhase == xplm_CommandEnd)
     {
+        XPLMPluginID plugin;
         refcon_cdu_pop *cdu = inRefcon;
         if (cdu->i_disabled == -1)
         {
@@ -2962,10 +2963,42 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 case NVP_ACF_A320ULT:
                 {
-                    XPLMPluginID a320 = XPLMFindPluginBySignature(XPLM_FF_SIGNATURE);
-                    if (a320)
+                    if (XPLM_NO_PLUGIN_ID != (plugin = XPLMFindPluginBySignature(XPLM_FF_SIGNATURE)))
                     {
-                        //fixme
+                        for (int i = 0; i < XPLMCountHotKeys(); i++)
+                        {
+                            XPLMPluginID outp_id; char outp_descr[513];
+                            XPLMHotKeyID hot_key = XPLMGetNthHotKey(i);
+                            if (hot_key == NULL)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                XPLMGetHotKeyInfo(hot_key, NULL, NULL, outp_descr, &outp_id);
+                            }
+                            if (outp_id == plugin)
+                            {
+                                if (!STRN_CASECMP_AUTO(outp_descr, "Console"))
+                                {
+                                    XPLMSetHotKeyCombination(hot_key, XPLM_KEY_ESCAPE, xplm_UpFlag);
+                                    continue;
+                                }
+                                if (!STRN_CASECMP_AUTO(outp_descr, "mcdu1"))
+                                {
+                                    XPLMSetHotKeyCombination(hot_key, XPLM_VK_F19, xplm_DownFlag);
+                                    continue;
+                                }
+                                if (!STRN_CASECMP_AUTO(outp_descr, "mcdu2"))
+                                {
+                                    XPLMSetHotKeyCombination(hot_key, XPLM_VK_F19, xplm_UpFlag);
+                                    continue;
+                                }
+                                // set combination to a key almost guaranteed to be unused
+                                XPLMSetHotKeyCombination(hot_key, XPLM_VK_F24, xplm_DownFlag);
+                                ndt_log("DEBUG314: \"%s\" disabled\n", outp_descr);
+                            }
+                        }
                     }
                     cdu->i_disabled = 1; return 0;
                 }
