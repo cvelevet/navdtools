@@ -2006,23 +2006,23 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             switch (inPhase)
             {
                 case xplm_CommandBegin:
-                    XPLMSetDatai(rcb->p_b_int, XPLMGetDatai(ctx->acfspec.qpac.pkb_ref));
+                    XPLMSetDatai(rcb->p_b_int, 0); // release park brake on manual brake application
                     if (ctx->acfspec.qpac.h_b_max)
                     {
                         XPLMCommandBegin(ctx->acfspec.qpac.h_b_max);
-                        break;
+                        return 0;
                     }
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1); // use parking brake directly
-                    break;
+                    return 0;
                 case xplm_CommandEnd:
                     if (ctx->acfspec.qpac.h_b_max)
                     {
                         XPLMCommandEnd(ctx->acfspec.qpac.h_b_max);
                     }
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(rcb->p_b_int));
-                    break;
+                    return 0;
                 default:
-                    break;
+                    return 0;
             }
         }
         return 0;
@@ -2044,27 +2044,28 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     switch (inPhase)
     {
         case xplm_CommandBegin:
+            XPLMSetDataf(rcb->p_b_flt, 0.0f); // release park brake on manual brake application
             if (rcb->mx.xpcr)
             {
                 XPLMCommandBegin(rcb->mx.xpcr);
-                break;
+                return 0;
             }
             XPLMSetDataf(rcb->p_b_rat, p_ratio);
             break;
         case xplm_CommandContinue:
             if (rcb->mx.xpcr)
             {
-                break;
+                return 0;
             }
             XPLMSetDataf(rcb->p_b_rat, p_ratio);
-            break;
+            return 0;
         default: // xplm_CommandEnd
             if (rcb->mx.xpcr)
             {
                 XPLMCommandEnd(rcb->mx.xpcr);
             }
             XPLMSetDataf(rcb->p_b_rat, XPLMGetDataf(rcb->p_b_flt));
-            break;
+            return 0;
     }
     return 0;
 }
@@ -2106,23 +2107,23 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             switch (inPhase)
             {
                 case xplm_CommandBegin:
-                    XPLMSetDatai(rcb->p_b_int, XPLMGetDatai(ctx->acfspec.qpac.pkb_ref));
+                    XPLMSetDatai(rcb->p_b_int, 0); // release park brake on manual brake application
                     if (ctx->acfspec.qpac.h_b_reg)
                     {
                         XPLMCommandBegin(ctx->acfspec.qpac.h_b_reg);
-                        break;
+                        return 0;
                     }
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1); // use parking brake directly
-                    break;
+                    return 0;
                 case xplm_CommandEnd:
                     if (ctx->acfspec.qpac.h_b_reg)
                     {
                         XPLMCommandEnd(ctx->acfspec.qpac.h_b_reg);
                     }
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(rcb->p_b_int));
-                    break;
+                    return 0;
                 default:
-                    break;
+                    return 0;
             }
         }
         return 0;
@@ -2144,27 +2145,28 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     switch (inPhase)
     {
         case xplm_CommandBegin:
+             XPLMSetDataf(rcb->p_b_flt, 0.0f); // release park brake on manual brake application
             if (rcb->rg.xpcr)
             {
                 XPLMCommandBegin(rcb->rg.xpcr);
-                break;
+                return 0;
             }
             XPLMSetDataf(rcb->p_b_rat, p_ratio);
-            break;
+            return 0;
         case xplm_CommandContinue:
             if (rcb->rg.xpcr)
             {
-                break;
+                return 0;
             }
             XPLMSetDataf(rcb->p_b_rat, p_ratio);
-            break;
+            return 0;
         default: // xplm_CommandEnd
             if (rcb->rg.xpcr)
             {
                 XPLMCommandEnd(rcb->rg.xpcr);
             }
             XPLMSetDataf(rcb->p_b_rat, XPLMGetDataf(rcb->p_b_flt));
-            break;
+            return 0;
     }
     return 0;
 }
