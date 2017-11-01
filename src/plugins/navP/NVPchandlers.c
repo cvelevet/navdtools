@@ -1522,17 +1522,11 @@ int nvp_chandlers_update(void *inContext)
         ctx->bking.rc_brk.rtio[1] = .75f;
         ctx->bking.rc_brk.rtio[2] = 1.0f;
     }
-    else if (ctx->atyp == NVP_ACF_A320ULT)
-    {
-        ctx->bking.rc_brk.rtio[0] = 0.2f;
-        ctx->bking.rc_brk.rtio[1] = 0.4f;
-        ctx->bking.rc_brk.rtio[2] = 0.6f;
-    }
     else // default values
     {
         ctx->bking.rc_brk.rtio[0] = 1.0f / 3.0f;
         ctx->bking.rc_brk.rtio[1] = 2.0f / 3.0f;
-        ctx->bking.rc_brk.rtio[2] = 1.0f;
+        ctx->bking.rc_brk.rtio[2] = 1.0f / 1.0f;
     }
 
     /* determine engine count and primary engine type */
