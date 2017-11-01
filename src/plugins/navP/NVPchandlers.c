@@ -2961,16 +2961,37 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             switch (cdu->atyp)
             {
                 case NVP_ACF_A320ULT:
-                    cdu->i_disabled = 1; return 0; // TODO
+                {
+                    XPLMPluginID a320 = XPLMFindPluginBySignature(XPLM_FF_SIGNATURE);
+                    if (a320)
+                    {
+                        //fixme
+                    }
+                    cdu->i_disabled = 1; return 0;
+                }
+
+                case NVP_ACF_EMBE_SS:
+                {
+                    //fixme check plugin ID???
+                    for (int i = 0; i < XPLMCountHotKeys(); i++)
+                    {
+                        char outDescr[513]; XPLMHotKeyID h_key = XPLMGetNthHotKey(i);
+                        XPLMGetHotKeyInfo(h_key, NULL, NULL, outDescr, NULL);
+                        if (!STRN_CASECMP_AUTO(outDescr, "F8"))
+                        {
+                            /* This awful hack ain't going anywhere, GG SSG :-( */
+                            XPLMSetHotKeyCombination(h_key, XPLM_VK_F19, xplm_DownFlag);
+                            break;
+                        }
+                    }
+                    cdu->i_disabled = 1; return 0;
+                }
 
                 case NVP_ACF_A320_JD:
                 case NVP_ACF_A330_JD:
                 case NVP_ACF_B737_XG:
                 case NVP_ACF_MD80_RO:
                     cdu->i_disabled = 1; return 0; // custom FMS, but no popup/command
-
-                case NVP_ACF_EMBE_SS:
-                    cdu->i_disabled = 1; return 0; // handled elsewhere
 
                 case NVP_ACF_B757_FF:
                 case NVP_ACF_B767_FF:
@@ -3508,6 +3529,10 @@ static int first_fcall_do(chandler_context *ctx)
                         if ((value_id = rca->api.ValueIdByName("Aircraft.FuelInnerR"     )) > 0) rca->api.ValueSet(value_id, &default_weight[3]);
                     }
                 }
+                if (ctx->mcdu.rc.i_disabled == -1)
+                {
+                    chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc);  // XXX: remap hotkeys
+                }
                 uint32_t default_value[7] = { 30, 1, 3, 2, 1, 4, 1, };
                 rca->api.ValueSet(rca->dat.id_s32_fmgs_fcu1_fl_lvl, &default_value[0]);     // FCU alt. sel. target   (3000ft)
                 rca->api.ValueSet(rca->dat.id_u32_fcu_tgt_alt_step, &default_value[1]);     // FCU alt. sel. increm.  (1000ft)
@@ -3911,24 +3936,12 @@ static int first_fcall_do(chandler_context *ctx)
             break;
 
         case NVP_ACF_EMBE_SS:
-            for (int i = 0; i < XPLMCountHotKeys(); i++)
+            if (ctx->mcdu.rc.i_disabled == -1)
             {
-                char outDescr[513];
-                XPLMHotKeyID h_key = XPLMGetNthHotKey(i);
-                XPLMGetHotKeyInfo(h_key, NULL, NULL, outDescr, NULL);
-                if (strncasecmp(outDescr, "SHIFT F8", 8) == 0)
-                {
-                    XPLMSetHotKeyCombination(h_key, XPLM_VK_F14, xplm_DownFlag);
-                }
-                if (strncasecmp(outDescr, "F8", 2) == 0)
-                {
-                    /* This awful hack ain't going anywhere, GG SSG :-( */
-                    XPLMSetHotKeyCombination(h_key, XPLM_VK_F15, xplm_DownFlag);
-                    break;
-                }
+                chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc);  // XXX: remap hotkeys
             }
-            _DO(1, XPLMSetDatai, 1, "ssg/EJET/GND/rain_hide_sw");                   // Disable custom rain effects
             _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/stair1_ON");                      // Hide passenger stairs
+            _DO(1, XPLMSetDatai, 1, "ssg/EJET/GND/rain_hide_sw");                   // Disable rain effects
             _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/seats_hide_sw");                  // Hide captain's seat
             _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/yokes_hide_sw");                  // Hide both yokes
             break;
