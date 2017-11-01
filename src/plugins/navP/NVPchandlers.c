@@ -20,6 +20,7 @@
 
 #include <errno.h>
 #include <math.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -30,6 +31,8 @@
 #include "XPLM/XPLMPlugin.h"
 #include "XPLM/XPLMProcessing.h"
 #include "XPLM/XPLMUtilities.h"
+
+#include "assert/includes.h"
 
 #include "common/common.h"
 
@@ -52,6 +55,41 @@ typedef struct
 
 typedef struct
 {
+    int           initialized;
+    XPLMPluginID    plugin_id;
+    SharedValuesInterface api;
+    chandler_callback ap_conn;
+    chandler_callback ap_disc;
+    chandler_callback at_disc;
+    struct
+    {
+        XPLMCommandRef throttles_up;
+        XPLMCommandRef throttles_dn;
+        XPLMCommandRef p_brk_toggle;
+        XPLMCommandRef h_brk_regulr;
+        XPLMCommandRef h_brk_mximum;
+        XPLMCommandRef toggle_r_ng1;
+        XPLMCommandRef toggle_r_ng2;
+        XPLMDataRef ldg_gears_lever;
+        XPLMDataRef engine_lever_lt;
+        XPLMDataRef engine_reverse1;
+        XPLMDataRef engine_reverse2;
+        int id_s32_fmgs_fcu1_fl_lvl;
+        int id_s32_click_autopilot1;
+        int id_s32_click_ss_tkovr_l;
+        int id_s32_click_thr_disc_l;
+        int id_u32_emer_lights_mode;
+        int id_u32_efis_nav_rng_lft;
+        int id_u32_efis_nav_rng_rgt;
+        int id_u32_efis_nav_mod_lft;
+        int id_u32_efis_nav_mod_rgt;
+        int id_u32_fcu_tgt_alt_step;
+    } dat;
+} refcon_assert1;
+
+typedef struct
+{
+    void        *assert;
     float       rtio[3];
     float       flt_var;
     int         int_var;
@@ -101,6 +139,7 @@ typedef struct
 
 typedef struct
 {
+    void           *assert;
     float   nominal_roll_c;
     XPLMDataRef acf_roll_c;
     XPLMDataRef ground_spd;
@@ -144,6 +183,7 @@ typedef struct
     XPLMDataRef          acf_gear_retract;
     XPLMDataRef          gear_handle_down;
     int              has_retractable_gear;
+    void                          *assert;
     struct
     {
         XPLMDataRef ref;
@@ -178,6 +218,7 @@ typedef struct
         NVP_ACF_B757_FF = 0x0001000,
         NVP_ACF_B767_FF = 0x0002000,
         NVP_ACF_B777_FF = 0x0004000,
+        NVP_ACF_A320ULT = 0x0008000,
         NVP_ACF_DH8D_FJ = 0x0010000,
         NVP_ACF_EMBE_SS = 0x0020000,
         NVP_ACF_EMBE_XC = 0x0040000,
@@ -186,13 +227,13 @@ typedef struct
         NVP_ACF_HA4T_RW = 0x0200000,
         NVP_ACF_MD80_RO = 0x0400000,
     } atyp;
-#define NVP_ACF_MASK_FFR  0x0107010 // all FlightFactor addons
+#define NVP_ACF_MASK_FFR  0x010F010 // all FlightFactor addons
 #define NVP_ACF_MASK_FJS  0x0010140 // all of FlyJSim's addons
 #define NVP_ACF_MASK_JDN  0x0000005 // all J.A.R.Design addons
 #define NVP_ACF_MASK_QPC  0x000003A // all QPAC-powered addons
 #define NVP_ACF_MASK_SSG  0x0020000 // all SSGroup/FJCC addons
 #define NVP_ACF_MASK_XCR  0x0040000 // all X-Crafts/S.W addons
-#define NVP_ACF_MASK_320  0x0000003 // all A320 series aircraft
+#define NVP_ACF_MASK_320  0x0008003 // all A320 series aircraft
 #define NVP_ACF_MASK_330  0x000000C // all A330 series aircraft
 #define NVP_ACF_MASK_350  0x0000010 // all A350 series aircraft
 #define NVP_ACF_MASK_380  0x0000020 // all A380 series aircraft
@@ -228,6 +269,8 @@ typedef struct
      * RMP3 should be the backup radio panel located overhead the pilots.
      */
     refcon_volumes volumes;
+
+    refcon_assert1 assert;
 
     refcon_ground ground;
 
@@ -366,6 +409,7 @@ typedef struct
             chandler_callback cb;
         } rev;
 
+        void          *assert;
         int         n_engines;
         XPLMDataRef acf_numng;
         XPLMDataRef acf_ngtyp;
@@ -568,6 +612,9 @@ static int chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_ffap1(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_32apc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_32apd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_32atd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_flap_func (                                        float, float, int, void*);
@@ -576,6 +623,7 @@ static int   first_fcall_do(                                           chandler_
 static int   aibus_fbw_init(                                             refcon_qpacfbw *fbw);
 static int   boing_733_init(                                             refcon_ixeg733 *i33);
 static int   boing_738_init(                                             refcon_eadt738 *x38);
+static int   ff_assert_init(                                             refcon_assert1 *ffa);
 static int   priv_getdata_i(                                   void *inRefcon               );
 static void  priv_setdata_i(                                   void *inRefcon, int   inValue);
 static float priv_getdata_f(                                   void *inRefcon               );
@@ -832,26 +880,35 @@ void* nvp_chandlers_init(void)
     }
 
     /* Custom commands: autopilot and autothrottle */
-    ctx->otto.ffst.cb.command = XPLMCreateCommand("private/ffsts/ap_cmdl", "NOT TO BE USED");
-    ctx->otto.conn.cb.command = XPLMCreateCommand("navP/switches/ap_conn", "A/P engagement");
-    ctx->otto.disc.cb.command = XPLMCreateCommand("navP/switches/ap_disc", "A/P disconnect");
-    ctx->athr.disc.cb.command = XPLMCreateCommand("navP/switches/at_disc", "A/T disconnect");
-    ctx->athr.toga.cb.command = XPLMCreateCommand("navP/switches/at_toga", "A/T takeoff/GA");
-    if (!ctx->otto.ffst.cb.command ||
-        !ctx->otto.conn.cb.command ||
-        !ctx->otto.disc.cb.command ||
-        !ctx->athr.disc.cb.command ||
-        !ctx->athr.toga.cb.command)
+    ctx->assert.ap_conn.command = XPLMCreateCommand("private/ff320/ap_conn", "NOT TO BE USED");
+    ctx->assert.ap_disc.command = XPLMCreateCommand("private/ff320/ap_disc", "NOT TO BE USED");
+    ctx->assert.at_disc.command = XPLMCreateCommand("private/ff320/at_disc", "NOT TO BE USED");
+    ctx->otto.ffst.cb.  command = XPLMCreateCommand("private/ffsts/ap_cmdl", "NOT TO BE USED");
+    ctx->otto.conn.cb.  command = XPLMCreateCommand("navP/switches/ap_conn", "A/P engagement");
+    ctx->otto.disc.cb.  command = XPLMCreateCommand("navP/switches/ap_disc", "A/P disconnect");
+    ctx->athr.disc.cb.  command = XPLMCreateCommand("navP/switches/at_disc", "A/T disconnect");
+    ctx->athr.toga.cb.  command = XPLMCreateCommand("navP/switches/at_toga", "A/T takeoff/GA");
+    if (!ctx->assert.ap_conn.command ||
+        !ctx->assert.ap_disc.command ||
+        !ctx->assert.at_disc.command ||
+        !ctx->otto.ffst.cb.  command ||
+        !ctx->otto.conn.cb.  command ||
+        !ctx->otto.disc.cb.  command ||
+        !ctx->athr.disc.cb.  command ||
+        !ctx->athr.toga.cb.  command)
     {
         goto fail;
     }
     else
     {
-        REGISTER_CHANDLER(ctx->otto.ffst.cb, chandler_ffap1, 0, &ctx->otto.ffst.dr);
-        REGISTER_CHANDLER(ctx->otto.conn.cb, chandler_swtch, 0, &ctx->otto.conn.cc);
-        REGISTER_CHANDLER(ctx->otto.disc.cb, chandler_swtch, 0, &ctx->otto.disc.cc);
-        REGISTER_CHANDLER(ctx->athr.disc.cb, chandler_swtch, 0, &ctx->athr.disc.cc);
-        REGISTER_CHANDLER(ctx->athr.toga.cb, chandler_swtch, 0, &ctx->athr.toga.cc);
+        REGISTER_CHANDLER(ctx->assert.ap_conn, chandler_32apc, 0, &ctx->assert);
+        REGISTER_CHANDLER(ctx->assert.ap_disc, chandler_32apd, 0, &ctx->assert);
+        REGISTER_CHANDLER(ctx->assert.at_disc, chandler_32atd, 0, &ctx->assert);
+        REGISTER_CHANDLER(ctx->otto.ffst.cb,   chandler_ffap1, 0, &ctx->otto.ffst.dr);
+        REGISTER_CHANDLER(ctx->otto.conn.cb,   chandler_swtch, 0, &ctx->otto.conn.cc);
+        REGISTER_CHANDLER(ctx->otto.disc.cb,   chandler_swtch, 0, &ctx->otto.disc.cc);
+        REGISTER_CHANDLER(ctx->athr.disc.cb,   chandler_swtch, 0, &ctx->athr.disc.cc);
+        REGISTER_CHANDLER(ctx->athr.toga.cb,   chandler_swtch, 0, &ctx->athr.toga.cc);
     }
 
     /* Default commands' handlers: flaps up or down */
@@ -955,6 +1012,9 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->trims.rud.rt.cb);
     UNREGSTR_CHANDLER(ctx->revrs.   fwd.cb);
     UNREGSTR_CHANDLER(ctx->revrs.   rev.cb);
+    UNREGSTR_CHANDLER(ctx->assert. ap_conn);
+    UNREGSTR_CHANDLER(ctx->assert. ap_disc);
+    UNREGSTR_CHANDLER(ctx->assert. at_disc);
     UNREGSTR_CHANDLER(ctx->otto.   ffst.cb);
     UNREGSTR_CHANDLER(ctx->otto.   conn.cb);
     UNREGSTR_CHANDLER(ctx->otto.   disc.cb);
@@ -1030,9 +1090,9 @@ int nvp_chandlers_reset(void *inContext)
     }
 
     /* Reset aircraft properties (type, engine count, retractable gear, etc.) */
-    ctx->atyp                      = NVP_ACF_GENERIC;
-    ctx->revrs.n_engines           = -1;
-    ctx->gear.has_retractable_gear = -1;
+    ctx->bking.rc_brk.assert = ctx->gear.assert = ctx->ground.assert = ctx->revrs.assert = NULL;
+    ctx->gear.has_retractable_gear = -1; ctx->revrs.n_engines = -1;
+    ctx->atyp = NVP_ACF_GENERIC;
 
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
     ctx->acfspec.qpac.ready   = 0;
@@ -1135,6 +1195,15 @@ int nvp_chandlers_update(void *inContext)
     /* check enabled plugins to determine which plane we're flying */
     do // dummy loop we can break out of
     {
+        XPLMPluginID pluginid;
+        if (XPLM_NO_PLUGIN_ID != (pluginid = XPLMFindPluginBySignature(XPLM_FF_SIGNATURE)))
+        {
+            ndt_log("navP [info]: plane is FlightFactor Airbus A320-214 CFM56-5B4 Ultimate\n");
+            ctx->assert.plugin_id = pluginid;
+            ctx->assert.initialized = 0;
+            ctx->atyp = NVP_ACF_A320ULT;
+            break;
+        }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.airbus.fbw") ||
             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.A380.airbus.fbw"))
         {
@@ -1450,7 +1519,7 @@ int nvp_chandlers_update(void *inContext)
     {
         ctx->bking.rc_brk.rtio[0] = 1.0f / 3.0f;
         ctx->bking.rc_brk.rtio[1] = 2.0f / 3.0f;
-        ctx->bking.rc_brk.rtio[2] = 1.0f;
+        ctx->bking.rc_brk.rtio[2] = 1.0f / 1.0f;
     }
 
     /* determine engine count and primary engine type */
@@ -1475,6 +1544,12 @@ int nvp_chandlers_update(void *inContext)
     /* plane-specific custom commands for automation disconnects, if any */
     switch (ctx->atyp)
     {
+        case NVP_ACF_A320ULT:
+            ctx->otto.conn.cc.name = "private/ff320/ap_conn";
+            ctx->otto.disc.cc.name = "private/ff320/ap_disc";
+            ctx->athr.disc.cc.name = "private/ff320/at_disc";
+            break;
+
         case NVP_ACF_A320_JD:
         case NVP_ACF_A330_JD:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
@@ -1769,6 +1844,7 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         chandler_context *ctx = inRefcon;
         refcon_braking   *rcb = &ctx->bking.rc_brk;
+        refcon_assert1   *rca = rcb->assert;
         int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
         if (ctx->atyp & NVP_ACF_MASK_JDN)
         {
@@ -1804,6 +1880,13 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMCommandOnce(rcb->ro.xpcr);
             }
         }
+        else if (rca)
+        {
+            if (XPLMGetDataf(rcb->p_b_rat) < 0.5f)
+            {
+                XPLMCommandOnce(rca->dat.p_brk_toggle);
+            }
+        }
         else
         {
             XPLMSetDataf(rcb->p_b_rat, 1.0f);
@@ -1820,6 +1903,7 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         chandler_context *ctx = inRefcon;
         refcon_braking   *rcb = &ctx->bking.rc_brk;
+        refcon_assert1   *rca = rcb->assert;
         int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
         if (ctx->atyp & NVP_ACF_MASK_JDN)
         {
@@ -1854,6 +1938,13 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMCommandOnce(rcb->ro.xpcr);
             }
         }
+        else if (rca)
+        {
+            if (XPLMGetDataf(rcb->p_b_rat) > 0.5f)
+            {
+                XPLMCommandOnce(rca->dat.p_brk_toggle);
+            }
+        }
         else
         {
             XPLMSetDataf(rcb->p_b_rat, 0.0f);
@@ -1875,6 +1966,21 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     chandler_context *ctx = inRefcon;
     refcon_braking *rcb = &ctx->bking.rc_brk;
+    refcon_assert1 *rca = rcb->assert; float p_ratio = 1.0f;
+    if (rca)
+    {
+        switch (inPhase)
+        {
+            case xplm_CommandBegin:
+                XPLMCommandBegin(rca->dat.h_brk_mximum);
+                return 0;
+            case xplm_CommandContinue:
+                return 0;
+            default:
+                XPLMCommandEnd(rca->dat.h_brk_mximum);
+                return 0;
+        }
+    }
     if (ctx->atyp & NVP_ACF_MASK_QPC)
     {
         if (ctx->acfspec.qpac.ready == 0)
@@ -1930,14 +2036,14 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMCommandBegin(rcb->mx.xpcr);
                 return 0;
             }
-            XPLMSetDataf(rcb->p_b_rat, 1.0f);
+            XPLMSetDataf(rcb->p_b_rat, p_ratio);
             return 0;
         case xplm_CommandContinue:
             if (rcb->mx.xpcr)
             {
                 return 0;
             }
-            XPLMSetDataf(rcb->p_b_rat, 1.0f);
+            XPLMSetDataf(rcb->p_b_rat, p_ratio);
             return 0;
         default: // xplm_CommandEnd
             if (rcb->mx.xpcr)
@@ -1957,6 +2063,21 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     float p_b_flt = XPLMGetDataf(rcb->p_b_flt);
     float g_speed = XPLMGetDataf(rcb->g_speed) * 3.6f / 1.852f;
     float p_ratio = (g_speed < 30.0f) ? rcb->rtio[0] : (g_speed < 60.0f) ? rcb->rtio[1] : rcb->rtio[2];
+    refcon_assert1 *rca = rcb->assert;
+    if (rca)
+    {
+        switch (inPhase)
+        {
+            case xplm_CommandBegin:
+                XPLMCommandBegin(rca->dat.h_brk_regulr);
+                return 0;
+            case xplm_CommandContinue:
+                return 0;
+            default:
+                XPLMCommandEnd(rca->dat.h_brk_regulr);
+                return 0;
+        }
+    }
     if (p_ratio < p_b_flt)
     {
         p_ratio = p_b_flt;
@@ -2061,6 +2182,35 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         switch (ctx->atyp)
         {
+            case NVP_ACF_A320ULT:
+            {
+                float current_ratio = XPLMGetDataf(ctx->spbrk.srat);
+                if (current_ratio < 0.49f)
+                {
+                    // spoilers armed, disarm but don't extend
+                    {
+                        XPLMSetDataf(ctx->spbrk.srat, 0.5f);
+                    }
+                    if (XPLMGetDataf(ctx->spbrk.srat) > 0.49f)
+                    {
+                        if (speak > 0) XPLMSpeakString("spoilers disarmed");
+                    }
+                    return 0;
+                }
+                if (current_ratio < 0.88f)
+                {
+                    {
+                        XPLMSetDataf(ctx->spbrk.srat, current_ratio + 0.125f);
+                    }
+                    if (XPLMGetDataf(ctx->spbrk.srat) > 0.51f)
+                    {
+                        if (speak > 0) XPLMSpeakString("speedbrake");
+                    }
+                    return 0;
+                }
+                return 0;
+            }
+
             case NVP_ACF_B737_EA:
                 x38 = &ctx->acfspec.x738;
                 if (x38->ready == 0)
@@ -2155,6 +2305,35 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         switch (ctx->atyp)
         {
+            case NVP_ACF_A320ULT:
+            {
+                float current_ratio = XPLMGetDataf(ctx->spbrk.srat);
+                if (current_ratio < 0.51f)
+                {
+                    // already retracted: arm spoilers
+                    {
+                        XPLMSetDataf(ctx->spbrk.srat, 0.0f);
+                    }
+                    if (XPLMGetDataf(ctx->spbrk.srat) < 0.01f)
+                    {
+                        if (speak > 0) XPLMSpeakString("spoilers armed");
+                    }
+                    return 0;
+                }
+                if (current_ratio > 0.62f)
+                {
+                    {
+                        XPLMSetDataf(ctx->spbrk.srat, current_ratio - 0.125f);
+                    }
+                    if (XPLMGetDataf(ctx->spbrk.srat) < 0.51f)
+                    {
+                        if (speak > 0) XPLMSpeakString("speedbrake retracted");
+                    }
+                    return 0;
+                }
+                return 0;
+            }
+
             case NVP_ACF_B737_EA:
                 x38 = &ctx->acfspec.x738;
                 if (x38->ready == 0)
@@ -2371,10 +2550,25 @@ static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     if (inPhase == xplm_CommandEnd)
     {
         chandler_context *ctx = inRefcon;
+        refcon_assert1   *a32 = ctx->revrs.assert;
+        if (a32)
+        {
+            if (XPLMGetDataf(a32->dat.engine_reverse1) > 0.5f)
+            {
+                XPLMCommandOnce(a32->dat.toggle_r_ng1);
+            }
+            if (XPLMGetDataf(a32->dat.engine_reverse2) > 0.5f)
+            {
+                XPLMCommandOnce(a32->dat.toggle_r_ng2);
+            }
+            return 0;
+        }
         if (ctx->revrs.n_engines >= 1)
         {
             XPLMSetDatavi(ctx->revrs.prop_mode, propmode_fwd_get(), 0, ctx->revrs.n_engines);
+            return 0;
         }
+        return 0;
     }
     return 0;
 }
@@ -2384,10 +2578,25 @@ static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     if (inPhase == xplm_CommandEnd)
     {
         chandler_context *ctx = inRefcon;
+        refcon_assert1   *a32 = ctx->revrs.assert;
+        if (a32)
+        {
+            if (XPLMGetDataf(a32->dat.engine_reverse1) < 0.5f)
+            {
+                XPLMCommandOnce(a32->dat.toggle_r_ng1);
+            }
+            if (XPLMGetDataf(a32->dat.engine_reverse2) < 0.5f)
+            {
+                XPLMCommandOnce(a32->dat.toggle_r_ng2);
+            }
+            return 0;
+        }
         if (ctx->revrs.n_engines >= 1)
         {
             XPLMSetDatavi(ctx->revrs.prop_mode, propmode_rev_get(), 0, ctx->revrs.n_engines);
+            return 0;
         }
+        return 0;
     }
     return 0;
 }
@@ -2478,6 +2687,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             case NVP_ACF_A350_FF:
             case NVP_ACF_A380_PH:
             case NVP_ACF_SSJ1_RZ:
+            case NVP_ACF_A320ULT:
                 flap_callout_setst(_flap_names_AIB1, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
 //          case NVP_ACF_B727_FJ:
@@ -2732,6 +2942,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     if (inPhase == xplm_CommandEnd)
     {
+        XPLMPluginID plugin;
         refcon_cdu_pop *cdu = inRefcon;
         if (cdu->i_disabled == -1)
         {
@@ -2741,14 +2952,85 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             XPLMPluginID xfmc = XPLMFindPluginBySignature("x-fmc.com");
             switch (cdu->atyp)
             {
+                case NVP_ACF_A320ULT:
+                {
+                    if (XPLM_NO_PLUGIN_ID != (plugin = XPLMFindPluginBySignature(XPLM_FF_SIGNATURE)))
+                    {
+                        for (int i = 0; i < XPLMCountHotKeys(); i++)
+                        {
+                            XPLMPluginID outp_id; char outp_descr[513];
+                            XPLMHotKeyID hot_key = XPLMGetNthHotKey(i);
+                            if (hot_key == NULL)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                XPLMGetHotKeyInfo(hot_key, NULL, NULL, outp_descr, &outp_id);
+                            }
+                            if (outp_id == plugin)
+                            {
+                                if (!STRN_CASECMP_AUTO(outp_descr, "Console"))
+                                {
+                                    XPLMSetHotKeyCombination(hot_key, XPLM_KEY_ESCAPE, xplm_UpFlag);
+                                    continue;
+                                }
+                                if (!STRN_CASECMP_AUTO(outp_descr, "mcdu 2"))
+                                {
+                                    XPLMSetHotKeyCombination(hot_key, XPLM_VK_F19, xplm_DownFlag);
+                                    continue;
+                                }
+                                if (!STRN_CASECMP_AUTO(outp_descr, "mcdu 1"))
+                                {
+                                    XPLMSetHotKeyCombination(hot_key, XPLM_VK_F19, xplm_UpFlag);
+                                    continue;
+                                }
+                                // set combination to a key almost guaranteed to be unused
+                                XPLMSetHotKeyCombination(hot_key, XPLM_VK_F24, xplm_UpFlag);
+                                continue;
+                            }
+                            continue;
+                        }
+                    }
+                    cdu->i_disabled = 1; return 0;
+                }
+
+                case NVP_ACF_EMBE_SS:
+                {
+                    if (XPLM_NO_PLUGIN_ID != (plugin = XPLMFindPluginBySignature("FJCC.SSGERJ")))
+                    {
+                        for (int i = 0; i < XPLMCountHotKeys(); i++)
+                        {
+                            XPLMPluginID outp_id; char outp_descr[513];
+                            XPLMHotKeyID hot_key = XPLMGetNthHotKey(i);
+                            if (hot_key == NULL)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                XPLMGetHotKeyInfo(hot_key, NULL, NULL, outp_descr, &outp_id);
+                            }
+                            if (outp_id == plugin)
+                            {
+                                if (!STRN_CASECMP_AUTO(outp_descr, "F8"))
+                                {
+                                    XPLMSetHotKeyCombination(hot_key, XPLM_VK_F19, xplm_UpFlag);
+                                    break;
+                                }
+                                continue;
+                            }
+                            continue;
+                        }
+                    }
+                    cdu->i_disabled = 1; return 0;
+                }
+
                 case NVP_ACF_A320_JD:
                 case NVP_ACF_A330_JD:
                 case NVP_ACF_B737_XG:
                 case NVP_ACF_MD80_RO:
                     cdu->i_disabled = 1; return 0; // custom FMS, but no popup/command
-
-                case NVP_ACF_EMBE_SS:
-                    cdu->i_disabled = 1; return 0; // handled elsewhere
 
                 case NVP_ACF_B757_FF:
                 case NVP_ACF_B767_FF:
@@ -3029,16 +3311,63 @@ static int chandler_ffap1(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
+static int chandler_32apc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        refcon_assert1 *a32 = inRefcon;
+        if (a32->initialized)
+        {
+            int32_t clicknow = 1; a32->api.ValueSet(a32->dat.id_s32_click_autopilot1, &clicknow);
+        }
+    }
+    return 0;
+}
+
+static int chandler_32apd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        refcon_assert1 *a32 = inRefcon;
+        if (a32->initialized)
+        {
+            int32_t clicknow = 1; a32->api.ValueSet(a32->dat.id_s32_click_ss_tkovr_l, &clicknow);
+        }
+    }
+    return 0;
+}
+
+static int chandler_32atd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        refcon_assert1 *a32 = inRefcon;
+        if (a32->initialized)
+        {
+            int32_t clicknow = 1; a32->api.ValueSet(a32->dat.id_s32_click_thr_disc_l, &clicknow);
+        }
+    }
+    return 0;
+}
+
 static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandBegin) // before X-Plane moves the handle
     {
-        refcon_gear *gear = inRefcon;
+        refcon_gear    *gear = inRefcon;
+        refcon_assert1 *a320 = gear->assert;
         if (gear->has_retractable_gear == -1)
         {
-            gear->has_retractable_gear = !!XPLMGetDatai(gear->acf_gear_retract);
+            if (a320)
+            {
+                gear->has_retractable_gear = 1;
+            }
+            else
+            {
+                gear->has_retractable_gear = !!XPLMGetDatai(gear->acf_gear_retract);
+            }
         }
-        if (gear->has_retractable_gear ==  1)
+        if (gear->has_retractable_gear)
         {
             int speak = XPLMGetDatai(gear->callouts.ref);
             if (gear->callouts.atype & NVP_ACF_MASK_JDN)
@@ -3048,6 +3377,13 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             if (inCommand == gear->landing_gear_toggle.command ||
                 inCommand == gear->landing_gear_down  .command)
             {
+                if (a320)
+                {
+                    if (XPLMGetDataf(a320->dat.ldg_gears_lever) < 0.5f) // -> 1
+                    {
+                        if (speak > 0) XPLMSpeakString("gear down"); return 1;
+                    }
+                }
                 if (XPLMGetDatai(gear->gear_handle_down) == 0) // 0 -> 1
                 {
                     if (speak > 0) XPLMSpeakString("gear down"); return 1;
@@ -3056,6 +3392,13 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             if (inCommand == gear->landing_gear_toggle.command ||
                 inCommand == gear->landing_gear_up    .command)
             {
+                if (a320)
+                {
+                    if (XPLMGetDataf(a320->dat.ldg_gears_lever) > 0.5f) // -> 0
+                    {
+                        if (speak > 0) XPLMSpeakString("gear up"); return 1;
+                    }
+                }
                 if (XPLMGetDatai(gear->gear_handle_down) != 0) // 1 -> 0
                 {
                     if (speak > 0) XPLMSpeakString("gear up");   return 1;
@@ -3073,6 +3416,32 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     if (inPhase == xplm_CommandEnd)
     {
         refcon_ground ground = *((refcon_ground*)inRefcon);
+        refcon_assert1 *a320 = ground.assert;
+        if (a320)
+        {
+            if (XPLMGetDataf(a320->dat.engine_reverse1) > 0.5f ||
+                XPLMGetDataf(a320->dat.engine_reverse2) > 0.5f)
+            {
+                return 0;
+            }
+            // there isn't a way to set throttle to a given position yet
+            // so, allow finer-grained adjustments using XPLMCommandOnce
+            // we can hold as long desired w/out continuing said command
+            // note: for X-Plane 10 ground model, ideal N1 is ~30% @KNTD
+            //       that's model/controls/engine_lever1 around 0.40000f
+            //       or Aircraft.Cockpit.Pedestal.EngineLever1 ~= 26.26f
+            //       this should equate to 4 calls 2 throttle_up command
+            if (XPLMGetDataf(a320->dat.engine_lever_lt) < 0.31f) // idle
+            {
+                // add 2 calls, for 3 total, should give
+                // enough power to set things in motion,
+                // and 1 call away from our ideal 30% N1
+                XPLMCommandOnce(a320->dat.throttles_up);
+                XPLMCommandOnce(a320->dat.throttles_up);
+            }
+            XPLMCommandOnce(a320->dat.throttles_up);
+            return 0;
+        }
         if (XPLMGetDataf(ground.idle.throttle_all) < 0.5f)
         {
             if (ground.idle.minimums > 0)
@@ -3171,6 +3540,57 @@ static int first_fcall_do(chandler_context *ctx)
     int __skyview = 0;
     switch (ctx->atyp)
     {
+        case NVP_ACF_A320ULT:
+            if (ff_assert_init(&ctx->assert))
+            {
+                break;
+            }
+            else
+            {
+                refcon_assert1 *rca = ctx->bking.rc_brk.assert = ctx->gear.assert = ctx->ground.assert = ctx->revrs.assert = &ctx->assert;
+                if ((d_ref = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running"))) // we're cold & dark
+                {
+                    int ENGN_running[2]; XPLMGetDatavi(d_ref, ENGN_running, 0, 2);
+                    if (ENGN_running[1] == 0 && ENGN_running[0] == 0)
+                    {
+                        // we can set fuel and payload directly, but control of the doors, equipment
+                        // etc. requires setting several data fields -- w/out further documentation,
+                        // don't touch the latter, let's use EFB to board/load this aircraft instead
+                        int (value_id); uint32_t default_supply[2] = { 0, 1, }; float default_weight[4] = { 0.0f, 60.0f, 691.0f, 1000.0f,  };
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.ExtBleedRequest")) > 0) rca->api.ValueSet(value_id, &default_supply[0]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.ExtPowerRequest")) > 0) rca->api.ValueSet(value_id, &default_supply[1]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.ShocksRequest"  )) > 0) rca->api.ValueSet(value_id, &default_supply[1]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.PayloadWeight"  )) > 0) rca->api.ValueSet(value_id, &default_weight[0]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelCenter"     )) > 0) rca->api.ValueSet(value_id, &default_weight[1]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelOuterL"     )) > 0) rca->api.ValueSet(value_id, &default_weight[2]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelOuterL"     )) > 0) rca->api.ValueSet(value_id, &default_weight[2]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelInnerL"     )) > 0) rca->api.ValueSet(value_id, &default_weight[3]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelInnerR"     )) > 0) rca->api.ValueSet(value_id, &default_weight[3]);
+                    }
+                }
+                if (ctx->mcdu.rc.i_disabled == -1)
+                {
+                    chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc);  // XXX: remap hotkeys
+                }
+                uint32_t default_value[7] = { 30, 1, 3, 2, 1, 4, 1, };
+                rca->api.ValueSet(rca->dat.id_s32_fmgs_fcu1_fl_lvl, &default_value[0]);     // FCU alt. sel. target   (3000ft)
+                rca->api.ValueSet(rca->dat.id_u32_fcu_tgt_alt_step, &default_value[1]);     // FCU alt. sel. increm.  (1000ft)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &default_value[2]);     // ND m. sel. (cap. side) (arc)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_rgt, &default_value[3]);     // ND m. sel. (f/o. side) (nav)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_lft, &default_value[4]);     // ND r. sel. (cap. side) ( 20)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_rgt, &default_value[5]);     // ND r. sel. (f/o. side) (160)
+                rca->api.ValueSet(rca->dat.id_u32_emer_lights_mode, &default_value[6]);     // arm em. exit lts
+
+                /* Re-register some callbacks: to get calls before the plugin */
+                UNREGSTR_CHANDLER(ctx->gear.landing_gear_toggle);
+                UNREGSTR_CHANDLER(ctx->gear.  landing_gear_down);
+                UNREGSTR_CHANDLER(ctx->gear.    landing_gear_up);
+                REGISTER_CHANDLER(ctx->gear.    landing_gear_up, chandler_ghndl, 1, &ctx->gear);
+                REGISTER_CHANDLER(ctx->gear.  landing_gear_down, chandler_ghndl, 1, &ctx->gear);
+                REGISTER_CHANDLER(ctx->gear.landing_gear_toggle, chandler_ghndl, 1, &ctx->gear);
+            }
+            break;
+
         case NVP_ACF_A320_QP:
             if ((cr = XPLMFindCommand("AirbusFBW/PopUpPedestal1")))
             {
@@ -3555,24 +3975,12 @@ static int first_fcall_do(chandler_context *ctx)
             break;
 
         case NVP_ACF_EMBE_SS:
-            for (int i = 0; i < XPLMCountHotKeys(); i++)
+            if (ctx->mcdu.rc.i_disabled == -1)
             {
-                char outDescr[513];
-                XPLMHotKeyID h_key = XPLMGetNthHotKey(i);
-                XPLMGetHotKeyInfo(h_key, NULL, NULL, outDescr, NULL);
-                if (strncasecmp(outDescr, "SHIFT F8", 8) == 0)
-                {
-                    XPLMSetHotKeyCombination(h_key, XPLM_VK_F14, xplm_DownFlag);
-                }
-                if (strncasecmp(outDescr, "F8", 2) == 0)
-                {
-                    /* This awful hack ain't going anywhere, GG SSG :-( */
-                    XPLMSetHotKeyCombination(h_key, XPLM_VK_F15, xplm_DownFlag);
-                    break;
-                }
+                chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc);  // XXX: remap hotkeys
             }
-            _DO(1, XPLMSetDatai, 1, "ssg/EJET/GND/rain_hide_sw");                   // Disable custom rain effects
             _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/stair1_ON");                      // Hide passenger stairs
+            _DO(1, XPLMSetDatai, 1, "ssg/EJET/GND/rain_hide_sw");                   // Disable rain effects
             _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/seats_hide_sw");                  // Hide captain's seat
             _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/yokes_hide_sw");                  // Hide both yokes
             break;
@@ -3993,6 +4401,7 @@ static int first_fcall_do(chandler_context *ctx)
      * Minimum ground throttle detent.
      * Testing parameters:
      * - weather: CAVOK preset
+     * - version: X-Plane 10.51r2
      * - runways: follow terrain contour OFF
      * - airport: KNTD (Naval Base Ventura County)
      * - taxiing: ideal peak speed ~20.0 Knots ground speed
@@ -4216,11 +4625,23 @@ static int first_fcall_do(chandler_context *ctx)
             }
             XPLMSetDataf(ctx->volumes.evr, 0.25f);
         }
-        XPLMSetDataf(ctx->volumes.wxr, 0.25f);
-        XPLMSetDataf(ctx->volumes.wvr, 0.25f);
-        XPLMSetDataf(ctx->volumes.gvr, 0.25f);
-        XPLMSetDataf(ctx->volumes.pvr, 0.25f);
-        XPLMSetDataf(ctx->volumes.fvr, 0.25f);
+        if (ctx->atyp == NVP_ACF_A320ULT)
+        {
+            XPLMSetDataf(ctx->volumes.evr, 0.20f);
+            XPLMSetDataf(ctx->volumes.wxr, 0.20f);
+            XPLMSetDataf(ctx->volumes.wvr, 0.20f);
+            XPLMSetDataf(ctx->volumes.gvr, 0.20f);
+            XPLMSetDataf(ctx->volumes.pvr, 0.20f);
+            XPLMSetDataf(ctx->volumes.fvr, 0.10f);
+        }
+        else
+        {
+            XPLMSetDataf(ctx->volumes.wxr, 0.25f);
+            XPLMSetDataf(ctx->volumes.wvr, 0.25f);
+            XPLMSetDataf(ctx->volumes.gvr, 0.25f);
+            XPLMSetDataf(ctx->volumes.pvr, 0.25f);
+            XPLMSetDataf(ctx->volumes.fvr, 0.25f);
+        }
         XPLMSetDataf(ctx->volumes.atc, 0.50f);
     }
     XPLMSetDatai(ctx->volumes.snd, 1); // ALL sounds
@@ -4313,6 +4734,96 @@ static int boing_738_init(refcon_eadt738 *x38)
     return 0;
 }
 
+static int ff_assert_init(refcon_assert1 *ffa)
+{
+    if (ffa && !ffa->initialized)
+    {
+        XPLMSendMessageToPlugin(ffa->plugin_id, XPLM_FF_MSG_GET_SHARED_INTERFACE, &ffa->api);
+        if (ffa->api.DataVersion == NULL || ffa->api.DataAddUpdate == NULL)
+        {
+            return EAGAIN;
+        }
+#if 0
+        /* List all nodes and variables exposed by the provided SDK. */
+        {
+            const char *valueDescription;
+            char tmp[2048], fullname[2048];
+            int vID, valueID, parentValueID;
+            unsigned int valueType, valueFlags;
+            ndt_log("navP [debug] =======================\n");
+            unsigned int valuesCount = ffa->api.ValuesCount();
+            ndt_log("navP [debug]: valuesCount: %u\n", valuesCount);
+            for (unsigned int ii = 0; ii < valuesCount; ii++)
+            {
+                vID = valueID         = ffa->api.ValueIdByIndex (ii);
+                valueType             = ffa->api.ValueType (valueID);
+                valueFlags            = ffa->api.ValueFlags(valueID);
+                valueDescription      = ffa->api.ValueDesc (valueID);
+                sprintf(fullname, "%s", ffa->api.ValueName (valueID));
+                while (valueID && (parentValueID = ffa->api.ValueParent(valueID)) >= 0)
+                {
+                    valueID = parentValueID;
+                    sprintf(tmp, "%s", fullname);
+                    sprintf(fullname, "%s.%s", ffa->api.ValueName(valueID), tmp);
+                }
+                ndt_log("navP [debug]: ID: %d, name: \"%s\", desc: \"%s\", type: %u, flags: %u\n", vID, fullname, valueDescription, valueType, valueFlags);
+            }
+            ndt_log("navP [debug] =======================\n");
+        }
+#endif
+
+        /* Initialize the aircraft's data references via the provided API */
+        ffa->dat.ldg_gears_lever         = XPLMFindDataRef       ("model/controls/gears_lever");
+        ffa->dat.engine_lever_lt         = XPLMFindDataRef       ("model/controls/engine_lever1");
+        ffa->dat.engine_reverse1         = XPLMFindDataRef       ("model/controls/engine_reverse1");
+        ffa->dat.engine_reverse2         = XPLMFindDataRef       ("model/controls/engine_reverse2");
+        ffa->dat.throttles_up            = XPLMFindCommand       ("sim/engines/throttle_up");
+        ffa->dat.throttles_dn            = XPLMFindCommand       ("sim/engines/throttle_down");
+        ffa->dat.h_brk_mximum            = XPLMFindCommand       ("sim/flight_controls/brakes_max");
+        ffa->dat.h_brk_regulr            = XPLMFindCommand       ("sim/flight_controls/brakes_regular");
+        ffa->dat.p_brk_toggle            = XPLMFindCommand       ("sim/flight_controls/brakes_toggle_max");
+        ffa->dat.toggle_r_ng1            = XPLMFindCommand       ("sim/engines/thrust_reverse_toggle_1");
+        ffa->dat.toggle_r_ng2            = XPLMFindCommand       ("sim/engines/thrust_reverse_toggle_2");
+        ffa->dat.id_s32_fmgs_fcu1_fl_lvl = ffa->api.ValueIdByName("Aircraft.FMGS.FCU1.Altitude");
+        ffa->dat.id_u32_efis_nav_mod_lft = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeL.Target");
+        ffa->dat.id_u32_efis_nav_mod_rgt = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeR.Target");
+        ffa->dat.id_u32_efis_nav_rng_lft = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavRangeL.Target");
+        ffa->dat.id_u32_efis_nav_rng_rgt = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavRangeR.Target");
+        ffa->dat.id_u32_fcu_tgt_alt_step = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.FCU_AltitudeStep.Target");
+        ffa->dat.id_u32_emer_lights_mode = ffa->api.ValueIdByName("Aircraft.Cockpit.Overhead.LightEmerMode.Target");
+        ffa->dat.id_s32_click_thr_disc_l = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click");
+        ffa->dat.id_s32_click_ss_tkovr_l = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.SidestickTakeoverL.Click");
+        ffa->dat.id_s32_click_autopilot1 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.FCU_AutoPilot1.Click");
+        if (ffa->dat.id_s32_fmgs_fcu1_fl_lvl <= 0 ||
+            ffa->dat.id_u32_efis_nav_mod_lft <= 0 ||
+            ffa->dat.id_u32_efis_nav_mod_rgt <= 0 ||
+            ffa->dat.id_u32_efis_nav_rng_lft <= 0 ||
+            ffa->dat.id_u32_efis_nav_rng_rgt <= 0 ||
+            ffa->dat.id_u32_fcu_tgt_alt_step <= 0 ||
+            ffa->dat.id_u32_emer_lights_mode <= 0 ||
+            ffa->dat.id_s32_click_thr_disc_l <= 0 ||
+            ffa->dat.id_s32_click_ss_tkovr_l <= 0 ||
+            ffa->dat.id_s32_click_autopilot1 <= 0 ||
+            ffa->dat.ldg_gears_lever      == NULL ||
+            ffa->dat.engine_lever_lt      == NULL ||
+            ffa->dat.engine_reverse1      == NULL ||
+            ffa->dat.engine_reverse2      == NULL ||
+            ffa->dat.throttles_up         == NULL ||
+            ffa->dat.throttles_dn         == NULL ||
+            ffa->dat.h_brk_mximum         == NULL ||
+            ffa->dat.h_brk_regulr         == NULL ||
+            ffa->dat.p_brk_toggle         == NULL ||
+            ffa->dat.toggle_r_ng1         == NULL ||
+            ffa->dat.toggle_r_ng2         == NULL)
+        {
+            ndt_log("navP [debug]: ff_assert_init: can't find required data\n");
+            return EINVAL;
+        }
+        ffa->initialized = 1; return 0;
+    }
+    return 0;
+}
+
 static int priv_getdata_i(void *inRefcon)
 {
     return *((int*)inRefcon);
@@ -4341,6 +4852,10 @@ static void priv_setdata_f(void *inRefcon, float inValue)
 #undef CALLOUT_GEARLEVER
 #undef STRN_CASECMP_AUTO
 #undef ACF_ROLL_SET
+#undef A320T_CLMB
+#undef A320T_HALF
+#undef A320T_IDLE
+#undef A320T_TAXI
 #undef GS_KT_MIN
 #undef GS_KT_MID
 #undef GS_KT_MAX

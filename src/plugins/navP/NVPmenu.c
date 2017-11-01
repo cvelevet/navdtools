@@ -33,6 +33,8 @@
 #include "XPLM/XPLMProcessing.h"
 #include "XPLM/XPLMUtilities.h"
 
+#include "assert/includes.h"
+
 #include "common/common.h"
 
 #include "NVPmenu.h"
@@ -1264,11 +1266,23 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             }
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume);
         }
-        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume);
-        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume);
-        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume);
-        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume);
-        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume);
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(XPLM_FF_SIGNATURE))
+        {
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume / 1.25f);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume / 1.25f);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume / 1.25f);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume / 1.25f);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume / 1.25f);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume / 2.50f);
+        }
+        else
+        {
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume);
+        }
         XPLMSetDataf(ctx->data.volume_prsts.dr_vol_atc, vradio);
         XPLMSetDatai(ctx->data.volume_prsts.dr_all_snd, 1);
         XPLMSpeakString("Volume set");
