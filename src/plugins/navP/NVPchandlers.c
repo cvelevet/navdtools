@@ -3486,8 +3486,14 @@ static int first_fcall_do(chandler_context *ctx)
             }
             else
             {
-                // TODO: power, doors, fuel/payload
-                // but only when engine not running
+                if ((d_ref = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running"))) // we're cold & dark
+                {
+                    int ENGN_running[2]; XPLMGetDatavi(d_ref, ENGN_running, 0, 2);
+                    if (ENGN_running[1] == 0 && ENGN_running[0] == 0)
+                    {
+                        //fixme: power, doors, fuel/payload
+                    }
+                }
                 int index[] = { 1, 3, 2, 1, 4, 1, };
                 refcon_assert1 *rca = ctx->bking.rc_brk.assert = ctx->gear.assert = ctx->ground.assert = ctx->revrs.assert = &ctx->assert;
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &index[0]);     // FCU alt. sel. increm.  (1000ft)
