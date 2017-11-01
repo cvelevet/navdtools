@@ -81,6 +81,7 @@ typedef struct
         XPLMDataRef ldg_gears_lever;
         XPLMDataRef engine_reverse1;
         XPLMDataRef engine_reverse2;
+        XPLMDataRef engine_lever_lt;
         int id_s32_click_autopilot1;
         int id_s32_click_ss_tkovr_l;
         int id_s32_click_thr_disc_l;
@@ -90,7 +91,6 @@ typedef struct
         int id_u32_efis_nav_mod_lft;
         int id_u32_efis_nav_mod_rgt;
         int id_u32_fcu_tgt_alt_step;
-        int id_f32_engine_lever_lft;
     } dat;
 } refcon_assert1;
 
@@ -3354,27 +3354,26 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 1; // let X-Plane actually move the handle
 }
 
-#define A320T_IDLE  20.0f
-#define A320T_TAXI  25.0f//fixme
-#define A320T_HALF  20.0f
-#define A320T_TOGA 100.0f
+#define A320T_CLMB 0.692308f
+#define A320T_HALF 0.500000f
+#define A320T_IDLE 0.307692f
+#define A320T_TAXI 0.500000f//fixme
 static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandEnd)
     {
         refcon_ground ground = *((refcon_ground*)inRefcon);
-        refcon_assert1 *a320 = ground.assert; float thrott;
+        refcon_assert1 *a320 = ground.assert;
         if (a320)
         {
-            a320->api.ValueGet(a320->dat.id_f32_engine_lever_lft, &thrott);
-            if (thrott < A320T_HALF)
+            if (XPLMGetDataf(a320->dat.engine_reverse1) > 0.5f ||
+                XPLMGetDataf(a320->dat.engine_reverse2) > 0.5f)
             {
-                if (XPLMGetDataf(a320->dat.engine_reverse1) > 0.5f ||
-                    XPLMGetDataf(a320->dat.engine_reverse2) > 0.5f)
-                {
-                    return 0;
-                }
-                if (thrott < A320T_TAXI)
+                return 0;
+            }
+            if (XPLMGetDataf(a320->dat.engine_lever_lt) < A320T_HALF)
+            {
+                if (XPLMGetDataf(a320->dat.engine_lever_lt) < A320T_TAXI)
                 {
                     int timeout = 10;
                     do
@@ -3385,12 +3384,11 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             return 0;
                         }
                         XPLMCommandOnce(a320->dat.throttles_up); timeout--;
-                        a320->api.ValueGet(a320->dat.id_f32_engine_lever_lft, &thrott);
                     }
-                    while (thrott < A320T_TAXI);
+                    while (XPLMGetDataf(a320->dat.engine_lever_lt) < A320T_TAXI);
                     return 0;
                 }
-                if (thrott > A320T_TAXI)
+                if (XPLMGetDataf(a320->dat.engine_lever_lt) > A320T_TAXI)
                 {
                     int timeout = 10;
                     do
@@ -3401,9 +3399,8 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             return 0;
                         }
                         XPLMCommandOnce(a320->dat.throttles_dn); timeout--;
-                        a320->api.ValueGet(a320->dat.id_f32_engine_lever_lft, &thrott);
                     }
-                    while (thrott > A320T_TAXI);
+                    while (XPLMGetDataf(a320->dat.engine_lever_lt) > A320T_TAXI);
                     return 0;
                 }
                 return 0;
@@ -4748,6 +4745,7 @@ static int ff_assert_init(refcon_assert1 *ffa)
 
         /* Initialize the aircraft's data references via the provided API */
         ffa->dat.ldg_gears_lever         = XPLMFindDataRef       ("model/controls/gears_lever");
+        ffa->dat.engine_lever_lt         = XPLMFindDataRef       ("model/controls/engine_lever1");
         ffa->dat.engine_reverse1         = XPLMFindDataRef       ("model/controls/engine_reverse1");
         ffa->dat.engine_reverse2         = XPLMFindDataRef       ("model/controls/engine_reverse2");
         ffa->dat.throttles_up            = XPLMFindCommand       ("sim/engines/throttle_up");
@@ -4766,7 +4764,6 @@ static int ff_assert_init(refcon_assert1 *ffa)
         ffa->dat.id_s32_click_thr_disc_l = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click");
         ffa->dat.id_s32_click_ss_tkovr_l = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.SidestickTakeoverL.Click");
         ffa->dat.id_s32_click_autopilot1 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.FCU_AutoPilot1.Click");
-        ffa->dat.id_f32_engine_lever_lft = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineLever1");
         if (ffa->dat.id_u32_efis_nav_mod_lft <= 0 ||
             ffa->dat.id_u32_efis_nav_mod_rgt <= 0 ||
             ffa->dat.id_u32_efis_nav_rng_lft <= 0 ||
@@ -4776,8 +4773,8 @@ static int ff_assert_init(refcon_assert1 *ffa)
             ffa->dat.id_s32_click_thr_disc_l <= 0 ||
             ffa->dat.id_s32_click_ss_tkovr_l <= 0 ||
             ffa->dat.id_s32_click_autopilot1 <= 0 ||
-            ffa->dat.id_f32_engine_lever_lft <= 0 ||
             ffa->dat.ldg_gears_lever      == NULL ||
+            ffa->dat.engine_lever_lt      == NULL ||
             ffa->dat.engine_reverse1      == NULL ||
             ffa->dat.engine_reverse2      == NULL ||
             ffa->dat.throttles_up         == NULL ||
@@ -4824,10 +4821,10 @@ static void priv_setdata_f(void *inRefcon, float inValue)
 #undef CALLOUT_GEARLEVER
 #undef STRN_CASECMP_AUTO
 #undef ACF_ROLL_SET
+#undef A320T_CLMB
+#undef A320T_HALF
 #undef A320T_IDLE
 #undef A320T_TAXI
-#undef A320T_HALF
-#undef A320T_TOGA
 #undef GS_KT_MIN
 #undef GS_KT_MID
 #undef GS_KT_MAX
