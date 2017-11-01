@@ -3496,7 +3496,7 @@ static int first_fcall_do(chandler_context *ctx)
                         // we can set fuel and payload directly, but control of the doors, equipment
                         // etc. requires setting several data fields -- w/out further documentation,
                         // don't touch the latter, let's use EFB to board/load this aircraft instead
-                        int  value_id; int default_supply[2] = { 0, 1, }; float default_weight[4] = { 0.0f, 60.0f, 691.0f, 1000.0f,  };
+                        int (value_id); uint32_t default_supply[2] = { 0, 1, }; float default_weight[4] = { 0.0f, 60.0f, 691.0f, 1000.0f,  };
                         if ((value_id = rca->api.ValueIdByName("Aircraft.ExtBleedRequest")) > 0) rca->api.ValueSet(value_id, &default_supply[0]);
                         if ((value_id = rca->api.ValueIdByName("Aircraft.ExtPowerRequest")) > 0) rca->api.ValueSet(value_id, &default_supply[1]);
                         if ((value_id = rca->api.ValueIdByName("Aircraft.ShocksRequest"  )) > 0) rca->api.ValueSet(value_id, &default_supply[1]);
