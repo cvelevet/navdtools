@@ -3486,16 +3486,29 @@ static int first_fcall_do(chandler_context *ctx)
             }
             else
             {
+                refcon_assert1 *rca = ctx->bking.rc_brk.assert = ctx->gear.assert = ctx->ground.assert = ctx->revrs.assert = &ctx->assert;
                 if ((d_ref = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running"))) // we're cold & dark
                 {
                     int ENGN_running[2]; XPLMGetDatavi(d_ref, ENGN_running, 0, 2);
                     if (ENGN_running[1] == 0 && ENGN_running[0] == 0)
                     {
-                        //fixme: power, doors, fuel/payload
+                        // we can set fuel and payload directly, but control of the doors, equipment
+                        // etc. requires setting several data fields -- w/out further documentation,
+                        // don't touch the latter, let's use EFB to board/load this aircraft instead
+                        int  value_id; int default_supply[2] = { 0, 1, }; float default_weight[4] = { 0.0f, 60.0f, 691.0f, 1000.0f,  };
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.ExtBleedRequest")) > 0) rca->api.ValueSet(value_id, &default_supply[0]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.ExtPowerRequest")) > 0) rca->api.ValueSet(value_id, &default_supply[1]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.ShocksRequest"  )) > 0) rca->api.ValueSet(value_id, &default_supply[1]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.PayloadWeight"  )) > 0) rca->api.ValueSet(value_id, &default_weight[0]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelCenter"     )) > 0) rca->api.ValueSet(value_id, &default_weight[1]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelOuterL"     )) > 0) rca->api.ValueSet(value_id, &default_weight[2]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelOuterL"     )) > 0) rca->api.ValueSet(value_id, &default_weight[2]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelInnerL"     )) > 0) rca->api.ValueSet(value_id, &default_weight[3]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelInnerR"     )) > 0) rca->api.ValueSet(value_id, &default_weight[3]);
+                        //fixme test
                     }
                 }
-                int index[] = { 1, 3, 2, 1, 4, 1, };
-                refcon_assert1 *rca = ctx->bking.rc_brk.assert = ctx->gear.assert = ctx->ground.assert = ctx->revrs.assert = &ctx->assert;
+                int index[6] = { 1, 3, 2, 1, 4, 1, };
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &index[0]);     // FCU alt. sel. increm.  (1000ft)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &index[1]);     // ND m. sel. (cap. side) (arc)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_rgt, &index[2]);     // ND m. sel. (f/o. side) (nav)
