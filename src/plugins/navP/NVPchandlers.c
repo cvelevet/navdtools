@@ -82,6 +82,7 @@ typedef struct
         XPLMDataRef engine_lever_lt;
         XPLMDataRef engine_reverse1;
         XPLMDataRef engine_reverse2;
+        int id_s32_fmgs_fcu1_fl_lvl;
         int id_s32_click_autopilot1;
         int id_s32_click_ss_tkovr_l;
         int id_s32_click_thr_disc_l;
@@ -3508,13 +3509,14 @@ static int first_fcall_do(chandler_context *ctx)
                         //fixme test
                     }
                 }
-                int index[6] = { 1, 3, 2, 1, 4, 1, };
-                rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &index[0]);     // FCU alt. sel. increm.  (1000ft)
-                rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &index[1]);     // ND m. sel. (cap. side) (arc)
-                rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_rgt, &index[2]);     // ND m. sel. (f/o. side) (nav)
-                rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_lft, &index[3]);     // ND r. sel. (cap. side) ( 20)
-                rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_rgt, &index[4]);     // ND r. sel. (f/o. side) (160)
-                rca->api.ValueSet(rca->dat.id_u32_emer_lights_mode, &index[5]);     // arm em. exit lts
+                uint32_t default_value[7] = { 30, 1, 3, 2, 1, 4, 1, };//fixme test
+                rca->api.ValueSet(rca->dat.id_s32_fmgs_fcu1_fl_lvl, &default_value[0]);     // FCU alt. sel. target   (3000ft)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &default_value[1]);     // FCU alt. sel. increm.  (1000ft)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &default_value[2]);     // ND m. sel. (cap. side) (arc)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_rgt, &default_value[3]);     // ND m. sel. (f/o. side) (nav)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_lft, &default_value[4]);     // ND r. sel. (cap. side) ( 20)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_rgt, &default_value[5]);     // ND r. sel. (f/o. side) (160)
+                rca->api.ValueSet(rca->dat.id_u32_emer_lights_mode, &default_value[6]);     // arm em. exit lts
 
                 /* Re-register some callbacks: to get calls before the plugin */
                 UNREGSTR_CHANDLER(ctx->gear.landing_gear_toggle);
@@ -4749,6 +4751,7 @@ static int ff_assert_init(refcon_assert1 *ffa)
         ffa->dat.p_brk_toggle            = XPLMFindCommand       ("sim/flight_controls/brakes_toggle_max");
         ffa->dat.toggle_r_ng1            = XPLMFindCommand       ("sim/engines/thrust_reverse_toggle_1");
         ffa->dat.toggle_r_ng2            = XPLMFindCommand       ("sim/engines/thrust_reverse_toggle_2");
+        ffa->dat.id_s32_fmgs_fcu1_fl_lvl = ffa->api.ValueIdByName("Aircraft.FMGS.FCU1.Altitude");
         ffa->dat.id_u32_efis_nav_mod_lft = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeL.Target");
         ffa->dat.id_u32_efis_nav_mod_rgt = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeR.Target");
         ffa->dat.id_u32_efis_nav_rng_lft = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavRangeL.Target");
@@ -4758,7 +4761,8 @@ static int ff_assert_init(refcon_assert1 *ffa)
         ffa->dat.id_s32_click_thr_disc_l = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click");
         ffa->dat.id_s32_click_ss_tkovr_l = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.SidestickTakeoverL.Click");
         ffa->dat.id_s32_click_autopilot1 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.FCU_AutoPilot1.Click");
-        if (ffa->dat.id_u32_efis_nav_mod_lft <= 0 ||
+        if (ffa->dat.id_s32_fmgs_fcu1_fl_lvl <= 0 ||
+            ffa->dat.id_u32_efis_nav_mod_lft <= 0 ||
             ffa->dat.id_u32_efis_nav_mod_rgt <= 0 ||
             ffa->dat.id_u32_efis_nav_rng_lft <= 0 ||
             ffa->dat.id_u32_efis_nav_rng_rgt <= 0 ||
