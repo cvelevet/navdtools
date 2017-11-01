@@ -1276,11 +1276,12 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(XPLM_FF_SIGNATURE))
         {
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume / 2.5f);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume / 2.5f);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume / 2.5f);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume / 2.5f);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume / 2.5f);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume / 1.25f);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume / 1.25f);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume / 1.25f);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume / 1.25f);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume / 1.25f);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume / 2.50f);
         }
         else
         {

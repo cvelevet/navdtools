@@ -3506,12 +3506,11 @@ static int first_fcall_do(chandler_context *ctx)
                         if ((value_id = rca->api.ValueIdByName("Aircraft.FuelOuterL"     )) > 0) rca->api.ValueSet(value_id, &default_weight[2]);
                         if ((value_id = rca->api.ValueIdByName("Aircraft.FuelInnerL"     )) > 0) rca->api.ValueSet(value_id, &default_weight[3]);
                         if ((value_id = rca->api.ValueIdByName("Aircraft.FuelInnerR"     )) > 0) rca->api.ValueSet(value_id, &default_weight[3]);
-                        //fixme test
                     }
                 }
-                uint32_t default_value[7] = { 30, 1, 3, 2, 1, 4, 1, };//fixme test
+                uint32_t default_value[7] = { 30, 1, 3, 2, 1, 4, 1, };
                 rca->api.ValueSet(rca->dat.id_s32_fmgs_fcu1_fl_lvl, &default_value[0]);     // FCU alt. sel. target   (3000ft)
-                rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &default_value[1]);     // FCU alt. sel. increm.  (1000ft)
+                rca->api.ValueSet(rca->dat.id_u32_fcu_tgt_alt_step, &default_value[1]);     // FCU alt. sel. increm.  (1000ft)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &default_value[2]);     // ND m. sel. (cap. side) (arc)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_rgt, &default_value[3]);     // ND m. sel. (f/o. side) (nav)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_lft, &default_value[4]);     // ND r. sel. (cap. side) ( 20)
@@ -4576,10 +4575,11 @@ static int first_fcall_do(chandler_context *ctx)
         }
         if (ctx->atyp == NVP_ACF_A320ULT)
         {
-            XPLMSetDataf(ctx->volumes.wxr, 0.10f);
-            XPLMSetDataf(ctx->volumes.wvr, 0.10f);
-            XPLMSetDataf(ctx->volumes.gvr, 0.10f);
-            XPLMSetDataf(ctx->volumes.pvr, 0.10f);
+            XPLMSetDataf(ctx->volumes.evr, 0.20f);
+            XPLMSetDataf(ctx->volumes.wxr, 0.20f);
+            XPLMSetDataf(ctx->volumes.wvr, 0.20f);
+            XPLMSetDataf(ctx->volumes.gvr, 0.20f);
+            XPLMSetDataf(ctx->volumes.pvr, 0.20f);
             XPLMSetDataf(ctx->volumes.fvr, 0.10f);
         }
         else
