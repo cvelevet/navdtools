@@ -3297,15 +3297,12 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     if (inPhase == xplm_CommandBegin) // before X-Plane moves the handle
     {
-        ndt_log("DEBUG ONE");//debug
         refcon_gear    *gear = inRefcon;
         refcon_assert1 *a320 = gear->assert;
         if (gear->has_retractable_gear == -1)
         {
-            ndt_log("DEBUG TWO");//debug
             if (a320)
             {
-                ndt_log("DEBUG THREE");//debug
                 gear->has_retractable_gear = 1;
             }
             else
@@ -3315,7 +3312,6 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         if (gear->has_retractable_gear)
         {
-            ndt_log("DEBUG FOUR");//debug
             int speak = XPLMGetDatai(gear->callouts.ref);
             if (gear->callouts.atype & NVP_ACF_MASK_JDN)
             {
@@ -3324,10 +3320,8 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             if (inCommand == gear->landing_gear_toggle.command ||
                 inCommand == gear->landing_gear_down  .command)
             {
-                ndt_log("DEBUG FIVE");//debug
                 if (a320)
                 {
-                    ndt_log("DEBUG SIX");//debug
                     if (XPLMGetDataf(a320->dat.ldg_gears_lever) < 0.5f) // -> 1
                     {
                         if (speak > 0) XPLMSpeakString("gear down"); return 1;
@@ -3341,10 +3335,8 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             if (inCommand == gear->landing_gear_toggle.command ||
                 inCommand == gear->landing_gear_up    .command)
             {
-                ndt_log("DEBUG SE7EN");//debug
                 if (a320)
                 {
-                    ndt_log("DEBUG ATE");//debug
                     if (XPLMGetDataf(a320->dat.ldg_gears_lever) > 0.5f) // -> 0
                     {
                         if (speak > 0) XPLMSpeakString("gear up"); return 1;
