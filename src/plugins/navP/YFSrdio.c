@@ -20,12 +20,15 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "XPLM/XPLMDataAccess.h"
 #include "XPLM/XPLMProcessing.h"
 #include "XPLM/XPLMUtilities.h"
+
+#include "assert/includes.h"
 
 #include "common/common.h"
 
@@ -374,7 +377,27 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     yfs_printf_rgt(yfms, 7, 0, COLR_IDX_WHITE, "%s", "MODE");
 
     /* line 8: XPDR information */
-    if (yfms->xpl.atyp == YFS_ATYP_IXEG)
+    if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+    {
+        uint32_t code; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_code, &code);
+        uint32_t mode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
+        switch (mode)
+        {
+            case 0:
+                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04"PRIu32"", code);
+                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s",         "SBY");
+                break;
+            case 2:
+                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04"PRIu32"", code);
+                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s",         "ALT");
+                break;
+            default:
+                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04"PRIu32"", code);
+                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s",        "AUTO");
+                break;
+        }
+    }
+    else if (yfms->xpl.atyp == YFS_ATYP_IXEG)
     {
         if ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_mode_act)) == 0)
         {
