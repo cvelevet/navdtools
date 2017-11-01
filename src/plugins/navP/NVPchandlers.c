@@ -79,9 +79,9 @@ typedef struct
         XPLMCommandRef toggle_r_ng1;
         XPLMCommandRef toggle_r_ng2;
         XPLMDataRef ldg_gears_lever;
+        XPLMDataRef engine_lever_lt;
         XPLMDataRef engine_reverse1;
         XPLMDataRef engine_reverse2;
-        XPLMDataRef engine_lever_lt;
         int id_s32_click_autopilot1;
         int id_s32_click_ss_tkovr_l;
         int id_s32_click_thr_disc_l;
@@ -3354,10 +3354,6 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 1; // let X-Plane actually move the handle
 }
 
-#define A320T_CLMB 0.692308f
-#define A320T_HALF 0.500000f
-#define A320T_IDLE 0.307692f
-#define A320T_TAXI 0.400000f // ~30.0% N1 @ KNTD (X-Plane 10 ground model) //fixme
 static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandEnd)
@@ -3371,40 +3367,22 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 return 0;
             }
-            if (XPLMGetDataf(a320->dat.engine_lever_lt) < A320T_HALF)
+            // there isn't a way to set throttle to a given position yet
+            // so, allow finer-grained adjustments using XPLMCommandOnce
+            // we can hold as long desired w/out continuing said command
+            // note: for X-Plane 10 ground model, ideal N1 is ~30% @KNTD
+            //       that's model/controls/engine_lever1 around 0.40000f
+            //       or Aircraft.Cockpit.Pedestal.EngineLever1 ~= 26.26f
+            //       this should equate to 4 calls 2 throttle_up command
+            if (XPLMGetDataf(a320->dat.engine_lever_lt) < 0.31f) // idle
             {
-                if (XPLMGetDataf(a320->dat.engine_lever_lt) < A320T_TAXI)
-                {
-                    int timeout = 10;
-                    do
-                    {
-                        if (timeout <= 0)
-                        {
-                            ndt_log("navP [debug]: chandler_idleb, throttles stuck?\n");
-                            return 0;
-                        }
-                        XPLMCommandOnce(a320->dat.throttles_up); timeout--;
-                    }
-                    while (XPLMGetDataf(a320->dat.engine_lever_lt) < A320T_TAXI);
-                    return 0;
-                }
-                if (XPLMGetDataf(a320->dat.engine_lever_lt) > A320T_TAXI)
-                {
-                    int timeout = 10;
-                    do
-                    {
-                        if (timeout <= 0)
-                        {
-                            ndt_log("navP [debug]: chandler_idleb, throttles stuck?\n");
-                            return 0;
-                        }
-                        XPLMCommandOnce(a320->dat.throttles_dn); timeout--;
-                    }
-                    while (XPLMGetDataf(a320->dat.engine_lever_lt) > A320T_TAXI);
-                    return 0;
-                }
-                return 0;
+                // add 2 calls, for 3 total, should give
+                // enough power to set things in motion,
+                // and 1 call away from our ideal 30% N1
+                XPLMCommandOnce(a320->dat.throttles_up);
+                XPLMCommandOnce(a320->dat.throttles_up);
             }
+            XPLMCommandOnce(a320->dat.throttles_up);
             return 0;
         }
         if (XPLMGetDataf(ground.idle.throttle_all) < 0.5f)
