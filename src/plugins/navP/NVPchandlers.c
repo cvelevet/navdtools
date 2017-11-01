@@ -3524,6 +3524,7 @@ static int first_fcall_do(chandler_context *ctx)
             else
             {
                 // TODO: power, doors, fuel/payload
+                // but only when engine not running
                 int index[] = { 1, 3, 2, 1, 4, 1, };
                 refcon_assert1 *rca = ctx->bking.rc_brk.assert = ctx->gear.assert = ctx->ground.assert = ctx->revrs.assert = &ctx->assert;
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &index[0]);     // FCU alt. sel. increm.  (1000ft)
@@ -3533,7 +3534,6 @@ static int first_fcall_do(chandler_context *ctx)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_rgt, &index[4]);     // ND r. sel. (f/o. side) (160)
                 rca->api.ValueSet(rca->dat.id_u32_emer_lights_mode, &index[5]);     // arm em. exit lts
 
-                //fixme test below
                 /* Re-register some callbacks: to get calls before the plugin */
                 UNREGSTR_CHANDLER(ctx->gear.landing_gear_toggle);
                 UNREGSTR_CHANDLER(ctx->gear.  landing_gear_down);
