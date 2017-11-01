@@ -2995,7 +2995,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                     continue;
                                 }
                                 // set combination to a key almost guaranteed to be unused
-                                XPLMSetHotKeyCombination(hot_key, XPLM_VK_F24, xplm_DownFlag);
+                                XPLMSetHotKeyCombination(hot_key, XPLM_VK_F24, xplm_UpFlag);
                                 continue;
                             }
                             continue;
