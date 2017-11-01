@@ -3357,7 +3357,7 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 #define A320T_CLMB 0.692308f
 #define A320T_HALF 0.500000f
 #define A320T_IDLE 0.307692f
-#define A320T_TAXI 0.500000f//fixme
+#define A320T_TAXI 0.400000f // ~30.0% N1 @ KNTD (X-Plane 10 ground model) //fixme
 static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandEnd)
@@ -4355,6 +4355,7 @@ static int first_fcall_do(chandler_context *ctx)
      * Minimum ground throttle detent.
      * Testing parameters:
      * - weather: CAVOK preset
+     * - version: X-Plane 10.51r2
      * - runways: follow terrain contour OFF
      * - airport: KNTD (Naval Base Ventura County)
      * - taxiing: ideal peak speed ~20.0 Knots ground speed
