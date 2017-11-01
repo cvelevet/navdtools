@@ -3548,10 +3548,10 @@ static int first_fcall_do(chandler_context *ctx)
             else
             {
                 refcon_assert1 *rca = ctx->bking.rc_brk.assert = ctx->gear.assert = ctx->ground.assert = ctx->revrs.assert = &ctx->assert;
-                if ((d_ref = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running"))) // we're cold & dark
+                if ((d_ref = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running")))
                 {
                     int ENGN_running[2]; XPLMGetDatavi(d_ref, ENGN_running, 0, 2);
-                    if (ENGN_running[1] == 0 && ENGN_running[0] == 0)
+                    if (ENGN_running[1] == 0 && ENGN_running[0] == 0) // C & D
                     {
                         // we can set fuel and payload directly, but control of the doors, equipment
                         // etc. requires setting several data fields -- w/out further documentation,
