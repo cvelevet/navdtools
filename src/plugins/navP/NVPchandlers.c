@@ -32,15 +32,7 @@
 #include "XPLM/XPLMProcessing.h"
 #include "XPLM/XPLMUtilities.h"
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wignored-attributes"
-#endif
-#include <stdbool.h>
-#include "assert/sharedvalue.h"
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
+#include "assert/includes.h"
 
 #include "common/common.h"
 
