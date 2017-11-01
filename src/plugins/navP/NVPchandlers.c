@@ -4745,26 +4745,7 @@ static int ff_assert_init(refcon_assert1 *ffa)
             return EAGAIN;
         }
 #if 0
-        /*
-         * For YFMS
-         *
-         * s32 Aircraft.FMGS.FCU1.Lateral                           heading     DEG
-         * s32 Aircraft.FMGS.FCU1.Vertical                          v/speed     100FT
-         * s32 Aircraft.FMGS.FCU1.Altitude                          altitude    100FT
-         * s32 Aircraft.FMGS.FCU1.Speed                             airspeed    KTS/0.01M
-         * s32 Aircraft.FMGS.FCU1.SpeedIsMach                                   boolean
-         * s32 Aircraft.Cockpit.Panel.FCU_Mach.Click                            boolean
-         * s32 Aircraft.FMGS.FCU1.BaroL                             pressure    100INHG/1HPA
-         * s32 Aircraft.FMGS.FCU1.BaroR                             pressure    100INHG/1HPA
-         * s32 Aircraft.FMGS.FCU1.BaroModeL                         QNH2/QFE1,STD:QNH-2/QFE-1
-         * s32 Aircraft.FMGS.FCU1.BaroModeR                         QNH2/QFE1,STD:QNH-2/QFE-1
-         * s32 Aircraft.FMGS.FCU1.BaroTypeL                         InHg/hPa    0/1
-         * s32 Aircraft.FMGS.FCU1.BaroTypeR                         InHg/hPa    0/1
-         * u32 Aircraft.Cockpit.Pedestal.TCAS_Traffic.Target        index       0-based
-         * u32 Aircraft.Cockpit.Pedestal.ATC_Alt.Target             index       0-based
-         * u32 Aircraft.Cockpit.Pedestal.ATC_Mode.Target            index       0-based
-         * u32 Aircraft.Navigation.ATC.CodeSet                      squawk      4-digit
-         */
+        /* List all nodes and variables exposed by the provided SDK. */
         {
             const char *valueDescription;
             char tmp[2048], fullname[2048];
