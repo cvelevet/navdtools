@@ -1964,10 +1964,9 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
  */
 static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    float p_ratio = 1.0f;
     chandler_context *ctx = inRefcon;
     refcon_braking *rcb = &ctx->bking.rc_brk;
-    refcon_assert1 *rca = rcb->assert;
+    refcon_assert1 *rca = rcb->assert; float p_ratio = 1.0f;
     if (rca)
     {
         switch (inPhase)
