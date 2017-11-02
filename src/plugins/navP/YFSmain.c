@@ -811,8 +811,8 @@ static void toggle_main_window(yfms_context *yfms)
             * s32 Aircraft.FMGS.FCU1.BaroR                             pressure    100INHG/1HPA
             * s32 Aircraft.FMGS.FCU1.BaroModeL                         QNH2/QFE1,STD:QNH-2/QFE-1
             * s32 Aircraft.FMGS.FCU1.BaroModeR                         QNH2/QFE1,STD:QNH-2/QFE-1
-            * s32 Aircraft.FMGS.FCU1.BaroTypeL                         InHg/hPa    0/1
-            * s32 Aircraft.FMGS.FCU1.BaroTypeR                         InHg/hPa    0/1
+            * u32 Aircraft.Cockpit.Panel.EFIS_BaroTypeL.Target         InHg/hPa    0/1
+            * u32 Aircraft.Cockpit.Panel.EFIS_BaroTypeR.Target         InHg/hPa    0/1
             * u32 Aircraft.Cockpit.Pedestal.TCAS_Traffic.Target        index       0-based
             * u32 Aircraft.Cockpit.Pedestal.ATC_Alt.Target             index       0-based
             * u32 Aircraft.Cockpit.Pedestal.ATC_Mode.Target            index       0-based
@@ -830,8 +830,8 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.asrt.baro.id_s32_rvalu = yfms->xpl.asrt.api.ValueIdByName("Aircraft.FMGS.FCU1.BaroR");
                 yfms->xpl.asrt.baro.id_s32_lmode = yfms->xpl.asrt.api.ValueIdByName("Aircraft.FMGS.FCU1.BaroModeL");
                 yfms->xpl.asrt.baro.id_s32_rmode = yfms->xpl.asrt.api.ValueIdByName("Aircraft.FMGS.FCU1.BaroModeR");
-                yfms->xpl.asrt.baro.id_s32_lunit = yfms->xpl.asrt.api.ValueIdByName("Aircraft.FMGS.FCU1.BaroTypeL");
-                yfms->xpl.asrt.baro.id_s32_runit = yfms->xpl.asrt.api.ValueIdByName("Aircraft.FMGS.FCU1.BaroTypeR");
+                yfms->xpl.asrt.baro.id_u32_lunit = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_BaroTypeL.Target");
+                yfms->xpl.asrt.baro.id_u32_runit = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_BaroTypeR.Target");
                 yfms->xpl.asrt.xpdr.id_u32_code  = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Navigation.ATC.CodeSet");
                 yfms->xpl.asrt.xpdr.id_u32_altr  = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Pedestal.ATC_Alt.Target");
                 yfms->xpl.asrt.xpdr.id_u32_mode  = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Pedestal.ATC_Mode.Target");
@@ -840,8 +840,8 @@ static void toggle_main_window(yfms_context *yfms)
                     yfms->xpl.asrt.baro.id_s32_rvalu <= 0 ||
                     yfms->xpl.asrt.baro.id_s32_lmode <= 0 ||
                     yfms->xpl.asrt.baro.id_s32_rmode <= 0 ||
-                    yfms->xpl.asrt.baro.id_s32_lunit <= 0 ||
-                    yfms->xpl.asrt.baro.id_s32_runit <= 0 ||
+                    yfms->xpl.asrt.baro.id_u32_lunit <= 0 ||
+                    yfms->xpl.asrt.baro.id_u32_runit <= 0 ||
                     yfms->xpl.asrt.xpdr.id_u32_code  <= 0 ||
                     yfms->xpl.asrt.xpdr.id_u32_altr  <= 0 ||
                     yfms->xpl.asrt.xpdr.id_u32_mode  <= 0 ||

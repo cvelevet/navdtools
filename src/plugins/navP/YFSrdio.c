@@ -464,7 +464,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     if (yfms->xpl.atyp == YFS_ATYP_ASRT)
     {
         int32_t lmode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
-        int32_t lunit; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lunit, &lunit);
+        int32_t lunit; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_u32_lunit, &lunit);
         int32_t lvalu; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lvalu, &lvalu);
         if (0 > lmode)
         {
@@ -1035,9 +1035,9 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (yfms->xpl.atyp == YFS_ATYP_ASRT)
         {
-            int32_t lmode, rmode, unit, value;
-            yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lunit, &lmode);
-            yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lunit, &rmode);
+            uint32_t unit; int32_t lmode, rmode, value;
+            yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
+            yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lmode, &rmode);
             if (lmode < 0) // STD -> corrected value
             {
                 lmode = -lmode; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
@@ -1054,8 +1054,8 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             {
                 value = (int32_t)roundf(inhg * 100.0f);
             }
-            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lunit, &unit);
-            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_runit, &unit);
+            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &unit);
+            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &unit);
             yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lvalu, &value);
             yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_rvalu, &value);
         }
@@ -1125,9 +1125,9 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             {
                 if (yfms->xpl.atyp == YFS_ATYP_ASRT)
                 {
-                    int32_t unit = 0;
-                    yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lunit, &unit);
-                    yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_runit, &unit);
+                    uint32_t unit = 0;
+                    yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &unit);
+                    yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &unit);
                     yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
                 }
                 yfms->ndt.alt.unit = 0; yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
@@ -1136,9 +1136,9 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             {
                 if (yfms->xpl.atyp == YFS_ATYP_ASRT)
                 {
-                    int32_t unit = 1;
-                    yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lunit, &unit);
-                    yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_runit, &unit);
+                    uint32_t unit = 1;
+                    yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &unit);
+                    yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &unit);
                     yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
                 }
                 yfms->ndt.alt.unit = 1; yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
@@ -1149,10 +1149,10 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         {
             if (yfms->xpl.atyp == YFS_ATYP_ASRT)
             {
-                int32_t unit;
-                yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lunit, &unit); unit = !unit;
-                yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lunit, &unit);
-                yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_runit, &unit);
+                uint32_t unit;
+                yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_u32_lunit, &unit); unit = !unit;
+                yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &unit);
+                yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &unit);
                 yfs_rad1_pageupdt(yfms); return;
             }
             yfms->ndt.alt.unit = !yfms->ndt.alt.unit; yfs_rad1_pageupdt(yfms); return;
