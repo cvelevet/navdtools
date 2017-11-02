@@ -124,6 +124,10 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfms->data.init.flight_id[0]  = 0;
     yfms->data.init.corte_name[0] = 0;
 
+    /* delayed setters */
+    yfms->data.rdio.delayed_swap = NULL;
+    yfms->data.rdio.asrt_delayed_baro_s = 0;
+
     /* all good */
     if (XPIsWidgetVisible(yfms->mwindow.id))
     {
@@ -345,7 +349,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     if (yfms->data.rdio.asrt_delayed_baro_s)
     {
         uint32_t unip; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_u32_lunip, &unip);
-        if (yfms->data.rdio.asrt_delayed_baro_s != unip)
+        if (yfms->data.rdio.asrt_delayed_baro_u != unip)
         {
             return .125f;
         }

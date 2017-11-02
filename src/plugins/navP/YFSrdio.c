@@ -381,7 +381,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     yfs_printf_rgt(yfms, 7, 0, COLR_IDX_WHITE, "%s", "MODE");
 
     /* line 8: XPDR information */
-    if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+    if (yfms->xpl.atyp == YFS_ATYP_ASRT) // TODO: TCAS state
     {
         uint32_t code; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_code, &code);
         uint32_t mode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
@@ -401,7 +401,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
                 break;
         }
     }
-    else if (yfms->xpl.atyp == YFS_ATYP_IXEG)
+    else if (yfms->xpl.atyp == YFS_ATYP_IXEG) // TODO: TCAS state
     {
         if ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_mode_act)) == 0)
         {
@@ -442,7 +442,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
                 break;
         }
     }
-    else switch (XPLMGetDatai(yfms->xpl.transponder_mode))
+    else switch (XPLMGetDatai(yfms->xpl.transponder_mode)) // TODO: FF757/767 (TCAS state)?
     {
         case 0:
             yfs_printf_lft(yfms, 8, 0, COLR_IDX_WHITE, "%s", "----");
@@ -842,10 +842,6 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 3)
     {
-        if (XPLMGetDatai(yfms->xpl.transponder_mode) <= 0)
-        {
-            return; // transponder off
-        }
         size_t len; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
@@ -874,8 +870,8 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 1 && key[1] == 3)
     {
-        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
-        if  (strnlen(buf, 1) && !yfms->mwindow.screen.spad_reset)
+        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); int t = 0;
+        if (strnlen(buf, 1) && !yfms->mwindow.screen.spad_reset)
         {
             if (!strcmp(buf, "OFF"))
             {
@@ -883,7 +879,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 {
                     yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
                 }
-                if (yfms->xpl.atyp == YFS_ATYP_IXEG)
+                if (yfms->xpl.atyp == YFS_ATYP_IXEG) // TODO: TCAS control
                 {
                     XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 0.0f);
                     XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 1.0f);
@@ -901,7 +897,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                     uint32_t tcas = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
                     yfs_spad_clear(yfms); return;
                 }
-                if (yfms->xpl.atyp == YFS_ATYP_IXEG)
+                if (yfms->xpl.atyp == YFS_ATYP_IXEG) // TODO: TCAS control
                 {
                     XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);
                     XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 1.0f);
@@ -948,17 +944,23 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 XPLMSetDatai(yfms->xpl.transponder_mode, 1);
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
-            if (!strcmp(buf, "ON")  ||
-                !strcmp(buf, "ALT") ||
-                !strcmp(buf, "TA/RA"))
+            if ((!strcmp(buf, "ON")    && ((1))) ||
+                (!strcmp(buf, "TA")    && (t=1)) ||
+                (!strcmp(buf, "ALT")   && ((1))) ||
+                (!strcmp(buf, "TARA")  && (t=2)) ||
+                (!strcmp(buf, "TA/RA") && (t=2)))
             {
                 if (yfms->xpl.atyp == YFS_ATYP_ASRT)
                 {
+                    if (t > 0)
+                    {
+                        uint32_t tc = t; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tc);
+                    }
                     uint32_t altr = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
                     uint32_t mode = 2; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
                     yfs_spad_clear(yfms); return;
                 }
-                if (yfms->xpl.atyp == YFS_ATYP_IXEG)
+                if (yfms->xpl.atyp == YFS_ATYP_IXEG) // TODO: TCAS control
                 {
                     XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);
                     XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 2.0f);
@@ -970,7 +972,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                     XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    2);
                     yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
                 }
-                if (yfms->xpl.atyp == YFS_ATYP_FB76)
+                if (yfms->xpl.atyp == YFS_ATYP_FB76) // TODO: TCAS control?
                 {
                     XPLMSetDataf(yfms->xpl.fb76.systemMode, 5.0f);
                     yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
@@ -989,7 +991,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         {
             uint32_t altr, mode, tcas;
             yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
-            if (mode == 1) // AUTO -> ALT
+            if (mode == 1) // AUTO -> ALT (no TCAS: aircr. may be on the ground)
             {
                 altr = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
                 mode = 2; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
@@ -1000,20 +1002,20 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 mode = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
                 tcas = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
             }
-            yfs_spad_clear(yfms); return;
+            return;
         }
-        else if (yfms->xpl.atyp == YFS_ATYP_IXEG)
+        else if (yfms->xpl.atyp == YFS_ATYP_IXEG) // TODO: TCAS control
         {
             if ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_mode_act)) == 0 ||
                 (int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_stby_act)) != 1)
             {
-                XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);       // AUTO
-                XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 1.0f);       // AUTO
+                XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);       // -> AUTO
+                XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 1.0f);       // -> AUTO
             }
-            else
+            else  // no TCAS: aircraft may still be on the ground
             {
-                XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);       // ALT
-                XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 2.0f);       // ALT
+                XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);       // AUTO -> ALT
+                XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 2.0f);       // AUTO -> ALT
             }
             yfs_rad1_pageupdt(yfms); return;
         }
@@ -1031,7 +1033,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             }
             yfs_rad1_pageupdt(yfms); return;
         }
-        else if (yfms->xpl.atyp == YFS_ATYP_FB76)
+        else if (yfms->xpl.atyp == YFS_ATYP_FB76) // TODO: TCAS control?
         {
             if ((int)roundf(XPLMGetDataf(yfms->xpl.fb76.systemMode)) != 1)
             {
