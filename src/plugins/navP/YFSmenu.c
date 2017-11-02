@@ -344,9 +344,13 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     }
     if (yfms->data.rdio.asrt_delayed_baro_s)
     {
-        int32_t value = yfms->data.rdio.asrt_delayed_baro_v;
-        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lvalu, &value);
-        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_rvalu, &value);
+        uint32_t unip; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_u32_lunip, &unip);
+        if (yfms->data.rdio.asrt_delayed_baro_s != unip)
+        {
+            return .125f;
+        }
+        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lvalu, &yfms->data.rdio.asrt_delayed_baro_v);
+        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_rvalu, &yfms->data.rdio.asrt_delayed_baro_v);
         yfms->data.rdio.asrt_delayed_baro_s = 0; return .125f;
     }
 

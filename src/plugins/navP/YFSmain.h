@@ -341,6 +341,7 @@ typedef struct
         {
             XPLMCommandRef delayed_swap;
             int32_t asrt_delayed_baro_s;
+            int32_t asrt_delayed_baro_u;
             int32_t asrt_delayed_baro_v;
         }
         rdio;
@@ -540,6 +541,8 @@ typedef struct
                 int id_s32_rmode;
                 int id_u32_lunit;
                 int id_u32_runit;
+                int id_u32_lunip;
+                int id_u32_runip;
                 int id_s32_lvalu;
                 int id_s32_rvalu;
             }

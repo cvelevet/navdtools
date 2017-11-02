@@ -1063,6 +1063,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &unit);
             yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &unit);
             yfms->data.rdio.asrt_delayed_baro_v = value;
+            yfms->data.rdio.asrt_delayed_baro_u = unit;
             yfms->data.rdio.asrt_delayed_baro_s = 1;
             yfs_spad_clear(yfms); return;
         }
