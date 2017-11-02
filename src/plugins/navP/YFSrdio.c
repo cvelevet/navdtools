@@ -1124,7 +1124,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             yfms->data.rdio.asrt_delayed_baro_v = value;
             yfms->data.rdio.asrt_delayed_baro_u = unit;
             yfms->data.rdio.asrt_delayed_baro_s = 1;
-            yfs_spad_clear(yfms); return;
+            yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
         }
         if (yfms->xpl.atyp == YFS_ATYP_Q350)
         {
