@@ -863,6 +863,12 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
             }
         }
+        if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+        {
+            uint32_t code = atoi(buf);
+            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_code, &code);
+            yfs_spad_clear(yfms); return;
+        }
         XPLMSetDatai(yfms->xpl.transponder_code, atoi(buf));
         yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
     }
@@ -873,6 +879,10 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         {
             if (!strcmp(buf, "OFF"))
             {
+                if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+                {
+                    yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
+                }
                 if (yfms->xpl.atyp == YFS_ATYP_IXEG)
                 {
                     XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 0.0f);
@@ -884,6 +894,10 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             }
             if (!strcmp(buf, "AUTO"))
             {
+                if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+                {
+                    //fixme
+                }
                 if (yfms->xpl.atyp == YFS_ATYP_IXEG)
                 {
                     XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);
@@ -901,6 +915,12 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             if (!strcmp(buf, "SBY") ||
                 !strcmp(buf, "STBY"))
             {
+                if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+                {
+                    uint32_t mode = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
+                    uint32_t tcas = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
+                    yfs_spad_clear(yfms); return;
+                }
                 if (yfms->xpl.atyp == YFS_ATYP_IXEG)
                 {
                     XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);
@@ -929,6 +949,10 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 !strcmp(buf, "ALT") ||
                 !strcmp(buf, "TA/RA"))
             {
+                if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+                {
+                    //fixme
+                }
                 if (yfms->xpl.atyp == YFS_ATYP_IXEG)
                 {
                     XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 2.0f);
@@ -955,6 +979,10 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+        }
+        else if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+        {
+            //fixme
         }
         else if (yfms->xpl.atyp == YFS_ATYP_IXEG)
         {
