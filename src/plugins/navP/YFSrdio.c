@@ -474,15 +474,14 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
         {
             if (lunit)
             {
-                yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s",                    "hPa");
                 yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%04.0f", roundf((float)lvalu));
             }
             else
             {
-                yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s",                            "InHg");
                 yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%05.2f", roundf((float)lvalu) / 100.0f);
             }
         }
+        yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s", lunit ? "hPa" : "InHg");
     }
     else
     {
@@ -1019,7 +1018,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 4)
     {
-        float inhg; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
+        float inhg, hpa; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             snprintf(buf, sizeof(buf), "%.5s", yfms->mwindow.screen.text[10]);
@@ -1029,6 +1028,36 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         if ((inhg = (float)get_baro_pressure(buf)) < 0.0f)
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+        }
+        if (sscanf(buf, "%f", &hpa) != 1)
+        {
+            yfs_spad_reset(yfms, "UNEXPECTED ERROR", -1); return;
+        }
+        if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+        {
+            int32_t lmode, rmode, unit, value;
+            yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lunit, &lmode);
+            yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lunit, &rmode);
+            if (lmode < 0) // STD -> corrected value
+            {
+                lmode = -lmode; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
+            }
+            if (rmode < 0) // STD -> corrected value
+            {
+                rmode = -rmode; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_rmode, &rmode);
+            }
+            if ((unit = (roundf(hpa) != roundf(inhg * 100.0f))))
+            {
+                value = (int32_t)roundf(hpa);
+            }
+            else
+            {
+                value = (int32_t)roundf(inhg * 100.0f);
+            }
+            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lunit, &unit);
+            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_runit, &unit);
+            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lvalu, &value);
+            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_rvalu, &value);
         }
         if (yfms->xpl.atyp == YFS_ATYP_Q350)
         {
@@ -1094,21 +1123,52 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         {
             if (!strcasecmp(buf, "InHg"))
             {
+                if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+                {
+                    int32_t unit = 0;
+                    yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lunit, &unit);
+                    yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_runit, &unit);
+                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                }
                 yfms->ndt.alt.unit = 0; yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
             if (!strcasecmp(buf, "HPa"))
             {
+                if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+                {
+                    int32_t unit = 1;
+                    yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lunit, &unit);
+                    yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_runit, &unit);
+                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                }
                 yfms->ndt.alt.unit = 1; yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
         else
         {
+            if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+            {
+                int32_t unit;
+                yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lunit, &unit); unit = !unit;
+                yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lunit, &unit);
+                yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_runit, &unit);
+                yfs_rad1_pageupdt(yfms); return;
+            }
             yfms->ndt.alt.unit = !yfms->ndt.alt.unit; yfs_rad1_pageupdt(yfms); return;
         }
     }
     if (key[0] == 0 && key[1] == 5)
     {
+        if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+        {
+            int32_t lmode, rmode;
+            yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode); lmode = -lmode;
+            yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_rmode, &rmode); rmode = -rmode;
+            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
+            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_rmode, &rmode);
+            yfs_rad1_pageupdt(yfms); return;
+        }
         if (yfms->xpl.atyp == YFS_ATYP_QPAC)
         {
             XPLMSetDatai(yfms->xpl.qpac.BaroStdCapt, 1);
