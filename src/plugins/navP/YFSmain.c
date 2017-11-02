@@ -832,8 +832,8 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.asrt.baro.id_s32_rmode = yfms->xpl.asrt.api.ValueIdByName("Aircraft.FMGS.FCU1.BaroModeR");
                 yfms->xpl.asrt.baro.id_u32_lunit = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_BaroTypeL.Target");
                 yfms->xpl.asrt.baro.id_u32_runit = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_BaroTypeR.Target");
-                yfms->xpl.asrt.baro.id_u32_lunip = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_BaroTypeL.Position");
-                yfms->xpl.asrt.baro.id_u32_runip = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_BaroTypeR.Position");
+                yfms->xpl.asrt.baro.id_f32_lunip = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_BaroTypeL.Position");
+                yfms->xpl.asrt.baro.id_f32_runip = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_BaroTypeR.Position");
                 yfms->xpl.asrt.xpdr.id_u32_code  = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Navigation.ATC.CodeSet");
                 yfms->xpl.asrt.xpdr.id_u32_altr  = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Pedestal.ATC_Alt.Target");
                 yfms->xpl.asrt.xpdr.id_u32_mode  = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Pedestal.ATC_Mode.Target");
@@ -844,8 +844,8 @@ static void toggle_main_window(yfms_context *yfms)
                     yfms->xpl.asrt.baro.id_s32_rmode <= 0 ||
                     yfms->xpl.asrt.baro.id_u32_lunit <= 0 ||
                     yfms->xpl.asrt.baro.id_u32_runit <= 0 ||
-                    yfms->xpl.asrt.baro.id_u32_lunip <= 0 ||
-                    yfms->xpl.asrt.baro.id_u32_runip <= 0 ||
+                    yfms->xpl.asrt.baro.id_f32_lunip <= 0 ||
+                    yfms->xpl.asrt.baro.id_f32_runip <= 0 ||
                     yfms->xpl.asrt.xpdr.id_u32_code  <= 0 ||
                     yfms->xpl.asrt.xpdr.id_u32_altr  <= 0 ||
                     yfms->xpl.asrt.xpdr.id_u32_mode  <= 0 ||

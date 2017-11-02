@@ -348,8 +348,8 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     }
     if (yfms->data.rdio.asrt_delayed_baro_s)
     {
-        uint32_t unip; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_u32_lunip, &unip);
-        if (yfms->data.rdio.asrt_delayed_baro_u != unip)
+        float unip; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_f32_lunip, &unip);
+        if (yfms->data.rdio.asrt_delayed_baro_u != (int32_t)roundf(unip))
         {
             return .125f;
         }

@@ -541,8 +541,8 @@ typedef struct
                 int id_s32_rmode;
                 int id_u32_lunit;
                 int id_u32_runit;
-                int id_u32_lunip;
-                int id_u32_runip;
+                int id_f32_lunip;
+                int id_f32_runip;
                 int id_s32_lvalu;
                 int id_s32_rvalu;
             }

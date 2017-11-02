@@ -963,7 +963,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             {
                 if (yfms->xpl.atyp == YFS_ATYP_ASRT)
                 {
-                    if (t > 0)
+                    if (t > 0) // TODO: set TCAS mode to BLW
                     {
                         uint32_t tc = t; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tc);
                     }
