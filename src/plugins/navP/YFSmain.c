@@ -809,13 +809,16 @@ static void toggle_main_window(yfms_context *yfms)
             * s32 Aircraft.Cockpit.Panel.FCU_Mach.Click                            boolean
             * s32 Aircraft.FMGS.FCU1.BaroL                             pressure    100INHG/1HPA
             * s32 Aircraft.FMGS.FCU1.BaroR                             pressure    100INHG/1HPA
-            * s32 Aircraft.FMGS.FCU1.BaroModeL                         QNH2/QFE1,STD:QNH-2/QFE-1
-            * s32 Aircraft.FMGS.FCU1.BaroModeR                         QNH2/QFE1,STD:QNH-2/QFE-1
+            * s32 Aircraft.FMGS.FCU1.BaroModeL                         QNH:2/STD:-2/QFE:1/STD:-1
+            * s32 Aircraft.FMGS.FCU1.BaroModeR                         QNH:2/STD:-2/QFE:1/STD:-1
             * u32 Aircraft.Cockpit.Panel.EFIS_BaroTypeL.Target         InHg/hPa    0/1
+            * f32 Aircraft.Cockpit.Panel.EFIS_BaroTypeL.Position       InHg/hPa    0/1
             * u32 Aircraft.Cockpit.Panel.EFIS_BaroTypeR.Target         InHg/hPa    0/1
+            * f32 Aircraft.Cockpit.Panel.EFIS_BaroTypeL.Position       InHg/hPa    0/1
             * u32 Aircraft.Cockpit.Pedestal.TCAS_Traffic.Target        index       0-based
-            * u32 Aircraft.Cockpit.Pedestal.ATC_Alt.Target             index       0-based
+            * u32 Aircraft.Cockpit.Pedestal.TCAS_Show.Target           index       0-based
             * u32 Aircraft.Cockpit.Pedestal.ATC_Mode.Target            index       0-based
+            * u32 Aircraft.Cockpit.Pedestal.ATC_Alt.Target             index       0-based
             * u32 Aircraft.Navigation.ATC.CodeSet                      squawk      4-digit
             */
             if (XPLM_NO_PLUGIN_ID != (yfms->xpl.asrt.xid = XPLMFindPluginBySignature(XPLM_FF_SIGNATURE)))
@@ -837,6 +840,7 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.asrt.xpdr.id_u32_code  = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Navigation.ATC.CodeSet");
                 yfms->xpl.asrt.xpdr.id_u32_altr  = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Pedestal.ATC_Alt.Target");
                 yfms->xpl.asrt.xpdr.id_u32_mode  = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Pedestal.ATC_Mode.Target");
+                yfms->xpl.asrt.xpdr.id_u32_tmod  = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Pedestal.TCAS_Show.Target");
                 yfms->xpl.asrt.xpdr.id_u32_tcas  = yfms->xpl.asrt.api.ValueIdByName("Aircraft.Cockpit.Pedestal.TCAS_Traffic.Target");
                 if (yfms->xpl.asrt.baro.id_s32_lvalu <= 0 ||
                     yfms->xpl.asrt.baro.id_s32_rvalu <= 0 ||
@@ -849,6 +853,7 @@ static void toggle_main_window(yfms_context *yfms)
                     yfms->xpl.asrt.xpdr.id_u32_code  <= 0 ||
                     yfms->xpl.asrt.xpdr.id_u32_altr  <= 0 ||
                     yfms->xpl.asrt.xpdr.id_u32_mode  <= 0 ||
+                    yfms->xpl.asrt.xpdr.id_u32_tmod  <= 0 ||
                     yfms->xpl.asrt.xpdr.id_u32_tcas  <= 0)
                 {
                     ndt_log("YFMS [warning]: couldn't initialize \"%s\" data\n", XPLM_FF_SIGNATURE);

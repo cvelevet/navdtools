@@ -533,6 +533,7 @@ typedef struct
                 int id_u32_code;
                 int id_u32_mode;
                 int id_u32_tcas;
+                int id_u32_tmod;
             }
             xpdr;
             struct
