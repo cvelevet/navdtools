@@ -906,6 +906,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                     uint32_t altr = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
                     uint32_t mode = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
                     uint32_t tcas = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
+                    uint32_t tmod = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tmod, &tmod);
                     yfs_spad_clear(yfms); return;
                 }
                 if (yfms->xpl.atyp == YFS_ATYP_IXEG) // TODO: TCAS control
@@ -929,6 +930,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 {
                     uint32_t mode = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
                     uint32_t tcas = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
+                    uint32_t tmod = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tmod, &tmod);
                     yfs_spad_clear(yfms); return;
                 }
                 if (yfms->xpl.atyp == YFS_ATYP_IXEG)
@@ -963,9 +965,10 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             {
                 if (yfms->xpl.atyp == YFS_ATYP_ASRT)
                 {
-                    if (t > 0) // TODO: set TCAS mode to BLW
+                    if (t > 0)
                     {
                         uint32_t tc = t; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tc);
+                        uint32_t tm = 3; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tmod, &tm);
                     }
                     uint32_t altr = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
                     uint32_t mode = 2; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
@@ -1000,7 +1003,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         else if (yfms->xpl.atyp == YFS_ATYP_ASRT)
         {
-            uint32_t altr, mode, tcas;
+            uint32_t altr, mode, tcas, tmod;
             yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
             if (mode == 1) // AUTO -> ALT (no TCAS: aircr. may be on the ground)
             {
@@ -1012,6 +1015,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 altr = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
                 mode = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
                 tcas = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
+                tmod = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tmod, &tmod);
             }
             return;
         }
