@@ -896,7 +896,10 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             {
                 if (yfms->xpl.atyp == YFS_ATYP_ASRT)
                 {
-                    //fixme
+                    uint32_t altr = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
+                    uint32_t mode = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
+                    uint32_t tcas = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
+                    yfs_spad_clear(yfms); return;
                 }
                 if (yfms->xpl.atyp == YFS_ATYP_IXEG)
                 {
@@ -951,7 +954,9 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             {
                 if (yfms->xpl.atyp == YFS_ATYP_ASRT)
                 {
-                    //fixme
+                    uint32_t altr = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
+                    uint32_t mode = 2; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
+                    yfs_spad_clear(yfms); return;
                 }
                 if (yfms->xpl.atyp == YFS_ATYP_IXEG)
                 {
@@ -982,7 +987,20 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         else if (yfms->xpl.atyp == YFS_ATYP_ASRT)
         {
-            //fixme
+            uint32_t altr, mode, tcas;
+            yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
+            if (mode == 1) // AUTO -> ALT
+            {
+                altr = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
+                mode = 2; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
+            }
+            else // -> AUTO
+            {
+                altr = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
+                mode = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
+                tcas = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
+            }
+            yfs_spad_clear(yfms); return;
         }
         else if (yfms->xpl.atyp == YFS_ATYP_IXEG)
         {
