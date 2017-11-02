@@ -28,6 +28,8 @@
 #include "XPLM/XPLMDataAccess.h"
 #include "XPLM/XPLMProcessing.h"
 
+#include "assert/includes.h"
+
 #include "lib/flightplan.h"
 
 #include "YFSdata.h"
@@ -339,6 +341,13 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         XPLMCommandOnce(yfms->data.rdio.delayed_swap);
         yfms->data.rdio.delayed_swap = NULL;
         return .125f; // give time for the swap to occur before printing again
+    }
+    if (yfms->data.rdio.asrt_delayed_baro_s)
+    {
+        int32_t value = yfms->data.rdio.asrt_delayed_baro_v;
+        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lvalu, &value);
+        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_rvalu, &value);
+        yfms->data.rdio.asrt_delayed_baro_s = 0; return .125f;
     }
 
     /* if main window visible, update currently displayed page */

@@ -340,6 +340,8 @@ typedef struct
         struct
         {
             XPLMCommandRef delayed_swap;
+            int32_t asrt_delayed_baro_s;
+            int32_t asrt_delayed_baro_v;
         }
         rdio;
     }

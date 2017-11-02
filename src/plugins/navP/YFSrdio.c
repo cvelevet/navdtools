@@ -348,6 +348,10 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
         /* half the usual delay of a quarter second should work well enough */
         XPLMSetFlightLoopCallbackInterval(yfms->xpl.fl_callback, .125f, 1, yfms); return;
     }
+    if (yfms->data.rdio.asrt_delayed_baro_s)
+    {
+        XPLMSetFlightLoopCallbackInterval(yfms->xpl.fl_callback, .125f, 1, yfms); return;
+    }
 
     /* reset lines before drawing */
     for (int i = 0; i < YFS_DISPLAY_NUMR - 1; i++)
@@ -1046,18 +1050,21 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             {
                 rmode = -rmode; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_rmode, &rmode);
             }
-            if ((unit = (roundf(hpa) != roundf(inhg * 100.0f))))
+            if (roundf(hpa)          == roundf(inhg * 100.0f) || // e.g. 2992.0000 == 29.92*100
+                roundf(hpa * 100.0f) == roundf(inhg * 100.0f))   // e.g. 29.92*100 == 29.92*100
             {
-                value = (int32_t)roundf(hpa);
+                unit = 0; value = (int32_t)roundf(inhg * 100.0f);
             }
             else
             {
-                value = (int32_t)roundf(inhg * 100.0f);
+                unit = 1; value = (int32_t)roundf(hpa);
             }
+            // note: we cannot set the target unit and value in the same call
             yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &unit);
             yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &unit);
-            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lvalu, &value);
-            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_rvalu, &value);
+            yfms->data.rdio.asrt_delayed_baro_v = value;
+            yfms->data.rdio.asrt_delayed_baro_s = 1;
+            yfs_spad_clear(yfms); return;
         }
         if (yfms->xpl.atyp == YFS_ATYP_Q350)
         {
@@ -1128,18 +1135,18 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                     uint32_t unit = 0;
                     yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &unit);
                     yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &unit);
-                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                    yfs_spad_clear(yfms); return;
                 }
                 yfms->ndt.alt.unit = 0; yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
-            if (!strcasecmp(buf, "HPa"))
+            if (!strcasecmp(buf, "hPa"))
             {
                 if (yfms->xpl.atyp == YFS_ATYP_ASRT)
                 {
                     uint32_t unit = 1;
                     yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &unit);
                     yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &unit);
-                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                    yfs_spad_clear(yfms); return;
                 }
                 yfms->ndt.alt.unit = 1; yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
@@ -1153,7 +1160,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_u32_lunit, &unit); unit = !unit;
                 yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &unit);
                 yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &unit);
-                yfs_rad1_pageupdt(yfms); return;
+                return;
             }
             yfms->ndt.alt.unit = !yfms->ndt.alt.unit; yfs_rad1_pageupdt(yfms); return;
         }
@@ -1167,7 +1174,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_rmode, &rmode); rmode = -rmode;
             yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
             yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_rmode, &rmode);
-            yfs_rad1_pageupdt(yfms); return;
+            return;
         }
         if (yfms->xpl.atyp == YFS_ATYP_QPAC)
         {
