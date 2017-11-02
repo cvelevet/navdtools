@@ -381,25 +381,36 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     yfs_printf_rgt(yfms, 7, 0, COLR_IDX_WHITE, "%s", "MODE");
 
     /* line 8: XPDR information */
-    if (yfms->xpl.atyp == YFS_ATYP_ASRT) // TODO: TCAS state
+    if (yfms->xpl.atyp == YFS_ATYP_ASRT)
     {
         uint32_t code; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_code, &code);
         uint32_t mode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
-        switch  (mode)
+        uint32_t tcas; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
+        if (mode > 0 && tcas > 0)
+        {
+            switch (tcas)
+            {
+                case 2:
+                    yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA/RA");
+                    break;
+                default:
+                    yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA");
+                    break;
+            }
+        }
+        else switch (mode)
         {
             case 0:
-                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04"PRIu32"", code);
-                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s",         "SBY");
+                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "SBY");
                 break;
             case 2:
-                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04"PRIu32"", code);
-                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s",         "ALT");
+                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ALT");
                 break;
             default:
-                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04"PRIu32"", code);
-                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s",        "AUTO");
+                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "AUTO");
                 break;
         }
+        yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04"PRIu32"", code);
     }
     else if (yfms->xpl.atyp == YFS_ATYP_IXEG) // TODO: TCAS state
     {
