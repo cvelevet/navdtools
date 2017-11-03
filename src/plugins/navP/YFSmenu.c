@@ -335,7 +335,9 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                                                 XPLMGetDatad(yfms->xpl.longitude),
                                                 ndt_distance_init((int64_t)(XPLMGetDatad(yfms->xpl.elevation) / .3048), NDT_ALTUNIT_FT));
 
-    //fixme implement our own transponder automatic mode???
+    //fixme: implement our own transponder automatic mode??
+    //PE: when connecting, also auto-set XPDR code to 1200?
+    //PE: when connected, autoset mode C upon engine start?
 
     /*
      * process delayed standby <=> active frequency swap from the radio page
