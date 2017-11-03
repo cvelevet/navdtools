@@ -292,9 +292,6 @@ void yfs_curr_pageupdt(yfms_context *yfms)
     if (yfms && XPIsWidgetVisible(yfms->mwindow.id))
     {
         /* miscellaneous dataref update */
-        yfms->data.aircraft_pos = ndt_position_init(XPLMGetDatad(yfms->xpl.latitude),
-                                                    XPLMGetDatad(yfms->xpl.longitude),
-                                                    ndt_distance_init((int64_t)(XPLMGetDatad(yfms->xpl.elevation) / .3048), NDT_ALTUNIT_FT));
 //      // not yet used
 //      yfms->data.trp_altitude = ndt_distance_init((int64_t)(XPLMGetDataf(yfms->xpl.tropopause) / .3048), NDT_ALTUNIT_FT);
 
@@ -332,6 +329,11 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         ndt_log("YFMS [warning]: no context in flight loop callback!\n");
         return 0; // we're screwed
     }
+
+    /* always update aircraft position (TODO: update tracked leg?) */
+    yfms->data.aircraft_pos = ndt_position_init(XPLMGetDatad(yfms->xpl.latitude),
+                                                XPLMGetDatad(yfms->xpl.longitude),
+                                                ndt_distance_init((int64_t)(XPLMGetDatad(yfms->xpl.elevation) / .3048), NDT_ALTUNIT_FT));
 
     //fixme implement our own transponder automatic mode???
 
