@@ -127,6 +127,7 @@ void yfs_menu_resetall(yfms_context *yfms)
     /* delayed setters */
     yfms->data.rdio.delayed_swap = NULL;
     yfms->data.rdio.asrt_delayed_baro_s = 0;
+    yfms->data.rdio.asrt_delayed_redraw = 0;
 
     /* all good */
     if (XPIsWidgetVisible(yfms->mwindow.id))
@@ -356,6 +357,10 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lvalu, &yfms->data.rdio.asrt_delayed_baro_v);
         yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_rvalu, &yfms->data.rdio.asrt_delayed_baro_v);
         yfms->data.rdio.asrt_delayed_baro_s = 0; return .125f;
+    }
+    if (yfms->data.rdio.asrt_delayed_redraw)
+    {
+        yfms->data.rdio.asrt_delayed_redraw = 0; return .250f;
     }
 
     /* if main window visible, update currently displayed page */

@@ -343,6 +343,7 @@ typedef struct
             int32_t asrt_delayed_baro_s;
             int32_t asrt_delayed_baro_u;
             int32_t asrt_delayed_baro_v;
+            int32_t asrt_delayed_redraw;
         }
         rdio;
     }

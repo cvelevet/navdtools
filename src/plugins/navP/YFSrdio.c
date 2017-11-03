@@ -352,6 +352,10 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     {
         XPLMSetFlightLoopCallbackInterval(yfms->xpl.fl_callback, .125f, 1, yfms); return;
     }
+    if (yfms->data.rdio.asrt_delayed_redraw)
+    {
+        return;
+    }
 
     /* reset lines before drawing */
     for (int i = 0; i < YFS_DISPLAY_NUMR - 1; i++)
@@ -790,10 +794,20 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 0)
     {
+        if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+        {
+            XPLMCommandOnce(yfms->xpl.com1_standy_flip);
+            yfms->data.rdio.asrt_delayed_redraw = 1; return;
+        }
         XPLMCommandOnce(yfms->xpl.com1_standy_flip); yfs_rad1_pageupdt(yfms); return;
     }
     if (key[0] == 1 && key[1] == 0)
     {
+        if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+        {
+            XPLMCommandOnce(yfms->xpl.com2_standy_flip);
+            yfms->data.rdio.asrt_delayed_redraw = 1; return;
+        }
         XPLMCommandOnce(yfms->xpl.com2_standy_flip); yfs_rad1_pageupdt(yfms); return;
     }
     if (key[1] == 1)
