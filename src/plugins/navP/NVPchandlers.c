@@ -4620,6 +4620,10 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 XPLMSetDataf(ctx->volumes.tmp, 0.10f); // FlightFactor master slider
             }
+            if ((ctx->volumes.tmp = XPLMFindDataRef("1-sim/options/Volume")))
+            {
+                XPLMSetDataf(ctx->volumes.tmp, 0.25f); // Airbus350XWB master slider
+            }
             if ((ctx->volumes.tmp = XPLMFindDataRef("com/dkmp/mastervolknob")))
             {
                 XPLMSetDataf(ctx->volumes.tmp, 0.25f); // Carenado 3.0 master slider
