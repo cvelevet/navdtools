@@ -3943,7 +3943,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,    0, "params/gate");                              // minimal ground config
             _DO(1, XPLMSetDatai,    0, "params/cover");                             // minimal ground config
             _DO(1, XPLMSetDatai,    0, "params/deice");                             // minimal ground config
-            break; // note: no datarefs for e.g. charts, chocks; some settings only affect either of 757/767
+            break;        // notes: no datarefs for e.g. charts? some settings only affect either of 757/767
 
         case NVP_ACF_B777_FF:
             _DO(1, XPLMSetDatai,    0, "anim/31/switch");                           // VOR1 on ND1 off
