@@ -1260,6 +1260,10 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             {
                 XPLMSetDataf(cust, volume / 2.5f); // FlightFactor master slider
             }
+            if ((cust = XPLMFindDataRef("1-sim/options/Volume")))
+            {
+                XPLMSetDataf(cust,        volume); // Airbus350XWB master slider
+            }
             if ((cust = XPLMFindDataRef("com/dkmp/mastervolknob")))
             {
                 XPLMSetDataf(cust,        volume); // Carenado 3.0 master slider
