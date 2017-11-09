@@ -3933,15 +3933,16 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,    1, "params/metric");                            // metric measurement ON
             _DO(1, XPLMSetDatai,    1, "params/wheel");                             // scr. wheel support ON (default behavior)
             _DO(1, XPLMSetDatai,    1, "params/ground_start_unit");                 // minimal ground config
-            _DO(1, XPLMSetDatai,    1, "params/gpu");                               // minimal ground config
-            _DO(1, XPLMSetDatai,    1, "params/gate");                              // minimal ground config
             _DO(1, XPLMSetDatai,    1, "params/fuel_truck");                        // minimal ground config
+            _DO(1, XPLMSetDatai,    1, "params/stairs");                            // minimal ground config
+            _DO(1, XPLMSetDatai,    1, "params/stop");                              // minimal ground config
+            _DO(1, XPLMSetDatai,    1, "params/bus");                               // minimal ground config
+            _DO(1, XPLMSetDatai,    1, "params/gpu");                               // minimal ground config
             _DO(1, XPLMSetDatai,    0, "params/ACU");                               // minimal ground config
             _DO(1, XPLMSetDatai,    0, "params/LSU");                               // minimal ground config
-            _DO(1, XPLMSetDatai,    0, "params/bus");                               // minimal ground config
+            _DO(1, XPLMSetDatai,    0, "params/gate");                              // minimal ground config
             _DO(1, XPLMSetDatai,    0, "params/cover");                             // minimal ground config
             _DO(1, XPLMSetDatai,    0, "params/deice");                             // minimal ground config
-            _DO(1, XPLMSetDatai,    0, "params/stairs");                            // minimal ground config
             break; // note: no datarefs for e.g. charts, chocks; some settings only affect either of 757/767
 
         case NVP_ACF_B777_FF:
