@@ -93,9 +93,12 @@ typedef struct
     float       rtio[3];
     float       flt_var;
     int         int_var;
+    int         use_pkb;
     XPLMDataRef p_b_flt;
     XPLMDataRef p_b_int;
     XPLMDataRef p_b_rat;
+    XPLMDataRef l_b_rat;
+    XPLMDataRef r_b_rat;
     XPLMDataRef protate;
     XPLMDataRef g_speed;
     chandler_command rg;
@@ -149,7 +152,6 @@ typedef struct
         chandler_callback preset;
         XPLMDataRef throttle_all;
         XPLMDataRef thrott_array;
-        XPLMDataRef park_b_ratio;
         float r_t[2];
         float r_taxi;
         float r_idle;
@@ -754,10 +756,14 @@ void* nvp_chandlers_init(void)
     ctx->bking.max.cb.command = XPLMCreateCommand("navP/brakes/maximum", "maximum braking action");
     ctx->bking.reg.cb.command = XPLMCreateCommand("navP/brakes/regular", "regular braking action");
     ctx->bking.rc_brk.p_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/parking_brake_ratio");
+    ctx->bking.rc_brk.r_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/right_brake_ratio");
+    ctx->bking.rc_brk.l_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/left_brake_ratio");
     if (!ctx->bking.tur.cb.command ||
         !ctx->bking.prk.cb.command || !ctx->bking.off.cb.command ||
         !ctx->bking.max.cb.command || !ctx->bking.reg.cb.command ||
-        !ctx->bking.rc_brk.p_b_rat || !XPLMCanWriteDataRef(ctx->bking.rc_brk.p_b_rat))
+        !ctx->bking.rc_brk.p_b_rat || !XPLMCanWriteDataRef(ctx->bking.rc_brk.p_b_rat) ||
+        !ctx->bking.rc_brk.r_b_rat || !XPLMCanWriteDataRef(ctx->bking.rc_brk.r_b_rat) ||
+        !ctx->bking.rc_brk.l_b_rat || !XPLMCanWriteDataRef(ctx->bking.rc_brk.l_b_rat))
     {
         goto fail;
     }
@@ -768,7 +774,6 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->bking.off.cb, chandler_p_off, 0, ctx);
         REGISTER_CHANDLER(ctx->bking.max.cb, chandler_b_max, 0, ctx);
         REGISTER_CHANDLER(ctx->bking.reg.cb, chandler_b_reg, 0, ctx);
-        ctx->ground.idle.park_b_ratio =    ctx->bking.rc_brk.p_b_rat;
     }
 
     /* Custom commands: speedbrakes/spoilers */
@@ -1122,14 +1127,15 @@ int nvp_chandlers_reset(void *inContext)
     ctx->atyp = NVP_ACF_GENERIC;
 
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
-    ctx->acfspec.qpac.ready   = 0;
-    ctx->acfspec.i733.ready   = 0;
-    ctx->acfspec.x738.ready   = 0;
-    ctx->otto.ffst.dr         = NULL;
-    ctx->otto.conn.cc.name    = NULL;
-    ctx->otto.disc.cc.name    = NULL;
-    ctx->athr.disc.cc.name    = NULL;
-    ctx->athr.toga.cc.name    = NULL;
+    ctx->bking.rc_brk.use_pkb = 1;
+    ctx->acfspec.  qpac.ready = 0;
+    ctx->acfspec.  i733.ready = 0;
+    ctx->acfspec.  x738.ready = 0;
+    ctx->otto.ffst.        dr = NULL;
+    ctx->otto.conn.cc.   name = NULL;
+    ctx->otto.disc.cc.   name = NULL;
+    ctx->athr.disc.cc.   name = NULL;
+    ctx->athr.toga.cc.   name = NULL;
     ctx->bking.rc_brk.rg.name = NULL;
     ctx->bking.rc_brk.mx.name = NULL;
     ctx->bking.rc_brk.ro.name = NULL;
@@ -1591,6 +1597,10 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             ctx->otto.conn.cc.name = "airbus_qpac/ap1_push";
+            if (ctx->atyp == NVP_ACF_A350_FF)
+            {
+                ctx->bking.rc_brk.use_pkb = 0;
+            }
             break;
 
         case NVP_ACF_B737_EA:
@@ -1605,24 +1615,23 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.disc.cc.name = "ixeg/733/autopilot/AP_disengage";
             ctx->athr.disc.cc.name = "ixeg/733/autopilot/at_disengage";
             ctx->athr.toga.cc.name = "sim/engines/TOGA_power";
+            ctx->bking.rc_brk.use_pkb = 0;
             break;
 
         case NVP_ACF_B757_FF:
         case NVP_ACF_B767_FF:
-            ctx->otto.conn.cc.name    = "private/ffsts/ap_cmdl";
-            ctx->otto.disc.cc.name    = "1-sim/comm/AP/ap_disc";
-            ctx->athr.disc.cc.name    = "1-sim/comm/AP/at_disc";
-            ctx->athr.toga.cc.name    = "1-sim/comm/AP/at_toga";
-            ctx->bking.rc_brk.rg.name =  "1-sim/brakes_regular";
-            ctx->bking.rc_brk.mx.name =      "1-sim/brakes_max";
+            ctx->otto.conn.cc.name = "private/ffsts/ap_cmdl";
+            ctx->otto.disc.cc.name = "1-sim/comm/AP/ap_disc";
+            ctx->athr.disc.cc.name = "1-sim/comm/AP/at_disc";
+            ctx->athr.toga.cc.name = "1-sim/comm/AP/at_toga";
+            ctx->bking.rc_brk.use_pkb = 0;
             break;
 
         case NVP_ACF_B777_FF:
-            ctx->otto.disc.cc.name    =          "777/ap_disc";
-            ctx->athr.disc.cc.name    =          "777/at_disc";
-            ctx->athr.toga.cc.name    =          "777/at_toga";
-            ctx->bking.rc_brk.mx.name =     "1-sim/brakes_max";
-            ctx->bking.rc_brk.rg.name = "1-sim/brakes_regular";
+            ctx->otto.disc.cc.name = "777/ap_disc";
+            ctx->athr.disc.cc.name = "777/at_disc";
+            ctx->athr.toga.cc.name = "777/at_toga";
+            ctx->bking.rc_brk.use_pkb = 0;
             break;
 
         case NVP_ACF_EMBE_SS:
@@ -1665,23 +1674,23 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case NVP_ACF_GENERIC:
+        {
+            switch (engine_type_at_idx_zero)
             {
-                switch (engine_type_at_idx_zero)
-                {
-                    case 4: case 5: // twin turbojet/turbofan
-                        if (ctx->revrs.n_engines >= 2)
-                        {
-                            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-                            ctx->athr.toga.cc.name = "sim/autopilot/autothrottle_on";
-                            break;
-                        }
-                    default:
+                case 4: case 5: // twin turbojet/turbofan
+                    if (ctx->revrs.n_engines >= 2)
+                    {
+                        ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+                        ctx->athr.toga.cc.name = "sim/autopilot/autothrottle_on";
                         break;
-                }
+                    }
+                default:
+                    break;
             }
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             break;
+        }
 
         default: // not generic but no usable commands
             break;
@@ -2018,23 +2027,40 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             switch (inPhase)
             {
-                case xplm_CommandBegin:
-                    XPLMSetDatai(rcb->p_b_int, 0); // release park brake on manual brake application
+                case xplm_CommandBegin: // release parkbrake on manual brake application
+                    // the FlightFactor-QPAC A350 has its parking brake dataref inverted
+                    XPLMSetDatai(rcb->p_b_int, (ctx->atyp == NVP_ACF_A350_FF));
+                    if (rcb->use_pkb == 0)
+                    {
+                        XPLMSetDataf(rcb->l_b_rat, p_ratio); XPLMSetDataf(rcb->r_b_rat, p_ratio);
+                        XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->atyp == NVP_ACF_A350_FF));
+                        return 0;
+                    }
                     if (ctx->acfspec.qpac.h_b_max)
                     {
                         XPLMCommandBegin(ctx->acfspec.qpac.h_b_max);
                         return 0;
                     }
-                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1); // use parking brake directly
+                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->atyp != NVP_ACF_A350_FF)); // use parking brake directly
                     return 0;
                 case xplm_CommandEnd:
+                    if (rcb->use_pkb == 0)
+                    {
+                        XPLMSetDataf(rcb->l_b_rat, 0.0f);
+                        XPLMSetDataf(rcb->r_b_rat, 0.0f);
+                    }
                     if (ctx->acfspec.qpac.h_b_max)
                     {
                         XPLMCommandEnd(ctx->acfspec.qpac.h_b_max);
                     }
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(rcb->p_b_int));
                     return 0;
-                default:
+                default: // xplm_CommandContinue
+                    if (rcb->use_pkb == 0)
+                    {
+                        XPLMSetDataf(rcb->l_b_rat, p_ratio);
+                        XPLMSetDataf(rcb->r_b_rat, p_ratio);
+                    }
                     return 0;
             }
         }
@@ -2063,19 +2089,37 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMCommandBegin(rcb->mx.xpcr);
                 return 0;
             }
-            XPLMSetDataf(rcb->p_b_rat, p_ratio);
+            if (rcb->use_pkb)
+            {
+                XPLMSetDataf(rcb->p_b_rat, p_ratio);
+                return 0;
+            }
+            XPLMSetDataf(rcb->l_b_rat, p_ratio);
+            XPLMSetDataf(rcb->r_b_rat, p_ratio);
+            XPLMSetDataf(rcb->p_b_rat, 0.0f);
             return 0;
         case xplm_CommandContinue:
             if (rcb->mx.xpcr)
             {
                 return 0;
             }
-            XPLMSetDataf(rcb->p_b_rat, p_ratio);
+            if (rcb->use_pkb)
+            {
+                XPLMSetDataf(rcb->p_b_rat, p_ratio);
+                return 0;
+            }
+            XPLMSetDataf(rcb->l_b_rat, p_ratio);
+            XPLMSetDataf(rcb->r_b_rat, p_ratio);
             return 0;
         default: // xplm_CommandEnd
             if (rcb->mx.xpcr)
             {
                 XPLMCommandEnd(rcb->mx.xpcr);
+            }
+            if (rcb->use_pkb == 0)
+            {
+                XPLMSetDataf(rcb->l_b_rat, 0.0f);
+                XPLMSetDataf(rcb->r_b_rat, 0.0f);
             }
             XPLMSetDataf(rcb->p_b_rat, XPLMGetDataf(rcb->p_b_flt));
             return 0;
@@ -2119,23 +2163,40 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             switch (inPhase)
             {
-                case xplm_CommandBegin:
-                    XPLMSetDatai(rcb->p_b_int, 0); // release park brake on manual brake application
+                case xplm_CommandBegin: // release parkbrake on manual brake application
+                    // the FlightFactor-QPAC A350 has its parking brake dataref inverted
+                    XPLMSetDatai(rcb->p_b_int, (ctx->atyp == NVP_ACF_A350_FF));
+                    if (rcb->use_pkb == 0)
+                    {
+                        XPLMSetDataf(rcb->l_b_rat, p_ratio); XPLMSetDataf(rcb->r_b_rat, p_ratio);
+                        XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->atyp == NVP_ACF_A350_FF));
+                        return 0;
+                    }
                     if (ctx->acfspec.qpac.h_b_reg)
                     {
                         XPLMCommandBegin(ctx->acfspec.qpac.h_b_reg);
                         return 0;
                     }
-                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1); // use parking brake directly
+                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->atyp != NVP_ACF_A350_FF)); // use parking brake directly
                     return 0;
                 case xplm_CommandEnd:
+                    if (rcb->use_pkb == 0)
+                    {
+                        XPLMSetDataf(rcb->l_b_rat, 0.0f);
+                        XPLMSetDataf(rcb->r_b_rat, 0.0f);
+                    }
                     if (ctx->acfspec.qpac.h_b_reg)
                     {
                         XPLMCommandEnd(ctx->acfspec.qpac.h_b_reg);
                     }
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(rcb->p_b_int));
                     return 0;
-                default:
+                default: // xplm_CommandContinue
+                    if (rcb->use_pkb == 0)
+                    {
+                        XPLMSetDataf(rcb->l_b_rat, p_ratio);
+                        XPLMSetDataf(rcb->r_b_rat, p_ratio);
+                    }
                     return 0;
             }
         }
@@ -2164,19 +2225,37 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMCommandBegin(rcb->rg.xpcr);
                 return 0;
             }
-            XPLMSetDataf(rcb->p_b_rat, p_ratio);
+            if (rcb->use_pkb)
+            {
+                XPLMSetDataf(rcb->p_b_rat, p_ratio);
+                return 0;
+            }
+            XPLMSetDataf(rcb->l_b_rat, p_ratio);
+            XPLMSetDataf(rcb->r_b_rat, p_ratio);
+            XPLMSetDataf(rcb->p_b_rat, 0.0f);
             return 0;
         case xplm_CommandContinue:
             if (rcb->rg.xpcr)
             {
                 return 0;
             }
-            XPLMSetDataf(rcb->p_b_rat, p_ratio);
+            if (rcb->use_pkb)
+            {
+                XPLMSetDataf(rcb->p_b_rat, p_ratio);
+                return 0;
+            }
+            XPLMSetDataf(rcb->l_b_rat, p_ratio);
+            XPLMSetDataf(rcb->r_b_rat, p_ratio);
             return 0;
         default: // xplm_CommandEnd
             if (rcb->rg.xpcr)
             {
                 XPLMCommandEnd(rcb->rg.xpcr);
+            }
+            if (rcb->use_pkb == 0)
+            {
+                XPLMSetDataf(rcb->l_b_rat, 0.0f);
+                XPLMSetDataf(rcb->r_b_rat, 0.0f);
             }
             XPLMSetDataf(rcb->p_b_rat, XPLMGetDataf(rcb->p_b_flt));
             return 0;
@@ -4723,16 +4802,13 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
 {
     if (fbw && fbw->ready == 0)
     {
-        if ((fbw->h_b_max = XPLMFindCommand("1-sim/brakes_max"    )) &&
-            (fbw->h_b_reg = XPLMFindCommand("1-sim/brakes_regular")))
+        if ((fbw->pkb_ref = XPLMFindDataRef("1-sim/parckBrake")))
         {
-            if ((fbw->pkb_ref = XPLMFindDataRef("1-sim/parckBrake")))
-            {
-                /*
-                 * We're good to go!
-                 */
-                (fbw->ready = 1); return 0;
-            }
+            /*
+             * We're good to go!
+             */
+            (fbw->h_b_max = fbw->h_b_reg = NULL);
+            (fbw->ready = 1); return 0;
         }
         if ((fbw->h_b_max = XPLMFindCommand("sim/flight_controls/brakes_max"    )) &&
             (fbw->h_b_reg = XPLMFindCommand("sim/flight_controls/brakes_regular")))
