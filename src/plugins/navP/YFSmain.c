@@ -1709,18 +1709,17 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
         {
             XPMouseState_t *maus = (XPMouseState_t*)inParam1;
             yfms_context   *yfms = (yfms_context*)XPGetWidgetProperty(inWidget, xpProperty_Refcon, NULL);
-            if (maus && yfms && /*fixme: current page registered a mouse wheel callback*/1)
+            if (maus && yfms)//fixme we must do something more than just logging
             {
                 int xy[2]; int ltrb[4]; int relative_xy[2]; XPLMGetMouseLocation(&xy[0], &xy[1]);
                 XPGetWidgetGeometry(yfms->mwindow.id, &ltrb[0], &ltrb[1], &ltrb[2], &ltrb[3]);
                 ndt_log("TIM314: wheel event, x %d y %d (xy %d %d) (ltrb %d %d %d %d) button %d delta %d\n",
                         maus->x, maus->y, xy[0], xy[1], ltrb[0], ltrb[1], ltrb[2], ltrb[3], maus->button, maus->delta);
-                // TODO: yfms->foo.callback(relative_xy[0], relative_xy[1], axis, delta);
+                // TODO: handle in YFSkeys.c, IMHO; YFSkeys responsible to check bounds (if required), compute relative_xy, then check
+                // for a registered mouse wheel callback and call it: yfms->foo.callback(relative_xy[0], relative_xy[1], axis, delta);
+                // we may also want it to filter out any unsupported mouse axes, before handing it off to the pre-registered callback?
             }
-            if (1)//fixme check bounds?
-            {
-                return 1; // consume all mouse wheel events if the window is visible
-            }
+            return 1; //fixme YFSkeys responsible for boundary checks (if any) and setting a consume/passthru return value accordingly
         }
         return 0;
     }
