@@ -1749,6 +1749,8 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
                  * LSK mode selectors: white color. Center labels: T.B.D. (probably green??).
                  * Note: values blue unless dashed or not engaged, e.g. cur. HDG in NAV mode.
                  * Dashed/unselected values not same as center label e.g. white if green etc.
+                 *
+                 * Heck, let's even add mode annunciators at the top/bottom, like on a PFD??
                  */
             }
             return 1; // we only get events when mouse within (oqpaue) window: consume them all
