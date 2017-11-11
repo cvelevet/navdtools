@@ -38,6 +38,7 @@
 #endif
 
 #include "Widgets/XPStandardWidgets.h"
+#include "Widgets/XPWidgetDefs.h"
 #include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMDisplay.h"
 #include "XPLM/XPLMGraphics.h"
@@ -1701,6 +1702,27 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
         yfms_context  *yfms = (yfms_context*)XPGetWidgetProperty(inWidget, xpProperty_Refcon, NULL);
         yfs_keypressed(yfms,  (XPWidgetID)inParam1);
         return 1;
+    }
+    if (inMessage == xpMsg_MouseWheel)
+    {
+        if (XPIsWidgetVisible(inWidget))
+        {
+            XPMouseState_t *maus = (XPMouseState_t*)inParam1;
+            yfms_context   *yfms = (yfms_context*)XPGetWidgetProperty(inWidget, xpProperty_Refcon, NULL);
+            if (maus && yfms && /*fixme: current page registered a mouse wheel callback*/1)
+            {
+                int xy[2]; int ltrb[4]; int relative_xy[2]; XPLMGetMouseLocation(&xy[0], &xy[1]);
+                XPGetWidgetGeometry(yfms->mwindow.id, &ltrb[0], &ltrb[1], &ltrb[2], &ltrb[3]);
+                ndt_log("TIM314: wheel event, x %d y %d (xy %d %d) (ltrb %d %d %d %d) button %d delta %d\n",
+                        maus->x, maus->y, xy[0], xy[1], ltrb[0], ltrb[1], ltrb[2], ltrb[3], maus->button, maus->delta);
+                // TODO: yfms->foo.callback(relative_xy[0], relative_xy[1], axis, delta);
+            }
+            if (1)//fixme check bounds?
+            {
+                return 1; // consume all mouse wheel events if the window is visible
+            }
+        }
+        return 0;
     }
     return 0;
 }
