@@ -4652,6 +4652,18 @@ static int first_fcall_do(chandler_context *ctx)
         }
         else
         {
+            if ((ctx->volumes.tmp = XPLMFindDataRef("volume/engines")))
+            {
+                XPLMSetDataf(ctx->volumes.tmp, 0.25f); // FF Boeing T7 sounds slider
+            }
+            if ((ctx->volumes.tmp = XPLMFindDataRef("volume/ambient")))
+            {
+                XPLMSetDataf(ctx->volumes.tmp, 0.25f); // FF Boeing T7 sounds slider
+            }
+            if ((ctx->volumes.tmp = XPLMFindDataRef("volume/callouts")))
+            {
+                XPLMSetDataf(ctx->volumes.tmp, 0.40f); // FF Boeing T7 sounds slider
+            }
             if ((ctx->volumes.tmp = XPLMFindDataRef("volumeX")))
             {
                 XPLMSetDataf(ctx->volumes.tmp, 0.10f); // FlightFactor master slider

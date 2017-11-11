@@ -1256,6 +1256,18 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         }
         else
         {
+            if ((cust = XPLMFindDataRef("volume/engines")))
+            {
+                XPLMSetDataf(cust,        volume); // FF Boeing T7 sounds slider
+            }
+            if ((cust = XPLMFindDataRef("volume/ambient")))
+            {
+                XPLMSetDataf(cust,        volume); // FF Boeing T7 sounds slider
+            }
+            if ((cust = XPLMFindDataRef("volume/callouts")))
+            {
+                XPLMSetDataf(cust, 1.6f * volume); // FF Boeing T7 sounds slider
+            }
             if ((cust = XPLMFindDataRef("volumeX")))
             {
                 XPLMSetDataf(cust, volume / 2.5f); // FlightFactor master slider
