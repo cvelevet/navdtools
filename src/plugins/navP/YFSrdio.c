@@ -390,7 +390,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
         uint32_t code; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_code, &code);
         uint32_t mode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
         uint32_t tcas; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
-        if (mode > 0 && tcas > 0)
+        if (mode > 1 && tcas > 0)
         {
             switch (tcas)
             {
@@ -454,7 +454,12 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     }
     else if (yfms->xpl.atyp == YFS_ATYP_QPAC)
     {
-        switch (XPLMGetDatai(yfms->xpl.qpac.XPDRPower))
+        if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
+        {
+            yfs_printf_lft(yfms, 8, 0, COLR_IDX_WHITE, "%s", "----");
+            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_WHITE, "%s", "OFF");
+        }
+        else switch (XPLMGetDatai(yfms->xpl.qpac.XPDRPower))
         {
             case 0:
                 yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
@@ -470,7 +475,8 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
                 break;
         }
     }
-    else switch (XPLMGetDatai(yfms->xpl.transponder_mode)) // TODO: FF757/767 (TCAS state)?
+    // TODO: FF757/767 (TCAS state)?
+    else switch (XPLMGetDatai(yfms->xpl.transponder_mode))
     {
         case 0:
             yfs_printf_lft(yfms, 8, 0, COLR_IDX_WHITE, "%s", "----");
@@ -914,11 +920,13 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             if (!strcmp(buf, "OFF"))
             {
                 if (yfms->xpl.atyp == YFS_ATYP_ASRT ||
-                    yfms->xpl.atyp == YFS_ATYP_IXEG)
+                    yfms->xpl.atyp == YFS_ATYP_IXEG ||
+                    yfms->xpl.atyp == YFS_ATYP_FB76 ||
+                    yfms->xpl.atyp == YFS_ATYP_FB77 ||
+                    yfms->xpl.atyp == YFS_ATYP_QPAC)
                 {
                     yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
                 }
-                // TODO: FF757, 767
                 XPLMSetDatai(yfms->xpl.transponder_mode, 0);
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
