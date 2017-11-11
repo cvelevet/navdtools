@@ -416,7 +416,10 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
         }
         yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04"PRIu32"", code);
     }
-    else if (yfms->xpl.atyp == YFS_ATYP_IXEG)
+    else if (yfms->xpl.atyp == YFS_ATYP_IXEG ||
+             yfms->xpl.atyp == YFS_ATYP_FB76 ||
+             yfms->xpl.atyp == YFS_ATYP_FB77 ||
+             yfms->xpl.atyp == YFS_ATYP_QPAC)
     {
         if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
         {
@@ -425,57 +428,99 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
         }
         else
         {
-            if ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_stby_act)) == 2) // ON: TCAS state
+            if (yfms->xpl.atyp == YFS_ATYP_IXEG)
             {
-                switch ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_mode_act)))
+                if ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_stby_act)) == 2)
                 {
-                    case 0:
-                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ALT");
+                    switch ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_mode_act)))
+                    {
+                        case 0:
+                            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ALT");
+                            break;
+                        case 1:
+                            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA");
+                            break;
+                        default:
+                            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA/RA");
+                            break;
+                    }
+                }
+                else
+                {
+                    switch ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_stby_act)))
+                    {
+                        case 0:
+                            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "SBY");
+                            break;
+                        default:
+                            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "AUTO");
+                            break;
+                    }
+                }
+            }
+            if (yfms->xpl.atyp == YFS_ATYP_FB76)
+            {
+                switch ((int)roundf(XPLMGetDataf(yfms->xpl.fb76.systemMode)))
+                {
+                    case 5:
+                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA/RA");
                         break;
-                    case 1:
+                    case 4:
                         yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA");
                         break;
+                    case 3:
+                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ALT");
+                        break;
+                    case 2:
+                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ON");
+                        break;
+                    case 0:
+                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TEST");
+                        break;
                     default:
-                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA/RA");
+                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "SBY");
                         break;
                 }
             }
-            else switch ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_stby_act)))
+            if (yfms->xpl.atyp == YFS_ATYP_FB77)
             {
-                case 0:
-                    yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "SBY");
-                    break;
-                default:
-                    yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "AUTO");
-                    break;
+                switch (XPLMGetDatai(yfms->xpl.fb77.anim_85_switch))
+                {
+                    case 4:
+                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA/RA");
+                        break;
+                    case 3:
+                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA");
+                        break;
+                    case 2:
+                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ALT");
+                        break;
+                    case 1:
+                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ON");
+                        break;
+                    default:
+                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "SBY");
+                        break;
+                }
+            }
+            if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+            {
+                switch (XPLMGetDatai(yfms->xpl.qpac.XPDRPower))
+                {
+                    case 0:
+                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "SBY");
+                        break;
+                    case 2:
+                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ALT");
+                        break;
+                    default:
+                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "AUTO");
+                        break;
+                }
             }
             yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
         }
     }
-    else if (yfms->xpl.atyp == YFS_ATYP_QPAC)
-    {
-        if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
-        {
-            yfs_printf_lft(yfms, 8, 0, COLR_IDX_WHITE, "%s", "----");
-            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_WHITE, "%s", "OFF");
-        }
-        else switch (XPLMGetDatai(yfms->xpl.qpac.XPDRPower))
-        {
-            case 0:
-                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
-                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "SBY");
-                break;
-            case 2:
-                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
-                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ALT");
-                break;
-            default:
-                yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
-                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "AUTO");
-                break;
-        }
-    }
-    // TODO: FF757/767 (TCAS state)?
     else switch (XPLMGetDatai(yfms->xpl.transponder_mode))
     {
         case 0:
@@ -1019,17 +1064,17 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                     XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    2);
                     yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
                 }
-                if (yfms->xpl.atyp == YFS_ATYP_FB76) // TODO: TCAS control?
+                if (yfms->xpl.atyp == YFS_ATYP_FB76)
                 {
-                    XPLMSetDataf(yfms->xpl.fb76.systemMode, 5.0f);
+                    XPLMSetDataf(yfms->xpl.fb76.systemMode, (float)(3+t));
                     yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
                 }
                 if (yfms->xpl.atyp == YFS_ATYP_FB77)
                 {
-                    XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 4);
+                    XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 2 + t);
                     yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
                 }
-                XPLMSetDatai(yfms->xpl.transponder_mode, 3);
+                XPLMSetDatai(yfms->xpl.transponder_mode, 2);
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
@@ -1078,7 +1123,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             }
             yfs_rad1_pageupdt(yfms); return;
         }
-        else if (yfms->xpl.atyp == YFS_ATYP_FB76) // TODO: TCAS control?
+        else if (yfms->xpl.atyp == YFS_ATYP_FB76)
         {
             if ((int)roundf(XPLMGetDataf(yfms->xpl.fb76.systemMode)) != 1)
             {
@@ -1086,7 +1131,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             }
             else
             {
-                XPLMSetDataf(yfms->xpl.fb76.systemMode, 5.0f);          // ALT
+                XPLMSetDataf(yfms->xpl.fb76.systemMode, 3.0f);          // ALT
             }
             yfs_rad1_pageupdt(yfms); return;
         }
@@ -1098,13 +1143,13 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             }
             else
             {
-                XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 4);         // ALT
+                XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 2);         // ALT
             }
             yfs_rad1_pageupdt(yfms); return;
         }
         else if (XPLMGetDatai(yfms->xpl.transponder_mode) == 1)
         {
-            XPLMSetDatai(yfms->xpl.transponder_mode, 3);                // ALT
+            XPLMSetDatai(yfms->xpl.transponder_mode, 2);                // ALT
             yfs_rad1_pageupdt(yfms); return;
         }
         else
