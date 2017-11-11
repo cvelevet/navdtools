@@ -418,6 +418,14 @@ typedef struct
 
     struct
     {
+        chandler_callback dn;
+        chandler_callback up;
+        XPLMCommandRef thrdn;
+        XPLMCommandRef thrup;
+    } throt;
+
+    struct
+    {
         struct
         {
             chandler_callback cb;
@@ -606,6 +614,7 @@ static int chandler_rt_lt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_rt_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_conce(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_sview(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_qlprv(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -829,6 +838,22 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->revrs.rev.cb, chandler_r_rev, 0, ctx);
     }
 
+    /* Custom commands: thrust control */
+    ctx->throt.dn.command = XPLMCreateCommand("navP/thrust/dn_once", "throttle down once");
+    ctx->throt.up.command = XPLMCreateCommand("navP/thrust/up_once", "throttle up once");
+    ctx->throt.     thrdn = XPLMFindCommand  ("sim/engines/throttle_down");
+    ctx->throt.     thrup = XPLMFindCommand  ("sim/engines/throttle_up");
+    if (!ctx->throt.dn.command || !ctx->throt.thrdn ||
+        !ctx->throt.up.command || !ctx->throt.thrup)
+    {
+        goto fail;
+    }
+    else
+    {
+        REGISTER_CHANDLER(ctx->throt.dn, chandler_conce, 0, ctx->throt.thrdn);
+        REGISTER_CHANDLER(ctx->throt.up, chandler_conce, 0, ctx->throt.thrup);
+    }
+
     /* Custom commands: quick look views */
     ctx->views.cbs[0].command = XPLMFindCommand("sim/view/quick_look_0");
     ctx->views.cbs[1].command = XPLMFindCommand("sim/view/quick_look_1");
@@ -1012,6 +1037,8 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->trims.rud.rt.cb);
     UNREGSTR_CHANDLER(ctx->revrs.   fwd.cb);
     UNREGSTR_CHANDLER(ctx->revrs.   rev.cb);
+    UNREGSTR_CHANDLER(ctx->throt.       dn);
+    UNREGSTR_CHANDLER(ctx->throt.       up);
     UNREGSTR_CHANDLER(ctx->assert. ap_conn);
     UNREGSTR_CHANDLER(ctx->assert. ap_disc);
     UNREGSTR_CHANDLER(ctx->assert. at_disc);
@@ -2597,6 +2624,15 @@ static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             return 0;
         }
         return 0;
+    }
+    return 0;
+}
+
+static int chandler_conce(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd && inRefcon)
+    {
+        XPLMCommandOnce(inRefcon);
     }
     return 0;
 }
