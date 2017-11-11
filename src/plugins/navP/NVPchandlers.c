@@ -3245,7 +3245,13 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         if (cdu->i_disabled)
         {
-            return 0;
+#ifndef NAVP_ONLY
+            if ((cdu->command[0] = XPLMFindCommand("YFMS/toggle")) == NULL)
+#endif
+            {
+                return 0;
+            }
+            cdu->i_disabled = 0;
         }
         switch (cdu->atyp)
         {
