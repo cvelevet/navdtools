@@ -1725,6 +1725,31 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
                 // we may also want it to filter out any unsupported mouse axes, before handing it off to the pre-registered callback?
                 // we most likely want relative_xy relative to the main display's boundaries, rather than be relative to entire window
                 // TODO: future: mouse up events can be used for "click to sync" functionality (e.g. otto HDG/ALT/SPD, NAV CRS direct)
+                // else: use two LSKs per item (HDG, ALT, VSI etc.); LSK for value: click to sync; LSK for header: click to engage
+                //       in that latter case, we could have e.g. the following display area:
+                /*
+                 *     ––––––––––––––––––––––––––     ||     ––––––––––––––––––––––––––     |
+                 *     |          OTTO          |     ||     |          OTTO          |     |
+                 *     |                        |     ||     |                        |     |
+                 * [-] |<HDG                ALT>| [-] || [-] |<NAV                V/S>| [-] |
+                 *     |                        |     ||     |                        |     |
+                 * [-] |  cur  HDG    ALT 33000 | [-] || [-] |  360  HDG    ALT 33000 | [-] |
+                 *     |                        |     ||     |                        |     |
+                 * [-] |  250  SPD    V/S +1500 | [-] || [-] | 0.780 SPD    V/S ----- | [-] |
+                 *     |                        |     ||     |                        |     |
+                 * [-] |<MACH              FLCH>| [-] || [-] |<KTS                IAS>| [-] |
+                 *     |                        |     ||     |                        |     |
+                 * [-] |                        | [-] || [-] |                        | [-] |
+                 *     |                        |     ||     |                        |     |
+                 * [-] |                        | [-] || [-] |                        | [-] |
+                 *     |                        |     ||     |                        |     |
+                 *     ––––––––––––––––––––––––––     ||     ––––––––––––––––––––––––––     |
+                 *
+                 * and variants thereof. Check X-Crafts/Tekton visual presentation for ideas.
+                 * LSK mode selectors: white color. Center labels: T.B.D. (probably green??).
+                 * Note: values blue unless dashed or not engaged, e.g. cur. HDG in NAV mode.
+                 * Dashed/unselected values not same as center label e.g. white if green etc.
+                 */
             }
             return 1; // we only get events when mouse within (oqpaue) window: consume them all
         }
