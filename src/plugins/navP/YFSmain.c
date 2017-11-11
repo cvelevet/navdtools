@@ -1703,7 +1703,12 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
         yfs_keypressed(yfms,  (XPWidgetID)inParam1);
         return 1;
     }
-    if (inMessage == xpMsg_MouseWheel)
+    if (inMessage == xpMsg_MouseDrag)
+    {
+        return 1; // don't allow moving; TODO: allow moves by dragging title bar
+    }
+    if (inMessage == xpMsg_MouseUp ||
+        inMessage == xpMsg_MouseWheel)
     {
         if (XPIsWidgetVisible(inWidget))
         {
@@ -1715,11 +1720,13 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
                 XPGetWidgetGeometry(yfms->mwindow.id, &ltrb[0], &ltrb[1], &ltrb[2], &ltrb[3]);
                 ndt_log("TIM314: wheel event, x %d y %d (xy %d %d) (ltrb %d %d %d %d) button %d delta %d\n",
                         maus->x, maus->y, xy[0], xy[1], ltrb[0], ltrb[1], ltrb[2], ltrb[3], maus->button, maus->delta);
-                // TODO: handle in YFSkeys.c, IMHO; YFSkeys responsible to check bounds (if required), compute relative_xy, then check
+                // TODO: handle in YFSkeys.c, IMHO; YFSkeys responsible to check bounds (is required), compute relative_xy, then check
                 // for a registered mouse wheel callback and call it: yfms->foo.callback(relative_xy[0], relative_xy[1], axis, delta);
                 // we may also want it to filter out any unsupported mouse axes, before handing it off to the pre-registered callback?
+                // we most likely want relative_xy relative to the main display's boundaries, rather than be relative to entire window
+                // TODO: future: mouse up events can be used for "click to sync" functionality (e.g. otto HDG/ALT/SPD, NAV CRS direct)
             }
-            return 1; //fixme YFSkeys responsible for boundary checks (if any) and setting a consume/passthru return value accordingly
+            return 1; // we only get events when mouse within (oqpaue) window: consume them all
         }
         return 0;
     }
