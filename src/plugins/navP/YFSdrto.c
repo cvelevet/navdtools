@@ -31,6 +31,7 @@
 #include "YFSmain.h"
 #include "YFSspad.h"
 
+static void yfs_msw_callback_drto(yfms_context *yfms, int rx,  int ry,  int delta);
 static void dct_spc_callback_lnup(yfms_context *yfms                             );
 static void dct_spc_callback_lndn(yfms_context *yfms                             );
 static void yfs_lsk_callback_drto(yfms_context *yfms, int key[2], intptr_t refcon);
@@ -53,6 +54,7 @@ void yfs_drto_pageopen(yfms_context *yfms)
     yfms->lsks[0][5].cback = yfms->lsks[1][5].cback= (YFS_LSK_f)&yfs_lsk_callback_drto;
     yfms->spcs. cback_lnup = (YFS_SPC_f)&dct_spc_callback_lnup;
     yfms->spcs. cback_lndn = (YFS_SPC_f)&dct_spc_callback_lndn;
+    yfms->mousew_callback  = (YFS_MSW_f)&yfs_msw_callback_drto;
     yfms->data.drto.ln_off = 0;
     yfms->data.drto.dctlg  = NULL;
     yfms->data.drto.dctwp  = NULL;
@@ -134,6 +136,26 @@ void yfs_drto_pageupdt(yfms_context *yfms)
     return;
 }
 
+static void yfs_msw_callback_drto(yfms_context *yfms, int rx, int ry, int delta)
+{
+    yfms->data.drto.ln_off -= delta;
+    int legct, legrm = (legct = ndt_list_count(yfms->data.fpln.legs)) - yfms->data.fpln.lg_idx;
+    int indx0 = yfms->data.fpln.lg_idx + yfms->data.drto.ln_off;
+    int ndisp = legct - indx0;
+    if (legrm > 5) legrm = 5;
+    if (legrm > ndisp)
+    {
+        yfms->data.drto.ln_off -= legrm - ndisp;
+        yfs_drto_pageupdt(yfms); return;
+    }
+    if (yfms->data.drto.ln_off < 0)
+    {
+        yfms->data.drto.ln_off = 0; // fixme allow selecting previous waypoints too
+        yfs_drto_pageupdt(yfms); return;
+    }
+    yfs_fpln_pageupdt(yfms); return;
+}
+
 static void dct_spc_callback_lnup(yfms_context *yfms)
 {
     yfms->data.drto.ln_off++;
@@ -150,12 +172,12 @@ static void dct_spc_callback_lnup(yfms_context *yfms)
 
 static void dct_spc_callback_lndn(yfms_context *yfms)
 {
-    if (yfms->data.drto.ln_off < 1)
+    yfms->data.drto.ln_off--;
+    if (yfms->data.drto.ln_off < 0)
     {
         yfms->data.drto.ln_off = 0; // fixme allow selecting previous waypoints too
-        yfs_drto_pageupdt(yfms); return;
     }
-    yfms->data.drto.ln_off--; yfs_drto_pageupdt(yfms); return;
+    yfs_drto_pageupdt(yfms); return;
 }
 
 static void yfs_lsk_callback_drto(yfms_context *yfms, int key[2], intptr_t refcon)

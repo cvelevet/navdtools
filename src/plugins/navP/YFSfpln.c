@@ -1613,7 +1613,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
     return;
 }
 
-static void yfs_msw_callback_fpln(yfms_context *yfms, int rx,  int ry, int delta)
+static void yfs_msw_callback_fpln(yfms_context *yfms, int rx, int ry, int delta)
 {
     yfms->data.fpln.ln_off -= delta; yfs_fpln_pageupdt(yfms); return;
 }
