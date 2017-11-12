@@ -36,6 +36,7 @@
 #include "YFSspad.h"
 
 static void            yfs_lsk_callback_fpln(yfms_context *yfms, int key[2],                intptr_t refcon);
+static void            yfs_msw_callback_fpln(yfms_context *yfms, int rx,  int ry,                 int delta);
 static void            fpl_spc_callback_lnup(yfms_context *yfms                                            );
 static void            fpl_spc_callback_lndn(yfms_context *yfms                                            );
 static void            fpl_print_leg_generic(yfms_context *yfms, int row,                ndt_route_leg *leg);
@@ -344,6 +345,7 @@ void yfs_fpln_pageopen(yfms_context *yfms)
     yfms->lsks[0][5].cback = yfms->lsks[1][5].cback = (YFS_LSK_f)&yfs_lsk_callback_fpln;
     yfms->spcs. cback_lnup = (YFS_SPC_f)&fpl_spc_callback_lnup;
     yfms->spcs. cback_lndn = (YFS_SPC_f)&fpl_spc_callback_lndn;
+    yfms->mousew_callback  = (YFS_MSW_f)&yfs_msw_callback_fpln;
     yfs_fpln_pageupdt(yfms); return;
 }
 
@@ -1609,6 +1611,11 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
 
     /* all good */
     return;
+}
+
+static void yfs_msw_callback_fpln(yfms_context *yfms, int rx,  int ry, int delta)
+{
+    yfms->data.fpln.ln_off += delta; yfs_fpln_pageupdt(yfms); return;
 }
 
 static void fpl_spc_callback_lnup(yfms_context *yfms)

@@ -1718,50 +1718,43 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
     {
         if (XPIsWidgetVisible(inWidget))
         {
+            // note: we only get events when mouse within the window -- we can comsume all wheel events
             yfms_context   *yfms = (yfms_context*)XPGetWidgetProperty(inWidget, xpProperty_Refcon, NULL);
             XPMouseState_t *maus = (XPMouseState_t*)inParam1;
             yfs_mouseevent (yfms, maus, inMessage);
-            if (maus && yfms)//fixme getridofiteventually
-            {
-                int xy[2]; int ltrb[4]; XPLMGetMouseLocation(&xy[0], &xy[1]);
-                XPGetWidgetGeometry(yfms->mwindow.id, &ltrb[0], &ltrb[1], &ltrb[2], &ltrb[3]);
-                ndt_log("TIM314: wheel event, x %d y %d (xy %d %d) (ltrb %d %d %d %d) button %d delta %d\n",
-                        maus->x, maus->y, xy[0], xy[1], ltrb[0], ltrb[1], ltrb[2], ltrb[3], maus->button, maus->delta);
-                // TODO: handle in YFSkeys.c, IMHO; YFSkeys responsible to check bounds (is required), compute relative_xy, then check
-                // for a registered mouse wheel callback and call it: yfms->foo.callback(relative_xy[0], relative_xy[1], axis, delta);
-                // we may also want it to filter out any unsupported mouse axes, before handing it off to the pre-registered callback?
-                // we most likely want relative_xy relative to the main display's boundaries, rather than be relative to entire window
-                // TODO: future: mouse up events can be used for "click to sync" functionality (e.g. otto HDG/ALT/SPD, NAV CRS direct)
-                // else: use two LSKs per item (HDG, ALT, VSI etc.); LSK for value: click to sync; LSK for header: click to engage
-                //       in that latter case, we could have e.g. the following display area:
-                /*
-                 *     ––––––––––––––––––––––––––     ||     ––––––––––––––––––––––––––     |
-                 *     |          OTTO          |     ||     |          OTTO          |     |
-                 *     |                        |     ||     |                        |     |
-                 * [-] |<HDG                ALT>| [-] || [-] |<NAV                V/S>| [-] |
-                 *     |                        |     ||     |                        |     |
-                 * [-] |  cur  HDG    ALT 33000 | [-] || [-] |  360  HDG    ALT 33000 | [-] |
-                 *     |                        |     ||     |                        |     |
-                 * [-] |  250  SPD    V/S +1500 | [-] || [-] | 0.780 SPD    V/S ----- | [-] |
-                 *     |                        |     ||     |                        |     |
-                 * [-] |<MACH              FLCH>| [-] || [-] |<KTS                IAS>| [-] |
-                 *     |                        |     ||     |                        |     |
-                 * [-] |                        | [-] || [-] |                        | [-] |
-                 *     |                        |     ||     |                        |     |
-                 * [-] |                        | [-] || [-] |                        | [-] |
-                 *     |                        |     ||     |                        |     |
-                 *     ––––––––––––––––––––––––––     ||     ––––––––––––––––––––––––––     |
-                 *
-                 * and variants thereof. Check X-Crafts/Tekton visual presentation for ideas.
-                 * LSK mode selectors: white color. Center labels: T.B.D. (probably green??).
-                 * Note: values blue unless dashed or not engaged, e.g. cur. HDG in NAV mode.
-                 * Dashed/unselected values not same as center label e.g. white if green etc.
-                 *
-                 * Heck, let's even add mode annunciators at the top/bottom, like on a PFD??
-                 */
-            }
-            return inMessage == xpMsg_MouseWheel; // we only get events when mouse within (opaque) window: consume them all
-            // TODO: consume MouseUp and Down outside of title bar
+            return inMessage == xpMsg_MouseWheel; // TODO: consume MouseUp and Down outside of title bar
+            // TODO: handle in YFSkeys.c, IMHO; YFSkeys responsible to check bounds (is required), compute relative_xy, then check
+            // for a registered mouse wheel callback and call it: yfms->foo.callback(relative_xy[0], relative_xy[1], axis, delta);
+            // we may also want it to filter out any unsupported mouse axes, before handing it off to the pre-registered callback?
+            // we most likely want relative_xy relative to the main display's boundaries, rather than be relative to entire window
+            // TODO: future: mouse up events can be used for "click to sync" functionality (e.g. otto HDG/ALT/SPD, NAV CRS direct)
+            // else: use two LSKs per item (HDG, ALT, VSI etc.); LSK for value: click to sync; LSK for header: click to engage
+            //       in that latter case, we could have e.g. the following display area:
+            /*
+             *     ––––––––––––––––––––––––––     ||     ––––––––––––––––––––––––––     |
+             *     |          OTTO          |     ||     |          OTTO          |     |
+             *     |                        |     ||     |                        |     |
+             * [-] |<HDG                ALT>| [-] || [-] |<NAV                V/S>| [-] |
+             *     |                        |     ||     |                        |     |
+             * [-] |  cur  HDG    ALT 33000 | [-] || [-] |  360  HDG    ALT 33000 | [-] |
+             *     |                        |     ||     |                        |     |
+             * [-] |  250  SPD    V/S +1500 | [-] || [-] | 0.780 SPD    V/S ----- | [-] |
+             *     |                        |     ||     |                        |     |
+             * [-] |<MACH              FLCH>| [-] || [-] |<KTS                IAS>| [-] |
+             *     |                        |     ||     |                        |     |
+             * [-] |                        | [-] || [-] |                        | [-] |
+             *     |                        |     ||     |                        |     |
+             * [-] |                        | [-] || [-] |                        | [-] |
+             *     |                        |     ||     |                        |     |
+             *     ––––––––––––––––––––––––––     ||     ––––––––––––––––––––––––––     |
+             *
+             * and variants thereof. Check X-Crafts/Tekton visual presentation for ideas.
+             * LSK mode selectors: white color. Center labels: T.B.D. (probably green??).
+             * Note: values blue unless dashed or not engaged, e.g. cur. HDG in NAV mode.
+             * Dashed/unselected values not same as center label e.g. white if green etc.
+             *
+             * Heck, let's even add mode annunciators at the top/bottom, like on a PFD??
+             */
         }
         return 0;
     }
