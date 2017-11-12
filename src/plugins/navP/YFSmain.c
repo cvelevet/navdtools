@@ -1706,7 +1706,11 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
     }
     if (inMessage == xpMsg_MouseDrag)
     {
-        return 1; // don't allow moving; TODO: allow moves by dragging title bar
+        if (XPIsWidgetVisible(inWidget))
+        {
+            return 1; // don't allow moving; TODO: allow moves by dragging title bar
+        }
+        return 0;
     }
     if (inMessage == xpMsg_MouseUp   ||
         inMessage == xpMsg_MouseDown ||
@@ -1719,7 +1723,7 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
             yfs_mouseevent (yfms, maus, inMessage);
             if (maus && yfms)//fixme getridofiteventually
             {
-                int xy[2]; int ltrb[4]; int relative_xy[2]; XPLMGetMouseLocation(&xy[0], &xy[1]);
+                int xy[2]; int ltrb[4]; XPLMGetMouseLocation(&xy[0], &xy[1]);
                 XPGetWidgetGeometry(yfms->mwindow.id, &ltrb[0], &ltrb[1], &ltrb[2], &ltrb[3]);
                 ndt_log("TIM314: wheel event, x %d y %d (xy %d %d) (ltrb %d %d %d %d) button %d delta %d\n",
                         maus->x, maus->y, xy[0], xy[1], ltrb[0], ltrb[1], ltrb[2], ltrb[3], maus->button, maus->delta);
@@ -1756,7 +1760,8 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
                  * Heck, let's even add mode annunciators at the top/bottom, like on a PFD??
                  */
             }
-            return 1; // we only get events when mouse within (oqpaue) window: consume them all
+            return inMessage == xpMsg_MouseWheel; // we only get events when mouse within (opaque) window: consume them all
+            // TODO: consume MouseUp and Down outside of title bar
         }
         return 0;
     }
