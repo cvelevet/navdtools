@@ -1615,7 +1615,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
 
 static void yfs_msw_callback_fpln(yfms_context *yfms, int rx,  int ry, int delta)
 {
-    yfms->data.fpln.ln_off += delta; yfs_fpln_pageupdt(yfms); return;
+    yfms->data.fpln.ln_off -= delta; yfs_fpln_pageupdt(yfms); return;
 }
 
 static void fpl_spc_callback_lnup(yfms_context *yfms)
