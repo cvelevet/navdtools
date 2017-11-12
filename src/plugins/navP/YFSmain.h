@@ -46,6 +46,7 @@
 
 typedef void (*YFS_SPC_f)(void *yfms                             );
 typedef void (*YFS_LSK_f)(void *yfms, int key[2], intptr_t refcon);
+typedef void (*YFS_MSW_f)(void *yfms, int rx, int ry, int delta_v);
 
 typedef struct
 {
@@ -79,6 +80,9 @@ typedef struct
         intptr_t refcon;
     }
     lsks[2][6];
+
+    // mouse event callbacks (one of each per page)
+    YFS_MSW_f mousew_callback;
 
     struct
     {

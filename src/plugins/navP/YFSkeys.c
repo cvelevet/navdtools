@@ -491,17 +491,20 @@ void yfs_mouseevent(yfms_context *yfms, XPMouseState_t *maus, XPWidgetMessage m)
 {
     if (yfms && maus)
     {
-        if (m == xpMsg_MouseWheel)//fixme check callback non-NULL
+        int x = maus->x, y = maus->y, b = maus->button, d = maus->delta;
+        if (m == xpMsg_MouseWheel && (b == 0) && yfms->mousew_callback)
         {
-            int xmin, xmax, ymin, ymax, x = maus->x, y = maus->y;
-            XPGetWidgetGeometry(yfms->mwindow.id, &xmin, &ymax, &xmax, &ymin);
+            int xmin, xmax, ymin, ymax;
+            XPGetWidgetGeometry(yfms->mwindow.screen.subw_id, &xmin, &ymax, &xmax, &ymin);
             if (x < xmin || x > xmax || y < ymin || y > ymax)
             {
                 return;
             }
-            int relative_x = x - xmin, relative_y = y - ymin;
-            ndt_log("TIM314: relative x %s, y %d\n", relative_x, relative_y);//debug
-            //callback
+            ndt_log("TIM314: relative x %s, y %d\n", x - xmin, y - ymin);//debug//fixme
+            yfms->mousew_callback(yfms, x - xmin, y - ymin, d);
+            return;
         }
+        return;
     }
+    return;
 }
