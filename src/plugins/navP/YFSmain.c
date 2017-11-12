@@ -1707,14 +1707,16 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
     {
         return 1; // don't allow moving; TODO: allow moves by dragging title bar
     }
-    if (inMessage == xpMsg_MouseUp ||
+    if (inMessage == xpMsg_MouseUp   ||
+        inMessage == xpMsg_MouseDown ||
         inMessage == xpMsg_MouseWheel)
     {
         if (XPIsWidgetVisible(inWidget))
         {
-            XPMouseState_t *maus = (XPMouseState_t*)inParam1;
             yfms_context   *yfms = (yfms_context*)XPGetWidgetProperty(inWidget, xpProperty_Refcon, NULL);
-            if (maus && yfms)//fixme we must do something more than just logging
+            XPMouseState_t *maus = (XPMouseState_t*)inParam1;
+            yfs_mouseevent (yfms, maus, inMessage);
+            if (maus && yfms)//fixme getridofiteventually
             {
                 int xy[2]; int ltrb[4]; int relative_xy[2]; XPLMGetMouseLocation(&xy[0], &xy[1]);
                 XPGetWidgetGeometry(yfms->mwindow.id, &ltrb[0], &ltrb[1], &ltrb[2], &ltrb[3]);

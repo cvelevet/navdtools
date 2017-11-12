@@ -21,12 +21,14 @@
 #ifndef YFS_KEYS_H
 #define YFS_KEYS_H
 
+#include "Widgets/XPWidgetDefs.h"
 #include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMDefs.h"
 
 #include "YFSmain.h"
 
-void yfs_keypressed(yfms_context *yfms, XPWidgetID key);
-int  yfs_keysniffer(char, XPLMKeyFlags, char,    void*);
+void yfs_keypressed(yfms_context*,                       XPWidgetID);
+int  yfs_keysniffer(char,          XPLMKeyFlags,     char,    void*);
+void yfs_mouseevent(yfms_context*, XPMouseState_t*, XPWidgetMessage);
 
 #endif /* YFS_KEYS_H */

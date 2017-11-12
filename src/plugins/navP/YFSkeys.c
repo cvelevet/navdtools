@@ -486,3 +486,22 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
             return 1;
     }
 }
+
+void yfs_mouseevent(yfms_context *yfms, XPMouseState_t *maus, XPWidgetMessage m)
+{
+    if (yfms && maus)
+    {
+        if (m == xpMsg_MouseWheel)//fixme check callback non-NULL
+        {
+            int xmin, xmax, ymin, ymax, x = maus->x, y = maus->y;
+            XPGetWidgetGeometry(yfms->mwindow.id, &xmin, &ymax, &xmax, &ymin);
+            if (x < xmin || x > xmax || y < ymin || y > ymax)
+            {
+                return;
+            }
+            int relative_x = x - xmin, relative_y = y - ymin;
+            ndt_log("TIM314: relative x %s, y %d\n", relative_x, relative_y);//debug
+            //callback
+        }
+    }
+}
