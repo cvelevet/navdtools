@@ -153,7 +153,7 @@ static void yfs_msw_callback_drto(yfms_context *yfms, int rx, int ry, int delta)
         yfms->data.drto.ln_off = 0; // fixme allow selecting previous waypoints too
         yfs_drto_pageupdt(yfms); return;
     }
-    yfs_fpln_pageupdt(yfms); return;
+    yfs_drto_pageupdt(yfms); return;
 }
 
 static void dct_spc_callback_lnup(yfms_context *yfms)
