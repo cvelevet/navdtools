@@ -491,11 +491,15 @@ int yfs_mouseevent(yfms_context *yfms, XPMouseState_t *maus, XPWidgetMessage m)
 {
     if (yfms && maus)
     {
+        int xmin, ymin; XPGetWidgetGeometry(yfms->mwindow.screen.subw_id, &xmin, NULL, NULL, &ymin);
         if (m == xpMsg_MouseWheel && maus->button == 0 && yfms->mousew_callback)
         {
-            int xmin, ymin; XPGetWidgetGeometry(yfms->mwindow.screen.subw_id, &xmin, NULL, NULL, &ymin);
             yfms->mousew_callback(yfms, maus->x - xmin, maus->y - ymin, maus->delta);
             return 1;
+        }
+        if (yfms->mousec_callback)
+        {
+            return yfms->mousec_callback(yfms, maus->x - xmin, maus->y - ymin, maus->button, maus->delta, m);
         }
         return 0;
     }

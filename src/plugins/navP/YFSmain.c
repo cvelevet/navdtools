@@ -1309,6 +1309,7 @@ int yfs_main_newpg(yfms_context *yfms, int new_page)
     yfms->spcs.cback_left  = yfms->spcs.cback_rigt  =
     yfms->spcs.cback_lnup  = yfms->spcs.cback_lndn  = (YFS_SPC_f)NULL;
     yfms->mousew_callback                           = (YFS_MSW_f)NULL;
+    yfms->mousec_callback                           = (YFS_MSC_f)NULL;
     // YFMS should always know which page is being displayed
     yfms->mwindow.current_page = new_page; return 0;
 }

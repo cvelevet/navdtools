@@ -44,9 +44,10 @@
 #define YFS_DISPLAY_NUMR 14 // number of rows
 #define YFS_ROW_BUF_SIZE (YFS_DISPLAY_NUMC + 1)
 
-typedef void (*YFS_SPC_f)(void *yfms                             );
-typedef void (*YFS_LSK_f)(void *yfms, int key[2], intptr_t refcon);
-typedef void (*YFS_MSW_f)(void *yfms, int rx, int ry, int delta_v);
+typedef void (*YFS_SPC_f)(void *yfms                                                 );
+typedef void (*YFS_LSK_f)(void *yfms, int key[2],                     intptr_t refcon);
+typedef void (*YFS_MSW_f)(void *yfms, int rx, int ry,                     int delta_v);
+typedef int  (*YFS_MSC_f)(void *yfms, int rx, int ry, int b, int d, XPWidgetMessage m);
 
 typedef struct
 {
@@ -83,6 +84,7 @@ typedef struct
 
     // mouse event callbacks (one of each per page)
     YFS_MSW_f mousew_callback;
+    YFS_MSC_f mousec_callback;
     struct
     {
         int xmin;
