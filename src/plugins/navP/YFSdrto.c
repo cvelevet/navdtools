@@ -31,10 +31,11 @@
 #include "YFSmain.h"
 #include "YFSspad.h"
 
-static void yfs_msw_callback_drto(yfms_context *yfms, int rx,  int ry,  int delta);
-static void dct_spc_callback_lnup(yfms_context *yfms                             );
-static void dct_spc_callback_lndn(yfms_context *yfms                             );
-static void yfs_lsk_callback_drto(yfms_context *yfms, int key[2], intptr_t refcon);
+static void yfs_msw_callback_drto(yfms_context *yfms, int rx,  int ry,                       int delta);
+static int  yfs_msc_callback_drto(yfms_context *yfms, int rx,  int ry, int b, int d, XPWidgetMessage m);
+static void dct_spc_callback_lnup(yfms_context *yfms                                                  );
+static void dct_spc_callback_lndn(yfms_context *yfms                                                  );
+static void yfs_lsk_callback_drto(yfms_context *yfms, int key[2],                      intptr_t refcon);
 
 void yfs_drto_pageopen(yfms_context *yfms)
 {
@@ -55,6 +56,7 @@ void yfs_drto_pageopen(yfms_context *yfms)
     yfms->spcs. cback_lnup = (YFS_SPC_f)&dct_spc_callback_lnup;
     yfms->spcs. cback_lndn = (YFS_SPC_f)&dct_spc_callback_lndn;
     yfms->mousew_callback  = (YFS_MSW_f)&yfs_msw_callback_drto;
+    yfms->mousec_callback  = (YFS_MSC_f)&yfs_msc_callback_drto;
     yfms->data.drto.ln_off = 0;
     yfms->data.drto.dctlg  = NULL;
     yfms->data.drto.dctwp  = NULL;
@@ -161,6 +163,22 @@ static void yfs_msw_callback_drto(yfms_context *yfms, int rx, int ry, int delta)
         yfs_drto_pageupdt(yfms); return;
     }
     yfs_drto_pageupdt(yfms); return;
+}
+
+static int yfs_msc_callback_drto(yfms_context *yfms, int rx,  int ry, int b, int d, XPWidgetMessage m)
+{
+    if (b != 0 || m != xpMsg_MouseUp)
+    {
+        return 0; // not applicable
+    }
+    if (rx < yfms->mouse_regions[5][0].xmin || // bottom left
+        rx > yfms->mouse_regions[0][2].xmax || // top right
+        ry < yfms->mouse_regions[5][0].ymin || // bottom left
+        ry > yfms->mouse_regions[0][2].ymax)   // top right
+    {
+        return 0; // out of bounds
+    }
+    yfms->data.drto.ln_off = 0; yfs_drto_pageupdt(yfms); return 1;
 }
 
 static void dct_spc_callback_lnup(yfms_context *yfms)
