@@ -31,11 +31,11 @@
 #include "YFSmain.h"
 #include "YFSspad.h"
 
-static void yfs_msw_callback_drto(yfms_context *yfms, int rx,  int ry,                       int delta);
-static int  yfs_msc_callback_drto(yfms_context *yfms, int rx,  int ry, int b, int d, XPWidgetMessage m);
-static void dct_spc_callback_lnup(yfms_context *yfms                                                  );
-static void dct_spc_callback_lndn(yfms_context *yfms                                                  );
-static void yfs_lsk_callback_drto(yfms_context *yfms, int key[2],                      intptr_t refcon);
+static void yfs_msw_callback_drto(yfms_context *yfms, int rx, int ry,                int delta);
+static int  yfs_msc_callback_drto(yfms_context *yfms, int rx, int ry, int b, XPWidgetMessage m);
+static void dct_spc_callback_lnup(yfms_context *yfms                                          );
+static void dct_spc_callback_lndn(yfms_context *yfms                                          );
+static void yfs_lsk_callback_drto(yfms_context *yfms, int key[2],              intptr_t refcon);
 
 void yfs_drto_pageopen(yfms_context *yfms)
 {
@@ -165,9 +165,9 @@ static void yfs_msw_callback_drto(yfms_context *yfms, int rx, int ry, int delta)
     yfs_drto_pageupdt(yfms); return;
 }
 
-static int yfs_msc_callback_drto(yfms_context *yfms, int rx,  int ry, int b, int d, XPWidgetMessage m)
+static int yfs_msc_callback_drto(yfms_context *yfms, int rx, int ry, int b, XPWidgetMessage m)
 {
-    if (b != 0 || m != xpMsg_MouseUp)
+    if (b != 0 || (m != xpMsg_MouseUp && m != xpMsg_MouseDown))
     {
         return 0; // not applicable
     }
@@ -177,6 +177,10 @@ static int yfs_msc_callback_drto(yfms_context *yfms, int rx,  int ry, int b, int
         ry > yfms->mouse_regions[0][2].ymax)   // top right
     {
         return 0; // out of bounds
+    }
+    if (m == xpMsg_MouseDown)
+    {
+        return 1; // we don't get mouse up if we don't consume mouse down
     }
     yfms->data.drto.ln_off = 0; yfs_drto_pageupdt(yfms); return 1;
 }

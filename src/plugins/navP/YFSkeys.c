@@ -491,7 +491,6 @@ int yfs_mouseevent(yfms_context *yfms, XPMouseState_t *maus, XPWidgetMessage m)
 {
     if (yfms && maus)
     {
-        if (m == xpMsg_MouseUp) ndt_log("TIM314: mouse up in keys.c\n");//debug
         int xmin, ymin; XPGetWidgetGeometry(yfms->mwindow.screen.subw_id, &xmin, NULL, NULL, &ymin);
         if (m == xpMsg_MouseWheel && maus->button == 0 && yfms->mousew_callback)
         {
@@ -500,8 +499,7 @@ int yfs_mouseevent(yfms_context *yfms, XPMouseState_t *maus, XPWidgetMessage m)
         }
         if (yfms->mousec_callback)
         {
-            if (m == xpMsg_MouseUp) ndt_log("TIM314: mouse up in keys.c, callback set\n");//debug
-            return yfms->mousec_callback(yfms, maus->x - xmin, maus->y - ymin, maus->button, maus->delta, m);
+            return yfms->mousec_callback(yfms, maus->x - xmin, maus->y - ymin, maus->button, m);
         }
         return 0;
     }

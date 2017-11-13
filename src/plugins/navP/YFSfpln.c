@@ -35,15 +35,15 @@
 #include "YFSmain.h"
 #include "YFSspad.h"
 
-static void            yfs_lsk_callback_fpln(yfms_context *yfms, int key[2],                      intptr_t refcon);
-static void            yfs_msw_callback_fpln(yfms_context *yfms, int rx,  int ry,                       int delta);
-static int             yfs_msc_callback_fpln(yfms_context *yfms, int rx,  int ry, int b, int d, XPWidgetMessage m);
-static void            fpl_spc_callback_lnup(yfms_context *yfms                                                  );
-static void            fpl_spc_callback_lndn(yfms_context *yfms                                                  );
-static void            fpl_print_leg_generic(yfms_context *yfms, int row,                      ndt_route_leg *leg);
-static void            fpl_print_airport_rwy(yfms_context *yfms, int row, ndt_airport *apt,       ndt_runway *rwy);
-static int             fpl_getindex_for_line(yfms_context *yfms, int line                                        );
-static ndt_flightplan* fpl_getfplan_for_leg(yfms_context *yfms,                                ndt_route_leg *leg);
+static void            yfs_lsk_callback_fpln(yfms_context *yfms, int key[2],                intptr_t refcon);
+static void            yfs_msw_callback_fpln(yfms_context *yfms, int rx, int ry,                  int delta);
+static int             yfs_msc_callback_fpln(yfms_context *yfms, int rx, int ry, int b,   XPWidgetMessage m);
+static void            fpl_spc_callback_lnup(yfms_context *yfms                                            );
+static void            fpl_spc_callback_lndn(yfms_context *yfms                                            );
+static void            fpl_print_leg_generic(yfms_context *yfms, int row,                ndt_route_leg *leg);
+static void            fpl_print_airport_rwy(yfms_context *yfms, int row, ndt_airport *apt, ndt_runway *rwy);
+static int             fpl_getindex_for_line(yfms_context *yfms,                                   int line);
+static ndt_flightplan* fpl_getfplan_for_leg (yfms_context *yfms,                         ndt_route_leg *leg);
 
 static XPLMNavRef xplm_find_navaid(ndt_waypoint *wpt)
 {
@@ -1627,12 +1627,10 @@ static void yfs_msw_callback_fpln(yfms_context *yfms, int rx, int ry, int delta)
     yfms->data.fpln.ln_off -= delta; yfs_fpln_pageupdt(yfms); return;
 }
 
-static int yfs_msc_callback_fpln(yfms_context *yfms, int rx,  int ry, int b, int d, XPWidgetMessage m)
+static int yfs_msc_callback_fpln(yfms_context *yfms, int rx, int ry, int b, XPWidgetMessage m)
 {
-    if (m == xpMsg_MouseUp) ndt_log("TIM314: mouse up in fpln.c via callback\n");//debug
     if (b != 0 || (m != xpMsg_MouseUp && m != xpMsg_MouseDown))
     {
-        if (m == xpMsg_MouseUp) ndt_log("TIM314: mouse up in fpln.c not applicable, button %d\n", b);//debug
         return 0; // not applicable
     }
     if (rx < yfms->mouse_regions[5][0].xmin || // bottom left
@@ -1640,13 +1638,11 @@ static int yfs_msc_callback_fpln(yfms_context *yfms, int rx,  int ry, int b, int
         ry < yfms->mouse_regions[5][0].ymin || // bottom left
         ry > yfms->mouse_regions[0][2].ymax)   // top right
     {
-        if (m == xpMsg_MouseUp) ndt_log("TIM314: mouse up in fpln.c out of bounds???\n");//debug
         return 0; // out of bounds
     }
     if (m == xpMsg_MouseDown)
     {
-//        return 1; // we don't get mouse up if we don't consume mouse down
-        return 0;
+        return 1; // we don't get mouse up if we don't consume mouse down
     }
     yfms->data.fpln.ln_off = 0; yfs_fpln_pageupdt(yfms); return 1;
 }
