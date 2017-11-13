@@ -83,6 +83,14 @@ typedef struct
 
     // mouse event callbacks (one of each per page)
     YFS_MSW_f mousew_callback;
+    struct
+    {
+        int xmin;
+        int xmax;
+        int ymin;
+        int ymax;
+    }
+    mouse_regions[6][3];
 
     struct
     {

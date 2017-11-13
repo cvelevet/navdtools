@@ -138,6 +138,13 @@ void yfs_drto_pageupdt(yfms_context *yfms)
 
 static void yfs_msw_callback_drto(yfms_context *yfms, int rx, int ry, int delta)
 {
+    if (rx < yfms->mouse_regions[5][0].xmin || // bottom left
+        rx > yfms->mouse_regions[0][2].xmax || // top right
+        ry < yfms->mouse_regions[5][0].ymin || // bottom left
+        ry > yfms->mouse_regions[0][2].ymax)   // top right
+    {
+        return; // out of bounds
+    }
     yfms->data.drto.ln_off -= delta;
     int legct, legrm = (legct = ndt_list_count(yfms->data.fpln.legs)) - yfms->data.fpln.lg_idx;
     int indx0 = yfms->data.fpln.lg_idx + yfms->data.drto.ln_off;

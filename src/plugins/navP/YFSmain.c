@@ -705,6 +705,33 @@ static int create_main_window(yfms_context *yfms)
         }
     }
 
+    /*
+     * Predefined regions for mouse wheel and click support,
+     * set relative to the main display bottom right corner:
+     *
+     * xmin == ymin == 0
+     * xmax == YFS_MAINSCREEN_W
+     * ymax == YFS_MAINSCREEN_H
+     */
+    double rowheight = (((double)YFS_MAINSCREEN_H) / (14.));
+    int column_width = (((YFS_MAINSCREEN_W) * (3)) / (10)); // ~30% * 3 + ~10%
+    for (int row = 0; row < 6; row++)
+    {
+        int lsk_center = ((int)((rowheight) * ((11.5) - ((double)(row * 2)))));     // 11.5 -> 1.5 rows
+        yfms->mouse_regions[row][0].ymin =
+        yfms->mouse_regions[row][1].ymin =
+        yfms->mouse_regions[row][2].ymin = (lsk_center - YFS_FONT_BASIC_H);
+        yfms->mouse_regions[row][0].ymax =
+        yfms->mouse_regions[row][1].ymax =
+        yfms->mouse_regions[row][2].ymax = (lsk_center + YFS_FONT_BASIC_H);
+        yfms->mouse_regions[row][0].xmin = (0);                                     // left-aligned
+        yfms->mouse_regions[row][0].xmax = (column_width);                          // left-aligned
+        yfms->mouse_regions[row][2].xmax = (YFS_MAINSCREEN_W);                      // right-aligned
+        yfms->mouse_regions[row][2].xmin = (YFS_MAINSCREEN_W - column_width);       // right-aligned
+        yfms->mouse_regions[row][1].xmin = (YFS_MAINSCREEN_W - column_width) / 2;   // fully-centered
+        yfms->mouse_regions[row][1].xmax = (YFS_MAINSCREEN_W + column_width) / 2;   // fully-centered
+    }
+
     /* all good */
     return 0;
 

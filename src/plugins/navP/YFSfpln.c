@@ -1615,6 +1615,13 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
 
 static void yfs_msw_callback_fpln(yfms_context *yfms, int rx, int ry, int delta)
 {
+    if (rx < yfms->mouse_regions[5][0].xmin || // bottom left
+        rx > yfms->mouse_regions[0][2].xmax || // top right
+        ry < yfms->mouse_regions[5][0].ymin || // bottom left
+        ry > yfms->mouse_regions[0][2].ymax)   // top right
+    {
+        return; // out of bounds
+    }
     yfms->data.fpln.ln_off -= delta; yfs_fpln_pageupdt(yfms); return;
 }
 
