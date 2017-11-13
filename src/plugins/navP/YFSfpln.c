@@ -1629,8 +1629,10 @@ static void yfs_msw_callback_fpln(yfms_context *yfms, int rx, int ry, int delta)
 
 static int yfs_msc_callback_fpln(yfms_context *yfms, int rx,  int ry, int b, int d, XPWidgetMessage m)
 {
-    if (b != 0 || m != xpMsg_MouseUp)
+    if (m == xpMsg_MouseUp) ndt_log("TIM314: mouse up in fpln.c via callback\n");//debug
+    if (b != 0 || (m != xpMsg_MouseUp && m != xpMsg_MouseDown))
     {
+        if (m == xpMsg_MouseUp) ndt_log("TIM314: mouse up in fpln.c not applicable, button %d\n", b);//debug
         return 0; // not applicable
     }
     if (rx < yfms->mouse_regions[5][0].xmin || // bottom left
@@ -1638,7 +1640,13 @@ static int yfs_msc_callback_fpln(yfms_context *yfms, int rx,  int ry, int b, int
         ry < yfms->mouse_regions[5][0].ymin || // bottom left
         ry > yfms->mouse_regions[0][2].ymax)   // top right
     {
+        if (m == xpMsg_MouseUp) ndt_log("TIM314: mouse up in fpln.c out of bounds???\n");//debug
         return 0; // out of bounds
+    }
+    if (m == xpMsg_MouseDown)
+    {
+//        return 1; // we don't get mouse up if we don't consume mouse down
+        return 0;
     }
     yfms->data.fpln.ln_off = 0; yfs_fpln_pageupdt(yfms); return 1;
 }

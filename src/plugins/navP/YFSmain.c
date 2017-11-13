@@ -1739,6 +1739,7 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
     {
         if (XPIsWidgetVisible(inWidget))
         {
+            if (inMessage == xpMsg_MouseUp) ndt_log("TIM314: mouse up in main.c\n");//debug
             yfms_context   *yfms = (yfms_context*)XPGetWidgetProperty(inWidget, xpProperty_Refcon, NULL);
             XPMouseState_t *maus = (XPMouseState_t*)inParam1;
             return   yfs_mouseevent(yfms, maus, inMessage);
