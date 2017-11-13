@@ -487,18 +487,17 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
     }
 }
 
-void yfs_mouseevent(yfms_context *yfms, XPMouseState_t *maus, XPWidgetMessage m)
+int yfs_mouseevent(yfms_context *yfms, XPMouseState_t *maus, XPWidgetMessage m)
 {
     if (yfms && maus)
     {
-        int xmin, xmax, ymin, ymax, x = maus->x, y = maus->y, b = maus->button, d = maus->delta;
-        if (m == xpMsg_MouseWheel && (b == 0) && yfms->mousew_callback)
+        if (m == xpMsg_MouseWheel && maus->button == 0 && yfms->mousew_callback)
         {
-            XPGetWidgetGeometry(yfms->mwindow.screen.subw_id, &xmin, &ymax, &xmax, &ymin);
-            yfms->mousew_callback(yfms, x - xmin, y - ymin, d);
-            return;
+            int xmin, ymin; XPGetWidgetGeometry(yfms->mwindow.screen.subw_id, &xmin, NULL, NULL, &ymin);
+            yfms->mousew_callback(yfms, maus->x - xmin, maus->y - ymin, maus->delta);
+            return 1;
         }
-        return;
+        return 0;
     }
-    return;
+    return 0;
 }

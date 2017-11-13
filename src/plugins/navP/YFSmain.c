@@ -1731,25 +1731,16 @@ static int yfs_mwindowh(XPWidgetMessage inMessage,
         yfs_keypressed(yfms,  (XPWidgetID)inParam1);
         return 1;
     }
-    if (inMessage == xpMsg_MouseDrag)
-    {
-        if (XPIsWidgetVisible(inWidget))
-        {
-            return 1; // don't allow moving; TODO: allow moves by dragging title bar
-        }
-        return 0;
-    }
     if (inMessage == xpMsg_MouseUp   ||
         inMessage == xpMsg_MouseDown ||
+        inMessage == xpMsg_MouseDrag ||
         inMessage == xpMsg_MouseWheel)
     {
         if (XPIsWidgetVisible(inWidget))
         {
-            // note: we only get events when mouse within the window -- we can comsume all wheel events
             yfms_context   *yfms = (yfms_context*)XPGetWidgetProperty(inWidget, xpProperty_Refcon, NULL);
             XPMouseState_t *maus = (XPMouseState_t*)inParam1;
-            yfs_mouseevent (yfms, maus, inMessage);
-            return inMessage == xpMsg_MouseWheel; // TODO: consume MouseUp and Down outside of title bar
+            return   yfs_mouseevent(yfms, maus, inMessage);
             // TODO: handle in YFSkeys.c, IMHO; YFSkeys responsible to check bounds (is required), compute relative_xy, then check
             // for a registered mouse wheel callback and call it: yfms->foo.callback(relative_xy[0], relative_xy[1], axis, delta);
             // we may also want it to filter out any unsupported mouse axes, before handing it off to the pre-registered callback?
