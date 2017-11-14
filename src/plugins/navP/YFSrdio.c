@@ -375,6 +375,39 @@ static void get_altimeter(yfms_context *yfms, int out[3])
     out[2] = 0; return;
 }
 
+static void set_altimeter(yfms_context *yfms, int in[2])//fixme
+{
+    //fixme
+}
+
+static int get_transponder_mode(yfms_context *yfms)//fixme
+{
+    return 0;//fixme
+}
+
+static int get_transponder_code(yfms_context *yfms)
+{
+    if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+    {
+        uint32_t code; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_code, &code); return code;
+    }
+    return XPLMGetDatai(yfms->xpl.transponder_code);
+}
+
+static void set_transponder_mode(yfms_context *yfms, int mode)//fixme
+{
+    //fixme
+}
+
+static void set_transponder_code(yfms_context *yfms, int code)
+{
+    if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+    {
+        uint32_t u32_code = code; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_code, &u32_code); return;
+    }
+    XPLMSetDatai(yfms->xpl.transponder_code, code); return;
+}
+
 static void yfs_rad1_pageupdt(yfms_context *yfms)
 {
     /* don't print updated data before processing delayed swap, if any */
@@ -891,7 +924,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         size_t len; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
-            snprintf(buf, sizeof(buf), "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
+            snprintf(buf, sizeof(buf), "%04d", get_transponder_code(yfms));
             yfs_spad_reset(yfms, buf, -1); return; // current code to scratchpad
         }
         if ((len = strnlen(buf, 5)) > 4)
@@ -905,14 +938,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
             }
         }
-        if (yfms->xpl.atyp == YFS_ATYP_ASRT)
-        {
-            uint32_t code = atoi(buf);
-            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_code, &code);
-            yfs_spad_clear(yfms); return;
-        }
-        XPLMSetDatai(yfms->xpl.transponder_code, atoi(buf));
-        yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+        set_transponder_code(yfms, atoi(buf)); yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
     }
     if (key[0] == 1 && key[1] == 3)
     {
