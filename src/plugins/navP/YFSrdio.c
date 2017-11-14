@@ -383,6 +383,11 @@ static int get_transponder_mode(yfms_context *yfms)//fixme
     return 0;//fixme
 }
 
+static void set_transponder_mode(yfms_context *yfms, int mode)//fixme
+{
+    //fixme
+}
+
 static int get_transponder_code(yfms_context *yfms)
 {
     if (yfms->xpl.atyp == YFS_ATYP_ASRT)
@@ -390,11 +395,6 @@ static int get_transponder_code(yfms_context *yfms)
         uint32_t code; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_code, &code); return code;
     }
     return XPLMGetDatai(yfms->xpl.transponder_code);
-}
-
-static void set_transponder_mode(yfms_context *yfms, int mode)//fixme
-{
-    //fixme
 }
 
 static void set_transponder_code(yfms_context *yfms, int code)
