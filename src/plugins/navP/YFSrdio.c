@@ -344,9 +344,9 @@ static void get_altimeter(yfms_context *yfms, int out[3])
 {
     if (yfms->xpl.atyp == YFS_ATYP_ASRT)
     {
-        int32_t lmode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
-        int32_t lunit; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_u32_lunit, &lunit);
-        int32_t lvalu; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lvalu, &lvalu);
+        int32_t  lmode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
+        int32_t  lunit; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_u32_lunit, &lunit);
+        int32_t  lvalu; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lvalu, &lvalu);
         out[0] = lvalu; out[1] = lunit != 0; out[2] = lmode < 0 ? 1 : 2; return; // aircraft has dedicated STD mode
     }
     switch ((out[1] = yfms->ndt.alt.unit)) // our internal unit (X-Plane always uses InHg)
