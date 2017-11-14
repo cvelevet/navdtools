@@ -378,9 +378,130 @@ static void set_altimeter(yfms_context *yfms, int in[2])//fixme
     //fixme
 }
 
-static int get_transponder_mode(yfms_context *yfms)//fixme
+enum
 {
-    return 0;//fixme
+    XPDR_OFF,
+    XPDR_SBY,
+    XPDR_AUT,
+    XPDR_GND,
+    XPDR_ALT,
+    XPDR_TAO,
+    XPDR_TAR,
+    XPDR_TST,
+};
+static int get_transponder_mode(yfms_context *yfms)
+{
+    if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
+    {
+        return XPDR_OFF;
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+    {
+        uint32_t mode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
+        uint32_t tcas; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
+        if (mode > 1 && tcas > 0)
+        {
+            switch (tcas)
+            {
+                case 1:
+                    return XPDR_TAO;
+                default:
+                    return XPDR_TAR;
+            }
+        }
+        else
+        {
+            switch (mode)
+            {
+                case 0:
+                    return XPDR_SBY;
+                case 1:
+                    return XPDR_AUT;
+                default:
+                    return XPDR_ALT;
+            }
+        }
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_IXEG)
+    {
+        if ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_stby_act)) == 2)
+        {
+            switch ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_mode_act)))
+            {
+                case 2:
+                    return XPDR_TAR;
+                case 1:
+                    return XPDR_TAO;
+                default:
+                    return XPDR_ALT;
+            }
+        }
+        else
+        {
+            switch ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_stby_act)))
+            {
+                case 0:
+                    return XPDR_SBY;
+                default:
+                    return XPDR_AUT;
+            }
+        }
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_FB76)
+    {
+        switch ((int)roundf(XPLMGetDataf(yfms->xpl.fb76.systemMode)))
+        {
+            case 5:
+                return XPDR_TAR;
+            case 4:
+                return XPDR_TAO;
+            case 2:
+                return XPDR_GND;
+            case 1:
+                return XPDR_SBY;
+            case 0:
+                return XPDR_TST;
+            default:
+                return XPDR_ALT;
+        }
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_FB77)
+    {
+        switch (XPLMGetDatai(yfms->xpl.fb77.anim_85_switch))
+        {
+            case 4:
+                return XPDR_TAR;
+            case 3:
+                return XPDR_TAO;
+            case 1:
+                return XPDR_GND;
+            case 0:
+                return XPDR_SBY;
+            default:
+                return XPDR_ALT;
+        }
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+    {
+        switch (XPLMGetDatai(yfms->xpl.qpac.XPDRPower))
+        {
+            case 0:
+                return XPDR_SBY;
+            case 1:
+                return XPDR_AUT;
+            default:
+                return XPDR_ALT;
+        }
+    }
+    switch (XPLMGetDatai(yfms->xpl.transponder_mode))
+    {
+        case 0:
+            return XPDR_OFF;
+        case 1:
+            return XPDR_SBY;
+        default:
+            return XPDR_ALT;
+    }
 }
 
 static void set_transponder_mode(yfms_context *yfms, int mode)//fixme
@@ -451,156 +572,41 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     yfs_printf_rgt(yfms, 7, 0, COLR_IDX_WHITE, "%s", "MODE");
 
     /* line 8: XPDR information */
-    if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+    int mode;
     {
-        uint32_t code; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_code, &code);
-        uint32_t mode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
-        uint32_t tcas; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
-        if (mode > 1 && tcas > 0)
-        {
-            switch (tcas)
-            {
-                case 2:
-                    yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA/RA");
-                    break;
-                default:
-                    yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA");
-                    break;
-            }
-        }
-        else switch (mode)
-        {
-            case 0:
-                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "SBY");
-                break;
-            case 2:
-                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ALT");
-                break;
-            default:
-                yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "AUTO");
-                break;
-        }
-        yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04"PRIu32"", code);
+        mode = get_transponder_mode(yfms);
     }
-    else if (yfms->xpl.atyp == YFS_ATYP_IXEG ||
-             yfms->xpl.atyp == YFS_ATYP_FB76 ||
-             yfms->xpl.atyp == YFS_ATYP_FB77 ||
-             yfms->xpl.atyp == YFS_ATYP_QPAC)
+    switch (mode)
     {
-        if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
-        {
-            yfs_printf_lft(yfms, 8, 0, COLR_IDX_WHITE, "%s", "----");
-            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_WHITE, "%s", "OFF");
-        }
-        else
-        {
-            if (yfms->xpl.atyp == YFS_ATYP_IXEG)
-            {
-                if ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_stby_act)) == 2)
-                {
-                    switch ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_mode_act)))
-                    {
-                        case 0:
-                            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ALT");
-                            break;
-                        case 1:
-                            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA");
-                            break;
-                        default:
-                            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA/RA");
-                            break;
-                    }
-                }
-                else
-                {
-                    switch ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_stby_act)))
-                    {
-                        case 0:
-                            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "SBY");
-                            break;
-                        default:
-                            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "AUTO");
-                            break;
-                    }
-                }
-            }
-            if (yfms->xpl.atyp == YFS_ATYP_FB76)
-            {
-                switch ((int)roundf(XPLMGetDataf(yfms->xpl.fb76.systemMode)))
-                {
-                    case 5:
-                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA/RA");
-                        break;
-                    case 4:
-                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA");
-                        break;
-                    case 3:
-                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ALT");
-                        break;
-                    case 2:
-                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ON");
-                        break;
-                    case 0:
-                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TEST");
-                        break;
-                    default:
-                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "SBY");
-                        break;
-                }
-            }
-            if (yfms->xpl.atyp == YFS_ATYP_FB77)
-            {
-                switch (XPLMGetDatai(yfms->xpl.fb77.anim_85_switch))
-                {
-                    case 4:
-                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA/RA");
-                        break;
-                    case 3:
-                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA");
-                        break;
-                    case 2:
-                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ALT");
-                        break;
-                    case 1:
-                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ON");
-                        break;
-                    default:
-                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "SBY");
-                        break;
-                }
-            }
-            if (yfms->xpl.atyp == YFS_ATYP_QPAC)
-            {
-                switch (XPLMGetDatai(yfms->xpl.qpac.XPDRPower))
-                {
-                    case 0:
-                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "SBY");
-                        break;
-                    case 2:
-                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ALT");
-                        break;
-                    default:
-                        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "AUTO");
-                        break;
-                }
-            }
-            yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
-        }
-    }
-    else switch (XPLMGetDatai(yfms->xpl.transponder_mode))
-    {
-        case 0:
+        case XPDR_OFF:
             yfs_printf_lft(yfms, 8, 0, COLR_IDX_WHITE, "%s", "----");
             yfs_printf_rgt(yfms, 8, 0, COLR_IDX_WHITE, "%s", "OFF");
             break;
-        case 1:
-            yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
-            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "SBY");
+        case XPDR_SBY:
+            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "STBY");
+            break;
+        case XPDR_AUT:
+            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "AUTO");
+            break;
+        case XPDR_GND:
+            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ON");
+            break;
+        case XPDR_TAO:
+            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA");
+            break;
+        case XPDR_TAR:
+            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA/RA");
+            break;
+        case XPDR_TST:
+            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TEST");
             break;
         default:
-            yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
             yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ALT");
             break;
+    }
+    if (mode != XPDR_OFF)
+    {
+        yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
     }
 
     /* line 9: headers (white) */
