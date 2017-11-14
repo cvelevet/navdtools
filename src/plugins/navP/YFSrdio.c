@@ -340,6 +340,41 @@ void yfs_rdio_pageupdt(yfms_context *yfms)
     }
 }
 
+static void get_altimeter(yfms_context *yfms, int out[3])
+{
+    if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+    {
+        int32_t lmode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
+        int32_t lunit; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_u32_lunit, &lunit);
+        int32_t lvalu; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lvalu, &lvalu);
+        out[0] = lvalu; out[1] = lunit != 0; out[2] = lmode < 0 ? 1 : 2; return; // aircraft has dedicated STD mode
+    }
+    switch (yfms->ndt.alt.unit) // our internal unit (X-Plane always uses InHg)
+    {
+        case 1: // hectoPascals
+            out[0] = roundf(XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot) * 33.86389f);
+            out[1] = 1;
+            break;
+        default: // inches of mercury
+            out[0] = roundf(XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot) * 100.0f);
+            out[1] = 0;
+            break;
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_QPAC) // aircraft has dedicated STD mode
+    {
+        out[2] = XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt) ? 1 : 2; return;
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_Q380) // aircraft has dedicated STD mode
+    {
+        out[2] = XPLMGetDatai(yfms->xpl.q380.BaroStdCapt) ? 1 : 2; return;
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_Q350) // aircraft has dedicated STD mode
+    {
+        out[2] = XPLMGetDatai(yfms->xpl.q350.pressLeftButton) ? 1 : 2; return;
+    }
+    out[2] = 0; return;
+}
+
 static void yfs_rad1_pageupdt(yfms_context *yfms)
 {
     /* don't print updated data before processing delayed swap, if any */
@@ -543,110 +578,32 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     yfs_printf_rgt(yfms, 9, 0, COLR_IDX_WHITE, "%s", "UNIT");
 
     /* line 10: barometric altimeter information */
-    char buf[6]; float alt, alt_inhg = XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot);
-    if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+    int alt[3];
     {
-        int32_t lmode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
-        int32_t lunit; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_u32_lunit, &lunit);
-        int32_t lvalu; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lvalu, &lvalu);
-        if (0 > lmode)
-        {
-            yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%s", "STD");
-        }
-        else
-        {
-            if (lunit)
-            {
-                yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%04.0f", roundf((float)lvalu));
-            }
-            else
-            {
-                yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%05.2f", roundf((float)lvalu) / 100.0f);
-            }
-        }
-        yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s", lunit ? "hPa" : "InHg");
+        get_altimeter(yfms, alt);
     }
-    else
+    switch (alt[1])
     {
-        switch (yfms->ndt.alt.unit)
-        {
-            case 1: // hectoPascals
-                alt = roundf(alt_inhg * 33.86389f);
-                snprintf(buf, sizeof(buf), "%04.0f", alt);
-                yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s", "hPa");
-                break;
-            default: // inches of mercury
-                alt = roundf(alt_inhg * 100.0f);
-                snprintf(buf, sizeof(buf), "%05.2f", alt / 100.0f);
-                yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s", "InHg");
-                break;
-        }
-        if ((yfms->xpl.atyp == YFS_ATYP_QPAC && XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt)) ||
-            (yfms->xpl.atyp == YFS_ATYP_Q380 && XPLMGetDatai(yfms->xpl.q380.BaroStdCapt)) ||
-            (yfms->xpl.atyp == YFS_ATYP_Q350 && XPLMGetDatai(yfms->xpl.q350.pressLeftButton)))
-        {
-            yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%s", "STD");
-        }
-        else
-        {
-            yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%s", buf);
-        }
+        case 1: // hectoPascals
+            yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s", "hPa");
+            yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%04.0f", (((float)alt[0])));
+            break;
+        default: // inches of mercury
+            yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s", "InHg");
+            yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%05.2f", (((float)alt[0]) / 100.0f));
+            break;
+    }
+    if (alt[2] == 1)
+    {
+        yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%-5s", "STD");
     }
 
     /* line 12: switches (white) */
-    if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+    if (alt[2] != 1 && ((alt[1] == 0 && alt[0] != 2992) ||
+                        (alt[1] == 1 && alt[0] != 1013) || alt[2] == 2))
     {
-        int32_t lmode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
-        if (0 < lmode)
-        {
             yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "<ALT STD");
             yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
-        }
-        else
-        {
-            yfms->lsks[0][5].cback = (YFS_LSK_f)NULL;
-        }
-    }
-    else if (yfms->xpl.atyp == YFS_ATYP_QPAC)
-    {
-        if (!XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt))
-        {
-            yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "<ALT STD");
-            yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
-        }
-        else
-        {
-            yfms->lsks[0][5].cback = (YFS_LSK_f)NULL;
-        }
-    }
-    else if (yfms->xpl.atyp == YFS_ATYP_Q350)
-    {
-        if (!XPLMGetDatai(yfms->xpl.q350.pressLeftButton))
-        {
-            yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "<ALT STD");
-            yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
-        }
-        else
-        {
-            yfms->lsks[0][5].cback = (YFS_LSK_f)NULL;
-        }
-    }
-    else if (yfms->xpl.atyp == YFS_ATYP_Q380)
-    {
-        if (!XPLMGetDatai(yfms->xpl.q380.BaroStdCapt))
-        {
-            yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "<ALT STD");
-            yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
-        }
-        else
-        {
-            yfms->lsks[0][5].cback = (YFS_LSK_f)NULL;
-        }
-    }
-    else if (BPRESS_IS_STD(alt_inhg) == 0)
-    {
-        yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "<ALT STD");
-        yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
     }
     else
     {
