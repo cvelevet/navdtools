@@ -336,6 +336,16 @@ void yfs_rdio_pageupdt(yfms_context *yfms)
     }
 }
 
+static inline int altimeter_std(int in[3])
+{
+    if (in[2] != 1 && ((in[1] == 0 && in[0] != 2992) ||
+                       (in[1] == 1 && in[0] != 1013) || in[2] == 2))
+    {
+        return 0;
+    }
+    return 1;
+}
+
 static void get_altimeter(yfms_context *yfms, int out[3])
 {
     if (yfms->xpl.atyp == YFS_ATYP_ASRT)
@@ -494,7 +504,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
             }
             XPLMSetDatai(yfms->xpl.fb77.anim_175_button, 1); return;
         }
-        if (alt[2] == 1)
+        if (altimeter_std(alt))
         {
             XPLMSetDatai(yfms->xpl.fb77.anim_175_button, 1); // disable STD mode
         }
@@ -1021,15 +1031,14 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     }
 
     /* line 12: switches (white) */
-    if (alt[2] != 1 && ((alt[1] == 0 && alt[0] != 2992) ||
-                        (alt[1] == 1 && alt[0] != 1013) || alt[2] == 2))
+    if (altimeter_std(alt))
     {
-            yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "<STD");
-            yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
+        yfms->lsks[0][5].cback = (YFS_LSK_f)NULL;
     }
     else
     {
-        yfms->lsks[0][5].cback = (YFS_LSK_f)NULL;
+        yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "<STD");
+        yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
     }
     if (XPLMGetDatai(yfms->xpl.transponder_mode) >= 2)
     {
@@ -1388,7 +1397,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         if  (buf[0] == 0)
         {
             int alt[3]; get_altimeter(yfms, alt);
-            if (alt[2] == 1)
+            if (altimeter_std(alt))
             {
                 // STD, toggle out of it
                 int toggle[2] = { -1, -1, };
@@ -1460,8 +1469,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     if (key[0] == 0 && key[1] == 5)
     {
         int alt[3]; get_altimeter(yfms, alt);
-        if (alt[2] != 1 && ((alt[1] == 0 && alt[0] != 2992) ||
-                            (alt[1] == 1 && alt[0] != 1013) || alt[2] == 2))
+        if (altimeter_std(alt) == 0)
         {
             // not STD, toggle into it
             int toggle[2] = { -1, -1, };
