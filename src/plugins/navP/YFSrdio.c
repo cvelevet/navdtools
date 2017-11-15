@@ -38,11 +38,7 @@
 
 #define FB76_BARO_MIN (26.966629f) // rotary at 0.0f
 #define FB76_BARO_MAX (32.873302f) // rotary at 1.0f
-/*
- * check if a given barometric pressure is 29.92 InHg (or 1013 hPa, rounded)
- *                                           10_12.97                10_13.51 */
-#define BPRESS_IS_STD(bpress) ((((bpress) >= 29.913) && ((bpress) <= 29.929)))
-#define NAVTYP_IS_ILS(navtyp) ((navtyp == 8) || (navtyp == 1024))
+#define NAVTYP_IS_ILS(navtyp) ((navtyp == 8) || (navtyp == 1024))//fixme more values are ILS or LOC
 /*
  * Theoretically, the float representation of an integer may be inexact, for
  * example, 118 could be stored as 118.999999 or 119.000001. This is no issue
@@ -372,7 +368,15 @@ static void get_altimeter(yfms_context *yfms, int out[3])
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB77) // aircraft has dedicated STD mode
     {
-        out[2] = XPLMGetDatai(yfms->xpl.fb77.anim_175_button) ? 1 : 2; return;
+        if ((out[1] == 0 && out[0] == 2992) || (out[1] == 1 && out[0] == 1013)) // standard pressure
+        {
+            if (((int)roundf(100.0f * XPLMGetDataf(yfms->xpl.fb77.anim_25_rotery))) != 50)
+            {
+                out[2] = 1; return; // rotary not halfway -> we're in "STD" mode
+            }
+            out[2] = 2; return;
+        }
+        out[2] = 2; return;
     }
     out[2] = 0; return;
 }
@@ -1276,12 +1280,9 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (yfms->xpl.atyp == YFS_ATYP_FB77)
         {
-            float alt_inhg = XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot);
-            float rot_posn = XPLMGetDataf(yfms->xpl.fb77.anim_25_rotery);
-            int   rot_indx = (int)roundf(100.0f * rot_posn);
-            if   (rot_indx != 50 && BPRESS_IS_STD(alt_inhg))
+            int alt[3]; get_altimeter(yfms, alt);
+            if (alt[2] == 1)
             {
-                // altimeter standard but rotary not halfway
                 // we're in "STD" mode, switch to manual mode
                 XPLMSetDatai(yfms->xpl.fb77.anim_175_button, 1);
             }
@@ -1390,8 +1391,10 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (yfms->xpl.atyp == YFS_ATYP_FB77)
         {
-            // only reached w/altimeter in manual mode
-            // switch altimeter to "STD" mode instead
+            // LSK callback only reached with altimeter in manual mode
+            // simply switch altimeter to its dedicated STD mode instead
+            // XXX: ensure mode detection, rotary to non-halfway position
+            XPLMSetDataf(yfms->xpl.fb77.anim_25_rotery, 0.0f);
             XPLMSetDatai(yfms->xpl.fb77.anim_175_button, 1);
             yfs_rad1_pageupdt(yfms); return;
         }
