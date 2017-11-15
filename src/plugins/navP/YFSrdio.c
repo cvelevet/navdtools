@@ -36,6 +36,8 @@
 #include "YFSrdio.h"
 #include "YFSspad.h"
 
+// 1013 / 33.86389 + HPABAROOFFSET ~= 2991.51 ~= 2992
+#define HPABAROOFFSET (29.9151f - (1013.0f / 33.86389f))
 #define FB76_BARO_MIN (26.966629f) // rotary at 0.0f
 #define FB76_BARO_MAX (32.873302f) // rotary at 1.0f
 #define NAVTYP_IS_ILS(navtyp) ((navtyp == 8) || (navtyp == 1024))//fixme more values are ILS or LOC
@@ -381,21 +383,64 @@ static void get_altimeter(yfms_context *yfms, int out[3])
     out[2] = 0; return;
 }
 
-static void set_altimeter(yfms_context *yfms, int in[2])//fixme
+static void set_altimeter(yfms_context *yfms, int in[2])
 {
-    if (in[0] != -1 && in[1] == -1) // pressure unit toggle
+    float inhg_converted;
     {
-        if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+        if (in[0] != -1) // setting a specific barometric pressure
         {
-            uint32_t lunit; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_u32_lunit, &lunit);
-            lunit = !lunit; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &lunit);
-            return          yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &lunit);
+            if (in[1] != -1) // we'll be setting an actual baro value
+            {
+                do
+                {
+                    if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+                    {
+                        uint32_t unit = !!in[1];
+                        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &unit);
+                        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &unit);
+                        break;
+                    }
+                    switch ((yfms->ndt.alt.unit = in[1]))
+                    {
+                        case 1: // note: we must apply a small offset, so 1013 == 29.92
+                            inhg_converted = ((float)in[0] / 33.86389f) + HPABAROOFFSET;
+                            inhg_converted = (roundf(inhg_converted * 100.0f) / 100.0f);
+                            break;
+                        default: // inches of mercury
+                            inhg_converted = ((float)in[0] / 100.0f);
+                            break;
+                    }
+                    break;
+                }
+                while (0);
+            }
+            else // not setting a value, just toggle our internal pressure unit
+            {
+                if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+                {
+                    uint32_t lunit; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_u32_lunit, &lunit);
+                    lunit = !lunit; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &lunit);
+                    return          yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &lunit);
+                }
+                yfms->ndt.alt.unit = !yfms->ndt.alt.unit; return;
+            }
         }
-        yfms->ndt.alt.unit = !yfms->ndt.alt.unit; return;
+        else // standard barometric pressure requested
+        {
+            inhg_converted = 29.92f;
+        }
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+    {
+        //fixme
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_Q350)
+    {
+        //fixme
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB77)
     {
-        int alt[3]; get_altimeter(yfms, alt); float rotary;
+        int alt[3]; get_altimeter(yfms, alt);
         if (in[0] == -1) // dedicated STD pressure mode toggle
         {
             if (alt[2] != 1)
@@ -419,17 +464,9 @@ static void set_altimeter(yfms_context *yfms, int in[2])//fixme
         {
             XPLMSetDatai(yfms->xpl.fb77.anim_175_button, 1); // disable STD mode
         }
-        if ((yfms->ndt.alt.unit = in[2])) // hectoPascals
+        float rotary;
         {
-            rotary = ((in[0]) / 33.86389f) - 29.91387f + 0.50f; // 1013 -> 29.92
-        }
-        else // inches of mercury
-        {
-            rotary = ((in[0]) / 100.0000f) - 29.92000f + 0.50f; // 2992 -> 29.92
-        }
-        if (rotary > 0.0f && rotary < 1.0f)
-        {
-            rotary = roundf(rotary * 100.0f) / 100.0f; // only 100 positions: 29.42 -> 30.42
+            ((rotary = inhg_converted - 29.92f + 0.5f));
         }
         if (rotary < 0.0f)
         {
@@ -442,7 +479,41 @@ static void set_altimeter(yfms_context *yfms, int in[2])//fixme
         XPLMSetDataf(yfms->xpl.fb77.anim_25_rotery, rotary);
         return;
     }
-    //fixme
+    if (yfms->xpl.atyp == YFS_ATYP_FB76)
+    {
+        //fixme
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+    {
+        if (in[0] == -1) // dedicated STD pressure mode toggle
+        {
+            int std = XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt);
+            XPLMSetDatai    (yfms->xpl.qpac.BaroStdCapt, !std);
+            XPLMSetDatai    (yfms->xpl.qpac.BaroStdFO,   !std);
+            return;
+        }
+        XPLMSetDatai(yfms->xpl.qpac.BaroStdCapt, 0); // disable STD mode
+        XPLMSetDatai(yfms->xpl.qpac.BaroStdFO,   0); // disable STD mode
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_Q380)
+    {
+        if (in[0] == -1) // dedicated STD pressure mode toggle
+        {
+            int std = XPLMGetDatai(yfms->xpl.q380.BaroStdCapt);
+            XPLMSetDatai    (yfms->xpl.q380.BaroStdCapt, !std);
+            XPLMSetDatai    (yfms->xpl.q380.BaroStdFO,   !std);
+            return;
+        }
+        XPLMSetDatai(yfms->xpl.q380.BaroStdCapt, 0); // disable STD mode
+        XPLMSetDatai(yfms->xpl.q380.BaroStdFO,   0); // disable STD mode
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_IXEG)
+    {
+        XPLMSetDataf(yfms->xpl.ixeg.baro_inhg_sby_0001_ind, inhg_converted);
+    }
+    XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_copilot, inhg_converted);
+    XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_pilot,   inhg_converted);
+    return;
 }
 
 enum
