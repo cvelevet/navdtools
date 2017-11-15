@@ -4036,6 +4036,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDataf, 0.0f, "params/effectLevelBlick");                  // custom screen glow OFF
             _DO(1, XPLMSetDataf, 0.0f, "params/effectLevel");                       // custom screen glow OFF
             _DO(1, XPLMSetDataf, 0.1f, "params/wingflexLevel");                     // custom "wing flex" LOW
+            _DO(0, XPLMSetDatai,    1, "params/Khz833");                            // 8.33 kHz frequency YES
             _DO(1, XPLMSetDatai,    0, "params/constrol");                          // F/O. is in control OFF
             _DO(1, XPLMSetDatai,    0, "params/shakeOnTurb");                       // shake in turb. air OFF
             _DO(1, XPLMSetDatai,    0, "params/customEffects");                     // custom ef. control OFF
@@ -4043,7 +4044,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,    0, "params/dynamicBlinds");                     // dyn. window blinds OFF
             _DO(1, XPLMSetDatai,    0, "params/autoGearLever");                     // automatic g. lever OFF
             _DO(1, XPLMSetDatai,    0, "params/last_position");                     // inter-flight data  OFF
-            _DO(1, XPLMSetDatai,    0, "params/realism_level");                     // "challenge" level  OFF (0)
+            _DO(1, XPLMSetDatai,    0, "params/realism_level");                     // "challenge" level  OFF
             _DO(1, XPLMSetDatai,    1, "params/betterpushback");                    // use BetterPushback ON
             _DO(1, XPLMSetDatai,    1, "params/throttleblock");                     // throttle level bl. ON
             _DO(1, XPLMSetDatai,    1, "params/real_limits");                       // real aircr. limits ON
@@ -4052,7 +4053,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,    1, "params/yokehide");                          // hide CA & FO yokes ON
             _DO(1, XPLMSetDatai,    1, "params/wxrType");                           // real weather radar ON
             _DO(1, XPLMSetDatai,    1, "params/metric");                            // metric measurement ON
-            _DO(1, XPLMSetDatai,    1, "params/wheel");                             // scr. wheel support ON (default behavior)
+            _DO(1, XPLMSetDatai,    1, "params/wheel");                             // scr. wheel support ON
             _DO(1, XPLMSetDatai,    1, "params/ground_start_unit");                 // minimal ground config
             _DO(1, XPLMSetDatai,    1, "params/fuel_truck");                        // minimal ground config
             _DO(1, XPLMSetDatai,    1, "params/stairs");                            // minimal ground config
