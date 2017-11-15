@@ -370,6 +370,10 @@ static void get_altimeter(yfms_context *yfms, int out[3])
     {
         out[2] = XPLMGetDatai(yfms->xpl.q350.pressLeftButton) ? 1 : 2; return;
     }
+    if (yfms->xpl.atyp == YFS_ATYP_FB77) // aircraft has dedicated STD mode
+    {
+        out[2] = XPLMGetDatai(yfms->xpl.fb77.anim_175_button) ? 1 : 2; return;
+    }
     out[2] = 0; return;
 }
 
@@ -382,12 +386,13 @@ enum
 {
     XPDR_OFF,
     XPDR_SBY,
-    XPDR_AUT,
     XPDR_GND,
+    XPDR_AUT,
     XPDR_ALT,
     XPDR_TAO,
     XPDR_TAR,
     XPDR_TST,
+    XPDRTOGL,
 };
 static int get_transponder_mode(yfms_context *yfms)
 {
@@ -397,6 +402,7 @@ static int get_transponder_mode(yfms_context *yfms)
     }
     if (yfms->xpl.atyp == YFS_ATYP_ASRT)
     {
+        uint32_t altr; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
         uint32_t mode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
         uint32_t tcas; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
         if (mode > 1 && tcas > 0)
@@ -418,7 +424,7 @@ static int get_transponder_mode(yfms_context *yfms)
                 case 1:
                     return XPDR_AUT;
                 default:
-                    return XPDR_ALT;
+                    return altr ? XPDR_ALT : XPDR_GND;
             }
         }
     }
@@ -504,16 +510,219 @@ static int get_transponder_mode(yfms_context *yfms)
     }
 }
 
-static void set_transponder_mode(yfms_context *yfms, int mode)//fixme
+static void set_transponder_mode(yfms_context *yfms, int mode)
 {
-    //fixme
+    if (mode == XPDRTOGL) // ground <-> flight toggle
+    {
+        switch (get_transponder_mode(yfms))
+        {
+            case XPDR_SBY:
+            case XPDR_AUT:
+            case XPDR_GND:
+                mode = XPDR_ALT; // ground: STBY/AUTO/GND -> flight: ALT
+                break;
+            default:
+                mode = XPDR_AUT; // flight: ALT -> ground: AUTO or fallback
+                break;
+        }
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+    {
+        uint32_t tcas, tmod, xalt, xmod;
+        switch  (mode)
+        {
+            case XPDR_OFF:
+                tcas = 0; // THRT
+                tmod = 0; // STBY
+                xalt = 0; // OFF
+                xmod = 0; // STBY
+                break;
+            case XPDR_SBY:
+                tcas = 0; // THRT
+                tmod = 0; // STBY
+                xalt = 1; // ON
+                xmod = 0; // STBY
+                break;
+            case XPDR_GND:
+                tcas = 0; // THRT
+                tmod = 0; // STBY
+                xalt = 0; // OFF
+                xmod = 2; // ON
+                break;
+            case XPDR_AUT:
+                tcas = 0; // THRT
+                tmod = 0; // STBY
+                xalt = 1; // ON
+                xmod = 1; // AUTO
+                break;
+            case XPDR_TAO:
+                tcas = 1; // ALL
+                tmod = 1; // TA
+                xalt = 1; // ON
+                xmod = 2; // ON
+                break;
+            case XPDR_TAR:
+                tcas = 3; // BLW
+                tmod = 2; // TA/RA
+                xalt = 1; // ON
+                xmod = 2; // ON
+                break;
+            case XPDR_TST:
+            case XPDR_ALT:
+            default:
+                tcas = 0; // THRT
+                tmod = 0; // STBY
+                xalt = 1; // ON
+                xmod = 2; // ON
+                break;
+        }
+        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
+        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tmod, &tmod);
+        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &xalt);
+        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &xmod);
+        return;
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_IXEG)
+    {
+        float mact, sact;
+        switch (mode)
+        {
+            case XPDR_OFF:
+            case XPDR_SBY:
+                mact = 0.0f; // OFF
+                sact = 0.0f; // STBY
+                break;
+            case XPDR_GND:
+            case XPDR_AUT:
+                mact = 0.0f; // OFF
+                sact = 1.0f; // AUTO
+                break;
+            case XPDR_TAO:
+                mact = 1.0f; // TA
+                sact = 2.0f; // ON
+                break;
+            case XPDR_TAR:
+                mact = 2.0f; // TA/RA
+                sact = 2.0f; // ON
+                break;
+            case XPDR_TST:
+            case XPDR_ALT:
+            default:
+                mact = 1.0f; // OFF
+                sact = 2.0f; // ON
+                break;
+        }
+        XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, mact);
+        XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, sact);
+        return;
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+    {
+        int alt, pwr;
+        switch (mode)
+        {
+            case XPDR_OFF:
+                alt = 0; // OFF
+                pwr = 0; // STBY
+                break;
+            case XPDR_SBY:
+                alt = 1; // ON
+                pwr = 0; // STBY
+                break;
+            case XPDR_GND: // currently write-only, TODO: implement+test reading
+                alt = 0; // OFF
+                pwr = 2; // ON
+                break;
+            case XPDR_AUT:
+                alt = 1; // ON
+                pwr = 1; // AUTO
+                break;
+            case XPDR_TAO:
+            case XPDR_TAR:
+            case XPDR_TST:
+            case XPDR_ALT:
+            default:
+                alt = 1; // ON
+                pwr = 2; // ON
+                break;
+        }
+        XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, alt);
+        XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    pwr);
+        return;
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_FB76)
+    {
+        switch (mode)
+        {
+            case XPDR_OFF:
+            case XPDR_SBY:
+            case XPDR_GND:
+            case XPDR_AUT:
+                XPLMSetDataf(yfms->xpl.fb76.systemMode, 1.0f); // STBY
+                return;
+            case XPDR_TAO:
+                XPLMSetDataf(yfms->xpl.fb76.systemMode, 4.0f); // TA
+                return;
+            case XPDR_TAR:
+                XPLMSetDataf(yfms->xpl.fb76.systemMode, 5.0f); // TA/RA
+                return;
+            case XPDR_TST:
+                XPLMSetDataf(yfms->xpl.fb76.systemMode, 0.0f); // TEST
+                return;
+            case XPDR_ALT:
+            default:
+                XPLMSetDataf(yfms->xpl.fb76.systemMode, 3.0f); // ALT ON
+                return;
+        }
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_FB77)
+    {
+        switch (mode)
+        {
+            case XPDR_OFF:
+            case XPDR_SBY:
+            case XPDR_GND:
+            case XPDR_AUT:
+                XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 0.0f); // STBY
+                return;
+            case XPDR_TAO:
+                XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 3.0f); // TA
+                return;
+            case XPDR_TAR:
+                XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 4.0f); // TA/RA
+                return;
+            case XPDR_TST:
+            case XPDR_ALT:
+            default:
+                XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 2.0f); // XPNDR
+                return;
+        }
+    }
+    switch (mode)
+    {
+        case XPDR_OFF:
+            XPLMSetDatai(yfms->xpl.transponder_mode, 0);
+            return;
+        case XPDR_SBY:
+        case XPDR_GND:
+        case XPDR_AUT:
+            XPLMSetDatai(yfms->xpl.transponder_mode, 1);
+            return;
+        case XPDR_TAO:
+        case XPDR_TAR:
+        case XPDR_TST:
+        case XPDR_ALT:
+        default:
+            XPLMSetDatai(yfms->xpl.transponder_mode, 2);
+            return;
+    }
 }
 
 static int get_transponder_code(yfms_context *yfms)
 {
     if (yfms->xpl.atyp == YFS_ATYP_ASRT)
     {
-        uint32_t code; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_code, &code); return code;
+        uint32_t u32_code; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_code, &u32_code); return u32_code;
     }
     return XPLMGetDatai(yfms->xpl.transponder_code);
 }
@@ -639,7 +848,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     if (alt[2] != 1 && ((alt[1] == 0 && alt[0] != 2992) ||
                         (alt[1] == 1 && alt[0] != 1013) || alt[2] == 2))
     {
-            yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "<ALT STD");
+            yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "<STD");
             yfms->lsks[0][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
     }
     else
@@ -654,7 +863,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
                 yfs_printf_rgt(yfms, 12, 0, COLR_IDX_GREEN, "%s", "IDENT");
                 break;
             default:
-                yfs_printf_rgt(yfms, 12, 0, COLR_IDX_WHITE, "%s", "XPDR ID>");
+                yfs_printf_rgt(yfms, 12, 0, COLR_IDX_WHITE, "%s", "IDT>");
                 break;
         }
     }
@@ -951,197 +1160,49 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         {
             if (!strcmp(buf, "OFF"))
             {
-                if (yfms->xpl.atyp == YFS_ATYP_ASRT ||
-                    yfms->xpl.atyp == YFS_ATYP_IXEG ||
-                    yfms->xpl.atyp == YFS_ATYP_FB76 ||
-                    yfms->xpl.atyp == YFS_ATYP_FB77 ||
-                    yfms->xpl.atyp == YFS_ATYP_QPAC)
-                {
-                    yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
-                }
-                XPLMSetDatai(yfms->xpl.transponder_mode, 0);
+                set_transponder_mode(yfms, XPDR_OFF);
+                yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+            }
+            if (!strcmp(buf, "SBY") || !strcmp(buf, "STBY"))
+            {
+                set_transponder_mode(yfms, XPDR_SBY);
+                yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+            }
+            if (!strcmp(buf, "ON") || !strcmp(buf, "GND"))
+            {
+                set_transponder_mode(yfms, XPDR_GND);
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
             if (!strcmp(buf, "AUTO"))
             {
-                if (yfms->xpl.atyp == YFS_ATYP_ASRT)
-                {
-                    uint32_t altr = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
-                    uint32_t mode = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
-                    uint32_t tcas = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
-                    uint32_t tmod = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tmod, &tmod);
-                    yfs_spad_clear(yfms); return;
-                }
-                if (yfms->xpl.atyp == YFS_ATYP_IXEG)
-                {
-                    XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 1.0f);
-                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-                }
-                if (yfms->xpl.atyp == YFS_ATYP_QPAC)
-                {
-                    XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1);
-                    XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    1);
-                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-                }
-                sprintf(buf, "%s", "SBY"); // fall through
-            }
-            if (!strcmp(buf, "SBY") ||
-                !strcmp(buf, "STBY"))
-            {
-                if (yfms->xpl.atyp == YFS_ATYP_ASRT)
-                {
-                    uint32_t mode = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
-                    uint32_t tcas = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
-                    uint32_t tmod = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tmod, &tmod);
-                    yfs_spad_clear(yfms); return;
-                }
-                if (yfms->xpl.atyp == YFS_ATYP_IXEG)
-                {
-                    XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, 0.0f);
-                    XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 0.0f);
-                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-                }
-                if (yfms->xpl.atyp == YFS_ATYP_QPAC)
-                {
-                    XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 0);
-                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-                }
-                if (yfms->xpl.atyp == YFS_ATYP_FB76)
-                {
-                    XPLMSetDataf(yfms->xpl.fb76.systemMode, 1.0f);
-                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-                }
-                if (yfms->xpl.atyp == YFS_ATYP_FB77)
-                {
-                    XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 0);
-                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-                }
-                XPLMSetDatai(yfms->xpl.transponder_mode, 1);
+                set_transponder_mode(yfms, XPDR_AUT);
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
-            if ((!strcmp(buf, "ON")    && ((1))) ||
-                (!strcmp(buf, "TA")    && (t=1)) ||
-                (!strcmp(buf, "ALT")   && ((1))) ||
-                (!strcmp(buf, "TARA")  && (t=2)) ||
-                (!strcmp(buf, "TA/RA") && (t=2)))
+            if (!strcmp(buf, "ALT"))
             {
-                if (yfms->xpl.atyp == YFS_ATYP_ASRT)
-                {
-                    if (t > 0)
-                    {
-                        uint32_t tc = t; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tc);
-                        uint32_t tm = 3; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tmod, &tm);
-                    }
-                    uint32_t altr = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
-                    uint32_t mode = 2; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
-                    yfs_spad_clear(yfms); return;
-                }
-                if (yfms->xpl.atyp == YFS_ATYP_IXEG)
-                {
-                    if (t)
-                    {
-                        XPLMSetDataf(yfms->xpl.ixeg.xpdr_mode_act, (float)t);
-                    }
-                    XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 2.0f);
-                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-                }
-                if (yfms->xpl.atyp == YFS_ATYP_QPAC)
-                {
-                    XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1);
-                    XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    2);
-                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-                }
-                if (yfms->xpl.atyp == YFS_ATYP_FB76)
-                {
-                    XPLMSetDataf(yfms->xpl.fb76.systemMode, (float)(3+t));
-                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-                }
-                if (yfms->xpl.atyp == YFS_ATYP_FB77)
-                {
-                    XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 2 + t);
-                    yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-                }
-                XPLMSetDatai(yfms->xpl.transponder_mode, 2);
+                set_transponder_mode(yfms, XPDR_ALT);
+                yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+            }
+            if (!strcmp(buf, "TA"))
+            {
+                set_transponder_mode(yfms, XPDR_TAO);
+                yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+            }
+            if (!strcmp(buf, "TARA") || !strcmp(buf, "TA/RA"))
+            {
+                set_transponder_mode(yfms, XPDR_TAR);
+                yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+            }
+            if (!strcmp(buf, "TEST"))
+            {
+                set_transponder_mode(yfms, XPDR_TST);
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
-        else if (yfms->xpl.atyp == YFS_ATYP_ASRT)
-        {
-            uint32_t altr, mode, tcas, tmod;
-            yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
-            if (mode == 1) // AUTO -> ALT (no TCAS: aircr. may be on the ground)
-            {
-                altr = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
-                mode = 2; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
-            }
-            else // -> AUTO
-            {
-                altr = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
-                mode = 1; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
-                tcas = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
-                tmod = 0; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tmod, &tmod);
-            }
-            return;
-        }
-        else if (yfms->xpl.atyp == YFS_ATYP_IXEG)
-        {
-            if ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_stby_act)) != 1)
-            {
-                XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 1.0f);       // -> AUTO
-            }
-            else
-            {
-                XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, 2.0f);       // AUTO -> ALT
-            }
-            yfs_rad1_pageupdt(yfms); return;
-        }
-        else if (yfms->xpl.atyp == YFS_ATYP_QPAC)
-        {
-            if (XPLMGetDatai(yfms->xpl.qpac.XPDRPower) != 1)
-            {
-                XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1);           // AUTO
-                XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    1);           // AUTO
-            }
-            else
-            {
-                XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1);           // ALT
-                XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    2);           // ALT
-            }
-            yfs_rad1_pageupdt(yfms); return;
-        }
-        else if (yfms->xpl.atyp == YFS_ATYP_FB76)
-        {
-            if ((int)roundf(XPLMGetDataf(yfms->xpl.fb76.systemMode)) != 1)
-            {
-                XPLMSetDataf(yfms->xpl.fb76.systemMode, 1.0f);          // SBY
-            }
-            else
-            {
-                XPLMSetDataf(yfms->xpl.fb76.systemMode, 3.0f);          // ALT
-            }
-            yfs_rad1_pageupdt(yfms); return;
-        }
-        else if (yfms->xpl.atyp == YFS_ATYP_FB77)
-        {
-            if (XPLMGetDatai(yfms->xpl.fb77.anim_85_switch) != 0)
-            {
-                XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 0);         // SBY
-            }
-            else
-            {
-                XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 2);         // ALT
-            }
-            yfs_rad1_pageupdt(yfms); return;
-        }
-        else if (XPLMGetDatai(yfms->xpl.transponder_mode) == 1)
-        {
-            XPLMSetDatai(yfms->xpl.transponder_mode, 2);                // ALT
-            yfs_rad1_pageupdt(yfms); return;
-        }
         else
         {
-            XPLMSetDatai(yfms->xpl.transponder_mode, 1);                // SBY
+            set_transponder_mode(yfms, XPDRTOGL);
             yfs_rad1_pageupdt(yfms); return;
         }
     }
