@@ -395,7 +395,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
                 {
                     if (yfms->xpl.atyp == YFS_ATYP_ASRT)
                     {
-                        uint32_t unit = !!in[1];
+                        uint32_t unit = yfms->ndt.alt.unit = !!in[1];
                         yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &unit);
                         yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &unit);
                         break;
@@ -432,11 +432,32 @@ static void set_altimeter(yfms_context *yfms, int in[2])
     }
     if (yfms->xpl.atyp == YFS_ATYP_ASRT)
     {
-        //fixme
+        int32_t lmode;
+        {
+            yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
+        }
+        if (in[0] == -1) // dedicated STD pressure mode toggle
+        {
+            lmode = -lmode; // preserve captain-side QNH vs. QFE state
+            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
+            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_rmode, &lmode);
+            return;
+        }
+        if (lmode < 0) // disable STD mode
+        {
+            lmode = -lmode; // preserve captain-side QNH vs. QFE state
+            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
+            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_rmode, &lmode);
+        }
+        // note: we cannot set the target unit and value in the same call
+        yfms->data.rdio.asrt_delayed_baro_u = yfms->ndt.alt.unit;
+        yfms->data.rdio.asrt_delayed_baro_v = in[0];
+        yfms->data.rdio.asrt_delayed_baro_s = 1;
+        return;
     }
     if (yfms->xpl.atyp == YFS_ATYP_Q350)
     {
-        //fixme
+        //fixme2
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB77)
     {
@@ -481,7 +502,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB76)
     {
-        //fixme
+        //fixme2
     }
     if (yfms->xpl.atyp == YFS_ATYP_QPAC)
     {
