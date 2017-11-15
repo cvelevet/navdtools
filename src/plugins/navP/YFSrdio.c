@@ -389,17 +389,12 @@ static void get_altimeter(yfms_context *yfms, int out[3])
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB77) // aircraft has dedicated STD mode
     {
-        if ((out[1] == BARO_NHG && out[0] == 2992) ||
-            (out[1] == BARO_HPA && out[0] == 1013)) // standard pressure
+        // 1013 could be either of 29.92 or 29.91 so we need to check for it to avoid some issues
+        if (((int)roundf(XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot) * 100.0f)) == 2992)
         {
             if (((int)roundf(100.0f * XPLMGetDataf(yfms->xpl.fb77.anim_25_rotery))) != 50)
             {
-                // 1013 could be either 29.92 or 29.91, so we need to check for it to avoid more issues
-                if ((int)roundf(XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot) * 100.0f) == 2992)
-                {
-                    out[2] = BARO_STD; return; // rotary not halfway -> we're in "STD" mode
-                }
-                out[2] = BARO_SET; return;
+                out[2] = BARO_STD; return; // rotary not halfway -> we're in "STD" mode
             }
             out[2] = BARO_SET; return;
         }
