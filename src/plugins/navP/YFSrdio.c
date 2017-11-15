@@ -457,7 +457,22 @@ static void set_altimeter(yfms_context *yfms, int in[2])
     }
     if (yfms->xpl.atyp == YFS_ATYP_Q350)
     {
-        //fixme2
+        if (in[0] == -1) // dedicated STD pressure mode toggle
+        {
+            int std = XPLMGetDatai(yfms->xpl.q350.pressLeftButton);
+            XPLMSetDatai   (yfms->xpl.q350.pressLeftButton,  !std);
+            XPLMSetDatai   (yfms->xpl.q350.pressRightButton, !std);
+            return;
+        }
+        else // disable STD mode
+        {
+            XPLMSetDatai(yfms->xpl.q350.pressLeftButton,  0);
+            XPLMSetDatai(yfms->xpl.q350.pressRightButton, 0);
+        }
+        float offset = roundf(100.0f * (inhg_converted - 29.92f));
+        XPLMSetDataf(yfms->xpl.q350.pressLeftRotary,      offset);
+        XPLMSetDataf(yfms->xpl.q350.pressRightRotary,     offset);
+        return;
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB77)
     {
@@ -477,7 +492,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
                  * to a non-halfway position before triggering the "STD" mode
                  * toggle button's associated dataref.
                  */
-                XPLMSetDataf(yfms->xpl.fb77.anim_25_rotery, 0.0f);
+                XPLMSetDataf(yfms->xpl.fb77.anim_25_rotery, 0.49f); // 29.91
             }
             XPLMSetDatai(yfms->xpl.fb77.anim_175_button, 1); return;
         }
