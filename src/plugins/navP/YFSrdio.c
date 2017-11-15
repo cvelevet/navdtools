@@ -246,40 +246,38 @@ static double get_frequency4idt(const char *idt, yfms_context *yfms, int navaid_
     return -1.;
 }
 
-static double get_baro_pressure(const char *string)
+static int get_baro_pressure(const char *string, int out[2])
 {
     double press; size_t len;
     if (!string)
     {
-        return -1.;
+        return -1;
     }
     else
     {
         len = strnlen(string, 6);
     }
-    if (len < 2 || len > 5) // min: "29", max: "29.92"
+    if (len < 4 || len > 5) // min: "2992", max: "29.92"
     {
-        return -1.;
+        return -1;
     }
     if (sscanf(string, "%lf", &press) != 1)
     {
-        return -1.;
+        return -1;
     }
-    if (1356. <= press + YVP_FLOORDBL) // InHg, no decimal separator provided
+    if (press >= (1.) && press <= (40.)) // inches of mercury, decimal separator
     {
-        press /= 100.;
+        out[0] = round(press * 100.); out[1] = 0; return 0;
     }
-    else if (40. <= press + YVP_FLOORDBL) // between 41 and 1355: hPa
+    if (press >= (40. * 33.86389) && press <= (4000.)) // InHg, no separator
     {
-        press = (press + .04) / 33.86389; // STD: 1013.00 -> 1013.04 -> 2991.51 -> 2992.00 -> 29.92
-        if (press + YVP_CEIL_DBL >= 40.) press = 40.; // sanitize for next check: 1355 -> 1354.5556
+        out[0] = round(press); out[1] = 0; return 0;
     }
-    if (press + YVP_FLOORDBL <= 1. || press + YVP_CEIL_DBL >= 40.) // valid range 1.00 -> 40.00 InHg
+    if (press >= (40.) && press <= (40. * 33.86389)) // hectoPascals
     {
-        return -1.;
+        out[0] = round(press); out[1] = 1; return 0;
     }
-    /* For display purposes, we must round the value to .01 InHg (1/100) */
-    return (round(press * 100.) / 100.);
+    return -1;
 }
 
 void yfs_rad1_pageopen(yfms_context *yfms)
@@ -1386,107 +1384,38 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 4)
     {
-        float inhg, hpa; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
-        if (buf[0] == 0)
+        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
+        if  (buf[0] == 0)
         {
-            snprintf(buf, sizeof(buf), "%.5s", yfms->mwindow.screen.text[10]);
-            buf[4 + !yfms->ndt.alt.unit] = 0;  yfs_spad_reset(yfms, buf, -1);
-            return; // current baro to scratchpad
-        }
-        if ((inhg = (float)get_baro_pressure(buf)) < 0.0f)
-        {
-            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
-        }
-        if (sscanf(buf, "%f", &hpa) != 1)
-        {
-            yfs_spad_reset(yfms, "UNEXPECTED ERROR", -1); return;
-        }
-        if (yfms->xpl.atyp == YFS_ATYP_ASRT)
-        {
-            uint32_t unit; int32_t lmode, rmode, value;
-            yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
-            yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lmode, &rmode);
-            if (lmode < 0) // STD -> corrected value
+            int alt[3]; get_altimeter(yfms, alt);
+            if (alt[2] == 1)
             {
-                lmode = -lmode; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
+                // STD, toggle out of it
+                int toggle[2] = { -1, -1, };
+                set_altimeter(yfms, toggle);
+                yfs_rad1_pageupdt(yfms); return;
             }
-            if (rmode < 0) // STD -> corrected value
+            switch (alt[1])
             {
-                rmode = -rmode; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_rmode, &rmode);
+                case 1: // hectoPascals
+                    snprintf(buf, sizeof(buf), "%04.0f", (float)alt[0]);
+                    break;
+                default: // inches of mercury
+                    snprintf(buf, sizeof(buf), "%05.2f", (float)alt[0] / 100.0f);
+                    break;
             }
-            if (roundf(hpa)          == roundf(inhg * 100.0f) || // e.g. 2992.0000 == 29.92*100
-                roundf(hpa * 100.0f) == roundf(inhg * 100.0f))   // e.g. 29.92*100 == 29.92*100
+            yfs_spad_reset(yfms, buf, -1); return; // current baro to scratchpad
+        }
+        int baro[2];
+        {
+            if (get_baro_pressure(buf, baro))
             {
-                unit = 0; value = (int32_t)roundf(inhg * 100.0f);
+                yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
             }
-            else
-            {
-                unit = 1; value = (int32_t)roundf(hpa);
-            }
-            // note: we cannot set the target unit and value in the same call
-            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &unit);
-            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &unit);
-            yfms->data.rdio.asrt_delayed_baro_v = value;
-            yfms->data.rdio.asrt_delayed_baro_u = unit;
-            yfms->data.rdio.asrt_delayed_baro_s = 1;
-            yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
         }
-        if (yfms->xpl.atyp == YFS_ATYP_Q350)
-        {
-            float offset       = roundf(100.0f * (inhg - 29.92f));
-            XPLMSetDatai(yfms->xpl.q350.pressLeftButton,       0);
-            XPLMSetDatai(yfms->xpl.q350.pressRightButton,      0);
-            XPLMSetDataf(yfms->xpl.q350.pressLeftRotary,  offset);
-            XPLMSetDataf(yfms->xpl.q350.pressRightRotary, offset);
-            yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-        }
-        if (yfms->xpl.atyp == YFS_ATYP_FB76)
-        {
-            if (inhg < FB76_BARO_MIN)   inhg = FB76_BARO_MIN;
-            if (inhg > FB76_BARO_MAX)   inhg = FB76_BARO_MAX;
-            float baro_range = inhg          - FB76_BARO_MIN;
-            float full_range = FB76_BARO_MAX - FB76_BARO_MIN;
-            float alt_rotary_value = baro_range / full_range;
-            XPLMSetDataf(yfms->xpl.fb76.baroRotary_stby,  alt_rotary_value);
-            XPLMSetDataf(yfms->xpl.fb76.baroRotary_left,  alt_rotary_value);
-            XPLMSetDataf(yfms->xpl.fb76.baroRotary_right, alt_rotary_value);
-            yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-        }
-        if (yfms->xpl.atyp == YFS_ATYP_FB77)
-        {
-            //fixme extend to all aircraft; note: requires get_baro_pressure()
-            //returning an int[2] value so as to avoid unnecessary conversions
-            if (inhg < 20.0f) // hectoPascals
-            {
-                int alt[2]; alt[1] = 1; alt[0] = roundf(inhg * 33.86389f);
-                set_altimeter(yfms, alt);
-            }
-            else // inches of mercury
-            {
-                int alt[2]; alt[1] = 0; alt[0] = roundf(inhg * 100.0f);
-                set_altimeter(yfms, alt);
-            }
-            yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-        }
-        if (yfms->xpl.atyp == YFS_ATYP_QPAC)
-        {
-            XPLMSetDatai(yfms->xpl.qpac.BaroStdCapt, 0);
-            XPLMSetDatai(yfms->xpl.qpac.BaroStdFO,   0);
-        }
-        if (yfms->xpl.atyp == YFS_ATYP_Q380)
-        {
-            XPLMSetDatai(yfms->xpl.q380.BaroStdCapt, 0);
-            XPLMSetDatai(yfms->xpl.q380.BaroStdFO,   0);
-        }
-        if (yfms->xpl.atyp == YFS_ATYP_IXEG)
-        {
-            XPLMSetDataf(yfms->xpl.ixeg.baro_inhg_sby_0001_ind, inhg);
-        }
-        XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_copilot, inhg);
-        XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_pilot,   inhg);
-        yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+        set_altimeter(yfms, baro); yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
     }
-    if (key[0] == 1 && key[1] == 4)
+    if (key[0] == 1 && key[1] == 4)//fixme2
     {
         char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if  (strnlen(buf, 1) && !yfms->mwindow.screen.spad_reset)
@@ -1530,62 +1459,16 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 5)
     {
-        if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+        int alt[3]; get_altimeter(yfms, alt);
+        if (alt[2] != 1 && ((alt[1] == 0 && alt[0] != 2992) ||
+                            (alt[1] == 1 && alt[0] != 1013) || alt[2] == 2))
         {
-            int32_t lmode, rmode;
-            yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode); lmode = -lmode;
-            yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_rmode, &rmode); rmode = -rmode;
-            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
-            yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_rmode, &rmode);
-            return;
-        }
-        if (yfms->xpl.atyp == YFS_ATYP_QPAC)
-        {
-            XPLMSetDatai(yfms->xpl.qpac.BaroStdCapt, 1);
-            XPLMSetDatai(yfms->xpl.qpac.BaroStdFO,   1);
-            yfs_rad1_pageupdt(yfms); return;
-        }
-        if (yfms->xpl.atyp == YFS_ATYP_Q350)
-        {
-            XPLMSetDatai(yfms->xpl.q350.pressLeftButton,  1);
-            XPLMSetDatai(yfms->xpl.q350.pressRightButton, 1);
-            yfs_rad1_pageupdt(yfms); return;
-        }
-        if (yfms->xpl.atyp == YFS_ATYP_Q380)
-        {
-            XPLMSetDatai(yfms->xpl.q380.BaroStdCapt, 1);
-            XPLMSetDatai(yfms->xpl.q380.BaroStdFO,   1);
-            yfs_rad1_pageupdt(yfms); return;
-        }
-        if (yfms->xpl.atyp == YFS_ATYP_FB76)
-        {
-            XPLMSetDataf(yfms->xpl.fb76.baroRotary_stby,  0.5f);
-            XPLMSetDataf(yfms->xpl.fb76.baroRotary_left,  0.5f);
-            XPLMSetDataf(yfms->xpl.fb76.baroRotary_right, 0.5f);
-            yfs_rad1_pageupdt(yfms); return;
-        }
-        if (yfms->xpl.atyp == YFS_ATYP_FB77)
-        {
-            /*
-             * fixme: for all aircraft:
-             * if (key[0] == 0 && key[1] == 4 && alt[2] == 1)
-             * { toggle STD mode }
-             * if (key[0] == 0 && key[1] == 5 && alt[2] == 2)
-             * { toggle STD mode }
-             * if (key[0] == 0 && key[1] == 5 && alt[2] == 0)
-             * { manual STD baro }
-             */
+            // not STD, toggle into it
             int toggle[2] = { -1, -1, };
             set_altimeter(yfms, toggle);
             yfs_rad1_pageupdt(yfms); return;
         }
-        if (yfms->xpl.atyp == YFS_ATYP_IXEG)
-        {
-            XPLMSetDataf(yfms->xpl.ixeg.baro_inhg_sby_0001_ind, 29.92f);
-        }
-        XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_copilot, 29.92f);
-        XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_pilot,   29.92f);
-        yfs_rad1_pageupdt(yfms); return;
+        return;
     }
     if (key[0] == 1 && key[1] == 5)
     {
