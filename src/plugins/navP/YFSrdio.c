@@ -383,6 +383,65 @@ static void get_altimeter(yfms_context *yfms, int out[3])
 
 static void set_altimeter(yfms_context *yfms, int in[2])//fixme
 {
+    if (in[0] != -1 && in[1] == -1) // pressure unit toggle
+    {
+        if (yfms->xpl.atyp == YFS_ATYP_ASRT)
+        {
+            uint32_t lunit; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_u32_lunit, &lunit);
+            lunit = !lunit; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &lunit);
+            return          yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &lunit);
+        }
+        yfms->ndt.alt.unit = !yfms->ndt.alt.unit; return;
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_FB77)
+    {
+        int alt[3]; get_altimeter(yfms, alt); float rotary;
+        if (in[0] == -1) // dedicated STD pressure mode toggle
+        {
+            if (alt[2] != 1)
+            {
+                /*
+                 * Note: we detect STD mode in this specific aircraft when:
+                 *
+                 * - X-Plane's altimeter is set to standard pressure
+                 * - plane's altimeter knob isn't in halfway position
+                 *
+                 * XXX: to ensure we can detect the mode correctly when going
+                 * from 29.92 to the dedicated STD mode, we move said knob to
+                 * to a non-halfway position before triggering the "STD" mode
+                 * toggle button's associated dataref.
+                 */
+                XPLMSetDataf(yfms->xpl.fb77.anim_25_rotery, 0.0f);
+            }
+            XPLMSetDatai(yfms->xpl.fb77.anim_175_button, 1); return;
+        }
+        if (alt[2] == 1)
+        {
+            XPLMSetDatai(yfms->xpl.fb77.anim_175_button, 1); // disable STD mode
+        }
+        if ((yfms->ndt.alt.unit = in[2])) // hectoPascals
+        {
+            rotary = ((in[0]) / 33.86389f) - 29.91387f + 0.50f; // 1013 -> 29.92
+        }
+        else // inches of mercury
+        {
+            rotary = ((in[0]) / 100.0000f) - 29.92000f + 0.50f; // 2992 -> 29.92
+        }
+        if (rotary > 0.0f && rotary < 1.0f)
+        {
+            rotary = roundf(rotary * 100.0f) / 100.0f; // only 100 positions: 29.42 -> 30.42
+        }
+        if (rotary < 0.0f)
+        {
+            rotary = 0.0f;
+        }
+        if (rotary > 1.0f)
+        {
+            rotary = 1.0f;
+        }
+        XPLMSetDataf(yfms->xpl.fb77.anim_25_rotery, rotary);
+        return;
+    }
     //fixme
 }
 
@@ -1280,17 +1339,18 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (yfms->xpl.atyp == YFS_ATYP_FB77)
         {
-            int alt[3]; get_altimeter(yfms, alt);
-            if (alt[2] == 1)
+            //fixme extend to all aircraft; note: requires get_baro_pressure()
+            //returning an int[2] value so as to avoid unnecessary conversions
+            if (inhg < 20.0f) // hectoPascals
             {
-                // we're in "STD" mode, switch to manual mode
-                XPLMSetDatai(yfms->xpl.fb77.anim_175_button, 1);
+                int alt[2]; alt[1] = 1; alt[0] = roundf(inhg * 33.86389f);
+                set_altimeter(yfms, alt);
             }
-            // very limited rng. (29.42 -> 30.42)
-            float rot_newpr = inhg - 29.92f + 0.5f;
-            if (rot_newpr < 0.0f) rot_newpr = 0.0f;
-            if (rot_newpr > 1.0f) rot_newpr = 1.0f;
-            XPLMSetDataf(yfms->xpl.fb77.anim_25_rotery, rot_newpr);
+            else // inches of mercury
+            {
+                int alt[2]; alt[1] = 0; alt[0] = roundf(inhg * 100.0f);
+                set_altimeter(yfms, alt);
+            }
             yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
         }
         if (yfms->xpl.atyp == YFS_ATYP_QPAC)
@@ -1391,11 +1451,17 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (yfms->xpl.atyp == YFS_ATYP_FB77)
         {
-            // LSK callback only reached with altimeter in manual mode
-            // simply switch altimeter to its dedicated STD mode instead
-            // XXX: ensure mode detection, rotary to non-halfway position
-            XPLMSetDataf(yfms->xpl.fb77.anim_25_rotery, 0.0f);
-            XPLMSetDatai(yfms->xpl.fb77.anim_175_button, 1);
+            /*
+             * fixme: for all aircraft:
+             * if (key[0] == 0 && key[1] == 4 && alt[2] == 1)
+             * { toggle STD mode }
+             * if (key[0] == 0 && key[1] == 5 && alt[2] == 2)
+             * { toggle STD mode }
+             * if (key[0] == 0 && key[1] == 5 && alt[2] == 0)
+             * { manual STD baro }
+             */
+            int toggle[2] = { -1, -1, };
+            set_altimeter(yfms, toggle);
             yfs_rad1_pageupdt(yfms); return;
         }
         if (yfms->xpl.atyp == YFS_ATYP_IXEG)
