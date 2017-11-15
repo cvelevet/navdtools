@@ -502,7 +502,15 @@ static void set_altimeter(yfms_context *yfms, int in[2])
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB76)
     {
-        //fixme2
+        if (inhg_converted < FB76_BARO_MIN) inhg_converted = FB76_BARO_MIN;
+        if (inhg_converted > FB76_BARO_MAX) inhg_converted = FB76_BARO_MAX;
+        float rotary_baro_range =           inhg_converted - FB76_BARO_MIN;
+        float rotary_full_range =            FB76_BARO_MAX - FB76_BARO_MIN;
+        float baro_rotary_value = rotary_baro_range / rotary_full_range;
+        XPLMSetDataf(yfms->xpl.fb76.baroRotary_stby,  baro_rotary_value);
+        XPLMSetDataf(yfms->xpl.fb76.baroRotary_left,  baro_rotary_value);
+        XPLMSetDataf(yfms->xpl.fb76.baroRotary_right, baro_rotary_value);
+        return;
     }
     if (yfms->xpl.atyp == YFS_ATYP_QPAC)
     {
