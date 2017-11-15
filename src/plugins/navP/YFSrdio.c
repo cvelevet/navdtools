@@ -336,10 +336,21 @@ void yfs_rdio_pageupdt(yfms_context *yfms)
     }
 }
 
+enum
+{
+    BARO_ANY = 0,
+    BARO_STD = 1,
+    BARO_SET = 2,
+};
+enum
+{
+    BARO_NHG = 0,
+    BARO_HPA = 1,
+};
 static inline int altimeter_std(int in[3])
 {
-    if (in[2] != 1 && ((in[1] == 0 && in[0] != 2992) ||
-                       (in[1] == 1 && in[0] != 1013) || in[2] == 2))
+    if (in[2] != BARO_STD && ((in[1] == BARO_NHG && in[0] != 2992) ||
+                              (in[1] == BARO_HPA && in[0] != 1013) || in[2] == BARO_SET))
     {
         return 0;
     }
@@ -353,7 +364,7 @@ static void get_altimeter(yfms_context *yfms, int out[3])
         int32_t  lmode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lmode, &lmode);
         int32_t  lunit; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_u32_lunit, &lunit);
         int32_t  lvalu; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_s32_lvalu, &lvalu);
-        out[0] = lvalu; out[1] = lunit != 0; out[2] = lmode < 0 ? 1 : 2; return; // aircraft has dedicated STD mode
+        out[0] = lvalu; out[1] = lunit != 0; out[2] = lmode < 0 ? BARO_STD : BARO_SET; return; // aircraft has dedicated STD mode
     }
     switch ((out[1] = yfms->ndt.alt.unit)) // our internal unit (X-Plane always uses InHg)
     {
@@ -366,29 +377,35 @@ static void get_altimeter(yfms_context *yfms, int out[3])
     }
     if (yfms->xpl.atyp == YFS_ATYP_QPAC) // aircraft has dedicated STD mode
     {
-        out[2] = XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt) ? 1 : 2; return;
+        out[2] = XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt    ) ? BARO_STD : BARO_SET; return;
     }
     if (yfms->xpl.atyp == YFS_ATYP_Q380) // aircraft has dedicated STD mode
     {
-        out[2] = XPLMGetDatai(yfms->xpl.q380.BaroStdCapt) ? 1 : 2; return;
+        out[2] = XPLMGetDatai(yfms->xpl.q380.BaroStdCapt    ) ? BARO_STD : BARO_SET; return;
     }
     if (yfms->xpl.atyp == YFS_ATYP_Q350) // aircraft has dedicated STD mode
     {
-        out[2] = XPLMGetDatai(yfms->xpl.q350.pressLeftButton) ? 1 : 2; return;
+        out[2] = XPLMGetDatai(yfms->xpl.q350.pressLeftButton) ? BARO_STD : BARO_SET; return;
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB77) // aircraft has dedicated STD mode
     {
-        if ((out[1] == 0 && out[0] == 2992) || (out[1] == 1 && out[0] == 1013)) // standard pressure
+        if ((out[1] == BARO_NHG && out[0] == 2992) ||
+            (out[1] == BARO_HPA && out[0] == 1013)) // standard pressure
         {
             if (((int)roundf(100.0f * XPLMGetDataf(yfms->xpl.fb77.anim_25_rotery))) != 50)
             {
-                out[2] = 1; return; // rotary not halfway -> we're in "STD" mode
+                // 1013 could be either 29.92 or 29.91, so we need to check for it to avoid more issues
+                if ((int)roundf(XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot) * 100.0f) == 2992)
+                {
+                    out[2] = BARO_STD; return; // rotary not halfway -> we're in "STD" mode
+                }
+                out[2] = BARO_SET; return;
             }
-            out[2] = 2; return;
+            out[2] = BARO_SET; return;
         }
-        out[2] = 2; return;
+        out[2] = BARO_SET; return;
     }
-    out[2] = 0; return;
+    out[2] = BARO_ANY; return;
 }
 
 static void set_altimeter(yfms_context *yfms, int in[2])
@@ -410,7 +427,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
                     }
                     switch ((yfms->ndt.alt.unit = in[1]))
                     {
-                        case 1: // note: we must apply a small offset, so 1013 == 29.92
+                        case 1: // hectoPascals
                             inhg_converted = ((float)in[0] / 33.86389f) + HPABAROOFFSET;
                             inhg_converted = (roundf(inhg_converted * 100.0f) / 100.0f);
                             break;
