@@ -67,6 +67,7 @@ static void yfs_rad1_pageupdt    (yfms_context *yfms);
 static void yfs_rad2_pageupdt    (yfms_context *yfms);
 static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refcon);
 static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refcon);
+static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry,   int delta);
 
 /*
  * Frequency parsers and sanitizers.
@@ -300,6 +301,7 @@ void yfs_rad1_pageopen(yfms_context *yfms)
     yfms->lsks[0][3].cback = yfms->lsks[1][3].cback =
     yfms->lsks[0][4].cback = yfms->lsks[1][4].cback =
     yfms->lsks[0][5].cback = yfms->lsks[1][5].cback = (YFS_LSK_f)&yfs_lsk_callback_rad1;
+    yfms->mousew_callback  = (YFS_MSW_f)&yfs_msw_callback_rad1;
     yfs_rdio_pageupdt(yfms); return;
 }
 
@@ -592,15 +594,17 @@ static void set_altimeter(yfms_context *yfms, int in[2])
 
 enum
 {
-    XPDR_OFF,
-    XPDR_SBY,
-    XPDR_GND,
-    XPDR_AUT,
-    XPDR_ALT,
-    XPDR_TAO,
-    XPDR_TAR,
-    XPDR_TST,
-    XPDRTOGL,
+    XPDR_OFF = 0,
+    XPDR_SBY = 1,
+    XPDR_GND = 2,
+    XPDR_AUT = 3,
+    XPDR_TST = 4,
+    XPDR_ALT = 5,
+    XPDR_TAO = 6,
+    XPDR_TAR = 7,
+    XPDRTOGL = -1,
+    XPDR_MIN = XPDR_OFF,
+    XPDR_MAX = XPDR_TAR,
 };
 
 static int get_transponder_mode(yfms_context *yfms)
@@ -1472,6 +1476,29 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         yfs_rad1_pageupdt  (yfms); return;
     }
+}
+
+static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)//fixme2
+{
+    if (rx >= yfms->mouse_regions[4][0].xmin && rx <= yfms->mouse_regions[4][0].xmax &&
+        ry >= yfms->mouse_regions[4][0].ymin && ry <= yfms->mouse_regions[4][0].ymax)
+    {
+        // LSK 4 L: barometric pressure
+        int alt[3]; get_altimeter(yfms, alt);
+        int new[2]; new[1] = alt[1]; new[0] = alt[0] + delta;
+        set_altimeter(yfms, new); yfs_rad1_pageupdt(yfms); return;
+    }
+    if (rx >= yfms->mouse_regions[3][2].xmin && rx <= yfms->mouse_regions[3][2].xmax &&
+        ry >= yfms->mouse_regions[3][2].ymin && ry <= yfms->mouse_regions[3][2].ymax)
+    {
+        // LSK 3 R: transponder mode
+        int new_mode = get_transponder_mode(yfms) + delta;
+        if (new_mode < XPDR_MIN) new_mode = XPDR_MIN;
+        if (new_mode > XPDR_MAX) new_mode = XPDR_MAX;
+        set_transponder_mode(yfms, new_mode);
+        yfs_rad1_pageupdt(yfms); return;
+    }
+    return;
 }
 
 static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refcon)
