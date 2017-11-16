@@ -515,7 +515,6 @@ static void set_altimeter(yfms_context *yfms, int in[2])
         float offset = roundf(100.0f * (inhg_converted - 29.92f));
         XPLMSetDataf(yfms->xpl.q350.pressLeftRotary,      offset);
         XPLMSetDataf(yfms->xpl.q350.pressRightRotary,     offset);
-        ndt_log("314: offset %f", offset); XPLMSpeakString("offset");//debug//fixme2
         return;
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB77)
