@@ -1491,7 +1491,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 5)
     {
-        if (standard_pressure(yfms))
+        if (standard_pressure(yfms) == 0)
         {
             // not STD, toggle into it
             int toggle[2] = { -1, -1, };
