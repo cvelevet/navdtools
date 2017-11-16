@@ -258,7 +258,7 @@ static int get_baro_pressure(const char *string, int out[2])
     {
         len = strnlen(string, 6);
     }
-    if (len < 4 || len > 5) // min: "2992", max: "29.92"
+    if (len < 1 || len > 5) // min: "1", max: "40.00"
     {
         return -1;
     }
@@ -504,6 +504,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
         float offset = roundf(100.0f * (inhg_converted - 29.92f));
         XPLMSetDataf(yfms->xpl.q350.pressLeftRotary,      offset);
         XPLMSetDataf(yfms->xpl.q350.pressRightRotary,     offset);
+        ndt_log("314: offset %f", offset); XPLMSpeakString("offset");//debug
         return;
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB77)
@@ -1460,6 +1461,13 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
     {
         // LSK 4 L: barometric pressure
         int alt[3]; get_altimeter(yfms, alt);
+        if (alt[2] == BARO_STD)
+        {
+            // STD, toggle out of it
+            int toggle[2] = { -1, -1, };
+            set_altimeter(yfms, toggle);
+            yfs_rad1_pageupdt(yfms); return;
+        }
         int new[2]; new[1] = alt[1]; new[0] = alt[0] + delta;
         set_altimeter(yfms, new); yfs_rad1_pageupdt(yfms); return;
     }
