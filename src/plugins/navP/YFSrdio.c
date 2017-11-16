@@ -1447,47 +1447,10 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         set_altimeter(yfms, baro); yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
     }
-    if (key[0] == 1 && key[1] == 4)//fixme2
+    if (key[0] == 1 && key[1] == 4) // toggle pressure unit (tog[1] == -1)
     {
-        char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
-        if  (strnlen(buf, 1) && !yfms->mwindow.screen.spad_reset)
-        {
-            if (!strcasecmp(buf, "InHg"))
-            {
-                if (yfms->xpl.atyp == YFS_ATYP_ASRT)
-                {
-                    uint32_t unit = 0;
-                    yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &unit);
-                    yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &unit);
-                    yfs_spad_clear(yfms); return;
-                }
-                yfms->ndt.alt.unit = 0; yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-            }
-            if (!strcasecmp(buf, "hPa"))
-            {
-                if (yfms->xpl.atyp == YFS_ATYP_ASRT)
-                {
-                    uint32_t unit = 1;
-                    yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &unit);
-                    yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &unit);
-                    yfs_spad_clear(yfms); return;
-                }
-                yfms->ndt.alt.unit = 1; yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-            }
-            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
-        }
-        else
-        {
-            if (yfms->xpl.atyp == YFS_ATYP_ASRT)
-            {
-                uint32_t unit;
-                yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_u32_lunit, &unit); unit = !unit;
-                yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &unit);
-                yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &unit);
-                return;
-            }
-            yfms->ndt.alt.unit = !yfms->ndt.alt.unit; yfs_rad1_pageupdt(yfms); return;
-        }
+        int tog[2], al[3]; get_altimeter(yfms, al); tog[0] = al[0]; tog[1] = -1;
+        set_altimeter(yfms, tog); yfs_rad1_pageupdt(yfms); return;
     }
     if (key[0] == 0 && key[1] == 5)
     {
