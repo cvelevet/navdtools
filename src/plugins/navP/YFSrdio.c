@@ -40,7 +40,6 @@
 #define HPABAROOFFSET (29.9151f - (1013.0f / 33.86389f))
 #define FB76_BARO_MIN (26.966629f) // rotary at 0.0f
 #define FB76_BARO_MAX (32.873302f) // rotary at 1.0f
-#define NAVTYP_IS_ILS(navtyp) ((navtyp == 8) || (navtyp == 1024))//fixme more values are ILS or LOC
 /*
  * Theoretically, the float representation of an integer may be inexact, for
  * example, 118 could be stored as 118.999999 or 119.000001. This is no issue
@@ -68,6 +67,18 @@ static void yfs_rad2_pageupdt    (yfms_context *yfms);
 static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refcon);
 static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refcon);
 static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry,   int delta);
+
+static inline int navaid_is_ils(int type)
+{
+    switch (type)
+    {
+        case 8:
+        case 1024:
+            return 1;//fixme more values are ILS or LOC
+        default:
+            return 0;
+    }
+}
 
 /*
  * Frequency parsers and sanitizers.
@@ -397,7 +408,7 @@ static void get_altimeter(yfms_context *yfms, int out[3])
     out[2] = BARO_ANY; return;
 }
 
-static int standard_pressure(yfms_context *yfms)
+static inline int standard_pressure(yfms_context *yfms)
 {
     int alt[3]; get_altimeter(yfms, alt);
     if (alt[2] == BARO_STD) // always standard pressure
@@ -504,7 +515,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
         float offset = roundf(100.0f * (inhg_converted - 29.92f));
         XPLMSetDataf(yfms->xpl.q350.pressLeftRotary,      offset);
         XPLMSetDataf(yfms->xpl.q350.pressRightRotary,     offset);
-        ndt_log("314: offset %f", offset); XPLMSpeakString("offset");//debug
+        ndt_log("314: offset %f", offset); XPLMSpeakString("offset");//debug//fixme2
         return;
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB77)
@@ -1147,7 +1158,7 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     {                                                                           // ILS is always X-Plane NAV2
         if (nav2_frequency_hz >= 10800)
         {
-            if (yfms->xpl.ils.frequency_changed && NAVTYP_IS_ILS(nav2_type))
+            if (yfms->xpl.ils.frequency_changed && navaid_is_ils(nav2_type))
             {
                 XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot,   (nav2_obs_deg_mag_pilot   = nav2_course_deg_mag_pilot));
                 XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_copilot, (nav2_obs_deg_mag_copilot = nav2_course_deg_mag_pilot));
@@ -1155,7 +1166,7 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
             {
                 yfs_printf_lft(yfms, 6, 0, COLR_IDX_BLUE, "%4s/%06.2lf", nav2_nav_id[0] ? nav2_nav_id : " [ ]", nav2_frequency_hz / 100.);
             }
-            if (NAVTYP_IS_ILS(nav2_type))
+            if (navaid_is_ils(nav2_type))
             {
                 yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%03d", nav2_obs_deg_mag_pilot);
             }
@@ -1169,7 +1180,7 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     else if ((autopilot_source == 1 && HSI_source_select_copilot == 1) ||       // Generic plane
              (autopilot_source != 1 && HSI_source_select_pilot   == 1))         // w/NAV2 master
     {
-        if (NAVTYP_IS_ILS(nav2_type))
+        if (navaid_is_ils(nav2_type))
         {
             if (yfms->xpl.ils.frequency_changed) // auto-set all OBS courses after user-requested ILS change
             {
@@ -1185,7 +1196,7 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     }
     else                                                                        // Generic plane
     {                                                                           // w/NAV1 master
-        if (NAVTYP_IS_ILS(nav1_type))
+        if (navaid_is_ils(nav1_type))
         {
             if (yfms->xpl.ils.frequency_changed) // auto-set all OBS courses after user-requested ILS change
             {
@@ -1454,7 +1465,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
 }
 
-static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)//fixme2
+static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
 {
     if (rx >= yfms->mouse_regions[4][0].xmin && rx <= yfms->mouse_regions[4][0].xmax &&
         ry >= yfms->mouse_regions[4][0].ymin && ry <= yfms->mouse_regions[4][0].ymax)
