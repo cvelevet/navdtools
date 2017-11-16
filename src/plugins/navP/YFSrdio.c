@@ -342,20 +342,12 @@ enum
     BARO_STD = 1,
     BARO_SET = 2,
 };
+
 enum
 {
     BARO_NHG = 0,
     BARO_HPA = 1,
 };
-static inline int altimeter_std(int in[3])
-{
-    if (in[2] != BARO_STD && ((in[1] == BARO_NHG && in[0] != 2992) ||
-                              (in[1] == BARO_HPA && in[0] != 1013) || in[2] == BARO_SET))
-    {
-        return 0;
-    }
-    return 1;
-}
 
 static void get_altimeter(yfms_context *yfms, int out[3])
 {
@@ -368,7 +360,7 @@ static void get_altimeter(yfms_context *yfms, int out[3])
     }
     switch ((out[1] = yfms->ndt.alt.unit)) // our internal unit (X-Plane always uses InHg)
     {
-        case 1: // hectoPascals
+        case BARO_HPA: // hectoPascals
             out[0] = roundf(XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot) * 33.86389f);
             break;
         default: // inches of mercury
@@ -403,6 +395,24 @@ static void get_altimeter(yfms_context *yfms, int out[3])
     out[2] = BARO_ANY; return;
 }
 
+static int standard_pressure(yfms_context *yfms)
+{
+    int alt[3]; get_altimeter(yfms, alt);
+    if (alt[2] == BARO_STD) // always standard pressure
+    {
+        return 1;
+    }
+    if (alt[2] == BARO_SET) // never standard pressure
+    {
+        return 0;
+    }
+    if (((int)roundf(XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot) * 100.0f)) == 2992)
+    {
+        return 1;
+    }
+    return 0;
+}
+
 static void set_altimeter(yfms_context *yfms, int in[2])
 {
     float inhg_converted;
@@ -422,7 +432,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
                     }
                     switch ((yfms->ndt.alt.unit = in[1]))
                     {
-                        case 1: // hectoPascals
+                        case BARO_HPA: // hectoPascals
                             inhg_converted = ((float)in[0] / 33.86389f) + HPABAROOFFSET;
                             inhg_converted = (roundf(inhg_converted * 100.0f) / 100.0f);
                             break;
@@ -499,7 +509,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
         int alt[3]; get_altimeter(yfms, alt);
         if (in[0] == -1) // dedicated STD pressure mode toggle
         {
-            if (alt[2] != 1)
+            if (alt[2] != BARO_STD)
             {
                 /*
                  * Note: we detect STD mode in this specific aircraft when:
@@ -516,7 +526,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
             }
             XPLMSetDatai(yfms->xpl.fb77.anim_175_button, 1); return;
         }
-        if (altimeter_std(alt))
+        if (alt[2] == BARO_STD)
         {
             XPLMSetDatai(yfms->xpl.fb77.anim_175_button, 1); // disable STD mode
         }
@@ -592,6 +602,7 @@ enum
     XPDR_TST,
     XPDRTOGL,
 };
+
 static int get_transponder_mode(yfms_context *yfms)
 {
     if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
@@ -1028,7 +1039,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     }
     switch (alt[1])
     {
-        case 1: // hectoPascals
+        case BARO_HPA: // hectoPascals
             yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s", "hPa");
             yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%04.0f", (((float)alt[0])));
             break;
@@ -1037,13 +1048,13 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
             yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%05.2f", (((float)alt[0]) / 100.0f));
             break;
     }
-    if (alt[2] == 1)
+    if (alt[2] == BARO_STD)
     {
         yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%-5s", "STD");
     }
 
     /* line 12: switches (white) */
-    if (altimeter_std(alt))
+    if (standard_pressure(yfms))
     {
         yfms->lsks[0][5].cback = (YFS_LSK_f)NULL;
     }
@@ -1409,7 +1420,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         if  (buf[0] == 0)
         {
             int alt[3]; get_altimeter(yfms, alt);
-            if (altimeter_std(alt))
+            if (alt[2] == BARO_STD)
             {
                 // STD, toggle out of it
                 int toggle[2] = { -1, -1, };
@@ -1418,7 +1429,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
             }
             switch (alt[1])
             {
-                case 1: // hectoPascals
+                case BARO_HPA: // hectoPascals
                     snprintf(buf, sizeof(buf), "%04.0f", (float)alt[0]);
                     break;
                 default: // inches of mercury
@@ -1480,8 +1491,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 5)
     {
-        int alt[3]; get_altimeter(yfms, alt);
-        if (altimeter_std(alt) == 0)
+        if (standard_pressure(yfms))
         {
             // not STD, toggle into it
             int toggle[2] = { -1, -1, };
