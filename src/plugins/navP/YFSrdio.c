@@ -596,12 +596,11 @@ enum
 {
     XPDR_OFF = 0,
     XPDR_SBY = 1,
-    XPDR_GND = 2,
-    XPDR_AUT = 3,
-    XPDR_TST = 4,
-    XPDR_ALT = 5,
-    XPDR_TAO = 6,
-    XPDR_TAR = 7,
+    XPDR_AUT = 2,
+    XPDR_GND = 3,
+    XPDR_ALT = 4,
+    XPDR_TAO = 5,
+    XPDR_TAR = 6,
     XPDRTOGL = -1,
     XPDR_MIN = XPDR_OFF,
     XPDR_MAX = XPDR_TAR,
@@ -678,8 +677,6 @@ static int get_transponder_mode(yfms_context *yfms)
                 return XPDR_GND;
             case 1:
                 return XPDR_SBY;
-            case 0:
-                return XPDR_TST;
             default:
                 return XPDR_ALT;
         }
@@ -756,13 +753,8 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 xalt = 1; // ON
                 xmod = 0; // STBY
                 break;
-            case XPDR_GND:
-                tcas = 0; // THRT
-                tmod = 0; // STBY
-                xalt = 0; // OFF
-                xmod = 2; // ON
-                break;
             case XPDR_AUT:
+            case XPDR_GND:
                 tcas = 0; // THRT
                 tmod = 0; // STBY
                 xalt = 1; // ON
@@ -780,7 +772,6 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 xalt = 1; // ON
                 xmod = 2; // ON
                 break;
-            case XPDR_TST:
             case XPDR_ALT:
             default:
                 tcas = 0; // THRT
@@ -805,8 +796,8 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 mact = 0.0f; // OFF
                 sact = 0.0f; // STBY
                 break;
-            case XPDR_GND:
             case XPDR_AUT:
+            case XPDR_GND:
                 mact = 0.0f; // OFF
                 sact = 1.0f; // AUTO
                 break;
@@ -818,7 +809,6 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 mact = 2.0f; // TA/RA
                 sact = 2.0f; // ON
                 break;
-            case XPDR_TST:
             case XPDR_ALT:
             default:
                 mact = 1.0f; // OFF
@@ -842,17 +832,13 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 alt = 1; // ON
                 pwr = 0; // STBY
                 break;
-            case XPDR_GND: // currently write-only, TODO: implement+test reading
-                alt = 0; // OFF
-                pwr = 2; // ON
-                break;
             case XPDR_AUT:
+            case XPDR_GND:
                 alt = 1; // ON
                 pwr = 1; // AUTO
                 break;
             case XPDR_TAO:
             case XPDR_TAR:
-            case XPDR_TST:
             case XPDR_ALT:
             default:
                 alt = 1; // ON
@@ -869,7 +855,6 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
         {
             case XPDR_OFF:
             case XPDR_SBY:
-            case XPDR_GND:
             case XPDR_AUT:
                 XPLMSetDataf(yfms->xpl.fb76.systemMode, 1.0f); // STBY
                 return;
@@ -879,8 +864,8 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
             case XPDR_TAR:
                 XPLMSetDataf(yfms->xpl.fb76.systemMode, 5.0f); // TA/RA
                 return;
-            case XPDR_TST:
-                XPLMSetDataf(yfms->xpl.fb76.systemMode, 0.0f); // TEST
+            case XPDR_GND:
+                XPLMSetDataf(yfms->xpl.fb76.systemMode, 2.0f); // ALT OFF
                 return;
             case XPDR_ALT:
             default:
@@ -894,7 +879,6 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
         {
             case XPDR_OFF:
             case XPDR_SBY:
-            case XPDR_GND:
             case XPDR_AUT:
                 XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 0.0f); // STBY
                 return;
@@ -904,7 +888,7 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
             case XPDR_TAR:
                 XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 4.0f); // TA/RA
                 return;
-            case XPDR_TST:
+            case XPDR_GND:
             case XPDR_ALT:
             default:
                 XPLMSetDatai(yfms->xpl.fb77.anim_85_switch, 2.0f); // XPNDR
@@ -917,14 +901,13 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
             XPLMSetDatai(yfms->xpl.transponder_mode, 0);
             return;
         case XPDR_SBY:
-        case XPDR_GND:
         case XPDR_AUT:
             XPLMSetDatai(yfms->xpl.transponder_mode, 1);
             return;
+        case XPDR_GND:
+        case XPDR_ALT:
         case XPDR_TAO:
         case XPDR_TAR:
-        case XPDR_TST:
-        case XPDR_ALT:
         default:
             XPLMSetDatai(yfms->xpl.transponder_mode, 2);
             return;
@@ -1018,9 +1001,6 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
             break;
         case XPDR_TAR:
             yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TA/RA");
-            break;
-        case XPDR_TST:
-            yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "TEST");
             break;
         default:
             yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%s", "ALT");
@@ -1405,11 +1385,6 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
                 set_transponder_mode(yfms, XPDR_TAR);
                 yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
             }
-            if (!strcmp(buf, "TEST"))
-            {
-                set_transponder_mode(yfms, XPDR_TST);
-                yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
-            }
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
         else
@@ -1492,10 +1467,24 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
         ry >= yfms->mouse_regions[3][2].ymin && ry <= yfms->mouse_regions[3][2].ymax)
     {
         // LSK 3 R: transponder mode
-        int new_mode = get_transponder_mode(yfms) + delta;
-        if (new_mode < XPDR_MIN) new_mode = XPDR_MIN;
-        if (new_mode > XPDR_MAX) new_mode = XPDR_MAX;
-        set_transponder_mode(yfms, new_mode);
+        int direction = delta > 0 ? 1 : -1;
+        int new_xmode = get_transponder_mode(yfms) + delta - direction;
+        do
+        {
+            new_xmode += direction;
+            if (new_xmode < XPDR_MIN)
+            {
+                set_transponder_mode(yfms, XPDR_MIN);
+                break;
+            }
+            if (new_xmode > XPDR_MAX)
+            {
+                set_transponder_mode(yfms, XPDR_MAX);
+                break;
+            }
+            set_transponder_mode(yfms, new_xmode);
+        }
+        while (new_xmode != get_transponder_mode(yfms));
         yfs_rad1_pageupdt(yfms); return;
     }
     return;
