@@ -70,14 +70,11 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry,   int delt
 
 static inline int navaid_is_ils(int type)
 {
-    switch (type)
+    if (type & (xplm_Nav_ILS|xplm_Nav_Localizer))
     {
-        case 8:
-        case 1024:
-            return 1;//fixme more values are ILS or LOC
-        default:
-            return 0;
+        return 1;
     }
+    return 0;
 }
 
 /*
