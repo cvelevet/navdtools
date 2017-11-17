@@ -3092,12 +3092,12 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                 }
                                 if (!STRN_CASECMP_AUTO(outp_descr, "mcdu 2"))
                                 {
-                                    XPLMSetHotKeyCombination(hot_key, XPLM_VK_F19, xplm_DownFlag);
+                                    XPLMSetHotKeyCombination(hot_key, XPLM_VK_NUMPAD_ENT, xplm_DownFlag);
                                     continue;
                                 }
                                 if (!STRN_CASECMP_AUTO(outp_descr, "mcdu 1"))
                                 {
-                                    XPLMSetHotKeyCombination(hot_key, XPLM_VK_F19, xplm_UpFlag);
+                                    XPLMSetHotKeyCombination(hot_key, XPLM_VK_NUMPAD_ENT, xplm_UpFlag);
                                     continue;
                                 }
                                 // set combination to a key almost guaranteed to be unused
@@ -3107,7 +3107,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             continue;
                         }
                     }
-                    cdu->i_disabled = 1; return 0;
+                    cdu->i_disabled = 1; break; // check for YFMS presence
                 }
 
                 case NVP_ACF_EMBE_SS:
@@ -3130,7 +3130,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             {
                                 if (!STRN_CASECMP_AUTO(outp_descr, "F8"))
                                 {
-                                    XPLMSetHotKeyCombination(hot_key, XPLM_VK_F19, xplm_UpFlag);
+                                    XPLMSetHotKeyCombination(hot_key, XPLM_VK_NUMPAD_ENT, xplm_UpFlag);
                                     break;
                                 }
                                 continue;
@@ -3138,28 +3138,28 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             continue;
                         }
                     }
-                    cdu->i_disabled = 1; return 0;
+                    cdu->i_disabled = 1; break; // check for YFMS presence
                 }
 
                 case NVP_ACF_A320_JD:
                 case NVP_ACF_A330_JD:
                 case NVP_ACF_B737_XG:
                 case NVP_ACF_MD80_RO:
-                    cdu->i_disabled = 1; return 0; // custom FMS, but no popup/command
+                    cdu->i_disabled = 1; break; // check for YFMS presence
 
                 case NVP_ACF_B757_FF:
                 case NVP_ACF_B767_FF:
                     if (NULL == (cdu->dataref[0] = XPLMFindDataRef("757Avionics/cdu/popup" )) ||
                         NULL == (cdu->dataref[1] = XPLMFindDataRef("757Avionics/cdu2/popup")))
                     {
-                        cdu->i_disabled = 1; return 0;
+                        cdu->i_disabled = 1; break; // check for YFMS presence
                     }
                     cdu->i_disabled = 0; break;
 
                 case NVP_ACF_B777_FF:
                     if (NULL == (cdu->dataref[0] = XPLMFindDataRef("T7Avionics/cdu/popup")))
                     {
-                        cdu->i_disabled = 1; return 0;
+                        cdu->i_disabled = 1; break; // check for YFMS presence
                     }
                     cdu->i_disabled = 0; break;
 
@@ -3168,7 +3168,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     if (NULL == (cdu->command[0] = XPLMFindCommand("AirbusFBW/UndockMCDU1")) ||
                         NULL == (cdu->command[1] = XPLMFindCommand("AirbusFBW/UndockMCDU2")))
                     {
-                        cdu->i_disabled = 1; return 0;
+                        cdu->i_disabled = 1; break; // check for YFMS presence
                     }
                     cdu->i_disabled = 0; break;
 
@@ -3178,7 +3178,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         NULL == (cdu->dataref[2] = XPLMFindDataRef("1-sim/misc/popupsHide")) ||
                         NULL == (cdu->command[0] = XPLMFindCommand("AirbusFBW/UndockMCDU1")))
                     {
-                        cdu->i_disabled = 1; return 0;
+                        cdu->i_disabled = 1; break; // check for YFMS presence
                     }
                     cdu->i_disabled = 0; break;
 
@@ -3199,7 +3199,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             NULL == (cdu->command[1] = XPLMFindCommand("xap/panels/5")) ||
                             NULL == (cdu->command[2] = XPLMFindCommand("xap/panels/6")))
                         {
-                            cdu->i_disabled = 1; return 0;
+                            cdu->i_disabled = 1; break; // check for YFMS presence
                         }
                         cdu->i_disabled = 0; break;
                     }
@@ -3214,7 +3214,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         }
                         if (NULL == (cdu->command[0] = XPLMFindCommand("x737/UFMC/FMC_TOGGLE")))
                         {
-                            cdu->i_disabled = 1; return 0;
+                            cdu->i_disabled = 1; break; // check for YFMS presence
                         }
                         cdu->i_disabled = 0; break;
                     }
@@ -3241,7 +3241,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             {
                                 cdu->i_disabled = 0; break; // X-Plane GPS
                             }
-                            cdu->i_disabled = 1; return 0; // no SkyView, no GPS
+                            cdu->i_disabled = 1; break; // check for YFMS presence
                         }
                         if (!STRN_CASECMP_AUTO(cdu->auth, "Alabeo") ||
                             !STRN_CASECMP_AUTO(cdu->auth, "Carenado"))
@@ -3308,13 +3308,13 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             {
                                 cdu->i_disabled = 0; break; // X-Plane GPS
                             }
-                            cdu->i_disabled = 1; return 0; // no G500/G1000, GPS
+                            cdu->i_disabled = 1; break; // check for YFMS presence
                         }
                         if (!STRN_CASECMP_AUTO(cdu->auth, "Denis 'ddenn' Krupin"))
                         {
                             if (NULL == (cdu->command[0] = XPLMFindCommand("sim/operation/slider_12")))
                             {
-                                cdu->i_disabled = 1; return 0;
+                                cdu->i_disabled = 1; break; // check for YFMS presence
                             }
                             cdu->i_disabled = 0; break;
                         }
@@ -3333,7 +3333,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         }
                         if (NULL == (cdu->command[0] = XPLMFindCommand("pikitanga/SimpleFMC/ToggleSimpleFMC")))
                         {
-                            cdu->i_disabled = 1; return 0;
+                            cdu->i_disabled = 1; break; // check for YFMS presence
                         }
                         cdu->i_disabled = 0; break;
                     }
@@ -3345,11 +3345,11 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         }
                         if (NULL == (cdu->command[0] = XPLMFindCommand("xfmc/toggle")))
                         {
-                            cdu->i_disabled = 1; return 0;
+                            cdu->i_disabled = 1; break; // check for YFMS presence
                         }
                         cdu->i_disabled = 0; break;
                     }
-                    cdu->i_disabled = 1; return 0; // no plugin FMS found
+                    cdu->i_disabled = 1; break; // check for YFMS presence
                 }
             }
             if (cdu->i_disabled == -1)
