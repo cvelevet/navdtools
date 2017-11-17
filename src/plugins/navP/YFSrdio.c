@@ -619,13 +619,9 @@ enum
 
 static int get_transponder_mode(yfms_context *yfms)
 {
-    if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
-    {
-        return XPDR_OFF;
-    }
     if (yfms->xpl.atyp == YFS_ATYP_ASRT)
     {
-        uint32_t altr; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
+        uint32_t altr; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
         uint32_t mode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
         uint32_t tcas; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
         if (mode > 1 && tcas > 0)
@@ -650,6 +646,10 @@ static int get_transponder_mode(yfms_context *yfms)
                     return altr ? XPDR_ALT : XPDR_GND;
             }
         }
+    }
+    if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
+    {
+        return XPDR_OFF;
     }
     if (yfms->xpl.atyp == YFS_ATYP_IXEG)
     {
