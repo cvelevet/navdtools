@@ -1147,12 +1147,13 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     {                                                                           // ILS is always X-Plane NAV2
         if (nav2_frequency_hz >= 10800)
         {
-            if (yfms->xpl.ils.frequency_changed) // auto-set all OBS courses after user-requested ILS change
-            {
-                // TODO: implement navdata-based course auto-selection
-            }
             if (navaid_is_ils(nav2_type))
             {
+                if (yfms->xpl.ils.frequency_changed > 0) // auto-set all OBS courses after user-requested ILS change
+                {
+                    yfms->xpl.ils.frequency_changed = 0;
+                    // TODO: implement navdata-based course auto-selection
+                }
                 yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%03d", nav2_obs_deg_mag_pilot);
             }
             else // ILS frequency, but no signal, course not reliable
@@ -1168,8 +1169,9 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     {
         if (navaid_is_ils(nav2_type))
         {
-            if (yfms->xpl.ils.frequency_changed) // auto-set all OBS courses after user-requested ILS change
+            if (yfms->xpl.ils.frequency_changed > 0) // auto-set all OBS courses after user-requested ILS change
             {
+                yfms->xpl.ils.frequency_changed = 0;
                 // TODO: implement navdata-based course auto-selection
             }
             yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%03d", autopilot_source == 1 ? nav2_obs_deg_mag_copilot : nav2_obs_deg_mag_pilot);
@@ -1181,8 +1183,9 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     {                                                                           // w/NAV1 master
         if (navaid_is_ils(nav1_type))
         {
-            if (yfms->xpl.ils.frequency_changed) // auto-set all OBS courses after user-requested ILS change
+            if (yfms->xpl.ils.frequency_changed > 0) // auto-set all OBS courses after user-requested ILS change
             {
+                yfms->xpl.ils.frequency_changed = 0;
                 // TODO: implement navdata-based course auto-selection
             }
             yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%03d", autopilot_source == 1 ? nav1_obs_deg_mag_copilot : nav1_obs_deg_mag_pilot);
@@ -1219,7 +1222,14 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%03d/%-4s", adf2_frequency_hz, adf2_nav_id[0] ? adf2_nav_id : "[ ] ");
 
     /* all good */
-    yfms->xpl.ils.frequency_changed = 0; return;
+    if (yfms->xpl.ils.frequency_changed > 0)
+    {
+        if (yfms->xpl.ils.frequency_changed++ > 5) // wait up to ~1 sec. maximum
+        {
+            yfms->xpl.ils.frequency_changed = 0;
+        }
+    }
+    return;
 }
 
 static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refcon)
