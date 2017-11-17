@@ -3107,7 +3107,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             continue;
                         }
                     }
-                    cdu->i_disabled = 1; break; // check for YFMS presence
+                    cdu->i_disabled = 1; return 0; // here first from turnaround
                 }
 
                 case NVP_ACF_EMBE_SS:
@@ -3138,7 +3138,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             continue;
                         }
                     }
-                    cdu->i_disabled = 1; break; // check for YFMS presence
+                    cdu->i_disabled = 1; return 0; // here first from turnaround
                 }
 
                 case NVP_ACF_A320_JD:
