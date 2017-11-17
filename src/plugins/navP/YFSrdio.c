@@ -626,10 +626,10 @@ static int get_transponder_mode(yfms_context *yfms)
     if (yfms->xpl.atyp == YFS_ATYP_ASRT)
     {
         uint32_t mode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
-        uint32_t tmod; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_tmod, &tmod);
+        uint32_t tcas; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
         if (mode == 2)
         {
-            switch (tmod)
+            switch (tcas)
             {
                 case 1:
                     return XPDR_TAO;
@@ -748,47 +748,47 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
     }
     if (yfms->xpl.atyp == YFS_ATYP_ASRT)
     {
-        uint32_t tcas, tmod, xalt, xmod;
+        uint32_t tmod, tcas, altr, xpdr;
         switch  (mode)
         {
             case XPDR_OFF:
             case XPDR_SBY:
-                tcas = 0; // THRT
-                tmod = 0; // STBY
-                xalt = 1; // ON
-                xmod = 0; // STBY
+                tmod = 0; // THRT
+                tcas = 0; // STBY
+                altr = 1; // ON
+                xpdr = 0; // STBY
                 break;
             case XPDR_AUT:
             case XPDR_GND:
-                tcas = 0; // THRT
-                tmod = 0; // STBY
-                xalt = 1; // ON
-                xmod = 1; // AUTO
+                tmod = 0; // THRT
+                tcas = 0; // STBY
+                altr = 1; // ON
+                xpdr = 1; // AUTO
                 break;
             case XPDR_TAO:
-                tcas = 1; // ALL
-                tmod = 1; // TA
-                xalt = 1; // ON
-                xmod = 2; // ON
+                tmod = 1; // ALL
+                tcas = 1; // TA
+                altr = 1; // ON
+                xpdr = 2; // ON
                 break;
             case XPDR_TAR:
-                tcas = 3; // BLW
-                tmod = 2; // TA/RA
-                xalt = 1; // ON
-                xmod = 2; // ON
+                tmod = 3; // BLW
+                tcas = 2; // TA/RA
+                altr = 1; // ON
+                xpdr = 2; // ON
                 break;
             case XPDR_ALT:
             default:
-                tcas = 0; // THRT
-                tmod = 0; // STBY
-                xalt = 1; // ON
-                xmod = 2; // ON
+                tmod = 0; // THRT
+                tcas = 0; // STBY
+                altr = 1; // ON
+                xpdr = 2; // ON
                 break;
         }
-        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
         yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tmod, &tmod);
-        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &xalt);
-        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &xmod);
+        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
+        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
+        yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_mode, &xpdr);
         return;
     }
     if (yfms->xpl.atyp == YFS_ATYP_IXEG)
@@ -1516,8 +1516,11 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
                     set_transponder_mode(yfms, XPDR_SBY);
                     break;
                 }
-                set_transponder_mode(yfms, XPDR_OFF);
-                break;
+                else
+                {
+                    set_transponder_mode(yfms, XPDR_OFF);
+                    break;
+                }
             }
             if (delta > 0)
             {
@@ -1531,12 +1534,20 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
                     set_transponder_mode(yfms, XPDR_TAO);
                     break;
                 }
-                set_transponder_mode(yfms, XPDR_AUT);
-                break;
+                if (mode >= XPDR_AUT)
+                {
+                    set_transponder_mode(yfms, XPDR_ALT);
+                    break;
+                }
+                else
+                {
+                    set_transponder_mode(yfms, XPDR_AUT);
+                    break;
+                }
             }
             return;
         }
-        yfs_rad1_pageupdt(yfms); return;
+        return;
     }
     return;
 }
