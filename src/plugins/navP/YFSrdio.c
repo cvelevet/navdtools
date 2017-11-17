@@ -1511,7 +1511,7 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
                     set_transponder_mode(yfms, XPDR_AUT);
                     break;
                 }
-                if (tmmodeod >= XPDR_AUT)
+                if (mode >= XPDR_AUT)
                 {
                     set_transponder_mode(yfms, XPDR_SBY);
                     break;
