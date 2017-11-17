@@ -1142,8 +1142,6 @@ void* yfs_main_init(void)
         (yfms->xpl.HSI_source_select_pilot         = XPLMFindDataRef("sim/cockpit2/radios/actuators/HSI_source_select_pilot"        )) == NULL ||
         (yfms->xpl.HSI_source_select_copilot       = XPLMFindDataRef("sim/cockpit2/radios/actuators/HSI_source_select_copilot"      )) == NULL ||
         (yfms->xpl.nav2_obs_deg_mag_copilot        = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav2_obs_deg_mag_copilot"       )) == NULL ||
-        (yfms->xpl.nav1_course_deg_mag_pilot       = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav1_course_deg_mag_pilot"      )) == NULL ||
-        (yfms->xpl.nav2_course_deg_mag_pilot       = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav2_course_deg_mag_pilot"      )) == NULL ||
         (yfms->xpl.true_psi                        = XPLMFindDataRef("sim/flightmodel/position/true_psi"                            )) == NULL ||
         (yfms->xpl.latitude                        = XPLMFindDataRef("sim/flightmodel/position/latitude"                            )) == NULL ||
         (yfms->xpl.longitude                       = XPLMFindDataRef("sim/flightmodel/position/longitude"                           )) == NULL ||

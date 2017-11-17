@@ -424,8 +424,6 @@ typedef struct
         XPLMDataRef nav2_obs_deg_mag_copilot;
         XPLMDataRef HSI_source_select_pilot;
         XPLMDataRef HSI_source_select_copilot;
-        XPLMDataRef nav1_course_deg_mag_pilot;
-        XPLMDataRef nav2_course_deg_mag_pilot;
         // PAGE_FPLN
         XPLMCommandRef direct_to;
         // miscellaneous
