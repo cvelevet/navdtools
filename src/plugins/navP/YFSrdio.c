@@ -1510,12 +1510,12 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
                 set_transponder_mode(yfms, XPDR_AUT);
                 return;
             }
-            if (mode >= XPDR_AUT)
+            if (mode >= XPDR_GND)
             {
                 set_transponder_mode(yfms, XPDR_SBY);
                 return;
             }
-            else
+            if (mode >= XPDR_SBY)
             {
                 set_transponder_mode(yfms, XPDR_OFF);
                 return;
@@ -1525,6 +1525,10 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
         if (delta > 0)
         {
             int mode = get_transponder_mode(yfms);
+            if (mode >= XPDR_TAR)
+            {
+                return;
+            }
             if (mode >= XPDR_TAO)
             {
                 set_transponder_mode(yfms, XPDR_TAR);
@@ -1540,7 +1544,7 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
                 set_transponder_mode(yfms, XPDR_ALT);
                 return;
             }
-            else
+            if (mode >= XPDR_MIN)
             {
                 set_transponder_mode(yfms, XPDR_AUT);
                 return;
