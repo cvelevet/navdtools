@@ -619,9 +619,12 @@ enum
 
 static int get_transponder_mode(yfms_context *yfms)
 {
+    if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
+    {
+        return XPDR_OFF;
+    }
     if (yfms->xpl.atyp == YFS_ATYP_ASRT)
     {
-        uint32_t altr; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
         uint32_t mode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
         uint32_t tcas; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
         if (mode > 1 && tcas > 0)
@@ -636,20 +639,14 @@ static int get_transponder_mode(yfms_context *yfms)
         }
         else
         {
-            switch (mode)
+            switch (XPLMGetDatai(yfms->xpl.transponder_mode))
             {
-                case 0:
-                    return XPDR_SBY;
                 case 1:
-                    return XPDR_AUT;
+                    return mode ? XPDR_AUT : XPDR_SBY;
                 default:
-                    return altr ? XPDR_ALT : XPDR_GND;
+                    return XPDR_ALT;
             }
         }
-    }
-    if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
-    {
-        return XPDR_OFF;
     }
     if (yfms->xpl.atyp == YFS_ATYP_IXEG)
     {
@@ -753,11 +750,6 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
         switch  (mode)
         {
             case XPDR_OFF:
-                tcas = 0; // THRT
-                tmod = 0; // STBY
-                xalt = 0; // OFF
-                xmod = 0; // STBY
-                break;
             case XPDR_SBY:
                 tcas = 0; // THRT
                 tmod = 0; // STBY
@@ -1487,22 +1479,27 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
         // LSK 3 R: transponder mode
         int direction = delta > 0 ? 1 : -1;
         int new_xmode = get_transponder_mode(yfms) + delta - direction;
+        ndt_log("314 START -------\n");//debug//fixme
         do
         {
             new_xmode += direction;
             if (new_xmode < XPDR_MIN)
             {
+                ndt_log("314 mode: %d (%d)\n", XPDR_MIN, new_xmode);//debug//fixme
                 set_transponder_mode(yfms, XPDR_MIN);
                 break;
             }
             if (new_xmode > XPDR_MAX)
             {
+                ndt_log("314 mode: %d (%d)\n", XPDR_MAX, new_xmode);//debug//fixme
                 set_transponder_mode(yfms, XPDR_MAX);
                 break;
             }
+            ndt_log("314 mode:  %d\n", new_xmode);//debug//fixme
             set_transponder_mode(yfms, new_xmode);
         }
         while (new_xmode != get_transponder_mode(yfms));
+        ndt_log("314 -------------\n");//debug//fixme
         yfs_rad1_pageupdt(yfms); return;
     }
     return;
