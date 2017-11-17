@@ -1485,7 +1485,7 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
         do
         {
             debug_verbose = 1;//debug//fixme
-            ndt_log("315 mode %d\n", get_transponder_mode(yfms));//debug//fixme
+            ndt_log("315 mode: %d\n", get_transponder_mode(yfms));//debug//fixme
             new_xmode += direction;
             if (new_xmode < XPDR_MIN)
             {
