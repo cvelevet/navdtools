@@ -1478,72 +1478,72 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
     if (rx >= yfms->mouse_regions[3][2].xmin && rx <= yfms->mouse_regions[3][2].xmax &&
         ry >= yfms->mouse_regions[3][2].ymin && ry <= yfms->mouse_regions[3][2].ymax)
     {
-        // LSK 3 R: transponder mode
-        int mode = get_transponder_mode(yfms);
-        while (1)
+        /*
+         * LSK 3 R: transponder mode
+         *
+         * Notes:
+         *
+         * - a new mode may not activate right away, so we can't check
+         *   whether it applied correctly here and try again
+         *
+         * - some modes don't apply to all aircraft, thus we can't just set
+         *   the transponder to mode + 1: it may simply be mapped to mode,
+         *   in which case the increment would have no effect; instead we
+         *   must be smart: increment/decrement to a mode that's unlikely
+         *   to be mapped to the current mode; however it's not foolproof
+         */
+        if (delta < 0)
         {
-            /*
-             * Notes:
-             *
-             * - a new mode may not activate right away, so we can't check
-             *   whether it applied correctly here and try again
-             *
-             * - some modes don't apply to all aircraft, thus we can't just set
-             *   the transponder to mode + 1: it may simply be mapped to mode,
-             *   in which case the increment would have no effect; instead we
-             *   must be smart: increment/decrement to a mode that's unlikely
-             *   to be mapped to the current mode; however it's not foolproof
-             */
-            if (delta < 0)
+            int mode = get_transponder_mode(yfms);
+            if (mode >= XPDR_TAR)
             {
-                if (mode >= XPDR_TAR)
-                {
-                    set_transponder_mode(yfms, XPDR_TAO);
-                    break;
-                }
-                if (mode >= XPDR_TAO)
-                {
-                    set_transponder_mode(yfms, XPDR_ALT);
-                    break;
-                }
-                if (mode >= XPDR_ALT)
-                {
-                    set_transponder_mode(yfms, XPDR_AUT);
-                    break;
-                }
-                if (mode >= XPDR_AUT)
-                {
-                    set_transponder_mode(yfms, XPDR_SBY);
-                    break;
-                }
-                else
-                {
-                    set_transponder_mode(yfms, XPDR_OFF);
-                    break;
-                }
+                set_transponder_mode(yfms, XPDR_TAO);
+                return;
             }
-            if (delta > 0)
+            if (mode >= XPDR_TAO)
             {
-                if (mode >= XPDR_TAO)
-                {
-                    set_transponder_mode(yfms, XPDR_TAR);
-                    break;
-                }
-                if (mode >= XPDR_ALT)
-                {
-                    set_transponder_mode(yfms, XPDR_TAO);
-                    break;
-                }
-                if (mode >= XPDR_AUT)
-                {
-                    set_transponder_mode(yfms, XPDR_ALT);
-                    break;
-                }
-                else
-                {
-                    set_transponder_mode(yfms, XPDR_AUT);
-                    break;
-                }
+                set_transponder_mode(yfms, XPDR_ALT);
+                return;
+            }
+            if (mode >= XPDR_ALT)
+            {
+                set_transponder_mode(yfms, XPDR_AUT);
+                return;
+            }
+            if (mode >= XPDR_AUT)
+            {
+                set_transponder_mode(yfms, XPDR_SBY);
+                return;
+            }
+            else
+            {
+                set_transponder_mode(yfms, XPDR_OFF);
+                return;
+            }
+            return;
+        }
+        if (delta > 0)
+        {
+            int mode = get_transponder_mode(yfms);
+            if (mode >= XPDR_TAO)
+            {
+                set_transponder_mode(yfms, XPDR_TAR);
+                return;
+            }
+            if (mode >= XPDR_ALT)
+            {
+                set_transponder_mode(yfms, XPDR_TAO);
+                return;
+            }
+            if (mode >= XPDR_AUT)
+            {
+                set_transponder_mode(yfms, XPDR_ALT);
+                return;
+            }
+            else
+            {
+                set_transponder_mode(yfms, XPDR_AUT);
+                return;
             }
             return;
         }
