@@ -617,6 +617,7 @@ enum
     XPDR_MAX = XPDR_TAR,
 };
 
+static int debug_verbose = 0;//debug//fixme
 static int get_transponder_mode(yfms_context *yfms)
 {
     if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
@@ -627,6 +628,7 @@ static int get_transponder_mode(yfms_context *yfms)
     {
         uint32_t mode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
         uint32_t tcas; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
+        if (debug_verbose) ndt_log("316 mode %d tcas %d xplane %d\n", (int)mode, (int)tcas, XPLMGetDatai(yfms->xpl.transponder_mode));//debug//fixme
         if (mode > 1 && tcas > 0)
         {
             switch (tcas)
@@ -1482,24 +1484,27 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
         ndt_log("314 START -------\n");//debug//fixme
         do
         {
+            debug_verbose = 1;//debug//fixme
+            ndt_log("315 mode %d\n", get_transponder_mode(yfms));//debug//fixme
             new_xmode += direction;
             if (new_xmode < XPDR_MIN)
             {
-                ndt_log("314 mode: %d (%d)\n", XPDR_MIN, new_xmode);//debug//fixme
+                ndt_log("317 mode: %d (%d)\n", XPDR_MIN, new_xmode);//debug//fixme
                 set_transponder_mode(yfms, XPDR_MIN);
                 break;
             }
             if (new_xmode > XPDR_MAX)
             {
-                ndt_log("314 mode: %d (%d)\n", XPDR_MAX, new_xmode);//debug//fixme
+                ndt_log("318 mode: %d (%d)\n", XPDR_MAX, new_xmode);//debug//fixme
                 set_transponder_mode(yfms, XPDR_MAX);
                 break;
             }
-            ndt_log("314 mode:  %d\n", new_xmode);//debug//fixme
+            ndt_log("319 mode:  %d\n", new_xmode);//debug//fixme
             set_transponder_mode(yfms, new_xmode);
+            debug_verbose = 0;//debug//fixme
         }
         while (new_xmode != get_transponder_mode(yfms));
-        ndt_log("314 -------------\n");//debug//fixme
+        ndt_log("320 -------------\n");//debug//fixme
         yfs_rad1_pageupdt(yfms); return;
     }
     return;
