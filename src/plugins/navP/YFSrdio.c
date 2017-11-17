@@ -1479,24 +1479,63 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
         ry >= yfms->mouse_regions[3][2].ymin && ry <= yfms->mouse_regions[3][2].ymax)
     {
         // LSK 3 R: transponder mode
-        int direction = delta > 0 ? 1 : -1;
-        int new_xmode = get_transponder_mode(yfms) + delta - direction;
-        do
+        int mode = get_transponder_mode(yfms);
+        while (1)
         {
-            new_xmode += direction;
-            if (new_xmode < XPDR_MIN)
+            /*
+             * Notes:
+             *
+             * - a new mode may not activate right away, so we can't check
+             *   whether it applied correctly here and try again
+             *
+             * - some modes don't apply to all aircraft, thus we can't just set
+             *   the transponder to mode + 1: it may simply be mapped to mode,
+             *   in which case the increment would have no effect; instead we
+             *   must be smart: increment/decrement to a mode that's unlikely
+             *   to be mapped to the current mode; however it's not foolproof
+             */
+            if (delta < 0)
             {
-                set_transponder_mode(yfms, XPDR_MIN);
+                if (mode >= XPDR_TAR)
+                {
+                    set_transponder_mode(yfms, XPDR_TAO);
+                    break;
+                }
+                if (mode >= XPDR_TAO)
+                {
+                    set_transponder_mode(yfms, XPDR_ALT);
+                    break;
+                }
+                if (mode >= XPDR_ALT)
+                {
+                    set_transponder_mode(yfms, XPDR_AUT);
+                    break;
+                }
+                if (tmmodeod >= XPDR_AUT)
+                {
+                    set_transponder_mode(yfms, XPDR_SBY);
+                    break;
+                }
+                set_transponder_mode(yfms, XPDR_OFF);
                 break;
             }
-            if (new_xmode > XPDR_MAX)
+            if (delta > 0)
             {
-                set_transponder_mode(yfms, XPDR_MAX);
+                if (mode >= XPDR_TAO)
+                {
+                    set_transponder_mode(yfms, XPDR_TAR);
+                    break;
+                }
+                if (mode >= XPDR_ALT)
+                {
+                    set_transponder_mode(yfms, XPDR_TAO);
+                    break;
+                }
+                set_transponder_mode(yfms, XPDR_AUT);
                 break;
             }
-            set_transponder_mode(yfms, new_xmode);
+            return;
         }
-        while (new_xmode != get_transponder_mode(yfms));
         yfs_rad1_pageupdt(yfms); return;
     }
     return;
