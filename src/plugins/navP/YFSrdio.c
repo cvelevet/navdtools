@@ -626,11 +626,10 @@ static int get_transponder_mode(yfms_context *yfms)
     if (yfms->xpl.atyp == YFS_ATYP_ASRT)
     {
         uint32_t mode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
-        uint32_t tcas; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
-        if (yfms->data.rdio.asrt_delayed_baro_v) ndt_log("316 mode: %d tcas %d xplane %d\n", (int)mode, (int)tcas, XPLMGetDatai(yfms->xpl.transponder_mode));//debug//fixme
+        uint32_t tmod; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_tmod, &tmod);
         if (mode == 2)
         {
-            switch (tcas)
+            switch (tmod)
             {
                 case 1:
                     return XPDR_TAO;
@@ -1461,7 +1460,6 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
 
 static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
 {
-    yfms->data.rdio.asrt_delayed_baro_v = 0;//debug//fixme
     if (rx >= yfms->mouse_regions[4][0].xmin && rx <= yfms->mouse_regions[4][0].xmax &&
         ry >= yfms->mouse_regions[4][0].ymin && ry <= yfms->mouse_regions[4][0].ymax)
     {
@@ -1480,38 +1478,27 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
     if (rx >= yfms->mouse_regions[3][2].xmin && rx <= yfms->mouse_regions[3][2].xmax &&
         ry >= yfms->mouse_regions[3][2].ymin && ry <= yfms->mouse_regions[3][2].ymax)
     {
-        yfms->data.rdio.asrt_delayed_baro_v = 0;//debug//fixme
         // LSK 3 R: transponder mode
         int direction = delta > 0 ? 1 : -1;
         int new_xmode = get_transponder_mode(yfms) + delta - direction;
-        ndt_log("314 START -------\n");//debug//fixme
         do
         {
-            yfms->data.rdio.asrt_delayed_baro_v = 1;//debug//fixme
-            ndt_log("315 mode: %d\n", get_transponder_mode(yfms));//debug//fixme
-            yfms->data.rdio.asrt_delayed_baro_v = 0;//debug//fixme
             new_xmode += direction;
             if (new_xmode < XPDR_MIN)
             {
-                ndt_log("317 mode: %d (%d)\n", XPDR_MIN, new_xmode);//debug//fixme
                 set_transponder_mode(yfms, XPDR_MIN);
                 break;
             }
             if (new_xmode > XPDR_MAX)
             {
-                ndt_log("318 mode: %d (%d)\n", XPDR_MAX, new_xmode);//debug//fixme
                 set_transponder_mode(yfms, XPDR_MAX);
                 break;
             }
-            ndt_log("319 mode: %d\n", new_xmode);//debug//fixme
             set_transponder_mode(yfms, new_xmode);
         }
         while (new_xmode != get_transponder_mode(yfms));
-        yfms->data.rdio.asrt_delayed_baro_v = 0;//debug//fixme
-        ndt_log("320 -------------\n");//debug//fixme
         yfs_rad1_pageupdt(yfms); return;
     }
-    yfms->data.rdio.asrt_delayed_baro_v = 0;//debug//fixme
     return;
 }
 
