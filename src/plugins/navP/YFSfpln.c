@@ -337,18 +337,19 @@ void yfs_fpln_pageopen(yfms_context *yfms)
     {
         return;
     }
-    yfms->data.fpln.ln_off = 0;
-    yfms->lsks[0][0].cback = yfms->lsks[1][0].cback =
-    yfms->lsks[0][1].cback = yfms->lsks[1][1].cback =
-    yfms->lsks[0][2].cback = yfms->lsks[1][2].cback =
-    yfms->lsks[0][3].cback = yfms->lsks[1][3].cback =
-    yfms->lsks[0][4].cback = yfms->lsks[1][4].cback =
-    yfms->lsks[0][5].cback = yfms->lsks[1][5].cback = (YFS_LSK_f)&yfs_lsk_callback_fpln;
-    yfms->spcs. cback_lnup = (YFS_SPC_f)&fpl_spc_callback_lnup;
-    yfms->spcs. cback_lndn = (YFS_SPC_f)&fpl_spc_callback_lndn;
-    yfms->mousew_callback  = (YFS_MSW_f)&yfs_msw_callback_fpln;
-    yfms->mousec_callback  = (YFS_MSC_f)&yfs_msc_callback_fpln;
-    yfs_fpln_pageupdt(yfms); return;
+    if (yfms->xpl.has_custom_navigation == 0)
+    {
+        yfms->data.fpln.ln_off = 0;
+        yfms->lsks[0][0].cback = yfms->lsks[1][0].cback =
+        yfms->lsks[0][1].cback = yfms->lsks[1][1].cback =
+        yfms->lsks[0][2].cback = yfms->lsks[1][2].cback =
+        yfms->lsks[0][3].cback = yfms->lsks[1][3].cback =
+        yfms->lsks[0][4].cback = yfms->lsks[1][4].cback =
+        yfms->lsks[0][5].cback = yfms->lsks[1][5].cback = (YFS_LSK_f)&yfs_lsk_callback_fpln;
+        yfms->spcs. cback_lnup = (YFS_SPC_f)&fpl_spc_callback_lnup; yfms->spcs. cback_lndn = (YFS_SPC_f)&fpl_spc_callback_lndn;
+        yfms->mousew_callback  = (YFS_MSW_f)&yfs_msw_callback_fpln; yfms->mousec_callback  = (YFS_MSC_f)&yfs_msc_callback_fpln;
+    }
+    return yfs_fpln_pageupdt(yfms);
 }
 
 static void awys_pageupdt(yfms_context *yfms)
@@ -476,6 +477,10 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
     for (int i = 0; i < YFS_DISPLAY_NUMR - 1; i++)
     {
         yfs_main_rline(yfms, i, -1);
+    }
+    if (yfms->xpl.has_custom_navigation)
+    {
+        return yfs_printf_ctr(yfms, 6, COLR_IDX_WHITE, "%s", "PAGE INOP");
     }
 
     /* do we have a sub-page open? */

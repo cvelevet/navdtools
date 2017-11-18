@@ -324,11 +324,14 @@ void yfs_rad2_pageopen(yfms_context *yfms)
     {
         return;
     }
-    yfms->lsks[0][0].cback = yfms->lsks[1][0].cback =
-    yfms->lsks[0][1].cback = yfms->lsks[1][1].cback =
-    yfms->lsks[0][2].cback = yfms->lsks[0][3].cback =
-    yfms->lsks[0][4].cback = yfms->lsks[1][4].cback = (YFS_LSK_f)&yfs_lsk_callback_rad2;
-    yfs_rdio_pageupdt(yfms); return;
+    if (yfms->xpl.has_custom_nav_radios == 0)
+    {
+        yfms->lsks[0][0].cback = yfms->lsks[1][0].cback =
+        yfms->lsks[0][1].cback = yfms->lsks[1][1].cback =
+        yfms->lsks[0][2].cback = yfms->lsks[0][3].cback =
+        yfms->lsks[0][4].cback = yfms->lsks[1][4].cback = (YFS_LSK_f)&yfs_lsk_callback_rad2;
+    }
+    return yfs_rdio_pageupdt(yfms);
 }
 
 void yfs_rdio_pageupdt(yfms_context *yfms)
@@ -1070,6 +1073,10 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     for (int i = 0; i < YFS_DISPLAY_NUMR - 1; i++)
     {
         yfs_main_rline(yfms, i, -1);
+    }
+    if (yfms->xpl.has_custom_nav_radios)
+    {
+        return yfs_printf_ctr(yfms, 6, COLR_IDX_WHITE, "%s", "PAGE INOP");
     }
     yfs_printf_ctr(yfms, 0, COLR_IDX_WHITE, "%s", "RADIO NAV");
 

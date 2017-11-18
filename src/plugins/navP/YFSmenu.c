@@ -74,6 +74,7 @@ void yfs_menu_resetall(yfms_context *yfms)
     }
 
     /* always reset aircraft type (and associated automatic features) */
+    yfms->xpl.has_custom_nav_radios = yfms->xpl.has_custom_navigation = 0;
     yfms->xpl.otto.vmax_auto = yfms->xpl.otto.vmax_flch = 0;
     yfms->xpl.atyp = YFS_ATYP_NSET;
 

@@ -443,6 +443,8 @@ typedef struct
         XPLMCommandRef knots_mach_toggle;
         // miscellaneous
         XPLMFlightLoop_f fl_callback;
+        int has_custom_nav_radios;
+        int has_custom_navigation;
         enum
         {
             YFS_ATYP_NSET =  0,

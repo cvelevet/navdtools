@@ -49,11 +49,14 @@ void yfs_init_pageopen(yfms_context *yfms)
     {
         return;
     }
-    yfms->lsks[0][0].cback = yfms->lsks[1][0].cback =
-    yfms->lsks[0][2].cback = yfms->lsks[1][2].cback =
-    yfms->lsks[0][4].cback = yfms->lsks[1][4].cback =
-    yfms->lsks[0][5].cback = yfms->lsks[1][5].cback = (YFS_LSK_f)&yfs_lsk_callback_init;
-    yfs_init_pageupdt(yfms); return;
+    if (yfms->xpl.has_custom_navigation == 0)
+    {
+        yfms->lsks[0][0].cback = yfms->lsks[1][0].cback =
+        yfms->lsks[0][2].cback = yfms->lsks[1][2].cback =
+        yfms->lsks[0][4].cback = yfms->lsks[1][4].cback =
+        yfms->lsks[0][5].cback = yfms->lsks[1][5].cback = (YFS_LSK_f)&yfs_lsk_callback_init;
+    }
+    return yfs_init_pageupdt(yfms);
 }
 
 void yfs_init_pageupdt(yfms_context *yfms)
@@ -62,6 +65,10 @@ void yfs_init_pageupdt(yfms_context *yfms)
     for (int i = 0; i < YFS_DISPLAY_NUMR - 1; i++)
     {
         yfs_main_rline(yfms, i, -1);
+    }
+    if (yfms->xpl.has_custom_navigation)
+    {
+        return yfs_printf_ctr(yfms, 6, COLR_IDX_WHITE, "%s", "PAGE INOP");
     }
     yfs_printf_ctr(yfms, 0, COLR_IDX_WHITE, "%s", "INIT");
 

@@ -887,6 +887,8 @@ static void toggle_main_window(yfms_context *yfms)
                     ndt_log("YFMS [warning]: couldn't initialize \"%s\" data\n", XPLM_FF_SIGNATURE);
                     yfms->xpl.atyp = YFS_ATYP_XPLN; break;
                 }
+                yfms->xpl.has_custom_nav_radios = 1;
+                yfms->xpl.has_custom_navigation = 1;
                 yfms->xpl.atyp = YFS_ATYP_ASRT; break;
             }
             if (yfms->xpl.ixeg.xpdr_mode_act       && yfms->xpl.ixeg.xpdr_stby_act       &&
@@ -895,6 +897,7 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.ixeg.radios_adf1_001_act && yfms->xpl.ixeg.radios_adf2_001_act &&
                 yfms->xpl.ixeg.baro_inhg_sby_0001_ind)
             {
+                yfms->xpl.has_custom_navigation = 1;
                 yfms->xpl.atyp = YFS_ATYP_IXEG; break;
             }
             if (yfms->xpl.qpac.XPDRPower       && yfms->xpl.qpac.XPDRAltitude    &&
@@ -906,15 +909,18 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.qpac.RMP2FreqUpLrg   && yfms->xpl.qpac.RMP2FreqUpSml   &&
                 yfms->xpl.qpac.RMP2FreqDownLrg && yfms->xpl.qpac.RMP2FreqDownSml)
             {
+                yfms->xpl.has_custom_nav_radios = 1;
                 yfms->xpl.atyp = YFS_ATYP_QPAC; break;
             }
             if (yfms->xpl.q350.pressLeftButton  && yfms->xpl.q350.pressLeftRotary &&
                 yfms->xpl.q350.pressRightButton && yfms->xpl.q350.pressRightRotary)
             {
+                yfms->xpl.has_custom_nav_radios = 1;
                 yfms->xpl.atyp = YFS_ATYP_Q350; break;
             }
             if (yfms->xpl.q380.BaroStdCapt && yfms->xpl.q380.BaroStdFO)
             {
+                //              yfms->xpl.has_custom_nav_radios = 1; // TODO: check is required
                 yfms->xpl.atyp = YFS_ATYP_Q380; break;
             }
             if (yfms->xpl.fb76.systemMode      && yfms->xpl.fb76.baroRotary_stby   &&
@@ -923,11 +929,14 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.fb76.rightBigRotary  && yfms->xpl.fb76.rightMidRotary    && yfms->xpl.fb76.rightSmallRotary &&
                 yfms->xpl.fb76.nav2_nav_id     && yfms->xpl.fb76.nav2_frequency_hz && yfms->xpl.fb76.nav2_obs_deg_mag_pilot)
             {
+                yfms->xpl.has_custom_navigation = 1;
                 yfms->xpl.atyp = YFS_ATYP_FB76; break;
             }
             if (yfms->xpl.fb77.anim_25_rotery &&
                 yfms->xpl.fb77.anim_85_switch && yfms->xpl.fb77.anim_175_button)
             {
+                yfms->xpl.has_custom_nav_radios = 1;
+                yfms->xpl.has_custom_navigation = 1;
                 yfms->xpl.atyp = YFS_ATYP_FB77; break;
             }
             /*

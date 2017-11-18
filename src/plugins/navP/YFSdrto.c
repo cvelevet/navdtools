@@ -47,19 +47,17 @@ void yfs_drto_pageopen(yfms_context *yfms)
     {
         return;
     }
-    yfms->lsks[0][0].cback =
-    yfms->lsks[0][1].cback =
-    yfms->lsks[0][2].cback =
-    yfms->lsks[0][3].cback =
-    yfms->lsks[0][4].cback =
-    yfms->lsks[0][5].cback = yfms->lsks[1][5].cback= (YFS_LSK_f)&yfs_lsk_callback_drto;
-    yfms->spcs. cback_lnup = (YFS_SPC_f)&dct_spc_callback_lnup;
-    yfms->spcs. cback_lndn = (YFS_SPC_f)&dct_spc_callback_lndn;
-    yfms->mousew_callback  = (YFS_MSW_f)&yfs_msw_callback_drto;
-    yfms->mousec_callback  = (YFS_MSC_f)&yfs_msc_callback_drto;
-    yfms->data.drto.ln_off = 0;
-    yfms->data.drto.dctlg  = NULL;
-    yfms->data.drto.dctwp  = NULL;
+    if (yfms->xpl.has_custom_navigation == 0)
+    {
+        yfms->data.drto.ln_off = 0;
+        yfms->data.drto.dctlg  = NULL;
+        yfms->data.drto.dctwp  = NULL;
+        yfms->lsks[0][0].cback = yfms->lsks[0][1].cback =
+        yfms->lsks[0][2].cback = yfms->lsks[0][3].cback = yfms->lsks[0][4].cback =
+        yfms->lsks[0][5].cback = yfms->lsks[1][5].cback = (YFS_LSK_f)&yfs_lsk_callback_drto;
+        yfms->spcs. cback_lnup = (YFS_SPC_f)&dct_spc_callback_lnup; yfms->spcs. cback_lndn = (YFS_SPC_f)&dct_spc_callback_lndn;
+        yfms->mousew_callback  = (YFS_MSW_f)&yfs_msw_callback_drto; yfms->mousec_callback  = (YFS_MSC_f)&yfs_msc_callback_drto;
+    }
     return yfs_drto_pageupdt(yfms);
 }
 
@@ -69,6 +67,10 @@ void yfs_drto_pageupdt(yfms_context *yfms)
     for (int i = 0; i < YFS_DISPLAY_NUMR - 1; i++)
     {
         yfs_main_rline(yfms, i, -1);
+    }
+    if (yfms->xpl.has_custom_navigation)
+    {
+        return yfs_printf_ctr(yfms, 6, COLR_IDX_WHITE, "%s", "PAGE INOP");
     }
 
     /* is the page meant to be active? */
