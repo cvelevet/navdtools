@@ -626,6 +626,7 @@ static int get_transponder_mode(yfms_context *yfms)
     }
     if (yfms->xpl.atyp == YFS_ATYP_ASRT)
     {
+        uint32_t altr; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
         uint32_t mode; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_mode, &mode);
         uint32_t tcas; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_tcas, &tcas);
         if (mode == 2)
@@ -637,19 +638,14 @@ static int get_transponder_mode(yfms_context *yfms)
                 case 2:
                     return XPDR_TAR;
                 default:
-                    return XPDR_ALT;
+                    return altr ? XPDR_ALT : XPDR_GND;
             }
         }
-        else
+        if (mode == 1)
         {
-            switch (XPLMGetDatai(yfms->xpl.transponder_mode))
-            {
-                case 1:
-                    return mode == 0 ? XPDR_SBY : XPDR_AUT;
-                default:
-                    return XPDR_ALT;
-            }
+            return XPDR_AUT;
         }
+        return XPDR_SBY;
     }
     if (yfms->xpl.atyp == YFS_ATYP_IXEG)
     {
@@ -717,7 +713,7 @@ static int get_transponder_mode(yfms_context *yfms)
             case 1:
                 return XPDR_AUT;
             default:
-                return XPDR_ALT;
+                return XPLMGetDatai(yfms->xpl.qpac.XPDRAltitude) ? XPDR_ALT : XPDR_GND;
         }
     }
     switch (XPLMGetDatai(yfms->xpl.transponder_mode))
@@ -760,7 +756,6 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 xpdr = 0; // STBY
                 break;
             case XPDR_AUT:
-            case XPDR_GND:
                 tmod = 0; // THRT
                 tcas = 0; // STBY
                 altr = 1; // ON
@@ -778,6 +773,12 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 altr = 1; // ON
                 xpdr = 2; // ON
                 break;
+            case XPDR_GND:// will not set X-Plane dataref to 2
+//              tmod = 0; // THRT
+//              tcas = 0; // STBY
+//              altr = 0; // OFF
+//              xpdr = 2; // ON
+//              break;
             case XPDR_ALT:
             default:
                 tmod = 0; // THRT
@@ -803,7 +804,6 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 sact = 0.0f; // STBY
                 break;
             case XPDR_AUT:
-            case XPDR_GND:
                 mact = 0.0f; // OFF
                 sact = 1.0f; // AUTO
                 break;
@@ -815,6 +815,7 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 mact = 2.0f; // TA/RA
                 sact = 2.0f; // ON
                 break;
+            case XPDR_GND:
             case XPDR_ALT:
             default:
                 mact = 1.0f; // OFF
@@ -831,28 +832,21 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
         switch (mode)
         {
             case XPDR_OFF:
-                alt = 0; // OFF
-                pwr = 0; // STBY
-                break;
             case XPDR_SBY:
-                alt = 1; // ON
-                pwr = 0; // STBY
+                XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 0); // STBY
                 break;
             case XPDR_AUT:
-            case XPDR_GND:
-                alt = 1; // ON
-                pwr = 1; // AUTO
+                XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 1); // AUTO
                 break;
             case XPDR_TAO:
             case XPDR_TAR:
+            case XPDR_GND:
             case XPDR_ALT:
             default:
-                alt = 1; // ON
-                pwr = 2; // ON
+                XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 2); // ON
                 break;
         }
-        XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, alt);
-        XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    pwr);
+        XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, mode != XPDR_GND);
         return;
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB76)
