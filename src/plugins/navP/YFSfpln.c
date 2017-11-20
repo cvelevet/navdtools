@@ -1668,7 +1668,12 @@ static void fpl_print_leg_generic(yfms_context *yfms, int row, ndt_route_leg *le
     ndt_restriction restrs = leg->constraints;
     int alt_const_ft, alt_const_fl, spd_const;
     int tr_alt = (int)ndt_distance_get(yfms->data.init.trans_a, NDT_ALTUNIT_FT);
-    yfs_printf_lft(yfms, row, 0, COLR_IDX_GREEN, "%-7s", leg->dst ? leg->dst->info.idnt : leg->info.idnt);
+    switch (leg->type)
+    {
+        default:
+            yfs_printf_lft(yfms, row, 0, COLR_IDX_GREEN, "%-7s", leg->dst ? leg->dst->info.idnt : leg->info.idnt);
+            break;
+    }
     yfs_printf_rgt(yfms, row, 0, COLR_IDX_GREEN, "%s", "----  ---/ -----");
 
     /*

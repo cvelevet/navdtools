@@ -237,7 +237,7 @@ static int get_coroute_file(yfms_context *yfms, const char *base, char outPath[5
 
 static ndt_flightplan* file_to_flightplan(yfms_context *yfms, char path[512], ndt_fltplanformat fmt)
 {
-    int ret; char *contents = ndt_file_slurp(path, &ret); ndt_flightplan *corte;
+    int ret; char *contents = ndt_file_slurp(path, &ret); ndt_flightplan *corte; ndt_route_leg *leg;
     if (ret)
     {
         ndt_log("YFMS [error]: \"%s\" %d, ndt_file_slurp %d\n", path, fmt, ret); return NULL;
@@ -258,6 +258,29 @@ static ndt_flightplan* file_to_flightplan(yfms_context *yfms, char path[512], nd
             break;
         default:
             ndt_log("YFMS [error]: \"%s\" %d, unsupported format\n", path, fmt); return NULL;
+    }
+    for (int i = 0; i < ndt_list_count(corte->legs); i++)
+    {
+        if ((leg = ndt_list_item(corte->legs, i)))
+        {
+            if (leg->dst)
+            {
+                // make sure to only include supported waypoint types on import
+                switch (leg->dst->type)
+                {
+                    case NDT_WPTYPE_APT:
+                    case NDT_WPTYPE_DME:
+                    case NDT_WPTYPE_FIX:
+                    case NDT_WPTYPE_NDB:
+                    case NDT_WPTYPE_VOR:
+                        break;
+                    default: // otherwise, simply sanitize type and identifier
+                        ndt_position_sprintllc(leg->dst->position, NDT_LLCFMT_DEFLT, leg->dst->info.idnt, sizeof(leg->dst->info.idnt));
+                        leg->dst->type = NDT_WPTYPE_LLC;
+                        break;
+                }
+            }
+        }
     }
     return corte;
 }
