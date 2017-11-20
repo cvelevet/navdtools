@@ -159,11 +159,11 @@ void yfs_init_pageupdt(yfms_context *yfms)
     yfs_printf_rgt(yfms, 12, 0, COLR_IDX_BLUE,   "%s",     "36090"); // TODO: implement tropopause setting and temperature at cruise altitude
     if (yfms->data.init.from)
     {
-        yfs_printf_rgt(yfms, 2, 5, COLR_IDX_BLUE, "%s", yfms->data.init.from->info.idnt);
+        yfs_printf_rgt(yfms, 2, 5, COLR_IDX_BLUE, "%+4s", yfms->data.init.from->info.idnt);
     }
     if (yfms->data.init.to)
     {
-        yfs_printf_rgt(yfms, 2, 0, COLR_IDX_BLUE, "%s", yfms->data.init.to->info.idnt);
+        yfs_printf_rgt(yfms, 2, 0, COLR_IDX_BLUE, "%-4s", yfms->data.init.to->info.idnt);
     }
     if (yfms->data.init.ialized)
     {
@@ -502,7 +502,8 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                 {
                     snprintf(icao, sizeof(icao),  "%s", prefix);
                 }
-                if ((src = ndt_navdata_get_airport(yfms->ndt.ndb, icao)) == NULL)
+                if ((src = ndt_navdata_get_airport(yfms->ndt.ndb,   icao)) == NULL &&
+                    (src = ndt_navdata_get_airport(yfms->ndt.ndb, prefix)) == NULL)
                 {
                     (src = xplm_create_airport(yfms, prefix));
                 }
@@ -521,7 +522,8 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                 {
                     snprintf(icao, sizeof(icao),  "%s", suffix);
                 }
-                if ((dst = ndt_navdata_get_airport(yfms->ndt.ndb, icao)) == NULL)
+                if ((dst = ndt_navdata_get_airport(yfms->ndt.ndb,   icao)) == NULL &&
+                    (dst = ndt_navdata_get_airport(yfms->ndt.ndb, suffix)) == NULL)
                 {
                     (dst = xplm_create_airport(yfms, suffix));
                 }
