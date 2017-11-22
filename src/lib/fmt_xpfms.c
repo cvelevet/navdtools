@@ -1114,7 +1114,7 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
                 ret = EINVAL;
                 goto end;
             }
-            if (leg->constraints.altitude.typ != NDT_RESTRICT_AT)
+            if (leg->constraints.altitude.typ == NDT_RESTRICT_NO)
             {
                 // bogus altitude restriction, we need to make a valid one so
                 // this approach can be flown as RNP by the QPAC's FBW plugin
@@ -1166,8 +1166,8 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
                 }
                 altitude = round(altitude / 10.) * 10;
                 altitude = altitude + 10 * (altitude == 0) - 2;
-                rwthralt = arr_rwy->threshold.altitude; rwthrpos = arr_rwy->waypoint->position;
                 fapchfix = leg->dst; fapchalt = ndt_distance_init(round(altitude / 10.) * 10, NDT_ALTUNIT_FT);
+                rwthrpos = arr_rwy->waypoint->position; rwthralt = ndt_distance_add(arr_rwy->threshold.altitude, ndt_distance_init(50, NDT_ALTUNIT_FT));
             }
         }
         switch (leg->constraints.airspeed.typ)
@@ -1336,6 +1336,13 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
     if (arr_rwy)
     {
         /*
+         * Target 50 feet above actual runway threshold elevation;
+         * matches behavior of e.g. FlightFactor A320-214 Ultimate.
+         */
+        altitude = ndt_distance_get(flp->arr.rwy->threshold.altitude, NDT_ALTUNIT_FT) + 50;
+        altitude = round(altitude / 10.) * 10;
+
+        /*
          * For GPS approaches, our runway threshold must be an NPA waypoint.
          *
          * For other approaches, just make it a regular waypoint, as overfly
@@ -1349,13 +1356,9 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
         {
             case NDT_APPRTYPE_GLS:
             case NDT_APPRTYPE_RNAV:
-                altitude = ndt_distance_get(flp->arr.rwy->threshold.altitude, NDT_ALTUNIT_FT);
-                altitude = round(altitude / 10.) * 10;
                 altitude = altitude + 10 * (altitude == 0) - 1; // NPA waypoint
                 break;
             default:
-                altitude = ndt_distance_get(flp->arr.rwy->threshold.altitude, NDT_ALTUNIT_FT);
-                altitude = round(altitude / 10.) * 10;
                 altitude = altitude + 10 * (altitude == 0); // regular waypoint
                 break;
         }
