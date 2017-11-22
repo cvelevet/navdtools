@@ -41,7 +41,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
     char         *start, *pos;
     char         *line = NULL, *last_apt = NULL, buf[64];
     int           linecap, header = 0, err = 0, init = 0;
-    int           typ, nwaypoints, discontinuity = 0;
+    int           aft, typ, n_waypnts, discontinuity = 0;
     double        alt, lat, lon, spd;
     ndt_position  llc;
     ndt_airspeed  kts;
@@ -96,19 +96,19 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
         }
         else if (header < 4)
         {
-            if (sscanf(line, "%d", &nwaypoints) != 1)
+            if (sscanf(line, "%d", &n_waypnts) != 1)
             {
                 ndt_log("[fmt_xpfms]: invalid header (line 4)\n");
                 err = EINVAL;
                 goto end;
             }
-            if (nwaypoints <= 1)
+            if (n_waypnts <= 1)
             {
-                nwaypoints = -1; // don't trust it, read the whole file
+                n_waypnts = -1; // don't trust it, read the whole file
             }
             else
             {
-                nwaypoints++;   // format doesn't account for waypoint 0
+                n_waypnts++;   // format doesn't account for waypoint 0
             }
             header++;
             continue;
@@ -127,6 +127,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
 
         llc = ndt_position_init(lat, lon, ndt_distance_init(0, NDT_ALTUNIT_NA));
         kts = ndt_airspeed_init(spd, NDT_SPDUNIT_KTS);
+        aft = round(10. * round(alt / 10.));
 
         if (typ == 0)
         {
@@ -293,9 +294,6 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                     constraints.altitude.typ = NDT_RESTRICT_NO;
                     break;
             }
-            ndt_distance altlimit = ndt_distance_init((int)alt -
-                                                      (int)alt % 10,
-                                                      NDT_ALTUNIT_FT);
             if (((int)alt % 10) == 3 && ((int)alt - (int)alt % 10) == 0)
             {
                 // overfly but no altitude constraint
@@ -304,12 +302,12 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
             if (constraints.altitude.typ == NDT_RESTRICT_AT ||
                 constraints.altitude.typ == NDT_RESTRICT_AB)
             {
-                constraints.altitude.min = altlimit;
+                constraints.altitude.min = ndt_distance_init(aft, NDT_ALTUNIT_FT);
             }
             if (constraints.altitude.typ == NDT_RESTRICT_AT ||
                 constraints.altitude.typ == NDT_RESTRICT_BL)
             {
-                constraints.altitude.max = altlimit;
+                constraints.altitude.max = ndt_distance_init(aft, NDT_ALTUNIT_FT);
             }
         }
         else
@@ -343,11 +341,11 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
         /* Let's not forget to add our new segment to the route */
         ndt_list_add(flp->rte, rsg);
 
-        if (nwaypoints != -1)
+        if (n_waypnts != -1)
         {
-            nwaypoints--;
+            n_waypnts--;
         }
-        if (nwaypoints == 0)
+        if (n_waypnts == 0)
         {
             break; // don't read any further waypoints
         }
@@ -359,7 +357,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
     }
     else
     {
-        err = 0; // we may break out with err > 0 (e.g. when nwaypoints reaches 0)
+        err = 0; // we may break out with err > 0 (e.g. when n_waypnts reaches 0)
     }
 
     /* Arrival */
