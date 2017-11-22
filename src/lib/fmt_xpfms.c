@@ -42,7 +42,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
     char         *line = NULL, *last_apt = NULL, buf[64];
     int           linecap, header = 0, err = 0, init = 0;
     int           aft, typ, n_waypnts, discontinuity = 0;
-    double        alt, lat, lon, spd;
+    double        alt, lat, lon, spd; int after_fafx = 0;
     ndt_position  llc;
     ndt_airspeed  kts;
 
@@ -282,12 +282,19 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                     break;
 
                 case 9:
+                    if (after_fafx)
+                    {
+                        constraints.altitude.typ = NDT_RESTRICT_AT;
+                        constraints.waypoint     = NDT_WPTCONST_FOV;
+                        break;
+                    }
                     constraints.altitude.typ = NDT_RESTRICT_BL;
                     break;
 
                 case 8:
-                    constraints.altitude.typ = NDT_RESTRICT_BL;
-                    constraints.waypoint     = NDT_WPTCONST_FOV;
+                    constraints.altitude.typ = NDT_RESTRICT_AT;
+                    constraints.waypoint     = NDT_WPTCONST_FAF;
+                    after_fafx               = 1;
                     break;
 
                 default:
