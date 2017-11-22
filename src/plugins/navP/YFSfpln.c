@@ -1735,6 +1735,10 @@ static void fpl_print_airport_rwy(yfms_context *yfms, int row, ndt_airport *apt,
     char *waypoint_id = rwy ? rwy->waypoint->info.idnt : apt->info.idnt;
     ndt_position posn = rwy ? rwy->threshold           : apt->coordinates;
     int altitude_feet = ndt_distance_get(ndt_position_getaltitude(posn), NDT_ALTUNIT_FT);
+    if (rwy) // 50 feet above actual threshold elevation, but rounded to 10 feet
+    {
+        altitude_feet = (((altitude_feet + 5) / 10) * 10) + 50;
+    }
     yfs_printf_lft(yfms, row, 0, COLR_IDX_GREEN, "%-7s",            waypoint_id);
     yfs_printf_rgt(yfms, row, 0, COLR_IDX_GREEN, "----  ---/%6d", altitude_feet);
 }
