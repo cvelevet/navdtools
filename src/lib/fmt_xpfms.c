@@ -1048,10 +1048,11 @@ static int xpfms_skip4dist(ndt_waypoint *src, ndt_waypoint *leg_wpt, ndt_waypoin
 
 static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
 {
-    ndt_waypoint  *fapchfix = NULL, *lst = NULL;
-    ndt_distance   fapchalt;
-    int            ret = 0;
+    ndt_waypoint *fapchfix = NULL, *lst = NULL;
+    ndt_distance rwthralt, fapchalt;
+    ndt_position rwthrpos;
     ndt_route_leg *leg;
+    int ret = 0;
 
     for (size_t i = 0; i < ndt_list_count(legs); i++)
     {
@@ -1119,9 +1120,9 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
                 // this approach can be flown as RNP by the QPAC's FBW plugin
                 double d1tratio; int64_t alt_diff; ndt_distance d1, d2, dt, da;
                 d1 = ndt_position_calcdistance      (fapchfix->position, leg->dst->position);
-                d2 = ndt_position_calcdistance      (leg->dst->position, arr_rwy->waypoint->position);
-                da = ndt_distance_rem               (fapchalt,           arr_rwy->threshold.altitude);
-                dt = ndt_distance_add               (d1, d2);
+                d2 = ndt_position_calcdistance      (leg->dst->position,           rwthrpos);
+                da = ndt_distance_rem               (fapchalt,                     rwthralt);
+                dt = ndt_distance_add               (d1,                                 d2);
                 d1tratio = ((double)ndt_distance_get(d1, NDT_ALTUNIT_FT) /
                             (double)ndt_distance_get(dt, NDT_ALTUNIT_FT));
                 alt_diff = ((double)ndt_distance_get(da, NDT_ALTUNIT_FT) * d1tratio);
@@ -1130,8 +1131,7 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
             altitude = round(altitude / 10.) * 10;
             altitude = altitude + 10 * (altitude == 0) - 1;
             // use this waypoint as the new reference for next waypoint
-            fapchalt = ndt_distance_init(round(altitude / 10.) * 10, NDT_ALTUNIT_FT);
-            fapchfix = leg->dst;
+            fapchfix = leg->dst; fapchalt = ndt_distance_init(round(altitude / 10.) * 10, NDT_ALTUNIT_FT);
         }
         else if (arr_rwy && (leg->constraints.waypoint == NDT_WPTCONST_FAF) &&
                  leg->rsg      && (leg->rsg->     type == NDT_RSTYPE_PRC)   &&
@@ -1166,8 +1166,8 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
                 }
                 altitude = round(altitude / 10.) * 10;
                 altitude = altitude + 10 * (altitude == 0) - 2;
-                fapchalt = ndt_distance_init(round(altitude / 10.) * 10, NDT_ALTUNIT_FT);
-                fapchfix = leg->dst;
+                rwthralt = arr_rwy->threshold.altitude; rwthrpos = arr_rwy->waypoint->position;
+                fapchfix = leg->dst; fapchalt = ndt_distance_init(round(altitude / 10.) * 10, NDT_ALTUNIT_FT);
             }
         }
         switch (leg->constraints.airspeed.typ)
