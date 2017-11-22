@@ -889,12 +889,10 @@ end:/* We should be fully synced with navdlib now */
 
 void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
 {
-    ndt_waypoint *t_p_wpt; char buf[23];
-    int insert_after = toinsert ? 1 : 0;
     ndt_route_leg *tmp, *leg, *t_p_leg, *dct_leg;
-    if (toinsert) index = yfms->data.fpln.lg_idx;
     float trueheading = XPLMGetDataf(yfms->xpl.true_psi);
     float groundspeed = XPLMGetDataf(yfms->xpl.groundspeed);
+    char buf[23]; int insert_after = 0; ndt_waypoint *t_p_wpt;
     int64_t elevation = XPLMGetDatad(yfms->xpl.elevation) / .3048;
     ndt_distance palt = ndt_distance_init(elevation, NDT_ALTUNIT_FT);
     ndt_distance dnxt = ndt_distance_init(groundspeed * 3, NDT_ALTUNIT_FT); // compute aircraft's position ~3 seconds from now
@@ -909,6 +907,11 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
     else
     {
         snprintf(t_p_wpt->info.idnt, sizeof(t_p_wpt->info.idnt), "%s", "T-P");
+    }
+    if (toinsert)
+    {
+        index = yfms->data.fpln.lg_idx;
+        insert_after = index != yfms->data.fpln.dindex;
     }
     if ((leg = ndt_list_item(yfms->data.fpln.legs, index)) == NULL)
     {
