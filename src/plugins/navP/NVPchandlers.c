@@ -4767,12 +4767,12 @@ static int first_fcall_do(chandler_context *ctx)
         }
         if (ctx->atyp == NVP_ACF_A320ULT)
         {
-            XPLMSetDataf(ctx->volumes.evr, 0.20f);
-            XPLMSetDataf(ctx->volumes.wxr, 0.20f);
-            XPLMSetDataf(ctx->volumes.wvr, 0.20f);
-            XPLMSetDataf(ctx->volumes.gvr, 0.20f);
-            XPLMSetDataf(ctx->volumes.pvr, 0.20f);
-            XPLMSetDataf(ctx->volumes.fvr, .625f);
+            XPLMSetDataf(ctx->volumes.evr, 0.25f / 1.25f);
+            XPLMSetDataf(ctx->volumes.wxr, 0.25f / 1.25f);
+            XPLMSetDataf(ctx->volumes.wvr, 0.25f / 1.25f);
+            XPLMSetDataf(ctx->volumes.gvr, 0.25f / 1.25f);
+            XPLMSetDataf(ctx->volumes.pvr, 0.25f / 1.25f);
+            XPLMSetDataf(ctx->volumes.fvr, 0.25f / 4.00f);
         }
         else
         {
