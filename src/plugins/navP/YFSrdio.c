@@ -618,6 +618,20 @@ enum
     XPDR_MAX = XPDR_TAR,
 };
 
+static int has_transponder_auto(yfms_context *yfms)
+{
+    switch (yfms->xpl.atyp)
+    {
+        case YFS_ATYP_ASRT:
+        case YFS_ATYP_IXEG:
+        case YFS_ATYP_QPAC:
+            return 1;
+        default:
+            break;
+    }
+    return 0;
+}
+
 static int get_transponder_mode(yfms_context *yfms)
 {
     if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
@@ -739,7 +753,12 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 mode = XPDR_ALT; // ground: STBY/AUTO/GND -> flight: ALT
                 break;
             default:
-                mode = XPDR_AUT; // flight: ALT -> ground: AUTO or fallback
+                if (has_transponder_auto(yfms))
+                {
+                    mode = XPDR_AUT;
+                    break;
+                }
+                mode = XPDR_SBY; // flight or off -> ground: AUTO or SBY
                 break;
         }
     }
@@ -1505,10 +1524,25 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
             }
             if (mode >= XPDR_ALT)
             {
-                set_transponder_mode(yfms, XPDR_AUT);
+                if (has_transponder_auto(yfms))
+                {
+                    set_transponder_mode(yfms, XPDR_AUT);
+                    return;
+                }
+                set_transponder_mode(yfms, XPDR_SBY);
                 return;
             }
             if (mode >= XPDR_GND)
+            {
+                if (has_transponder_auto(yfms))
+                {
+                    set_transponder_mode(yfms, XPDR_AUT);
+                    return;
+                }
+                set_transponder_mode(yfms, XPDR_SBY);
+                return;
+            }
+            if (mode >= XPDR_AUT)
             {
                 set_transponder_mode(yfms, XPDR_SBY);
                 return;
@@ -1537,14 +1571,29 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
                 set_transponder_mode(yfms, XPDR_TAO);
                 return;
             }
+            if (mode >= XPDR_GND)
+            {
+                set_transponder_mode(yfms, XPDR_ALT);
+                return;
+            }
             if (mode >= XPDR_AUT)
             {
                 set_transponder_mode(yfms, XPDR_ALT);
                 return;
             }
-            if (mode >= XPDR_MIN)
+            if (mode >= XPDR_SBY)
             {
-                set_transponder_mode(yfms, XPDR_AUT);
+                if (has_transponder_auto(yfms))
+                {
+                    set_transponder_mode(yfms, XPDR_AUT);
+                    return;
+                }
+                set_transponder_mode(yfms, XPDR_ALT);
+                return;
+            }
+            if (mode >= XPDR_OFF)
+            {
+                set_transponder_mode(yfms, XPDR_SBY);
                 return;
             }
             return;
