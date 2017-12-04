@@ -163,6 +163,14 @@ static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refco
         }
         if ((wpt = yfs_main_usrwp(yfms, errbuf, scrpad)))
         {
+            if (yfs_main_is_usrwpt(yfms, yfms->data.prog.fix))
+            {
+                yfs_main_usrwp_unr(yfms, yfms->data.prog.fix);
+            }
+            else if (yfms->data.prog.usrwpt)
+            {
+                ndt_waypoint_close(&yfms->data.prog.usrwpt);
+            }
             if (yfs_main_is_usrwpt(yfms, wpt) == 0)
             {
                 yfms->data.prog.usrwpt = wpt;
@@ -176,6 +184,14 @@ static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refco
         }
         if ((wpt = yfs_main_getwp(yfms, scrpad)))
         {
+            if (yfs_main_is_usrwpt(yfms, yfms->data.prog.fix))
+            {
+                yfs_main_usrwp_unr(yfms, yfms->data.prog.fix);
+            }
+            else if (yfms->data.prog.usrwpt)
+            {
+                ndt_waypoint_close(&yfms->data.prog.usrwpt);
+            }
             yfms->data.prog.fix = wpt; yfs_spad_clear(yfms); yfs_prog_pageupdt(yfms); return;
         }
         yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return;
