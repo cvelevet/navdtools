@@ -111,6 +111,24 @@ void yfs_menu_resetall(yfms_context *yfms)
     {
         ndt_list_empty(yfms->data.fpln.legs);
     }
+    if (yfms->data.fpln.w_tp)
+    {
+        ndt_waypoint_close(&yfms->data.fpln.w_tp);
+    }
+    if (yfms->data.prog.usrwpt)
+    {
+        ndt_waypoint_close(&yfms->data.prog.usrwpt);
+    }
+    for (int i = 0; i < 20; i++)
+    {
+        if (yfms->data.fpln.usrwpts[i].wpt)
+        {
+            ndt_navdata_rem_waypoint(yfms->ndt.ndb, yfms->data.fpln.usrwpts[i].wpt);
+            ndt_waypoint_close(&yfms->data.fpln.usrwpts[i].wpt);
+        }
+        yfms->data.fpln.usrwpts[i].wpt = NULL;
+        yfms->data.fpln.usrwpts[i].ref = 0;
+    }
 
     /* user-provided data */
     yfms->data.init.crz_alt       = ndt_distance_init(0, NDT_ALTUNIT_NA);

@@ -138,23 +138,47 @@ static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 1 && key[1] == 3) // setting the reference fix
     {
-        ndt_waypoint *wpt; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
-        if (buf[0] == 0 && yfms->data.prog.fix)
+        char scrpad[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, scrpad);
+        char errbuf[YFS_ROW_BUF_SIZE]; ndt_waypoint *wpt;
+        if  (scrpad[0] == 0)
         {
-            snprintf(buf, sizeof(buf), "%s", yfms->data.prog.fix->info.idnt);
-            yfs_spad_reset(yfms, buf, -1); return; // current fix to scratchpad
+            if (yfms->data.prog.fix)
+            {
+                snprintf(scrpad, sizeof(scrpad), "%s", yfms->data.prog.fix->info.idnt);
+                yfs_spad_reset(yfms, scrpad, -1); return; // current fix to scratchpad
+            }
+            return;
         }
-        if (!strcmp(buf, "CLR"))
+        if (!strcmp(scrpad, "CLR"))
         {
+            if (yfs_main_is_usrwpt(yfms, yfms->data.prog.fix))
+            {
+                yfs_main_usrwp_unr(yfms, yfms->data.prog.fix);
+            }
+            else if (yfms->data.prog.usrwpt)
+            {
+                ndt_waypoint_close(&yfms->data.prog.usrwpt);
+            }
             yfms->data.prog.fix = NULL; yfs_spad_clear(yfms); yfs_prog_pageupdt(yfms); return;
         }
-        // TODO: place/bearing/distance and others
-        // TODO: disambiguation page for duplicates
-        if ((wpt = yfs_main_getwp(yfms, buf)) == NULL)
+        if ((wpt = yfs_main_usrwp(yfms, errbuf, scrpad)))
         {
-            yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return;
+            if (yfs_main_is_usrwpt(yfms, wpt) == 0)
+            {
+                yfms->data.prog.usrwpt = wpt;
+            }
+            yfms->data.prog.fix = wpt; yfs_spad_clear(yfms); yfs_prog_pageupdt(yfms); return;
         }
-        yfms->data.prog.fix = wpt; yfs_spad_clear(yfms); yfs_prog_pageupdt(yfms); return;
+        if (*errbuf)
+        {
+            // yfs_main_usrwp matched but encountered error: abort
+            yfs_spad_reset(yfms, errbuf, -1); return;
+        }
+        if ((wpt = yfs_main_getwp(yfms, scrpad)))
+        {
+            yfms->data.prog.fix = wpt; yfs_spad_clear(yfms); yfs_prog_pageupdt(yfms); return;
+        }
+        yfs_spad_reset(yfms, "NOT IN DATA BASE", -1); return;
     }
     /* all good */
     return;

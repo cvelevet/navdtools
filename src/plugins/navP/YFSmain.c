@@ -1230,15 +1230,15 @@ int yfs_main_close(yfms_context **_yfms)
     }
 
     /* navigation */
-    for (int i = 20; i >= 1; i--)
+    for (int i = 0; i < 20; i++)
     {
-        if (yfms->data.fpln.usrwpt[i-1])
+        if (yfms->data.fpln.usrwpts[i].wpt)
         {
-            ndt_navdata_rem_waypoint(yfms->ndt.ndb,
-                                     yfms->data.fpln.usrwpt[i-1]);
-            ndt_waypoint_close     (&yfms->data.fpln.usrwpt[i-1]);
+            ndt_navdata_rem_waypoint(yfms->ndt.ndb, yfms->data.fpln.usrwpts[i].wpt);
+            ndt_waypoint_close(&yfms->data.fpln.usrwpts[i].wpt);
         }
-        yfms->data.fpln.usridx = i - 1;
+        yfms->data.fpln.usrwpts[i].wpt = NULL;
+        yfms->data.fpln.usrwpts[i].ref = 0;
     }
     if (yfms->ndt.ndb)
     {
@@ -1321,13 +1321,17 @@ int yfs_main_newpg(yfms_context *yfms, int new_page)
     yfms->mwindow.current_page = new_page; return 0;
 }
 
-ndt_waypoint* yfs_main_getwp(yfms_context *yfms, char *name)
+ndt_waypoint* yfs_main_getwp(yfms_context *yfms, const char *name)
 {
     if (yfms && name && *name)
     {
         ndt_waypoint *wpt = ndt_navdata_get_wptnear2(yfms->ndt.ndb, name, NULL, yfms->data.aircraft_pos);
         if (wpt)
         {
+            if (yfs_main_is_usrwpt(yfms, wpt))
+            {
+                yfs_main_usrwp_ref(yfms, wpt);
+            }
             return wpt;
         }
         if (strnlen(name, 4) == 3) // could also be the FAA location identifier
@@ -1433,13 +1437,65 @@ ndt_waypoint* yfs_main_getwp(yfms_context *yfms, char *name)
     return NULL;
 }
 
-ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *buffer)
+int yfs_main_is_usrwpt(yfms_context *yfms, ndt_waypoint *wpt)
 {
-    if (yfms && buffer && *buffer)
+    if (yfms && wpt && yfms->data.init.ialized)
     {
+        for (int i = 0; i < 20; i++)
+        {
+            if (yfms->data.fpln.usrwpts[i].ref > 0 &&
+                yfms->data.fpln.usrwpts[i].wpt == wpt)
+            {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+void yfs_main_usrwp_ref(yfms_context *yfms, ndt_waypoint *wpt)
+{
+    if (yfms && wpt && yfms->data.init.ialized)
+    {
+        for (int i = 0; i < 20; i++)
+        {
+            if (yfms->data.fpln.usrwpts[i].ref > 0 &&
+                yfms->data.fpln.usrwpts[i].wpt == wpt)
+            {
+                yfms->data.fpln.usrwpts[i].ref++; return;
+            }
+        }
+    }
+}
+
+void yfs_main_usrwp_unr(yfms_context *yfms, ndt_waypoint *wpt)
+{
+    if (yfms && wpt && yfms->data.init.ialized)
+    {
+        for (int i = 0; i < 20; i++)
+        {
+            if (yfms->data.fpln.usrwpts[i].ref > 0 &&
+                yfms->data.fpln.usrwpts[i].wpt == wpt)
+            {
+                if (yfms->data.fpln.usrwpts[i].ref <= 1)
+                {
+                    ndt_navdata_rem_waypoint(yfms->ndt.ndb, wpt);
+                    yfms->data.fpln.usrwpts[i].wpt = NULL;
+                    yfms->data.fpln.usrwpts[i].ref = 0;
+                    ndt_waypoint_close(&wpt); return;
+                }
+                yfms->data.fpln.usrwpts[i].ref--; return;
+            }
+        }
+    }
+}
+
+ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer)
+{
+    if (yfms && errbuf && buffer && *buffer)
+    {
+        char plce1[8], plce2[8], de1[2], de2[2]; int err, offset;
         double brg1, brg2, dstce, lat, lon, latm, lonm;
-        int usrwpidx = yfms->data.fpln.usridx + 1, pbx;
-        char plce1[8], plce2[8], de1[2], de2[2];
         ndt_waypoint *wpt, *place1, *place2;
         ndt_date now = ndt_date_now();
         ndt_distance distance;
@@ -1448,7 +1504,7 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *buffer)
             /* PLACE/BRG/DIST (PBD) */
             if (dstce <= 0.5)
             {
-                snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
+                snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
             }
             else
             {
@@ -1456,60 +1512,60 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *buffer)
             }
             if (brg1 < 0. || brg1 > 360.)
             {
-                snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
+                snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
             }
             if ((place1 = yfs_main_getwp(yfms, plce1)) == NULL)
             {
-                snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "NOT IN DATA BASE"); return NULL;
+                snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "NOT IN DATA BASE"); return NULL;
             }
             if ((wpt = ndt_waypoint_pbd(place1, brg1, distance, now, yfms->ndt.ndb->wmm)))
             {
-                snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "PBD%02d", usrwpidx);
+                offset = snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", "PBD");
                 goto wpt_created;
             }
-            snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "YFS MAIN USRWP BUG 1"); return NULL;
+            snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "YFS MAIN USRWP BUG 1"); return NULL;
         }
         if (sscanf(buffer, "%7[^-]-%lf/%7[^-]-%lf%c", plce1, &brg1, plce2, &brg2, plce2) == 4)
         {
             /* PLACE-BRG/PLACE-BRG (PBX) */
             if (brg1 < 0. || brg1 > 360. || brg2 < 0. || brg2 > 360.)
             {
-                snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
+                snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
             }
             if ((place1 = yfs_main_getwp(yfms, plce1)) == NULL ||
                 (place2 = yfs_main_getwp(yfms, plce2)) == NULL)
             {
-                snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "NOT IN DATA BASE"); return NULL;
+                snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "NOT IN DATA BASE"); return NULL;
             }
             else
             {
-                pbx = ndt_position_calcpos4pbpb(NULL,
+                err = ndt_position_calcpos4pbpb(NULL,
                                                 place1->position,
                                                 ndt_wmm_getbearing_tru(yfms->ndt.ndb->wmm, brg1, place1->position, now),
                                                 place2->position,
                                                 ndt_wmm_getbearing_tru(yfms->ndt.ndb->wmm, brg2, place1->position, now));
             }
-            if (pbx == EDOM)
+            if (err == EDOM)
             {
-                snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "INFINITE INTERSECTS"); return NULL;
+                snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "INFINITE INTERSECTS"); return NULL;
             }
-            if (pbx == ERANGE)
+            if (err == ERANGE)
             {
-                snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "NO INTERSECT"); return NULL;
+                snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "NO INTERSECT"); return NULL;
             }
             if ((wpt = ndt_waypoint_pbpb(place1, brg1, place2, brg2, now, yfms->ndt.ndb->wmm)))
             {
-                snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "PBX%02d", usrwpidx);
+                offset = snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", "PBX");
                 goto wpt_created;
             }
-            snprintf(buffer, YFS_ROW_BUF_SIZE, "YFS MAIN USRWP BUG 2 (%d)", pbx); return NULL;
+            snprintf(errbuf, YFS_ROW_BUF_SIZE, "YFS MAIN USRWP BUG 2 (%d)", err); return NULL;
         }
         if (sscanf(buffer, "%7[^/]/%lf%c", plce1, &dstce, plce2) == 2)
         {
             /* PLACE/DIST (PD), a.k.a. along track distance */
             if (dstce <= 0.5)
             {
-                snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
+                snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
             }
             else
             {
@@ -1517,9 +1573,9 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *buffer)
             }
             if ((place1 = yfs_main_getwp(yfms, plce1)) == NULL)
             {
-                snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "NOT IN DATA BASE"); return NULL;
+                snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "NOT IN DATA BASE"); return NULL;
             }
-            snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "NOT IMPLEMENTED"); return NULL;
+            snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "NOT IMPLEMENTED"); return NULL;
         }
 #if 0
         if (0)
@@ -1547,7 +1603,7 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *buffer)
             {
                 if (latm > 60. || (lat + latm / 60.) > 90.)
                 {
-                    snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
+                    snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
                 }
                 else
                 {
@@ -1561,19 +1617,19 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *buffer)
                         lat = -lat;
                         break;
                     default:  // invalid value
-                        snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
+                        snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
                 }
             }
             else
             {
-                snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
+                snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
             }
             if (sscanf(suffix, "%1[EW]%3lf%4lf", de2, &lon, &lonm) == 3 ||
                 sscanf(suffix, "%3lf%4lf%1[EW]", &lon, &lonm, de2) == 3)
             {
                 if (lonm > 60. || (lon + lonm / 60.) > 180.)
                 {
-                    snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
+                    snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
                 }
                 else
                 {
@@ -1587,12 +1643,12 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *buffer)
                         lon = -lon;
                         break;
                     default:  // invalid value
-                        snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
+                        snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
                 }
             }
             else
             {
-                snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
+                snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
             }
             char fmt[23];
             {
@@ -1600,23 +1656,36 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *buffer)
             }
             if ((wpt = ndt_waypoint_llc(fmt)))
             {
-                snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "LL%02d", usrwpidx);
+                offset = snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", "LL");
                 goto wpt_created;
             }
-            snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "YFS MAIN USRWP BUG 3"); return NULL;
+            snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "YFS MAIN USRWP BUG 3"); return NULL;
         }
         goto no_match;
 
     wpt_created:
-        if (yfms->data.fpln.usridx >= 20)
+        if (wpt)
         {
-            snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", "MAX 20 USER WPTS"); // TODO: wording???
-            ndt_waypoint_close(&wpt); return NULL;
-        }
-        else
-        {
-            ndt_navdata_add_waypoint(yfms->ndt.ndb, (yfms->data.fpln.usrwpt[yfms->data.fpln.usridx] = wpt));
-            return yfms->data.fpln.usrwpt[yfms->data.fpln.usridx++];
+            if (yfms->data.init.ialized)
+            {
+                for (int i = 0; i < 20; i++)
+                {
+                    if (yfms->data.fpln.usrwpts[i].wpt == NULL &&
+                        yfms->data.fpln.usrwpts[i].ref <= 0)
+                    {
+                        yfms->data.fpln.usrwpts[i].ref = 1;
+                        yfms->data.fpln.usrwpts[i].wpt = wpt;
+                        ndt_navdata_add_waypoint(yfms->ndt.ndb, wpt);
+                        snprintf(wpt->info.idnt + offset, sizeof(wpt->info.idnt) - offset, "%02d", i);
+                        snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", ""); return yfms->data.fpln.usrwpts[i].wpt;
+                    }
+                }
+                snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "MAX 20 USER WPTS"); // TODO: wording???
+                ndt_waypoint_close(&wpt); return NULL;
+            }
+            // no flightplan: can't track, refcount or add it to main database
+            snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", "L-L");
+            snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "");  return wpt;
         }
     }
 
@@ -1626,7 +1695,7 @@ no_match:
      * nothing found matching provided buffer's format: make it optional
      * (the caller may decide to look for named waypoints instead, etc.)
      */
-    snprintf(buffer, YFS_ROW_BUF_SIZE, "%s", ""); return NULL;
+    snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", ""); return NULL;
 }
 
 void yfs_printf_lft(void *context, int index, int offset, int color, char *fmt, ...)

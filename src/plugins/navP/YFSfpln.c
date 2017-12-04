@@ -984,21 +984,18 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
 
 static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
 {
-    char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); ndt_waypoint *wpt;
-    if ((wpt = yfs_main_usrwp(yfms, buf)))
+    char scrpad[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, scrpad);
+    char errbuf[YFS_ROW_BUF_SIZE]; ndt_waypoint *wpt;
+    if ((wpt = yfs_main_usrwp(yfms, errbuf, scrpad)))
     {
         return wpt;
     }
-    else if (*buf)
+    if (*errbuf)
     {
-        // yfs_main_usrwp found a match but encountered an error, we must abort
-        yfs_spad_reset(yfms, buf, -1); return NULL;
+        // yfs_main_usrwp matched but encountered error: abort
+        yfs_spad_reset(yfms, errbuf, -1); return NULL;
     }
-    else
-    {
-        yfs_spad_copy2(yfms, buf); // yfs_main_usrwp didn't match, let's go on
-    }
-    if ((wpt = yfs_main_getwp(yfms, buf)))
+    if ((wpt = yfs_main_getwp(yfms, scrpad)))
     {
         return wpt;
     }
@@ -1428,17 +1425,9 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             {
                 yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return;
             }
-            if (leg->dst &&
-                leg->dst == yfms->data.fpln.usrwpt[yfms->data.fpln.usridx - 1])
+            if (leg->dst && yfs_main_is_usrwpt(yfms, leg->dst))
             {
-                // keep the user-defined waypoint list lean & tidy when possible
-                // we cannot touch a waypoint halfway, but we can clear the last
-                if (yfms->data.prog.fix == leg->dst)
-                {
-                    yfms->data.prog.fix = NULL;
-                }
-                ndt_navdata_rem_waypoint(yfms->ndt.ndb, leg->dst);
-                ndt_waypoint_close(&yfms->data.fpln.usrwpt[--yfms->data.fpln.usridx]);
+                yfs_main_usrwp_unr(yfms, leg->dst);
             }
             if (ndt_flightplan_remove_leg(fpl_getfplan_for_leg(yfms, leg), leg))
             {

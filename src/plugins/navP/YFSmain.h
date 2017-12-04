@@ -270,11 +270,14 @@ typedef struct
         init;
         struct
         {
+            struct
+            {
+                int           ref;
+                ndt_waypoint *wpt;
+            }            usrwpts[20]; // user-defined waypoint, 01->20
             int               lg_idx; // currently tracked leg in list
             int               ln_off; // currently topmost line offset
             int               dindex; // index of d_leg (in legs list)
-            int               usridx; // user-defined waypoint, 01->20
-            ndt_waypoint *usrwpt[20]; // user-defined waypoint, 01->20
             ndt_waypoint       *w_tp; // present pos. waypoint for DIR TO
             ndt_flightplan    *d_fpl; // last non-empty flight plan element
             ndt_route_leg     *d_leg; // leg to the arrival airport or runway
@@ -349,6 +352,7 @@ typedef struct
         struct
         {
             ndt_waypoint *fix;
+            ndt_waypoint *usrwpt;
         }
         prog;
         struct
@@ -586,11 +590,14 @@ yfms_context;
 
 void*         yfs_main_init (void                            );
 void          yfs_main_toggl(yfms_context*                   );
-void          yfs_main_rline(yfms_context*,   int, int       );
+void          yfs_main_rline(yfms_context*,          int, int);
 int           yfs_main_close(yfms_context**                  );
-int           yfs_main_newpg(yfms_context*,   int            );
-ndt_waypoint* yfs_main_getwp(yfms_context*,        char*     );
-ndt_waypoint* yfs_main_usrwp(yfms_context*,        char*     );
+int           yfs_main_newpg(yfms_context*,               int);
+ndt_waypoint* yfs_main_getwp(yfms_context*,       const char*);
+ndt_waypoint* yfs_main_usrwp(yfms_context*,      char*, char*);
+int           yfs_main_is_usrwpt(yfms_context*, ndt_waypoint*);
+void          yfs_main_usrwp_ref(yfms_context*, ndt_waypoint*);
+void          yfs_main_usrwp_unr(yfms_context*, ndt_waypoint*);
 void          yfs_printf_lft(void*, int, int, int, char*, ...);
 void          yfs_printf_rgt(void*, int, int, int, char*, ...);
 void          yfs_printf_ctr(void*, int,      int, char*, ...);

@@ -321,15 +321,15 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
     if (yfms->data.init.from && yfms->data.init.to)
     {
         // we have both airports, initialize flight plans
-        for (int i = 20; i >= 1; i--)
+        for (int i = 0; i < 20; i++)
         {
-            if (yfms->data.fpln.usrwpt[i-1])
+            if (yfms->data.fpln.usrwpts[i].wpt)
             {
-                ndt_navdata_rem_waypoint(yfms->ndt.ndb,
-                                         yfms->data.fpln.usrwpt[i-1]);
-                ndt_waypoint_close     (&yfms->data.fpln.usrwpt[i-1]);
+                ndt_navdata_rem_waypoint(yfms->ndt.ndb, yfms->data.fpln.usrwpts[i].wpt);
+                ndt_waypoint_close(&yfms->data.fpln.usrwpts[i].wpt);
             }
-            yfms->data.fpln.usridx = i - 1;
+            yfms->data.fpln.usrwpts[i].wpt = NULL;
+            yfms->data.fpln.usrwpts[i].ref = 0;
         }
         if (yfms->data.fpln.w_tp)
         {
