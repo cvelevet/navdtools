@@ -988,7 +988,9 @@ static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
     char errbuf[YFS_ROW_BUF_SIZE]; ndt_waypoint *wpt;
     if ((wpt = yfs_main_usrwp(yfms, errbuf, scrpad)))
     {
-        return wpt;
+        // we shouldn't get a standalone waypoint here, since the flight plan is
+        // initialized, new waypoints should go in an opaque usrwpt list instead
+        ndt_waypoint_close(&wpt); yfs_spad_reset(yfms, "UNKNOWN ERROR 5", COLR_IDX_ORANGE); return NULL;
     }
     if (*errbuf)
     {

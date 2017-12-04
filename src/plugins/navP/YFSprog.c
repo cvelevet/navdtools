@@ -155,26 +155,15 @@ static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refco
             {
                 yfs_main_usrwp_unr(yfms, yfms->data.prog.fix);
             }
-            else if (yfms->data.prog.usrwpt)
-            {
-                ndt_waypoint_close(&yfms->data.prog.usrwpt);
-            }
             yfms->data.prog.fix = NULL; yfs_spad_clear(yfms); yfs_prog_pageupdt(yfms); return;
         }
         if ((wpt = yfs_main_usrwp(yfms, errbuf, scrpad)))
         {
-            if (yfs_main_is_usrwpt(yfms, yfms->data.prog.fix))
-            {
-                yfs_main_usrwp_unr(yfms, yfms->data.prog.fix);
-            }
-            else if (yfms->data.prog.usrwpt)
+            if (yfms->data.prog.usrwpt)
             {
                 ndt_waypoint_close(&yfms->data.prog.usrwpt);
             }
-            if (yfs_main_is_usrwpt(yfms, wpt) == 0)
-            {
-                yfms->data.prog.usrwpt = wpt;
-            }
+            yfms->data.prog.usrwpt = wpt;
             yfms->data.prog.fix = wpt; yfs_spad_clear(yfms); yfs_prog_pageupdt(yfms); return;
         }
         if (*errbuf)

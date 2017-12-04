@@ -1240,6 +1240,14 @@ int yfs_main_close(yfms_context **_yfms)
         yfms->data.fpln.usrwpts[i].wpt = NULL;
         yfms->data.fpln.usrwpts[i].ref = 0;
     }
+    if (yfms->data.fpln.w_tp)
+    {
+        ndt_waypoint_close(&yfms->data.fpln.w_tp);
+    }
+    if (yfms->data.prog.usrwpt)
+    {
+        ndt_waypoint_close(&yfms->data.prog.usrwpt);
+    }
     if (yfms->ndt.ndb)
     {
         ndt_navdatabase_close(&yfms->ndt.ndb);
@@ -1670,14 +1678,14 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer)
             {
                 for (int i = 0; i < 20; i++)
                 {
-                    if (yfms->data.fpln.usrwpts[i].wpt == NULL &&
-                        yfms->data.fpln.usrwpts[i].ref <= 0)
+                    if (yfms->data.fpln.usrwpts[i].ref <= 0 &&
+                        yfms->data.fpln.usrwpts[i].wpt == NULL)
                     {
-                        yfms->data.fpln.usrwpts[i].ref = 1;
+                        yfms->data.fpln.usrwpts[i].ref = 0;
                         yfms->data.fpln.usrwpts[i].wpt = wpt;
                         ndt_navdata_add_waypoint(yfms->ndt.ndb, wpt);
                         snprintf(wpt->info.idnt + offset, sizeof(wpt->info.idnt) - offset, "%02d", i);
-                        snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", ""); return yfms->data.fpln.usrwpts[i].wpt;
+                        snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", ""); return NULL;
                     }
                 }
                 snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "MAX 20 USER WPTS"); // TODO: wording???
