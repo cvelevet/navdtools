@@ -1485,8 +1485,11 @@ void yfs_main_usrwp_unr(yfms_context *yfms, ndt_waypoint *wpt)
             if (yfms->data.fpln.usrwpts[i].ref > 0 &&
                 yfms->data.fpln.usrwpts[i].wpt == wpt)
             {
-                if (yfms->data.fpln.usrwpts[i].ref <= 1)
+                if (yfms->data.fpln.usrwpts[i].ref <= 2)
                 {
+                    // default value is 1: not referenced, but
+                    // will pass testing by yfs_main_is_usrwpt
+                    // going from 2 to 1: no longer referenced
                     ndt_navdata_rem_waypoint(yfms->ndt.ndb, wpt);
                     yfms->data.fpln.usrwpts[i].wpt = NULL;
                     yfms->data.fpln.usrwpts[i].ref = 0;
@@ -1685,7 +1688,10 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer)
                         // our newly-created user waypoint's ID; the next call
                         // to yfs_main_getwp will then return and reference it
                         // don't forget to set ID before adding to DB (sorting)
-                        yfms->data.fpln.usrwpts[i].ref = 0;
+                        //
+                        // default value is 1: not referenced, but
+                        // will pass testing by yfs_main_is_usrwpt
+                        yfms->data.fpln.usrwpts[i].ref = 1;
                         yfms->data.fpln.usrwpts[i].wpt = wpt;
                         snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "");
                         snprintf(buffer, YFS_ROW_BUF_SIZE, "%s%02d", wpt->info.idnt, i + 1);
