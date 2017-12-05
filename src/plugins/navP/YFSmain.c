@@ -1470,6 +1470,12 @@ void yfs_main_usrwp_ref(yfms_context *yfms, ndt_waypoint *wpt)
             if (yfms->data.fpln.usrwpts[i].ref > 0 &&
                 yfms->data.fpln.usrwpts[i].wpt == wpt)
             {
+#if 1//debug
+                ndt_log("314 \"%s\" ++ref: %d -> %d\n",
+                        yfms->data.fpln.usrwpts[i].wpt->info.idnt,
+                        yfms->data.fpln.usrwpts[i].ref,
+                        yfms->data.fpln.usrwpts[i].ref + 1);
+#endif
                 yfms->data.fpln.usrwpts[i].ref++; return;
             }
         }
@@ -1487,6 +1493,12 @@ void yfs_main_usrwp_unr(yfms_context *yfms, ndt_waypoint *wpt)
             {
                 if (yfms->data.fpln.usrwpts[i].ref <= 2)
                 {
+#if 1//debug
+                    ndt_log("314 \"%s\" --ref: %d -> %d (free)\n",
+                            yfms->data.fpln.usrwpts[i].wpt->info.idnt,
+                            yfms->data.fpln.usrwpts[i].ref,
+                            yfms->data.fpln.usrwpts[i].ref - 1);
+#endif
                     // default value is 1: not referenced, but
                     // will pass testing by yfs_main_is_usrwpt
                     // going from 2 to 1: no longer referenced
@@ -1495,6 +1507,12 @@ void yfs_main_usrwp_unr(yfms_context *yfms, ndt_waypoint *wpt)
                     yfms->data.fpln.usrwpts[i].ref = 0;
                     ndt_waypoint_close(&wpt); return;
                 }
+#if 1//debug
+                ndt_log("314 \"%s\" --ref: %d -> %d\n",
+                        yfms->data.fpln.usrwpts[i].wpt->info.idnt,
+                        yfms->data.fpln.usrwpts[i].ref,
+                        yfms->data.fpln.usrwpts[i].ref - 1);
+#endif
                 yfms->data.fpln.usrwpts[i].ref--; return;
             }
         }
