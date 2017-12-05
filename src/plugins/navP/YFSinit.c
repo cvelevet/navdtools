@@ -273,6 +273,7 @@ static ndt_flightplan* file_to_flightplan(yfms_context *yfms, char path[512], nd
                     case NDT_WPTYPE_FIX:
                     case NDT_WPTYPE_NDB:
                     case NDT_WPTYPE_VOR:
+                    case NDT_WPTYPE_RWY:
                         break;
                     default: // otherwise, simply sanitize type and identifier
                         ndt_position_sprintllc(leg->dst->position, NDT_LLCFMT_DEFLT, leg->dst->info.idnt, sizeof(leg->dst->info.idnt));
