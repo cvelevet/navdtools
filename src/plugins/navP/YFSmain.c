@@ -1502,7 +1502,7 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer)
 {
     if (yfms && errbuf && buffer && *buffer)
     {
-        char plce1[8], plce2[8], de1[2], de2[2]; int err, offset;
+        char plce1[8], plce2[8], de1[2], de2[2]; int err;
         double brg1, brg2, dstce, lat, lon, latm, lonm;
         ndt_waypoint *wpt, *place1, *place2;
         ndt_date now = ndt_date_now();
@@ -1528,7 +1528,7 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer)
             }
             if ((wpt = ndt_waypoint_pbd(place1, brg1, distance, now, yfms->ndt.ndb->wmm)))
             {
-                offset = snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", "PBD");
+                snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", "PBD");
                 goto wpt_created;
             }
             snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "YFS MAIN USRWP BUG 1"); return NULL;
@@ -1563,7 +1563,7 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer)
             }
             if ((wpt = ndt_waypoint_pbpb(place1, brg1, place2, brg2, now, yfms->ndt.ndb->wmm)))
             {
-                offset = snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", "PBX");
+                snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", "PBX");
                 goto wpt_created;
             }
             snprintf(errbuf, YFS_ROW_BUF_SIZE, "YFS MAIN USRWP BUG 2 (%d)", err); return NULL;
@@ -1664,7 +1664,7 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer)
             }
             if ((wpt = ndt_waypoint_llc(fmt)))
             {
-                offset = snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", "LL");
+                snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", "LL");
                 goto wpt_created;
             }
             snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "YFS MAIN USRWP BUG 3"); return NULL;
@@ -1681,18 +1681,23 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer)
                     if (yfms->data.fpln.usrwpts[i].ref <= 0 &&
                         yfms->data.fpln.usrwpts[i].wpt == NULL)
                     {
+                        // note: we return NULL, but overwrite the buffer with
+                        // our newly-created user waypoint's ID; the next call
+                        // to yfs_main_getwp will then return and reference it
+                        // don't forget to set ID before adding to DB (sorting)
                         yfms->data.fpln.usrwpts[i].ref = 0;
                         yfms->data.fpln.usrwpts[i].wpt = wpt;
-                        ndt_navdata_add_waypoint(yfms->ndt.ndb, wpt);
-                        snprintf(wpt->info.idnt + offset, sizeof(wpt->info.idnt) - offset, "%02d", i);
-                        snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", ""); return NULL;
+                        snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "");
+                        snprintf(buffer, YFS_ROW_BUF_SIZE, "%s%02d", wpt->info.idnt, i + 1);
+                        snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", buffer);
+                        ndt_navdata_add_waypoint(yfms->ndt.ndb, wpt); return NULL;
                     }
                 }
                 snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "MAX 20 USER WPTS"); // TODO: wording???
                 ndt_waypoint_close(&wpt); return NULL;
             }
             // no flightplan: can't track, refcount or add it to main database
-            snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", "L-L");
+            snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", "CUST-WP");
             snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "");  return wpt;
         }
     }
