@@ -895,11 +895,17 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
     char buf[23]; int insert_after = 0; ndt_waypoint *t_p_wpt;
     int64_t elevation = XPLMGetDatad(yfms->xpl.elevation) / .3048;
     ndt_distance palt = ndt_distance_init(elevation, NDT_ALTUNIT_FT);
-    ndt_distance dnxt = ndt_distance_init(groundspeed * 3, NDT_ALTUNIT_FT); // compute aircraft's position ~3 seconds from now
+    ndt_distance dnxt = ndt_distance_init(groundspeed * 3, NDT_ALTUNIT_ME); // compute airc. pos. ~3 seconds from now (GS in m/s)
     ndt_position ppos = ndt_position_init(XPLMGetDatad(yfms->xpl.latitude), XPLMGetDatad(yfms->xpl.longitude), NDT_DISTANCE_ZERO);
     ndt_position p_tp = ndt_position_calcpos4pbd(ppos, trueheading, dnxt); snprintf(buf, sizeof(buf), "%+010.6lf/%+011.6lf",
                                                                                     ndt_position_getlatitude (p_tp, NDT_ANGUNIT_DEG),
                                                                                     ndt_position_getlongitude(p_tp, NDT_ANGUNIT_DEG));
+#if 1//debug
+    ndt_log("YFMS [debug]: direct to PPOS %+010.6lf/%+011.6lf\n", ndt_position_getlatitude(ppos, NDT_ANGUNIT_DEG), ndt_position_getlongitude(ppos, NDT_ANGUNIT_DEG));
+    ndt_log("YFMS [debug]: direct to T-P: %+010.6lf/%+011.6lf\n", ndt_position_getlatitude(p_tp, NDT_ANGUNIT_DEG), ndt_position_getlongitude(p_tp, NDT_ANGUNIT_DEG));
+    ndt_log("YFMS [debug]: direct to true heading is %f\n", trueheading); ndt_log("YFMS [debug]: direct to ground speed is %f\n", groundspeed);
+    ndt_log("YFMS [debug]: direct to distance is %"PRId64"(m)\n", ndt_distance_get(dnxt, NDT_ALTUNIT_ME));
+#endif
     if ((t_p_wpt = ndt_waypoint_llc(buf)) == NULL)
     {
         return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 B", COLR_IDX_ORANGE);      // PAGE_DRTO
