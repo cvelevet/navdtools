@@ -113,11 +113,11 @@ void nvp_plugin_message(XPLMPluginID inFromWho,
         case XPLM_MSG_PLANE_LOADED:
             if (xplane_first_load)
             {
-                XPLMPluginID xfsr = XPLMFindPluginBySignature("ivao.xivap");
-                if (XPLM_NO_PLUGIN_ID != xfsr) // X-FlightServer's X-IvAp
-                {
-                    XPLMDisablePlugin(xfsr);
-                }
+//                XPLMPluginID xfsr = XPLMFindPluginBySignature("ivao.xivap");
+//                if (XPLM_NO_PLUGIN_ID != xfsr) // X-FlightServer's X-IvAp
+//                {
+//                    XPLMDisablePlugin(xfsr);
+//                }
                 xplane_first_load = 0;
             }
             break;
