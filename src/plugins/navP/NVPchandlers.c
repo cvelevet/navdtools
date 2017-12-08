@@ -3110,6 +3110,78 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     cdu->i_disabled = 1; return 0; // here first from turnaround
                 }
 
+                case NVP_ACF_EMBE_XC:
+                {
+                    if (XPLM_NO_PLUGIN_ID != (plugin = XPLMFindPluginBySignature("ERJ_Functions")))
+                    {
+                        for (int i = 0; i < XPLMCountHotKeys(); i++)
+                        {
+                            XPLMPluginID outp_id; char outp_descr[513];
+                            XPLMHotKeyID hot_key = XPLMGetNthHotKey(i);
+                            if (hot_key == NULL)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                XPLMGetHotKeyInfo(hot_key, NULL, NULL, outp_descr, &outp_id);
+                            }
+                            if (outp_id == plugin)
+                            {
+                                // set combination to a key almost guaranteed to be unused
+                                XPLMSetHotKeyCombination(hot_key, XPLM_VK_F24, xplm_UpFlag);
+                                continue;
+                            }
+                            continue;
+                        }
+                    }
+                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("sim/cockpit2/switches/generic_lights_switch")) ||
+                        NULL == (cdu->dataref[1] = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
+                    {
+                        cdu->i_disabled = 1; break; // check for YFMS presence
+                    }
+                    cdu->i_disabled = 0; return 0; // here first from turnaround
+                }
+
+                case NVP_ACF_HA4T_RW:
+                {
+                    if (XPLM_NO_PLUGIN_ID != (plugin = XPLMFindPluginBySignature("Tekton_Functions")))
+                    {
+                        for (int i = 0; i < XPLMCountHotKeys(); i++)
+                        {
+                            XPLMPluginID outp_id; char outp_descr[513];
+                            XPLMHotKeyID hot_key = XPLMGetNthHotKey(i);
+                            if (hot_key == NULL)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                XPLMGetHotKeyInfo(hot_key, NULL, NULL, outp_descr, &outp_id);
+                            }
+                            if (outp_id == plugin)
+                            {
+                                // set combination to a key almost guaranteed to be unused
+                                XPLMSetHotKeyCombination(hot_key, XPLM_VK_F24, xplm_UpFlag);
+                                continue;
+                            }
+                            continue;
+                        }
+                    }
+                    if (NULL == (cdu->command[0] = XPLMFindCommand("xap/panels/tim314/0")) ||
+                        NULL == (cdu->command[1] = XPLMFindCommand("xap/panels/tim314/5")) ||
+                        NULL == (cdu->command[2] = XPLMFindCommand("xap/panels/tim314/6")))
+                    {
+                        if (NULL == (cdu->command[0] = XPLMFindCommand("xap/panels/0")) ||
+                            NULL == (cdu->command[1] = XPLMFindCommand("xap/panels/5")) ||
+                            NULL == (cdu->command[2] = XPLMFindCommand("xap/panels/6")))
+                        {
+                            cdu->i_disabled = 1; break; // check for YFMS presence
+                        }
+                    }
+                    cdu->i_disabled = 0; return 0; // here first from turnaround
+                }
+
                 case NVP_ACF_EMBE_SS:
                 {
                     if (XPLM_NO_PLUGIN_ID != (plugin = XPLMFindPluginBySignature("FJCC.SSGERJ")))
@@ -3179,29 +3251,6 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         NULL == (cdu->command[0] = XPLMFindCommand("AirbusFBW/UndockMCDU1")))
                     {
                         cdu->i_disabled = 1; break; // check for YFMS presence
-                    }
-                    cdu->i_disabled = 0; break;
-
-                case NVP_ACF_EMBE_XC:
-                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("sim/cockpit2/switches/generic_lights_switch")) ||
-                        NULL == (cdu->dataref[1] = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
-                    {
-                        cdu->i_disabled = 1; return 0;
-                    }
-                    cdu->i_disabled = 0; break;
-
-                case NVP_ACF_HA4T_RW:
-                    if (NULL == (cdu->command[0] = XPLMFindCommand("xap/panels/tim314/0")) ||
-                        NULL == (cdu->command[1] = XPLMFindCommand("xap/panels/tim314/5")) ||
-                        NULL == (cdu->command[2] = XPLMFindCommand("xap/panels/tim314/6")))
-                    {
-                        if (NULL == (cdu->command[0] = XPLMFindCommand("xap/panels/0")) ||
-                            NULL == (cdu->command[1] = XPLMFindCommand("xap/panels/5")) ||
-                            NULL == (cdu->command[2] = XPLMFindCommand("xap/panels/6")))
-                        {
-                            cdu->i_disabled = 1; break; // check for YFMS presence
-                        }
-                        cdu->i_disabled = 0; break;
                     }
                     cdu->i_disabled = 0; break;
 
@@ -4110,6 +4159,10 @@ static int first_fcall_do(chandler_context *ctx)
             break;
 
         case NVP_ACF_EMBE_XC:
+            if (ctx->mcdu.rc.i_disabled == -1)
+            {
+                chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc);  // XXX: remap hotkeys
+            }
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/electrical/generator_on")))
             {
                 int generator_on[1] = { 1, };
@@ -4140,6 +4193,33 @@ static int first_fcall_do(chandler_context *ctx)
                 XPLMSetDatavf(d_ref, &generic_lights_switch[0], 28, 1); // bleed1
                 XPLMSetDatavf(d_ref, &generic_lights_switch[0], 29, 1); // bleed2
             }
+            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
+            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
+            _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+            break;
+
+        case NVP_ACF_HA4T_RW:
+            if (ctx->mcdu.rc.i_disabled == -1)
+            {
+                chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc);  // XXX: remap hotkeys
+            }
+            _DO(1, XPLMSetDatai, 0, "Hawker4000/hideshow/car");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/yoke/hide_show");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/bleed/l_bleed_b");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/bleed/r_bleed_b");
+            _DO(1, XPLMSetDatai, 0, "Hawker4000/pref/wingflex_b");
+            _DO(1, XPLMSetDatai, 0, "Hawker4000/pref/map_detail_b");
+            _DO(1, XPLMSetDatai, 0, "Hawker4000/hideshow/chockscones");
+            _DO(1, XPLMSetDatai, 0, "Hawker4000/hideshow/engine_cover");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/gear/anti_skid_button");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/pilot/elec/l_gen_button");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/pilot/elec/r_gen_button");
+//          _DO(1, XPLMSetDatai, 3, "Hawker4000/pilot/pilot_BRG_1_CYCLE");      // unwritable
+//          _DO(1, XPLMSetDatai, 0, "Hawker4000/pilot/pilot_BRG_2_CYCLE");      // unwritable
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
@@ -4220,29 +4300,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
             break;
         }
-
-        case NVP_ACF_HA4T_RW:
-            _DO(1, XPLMSetDatai, 0, "Hawker4000/hideshow/car");
-            _DO(1, XPLMSetDatai, 1, "Hawker4000/yoke/hide_show");
-            _DO(1, XPLMSetDatai, 1, "Hawker4000/bleed/l_bleed_b");
-            _DO(1, XPLMSetDatai, 1, "Hawker4000/bleed/r_bleed_b");
-            _DO(1, XPLMSetDatai, 0, "Hawker4000/pref/wingflex_b");
-            _DO(1, XPLMSetDatai, 0, "Hawker4000/pref/map_detail_b");
-            _DO(1, XPLMSetDatai, 0, "Hawker4000/hideshow/chockscones");
-            _DO(1, XPLMSetDatai, 0, "Hawker4000/hideshow/engine_cover");
-            _DO(1, XPLMSetDatai, 1, "Hawker4000/gear/anti_skid_button");
-            _DO(1, XPLMSetDatai, 1, "Hawker4000/pilot/elec/l_gen_button");
-            _DO(1, XPLMSetDatai, 1, "Hawker4000/pilot/elec/r_gen_button");
-//          _DO(1, XPLMSetDatai, 3, "Hawker4000/pilot/pilot_BRG_1_CYCLE");      // unwritable
-//          _DO(1, XPLMSetDatai, 0, "Hawker4000/pilot/pilot_BRG_2_CYCLE");      // unwritable
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
-            _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
-            break;
 
         case NVP_ACF_MD80_RO:
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/panel_brightness_ratio")))
