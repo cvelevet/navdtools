@@ -767,6 +767,32 @@ static void toggle_main_window(yfms_context *yfms)
     if (yfms->xpl.atyp == YFS_ATYP_NSET)
     {
         /*
+         * Make sure there is no conflict between our "toggle"
+         * keysniffer and one or more plugin-defined hotkey(s).
+         */
+        if (AW_D_KEY_DEFAULT != yfms->mwindow.aw_d_vkey)
+        {
+            yfms->mwindow.aw_d_vkey = AW_D_KEY_DEFAULT;
+            ndt_log("YFMS [info]: first key press, re-enable default toggle key\n");
+        }
+        if (XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("com.pilotedge.plugin.xplane"))
+        {
+            for (int i = 0; i < XPLMCountHotKeys(); i++)
+            {
+                XPLMHotKeyID hotkey = XPLMGetNthHotKey(i);
+                if (hotkey)
+                {
+                    char ovk; XPLMGetHotKeyInfo(hotkey, &ovk, NULL, NULL, NULL);
+                    if (AW_D_KEY_DEFAULT == ovk)
+                    {
+                        ndt_log("YFMS [info]: first key press, now using alternate toggle key\n");
+                        yfms->mwindow.aw_d_vkey = AW_D_KEY_LTERNAT;
+                        break;
+                    }
+                }
+            }
+        }
+        /*
          * Check all (supported) custom datarefs and commands;
          * use them to determine custom aircraft type, if any.
          */
@@ -1179,8 +1205,8 @@ void* yfs_main_init(void)
     {
         ndt_log("YFMS [warning]: failed to register key sniffer #2\n");
     }
-    yfms->mwindow.ks_d_mode = YFS_KSM_WIN; // default: when mouse over main window
-    yfms->mwindow.aw_d_vkey = XPLM_VK_TAB; // default: Tab key to show/hide
+    yfms->mwindow.ks_d_mode =      YFS_KSM_WIN; // default: when over main wind.
+    yfms->mwindow.aw_d_vkey = AW_D_KEY_DEFAULT; // default key for toggle sniff.
 
     /* all good */
     yfs_menu_resetall(yfms); return yfms;

@@ -98,8 +98,12 @@ typedef struct
     {
         XPWidgetID id;
         int win_state;
-        int aw_d_vkey;
         int aw_rgstrd;
+        enum
+        {
+            AW_D_KEY_DEFAULT = XPLM_VK_TAB,
+            AW_D_KEY_LTERNAT = XPLM_VK_RETURN,
+        }   aw_d_vkey;
         int ks_rgstrd;
         enum
         {
@@ -108,8 +112,7 @@ typedef struct
             YFS_KSM_NUM,
             YFS_KSM_WIN,
             YFS_KSM_ALL,
-        }
-        ks_d_mode;
+        }   ks_d_mode;
         struct
         {
             // line select keys
