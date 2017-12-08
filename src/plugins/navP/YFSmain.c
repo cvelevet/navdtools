@@ -1279,6 +1279,10 @@ int yfs_main_close(yfms_context **_yfms)
     {
         yfms->mwindow.ks_rgstrd = XPLMUnregisterKeySniffer(&yfs_keysniffer, 1, yfms);
     }
+    if (yfms->mwindow.aw_rgstrd)
+    {
+        yfms->mwindow.aw_rgstrd = XPLMUnregisterKeySniffer(&yfs_afterwindw, 0, yfms);
+    }
 
     /* flight loop callback */
     if (yfms->xpl.fl_callback)
