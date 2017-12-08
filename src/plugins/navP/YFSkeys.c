@@ -24,6 +24,7 @@
 #include "XPLM/XPLMDataAccess.h"
 #include "XPLM/XPLMDefs.h"
 #include "XPLM/XPLMDisplay.h"
+#include "XPLM/XPLMPlugin.h"
 #include "XPLM/XPLMUtilities.h"
 
 #include "YFSkeys.h"
@@ -499,8 +500,22 @@ int yfs_afterwindw(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
         {
             if ((inFlags & (xplm_DownFlag)) == xplm_DownFlag)
             {
+#if 0
                 if (((yfms_context*)inRefcon)->mwindow.aw_d_vkey == inVirtualKey)
                 {
+                    yfs_main_toggl(inRefcon);
+                    return 0;
+                }
+#endif
+                if (XPLM_VK_TAB == inVirtualKey)
+                {
+                    yfs_main_toggl(inRefcon);
+                    return 0;
+                }
+                if (XPLM_VK_RETURN == inVirtualKey &&
+                    XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("com.pilotedge.plugin.xplane"))
+                {
+                    // XXX: we just assume our PTT/Contact/ATC is Return :-(
                     yfs_main_toggl(inRefcon);
                     return 0;
                 }

@@ -766,9 +766,16 @@ static void toggle_main_window(yfms_context *yfms)
      */
     if (yfms->xpl.atyp == YFS_ATYP_NSET)
     {
+#if 0
         /*
          * Make sure there is no conflict between our "toggle"
          * keysniffer and one or more plugin-defined hotkey(s).
+         *
+         * enum
+         * {
+         *     AW_D_KEY_DEFAULT = XPLM_VK_TAB,
+         *     AW_D_KEY_LTERNAT = XPLM_VK_RETURN,
+         * }   aw_d_vkey;
          */
         if (AW_D_KEY_DEFAULT != yfms->mwindow.aw_d_vkey)
         {
@@ -792,6 +799,7 @@ static void toggle_main_window(yfms_context *yfms)
                 }
             }
         }
+#endif
         /*
          * Check all (supported) custom datarefs and commands;
          * use them to determine custom aircraft type, if any.
@@ -1205,8 +1213,7 @@ void* yfs_main_init(void)
     {
         ndt_log("YFMS [warning]: failed to register key sniffer #2\n");
     }
-    yfms->mwindow.ks_d_mode =      YFS_KSM_WIN; // default: when over main wind.
-    yfms->mwindow.aw_d_vkey = AW_D_KEY_DEFAULT; // default key for toggle sniff.
+    yfms->mwindow.ks_d_mode = YFS_KSM_WIN; // default: mouse within  main window
 
     /* all good */
     yfs_menu_resetall(yfms); return yfms;
