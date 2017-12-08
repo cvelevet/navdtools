@@ -1170,12 +1170,17 @@ void* yfs_main_init(void)
         goto fail;
     }
 
-    /* we have a very useful key sniffer */
+    /* we have a couple very useful key sniffers */
     if ((yfms->mwindow.ks_rgstrd = XPLMRegisterKeySniffer(&yfs_keysniffer, 1, yfms)) == 0)
     {
-        ndt_log("YFMS [warning]: failed to register key sniffer\n");
+        ndt_log("YFMS [warning]: failed to register key sniffer #1\n");
     }
-    yfms->mwindow.ks_mode = YFS_KSM_WIN; // default: when mouse over main window
+    if ((yfms->mwindow.aw_rgstrd = XPLMRegisterKeySniffer(&yfs_afterwindw, 0, yfms)) == 0)
+    {
+        ndt_log("YFMS [warning]: failed to register key sniffer #2\n");
+    }
+    yfms->mwindow.ks_d_mode = YFS_KSM_WIN; // default: when mouse over main window
+    yfms->mwindow.aw_d_vkey = XPLM_VK_TAB; // default: Tab key to show/hide
 
     /* all good */
     yfs_menu_resetall(yfms); return yfms;

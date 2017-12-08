@@ -29,6 +29,7 @@
 
 void yfs_keypressed(yfms_context*,                       XPWidgetID);
 int  yfs_keysniffer(char,          XPLMKeyFlags,    char,     void*);
+int  yfs_afterwindw(char,          XPLMKeyFlags,    char,     void*);
 int  yfs_mouseevent(yfms_context*, XPMouseState_t*, XPWidgetMessage);
 
 #endif /* YFS_KEYS_H */

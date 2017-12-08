@@ -311,7 +311,7 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
     {
         return 1; // pass through
     }
-    if (yfms->mwindow.ks_mode == YFS_KSM_OFF)
+    if (yfms->mwindow.ks_d_mode == YFS_KSM_OFF)
     {
         return 1; // pass through
     }
@@ -319,7 +319,7 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
     {
         return 1; // pass through
     }
-    switch (yfms->mwindow.ks_mode)
+    switch (yfms->mwindow.ks_d_mode)
     {
         // mouse within main display + line select key area only
         case YFS_KSM_DSP:
@@ -343,58 +343,61 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
     {
         return 1;
     }
-    if ((inFlags & (xplm_ShiftFlag|xplm_OptionAltFlag|xplm_ControlFlag)) == 0) switch ((unsigned char)inVirtualKey)
+    if ((inFlags & (xplm_ShiftFlag|xplm_OptionAltFlag|xplm_ControlFlag)) == 0)
     {
-        case XPLM_VK_ADD:
-            yfs_spad_apndc(yfms, '+', -1);
-            return 0;
-        case XPLM_VK_MINUS:
-        case XPLM_VK_SUBTRACT:
-            yfs_spad_apndc(yfms, '-', -1);
-            return 0;
-        case XPLM_VK_BACK:
-            yfs_spad_remvc(yfms);
-            return 0;
-        case XPLM_VK_DECIMAL:
-        case XPLM_VK_PERIOD:
-            yfs_spad_apndc(yfms, '.', -1);
-            return 0;
-        case XPLM_VK_DELETE:
-            yfs_spad_clear(yfms);
-            return 0;
-        case XPLM_VK_SLASH:
-        case XPLM_VK_DIVIDE:
-            yfs_spad_apndc(yfms, '/', -1);
-            return 0;
-        case XPLM_VK_SPACE:
-            yfs_spad_apndc(yfms, '_', -1); // cf. YFSmain.c, draw_display()
-            return 0;
-        case XPLM_VK_UP:
-            if (yfms->spcs.cback_lnup)
-            {
-                yfms->spcs.cback_lnup(yfms);
-            }
-            return 0;
-        case XPLM_VK_DOWN:
-            if (yfms->spcs.cback_lndn)
-            {
-                yfms->spcs.cback_lndn(yfms);
-            }
-            return 0;
-        case XPLM_VK_LEFT:
-            if (yfms->spcs.cback_left)
-            {
-                yfms->spcs.cback_left(yfms);
-            }
-            return 0;
-        case XPLM_VK_RIGHT:
-            if (yfms->spcs.cback_rigt)
-            {
-                yfms->spcs.cback_rigt(yfms);
-            }
-            return 0;
-        default:
-            break;
+        switch ((unsigned char)inVirtualKey)
+        {
+            case XPLM_VK_ADD:
+                yfs_spad_apndc(yfms, '+', -1);
+                return 0;
+            case XPLM_VK_MINUS:
+            case XPLM_VK_SUBTRACT:
+                yfs_spad_apndc(yfms, '-', -1);
+                return 0;
+            case XPLM_VK_BACK:
+                yfs_spad_remvc(yfms);
+                return 0;
+            case XPLM_VK_DECIMAL:
+            case XPLM_VK_PERIOD:
+                yfs_spad_apndc(yfms, '.', -1);
+                return 0;
+            case XPLM_VK_DELETE:
+                yfs_spad_clear(yfms);
+                return 0;
+            case XPLM_VK_SLASH:
+            case XPLM_VK_DIVIDE:
+                yfs_spad_apndc(yfms, '/', -1);
+                return 0;
+            case XPLM_VK_SPACE:
+                yfs_spad_apndc(yfms, '_', -1); // cf. YFSmain.c, draw_display()
+                return 0;
+            case XPLM_VK_UP:
+                if (yfms->spcs.cback_lnup)
+                {
+                    yfms->spcs.cback_lnup(yfms);
+                }
+                return 0;
+            case XPLM_VK_DOWN:
+                if (yfms->spcs.cback_lndn)
+                {
+                    yfms->spcs.cback_lndn(yfms);
+                }
+                return 0;
+            case XPLM_VK_LEFT:
+                if (yfms->spcs.cback_left)
+                {
+                    yfms->spcs.cback_left(yfms);
+                }
+                return 0;
+            case XPLM_VK_RIGHT:
+                if (yfms->spcs.cback_rigt)
+                {
+                    yfms->spcs.cback_rigt(yfms);
+                }
+                return 0;
+            default:
+                break;
+        }
     }
     switch (inChar)
     {
@@ -418,7 +421,7 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
             yfs_spad_apndc(yfms, inChar, -1);
             return 0;
         default:
-            if (yfms->mwindow.ks_mode == YFS_KSM_NUM)
+            if (yfms->mwindow.ks_d_mode == YFS_KSM_NUM)
             {
                 return 1; // digit-only: pass any letter(s) through
             }
@@ -483,8 +486,28 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
             yfs_spad_apndc(yfms, toupper(inChar), -1);
             return 0;
         default:
-            return 1;
+            break;
     }
+    return 1;
+}
+
+int yfs_afterwindw(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *inRefcon)
+{
+    if (inRefcon)
+    {
+        if ((inFlags & (xplm_ShiftFlag|xplm_OptionAltFlag|xplm_ControlFlag)) == 0)
+        {
+            if ((inFlags & (xplm_DownFlag)) == xplm_DownFlag)
+            {
+                if (((yfms_context*)inRefcon)->mwindow.aw_d_vkey == inVirtualKey)
+                {
+                    yfs_main_toggl(inRefcon);
+                    return 0;
+                }
+            }
+        }
+    }
+    return 1;
 }
 
 int yfs_mouseevent(yfms_context *yfms, XPMouseState_t *maus, XPWidgetMessage m)

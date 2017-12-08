@@ -98,6 +98,8 @@ typedef struct
     {
         XPWidgetID id;
         int win_state;
+        int aw_d_vkey;
+        int aw_rgstrd;
         int ks_rgstrd;
         enum
         {
@@ -107,7 +109,7 @@ typedef struct
             YFS_KSM_WIN,
             YFS_KSM_ALL,
         }
-        ks_mode;
+        ks_d_mode;
         struct
         {
             // line select keys
