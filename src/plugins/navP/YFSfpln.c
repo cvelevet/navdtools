@@ -900,7 +900,7 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
     ndt_position p_tp = ndt_position_calcpos4pbd(ppos, trueheading, dnxt); snprintf(buf, sizeof(buf), "%+010.6lf/%+011.6lf",
                                                                                     ndt_position_getlatitude (p_tp, NDT_ANGUNIT_DEG),
                                                                                     ndt_position_getlongitude(p_tp, NDT_ANGUNIT_DEG));
-#if 1//debug
+#if 0
     ndt_log("YFMS [debug]: direct to PPOS %+010.6lf/%+011.6lf\n", ndt_position_getlatitude(ppos, NDT_ANGUNIT_DEG), ndt_position_getlongitude(ppos, NDT_ANGUNIT_DEG));
     ndt_log("YFMS [debug]: direct to T-P: %+010.6lf/%+011.6lf\n", ndt_position_getlatitude(p_tp, NDT_ANGUNIT_DEG), ndt_position_getlongitude(p_tp, NDT_ANGUNIT_DEG));
     ndt_log("YFMS [debug]: direct to act. di. is %"PRId64"(m)\n", ndt_distance_get(ndt_position_calcdistance(ppos, p_tp), NDT_ALTUNIT_ME));
