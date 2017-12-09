@@ -494,6 +494,7 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
 
 int yfs_afterwindw(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *inRefcon)
 {
+#ifndef YFMS_ONLY
     if (inRefcon)
     {
         if ((inFlags & (xplm_ShiftFlag|xplm_OptionAltFlag|xplm_ControlFlag)) == 0)
@@ -506,7 +507,7 @@ int yfs_afterwindw(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
                     yfs_main_toggl(inRefcon);
                     return 0;
                 }
-#endif
+#else
                 if (XPLM_VK_TAB == inVirtualKey)
                 {
                     yfs_main_toggl(inRefcon);
@@ -519,9 +520,11 @@ int yfs_afterwindw(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
                     yfs_main_toggl(inRefcon);
                     return 0;
                 }
+#endif
             }
         }
     }
+#endif // !YFMS_ONLY
     return 1;
 }
 
