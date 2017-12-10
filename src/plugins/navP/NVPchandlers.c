@@ -4845,12 +4845,10 @@ static int first_fcall_do(chandler_context *ctx)
     XPLMSetDatai(ctx->volumes.txt, 1); // "text" ATC
     XPLMSetDatai(ctx->volumes.spc, 0); // verbal ATC
 
-    /*
-     * Slight frame rate bump, but it makes clouds a bit more transparent :|
-     */
+    /* Boost frame rates by disabling cloud drawing altogether */
     if (ctx->menu_context)
     {
-        nvp_menu_tachy(ctx->menu_context, xplm_Menu_Checked);
+        nvp_menu_ckill(ctx->menu_context, xplm_Menu_Checked);
     }
 #endif
 
