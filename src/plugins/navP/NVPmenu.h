@@ -25,6 +25,7 @@ void* nvp_menu_init (void                );
 int   nvp_menu_setup(void   *menu_context);
 int   nvp_menu_reset(void   *menu_context);
 int   nvp_menu_close(void **_menu_context);
+void  nvp_menu_ckill(void   *menu_context, int set_state);
 void  nvp_menu_tachy(void   *menu_context, int set_state);
 
 #endif /* NVP_MENU_H */
