@@ -101,6 +101,7 @@ typedef struct
     XPLMDataRef r_b_rat;
     XPLMDataRef protate;
     XPLMDataRef g_speed;
+    XPLMCommandRef pcmd;
     chandler_command rg;
     chandler_command mx;
     chandler_command ro;
@@ -2133,18 +2134,42 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     refcon_braking *rcb = &ctx->bking.rc_brk;
     float p_b_flt = XPLMGetDataf(rcb->p_b_flt);
     float g_speed = XPLMGetDataf(rcb->g_speed) * 3.6f / 1.852f;
-    float p_ratio = (g_speed < 30.0f) ? rcb->rtio[0] : (g_speed < 60.0f) ? rcb->rtio[1] : rcb->rtio[2];
+    float p_ratio = (g_speed < 20.0f) ? rcb->rtio[0] : (g_speed < 40.0f) ? rcb->rtio[1] : rcb->rtio[2];
     refcon_assert1 *rca = rcb->assert;
     if (rca)
     {
         switch (inPhase)
         {
             case xplm_CommandBegin:
+                // always start with regular braking
                 XPLMCommandBegin(rca->dat.h_brk_regulr);
+                rcb->pcmd = rca->dat.h_brk_regulr;
                 return 0;
             case xplm_CommandContinue:
+                // adjust braking strength for speed
+                if (g_speed > 40.0f)
+                {
+                    if (rcb->pcmd != rca->dat.h_brk_mximum)
+                    {
+                        XPLMCommandEnd  (rca->dat.h_brk_regulr);
+                        XPLMCommandBegin(rca->dat.h_brk_mximum);
+                        rcb->pcmd = rca->dat.h_brk_mximum;
+                        return 0;
+                    }
+                }
+                else
+                {
+                    if (rcb->pcmd != rca->dat.h_brk_regulr)
+                    {
+                        XPLMCommandEnd  (rca->dat.h_brk_mximum);
+                        XPLMCommandBegin(rca->dat.h_brk_regulr);
+                        rcb->pcmd = rca->dat.h_brk_regulr;
+                        return 0;
+                    }
+                }
                 return 0;
             default:
+                XPLMCommandEnd(rca->dat.h_brk_mximum);
                 XPLMCommandEnd(rca->dat.h_brk_regulr);
                 return 0;
         }
@@ -2172,9 +2197,11 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->atyp == NVP_ACF_A350_FF));
                         return 0;
                     }
-                    if (ctx->acfspec.qpac.h_b_reg)
+                    if (ctx->acfspec.qpac.h_b_reg && ctx->acfspec.qpac.h_b_max)
                     {
+                        // always start with regular braking
                         XPLMCommandBegin(ctx->acfspec.qpac.h_b_reg);
+                        rcb->pcmd = ctx->acfspec.qpac.h_b_reg;
                         return 0;
                     }
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->atyp != NVP_ACF_A350_FF)); // use parking brake directly
@@ -2185,13 +2212,39 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         XPLMSetDataf(rcb->l_b_rat, 0.0f);
                         XPLMSetDataf(rcb->r_b_rat, 0.0f);
                     }
-                    if (ctx->acfspec.qpac.h_b_reg)
+                    if (ctx->acfspec.qpac.h_b_reg && ctx->acfspec.qpac.h_b_max)
                     {
+                        XPLMCommandEnd(ctx->acfspec.qpac.h_b_max);
                         XPLMCommandEnd(ctx->acfspec.qpac.h_b_reg);
                     }
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(rcb->p_b_int));
                     return 0;
                 default: // xplm_CommandContinue
+                    if (ctx->acfspec.qpac.h_b_reg && ctx->acfspec.qpac.h_b_max)
+                    {
+                        // adjust braking strength for speed
+                        if (g_speed > 40.0f)
+                        {
+                            if (rcb->pcmd != ctx->acfspec.qpac.h_b_max)
+                            {
+                                XPLMCommandEnd  (ctx->acfspec.qpac.h_b_reg);
+                                XPLMCommandBegin(ctx->acfspec.qpac.h_b_max);
+                                rcb->pcmd = ctx->acfspec.qpac.h_b_max;
+                                return 0;
+                            }
+                        }
+                        else
+                        {
+                            if (rcb->pcmd != ctx->acfspec.qpac.h_b_reg)
+                            {
+                                XPLMCommandEnd  (ctx->acfspec.qpac.h_b_max);
+                                XPLMCommandBegin(ctx->acfspec.qpac.h_b_reg);
+                                rcb->pcmd = ctx->acfspec.qpac.h_b_reg;
+                                return 0;
+                            }
+                        }
+                        return 0;
+                    }
                     if (rcb->use_pkb == 0)
                     {
                         XPLMSetDataf(rcb->l_b_rat, p_ratio);
@@ -2204,25 +2257,32 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     }
     else
     {
-        if (rcb->rg.name)
+        if (rcb->rg.name && rcb->mx.name)
         {
             if (rcb->rg.xpcr == NULL)
             {
                 rcb->rg.xpcr = XPLMFindCommand(rcb->rg.name);
             }
+            if (rcb->mx.xpcr == NULL)
+            {
+                rcb->mx.xpcr = XPLMFindCommand(rcb->mx.name);
+            }
         }
         else
         {
             rcb->rg.xpcr = NULL;
+            rcb->mx.xpcr = NULL;
         }
     }
     switch (inPhase)
     {
         case xplm_CommandBegin:
              XPLMSetDataf(rcb->p_b_flt, 0.0f); // release park brake on manual brake application
-            if (rcb->rg.xpcr)
+            if (rcb->rg.xpcr && rcb->mx.xpcr)
             {
+                // always start with regular braking
                 XPLMCommandBegin(rcb->rg.xpcr);
+                rcb->pcmd = rcb->rg.xpcr;
                 return 0;
             }
             if (rcb->use_pkb)
@@ -2235,8 +2295,29 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             XPLMSetDataf(rcb->p_b_rat, 0.0f);
             return 0;
         case xplm_CommandContinue:
-            if (rcb->rg.xpcr)
+            if (rcb->rg.xpcr && rcb->mx.xpcr)
             {
+                // adjust braking strength for speed
+                if (g_speed > 40.0f)
+                {
+                    if (rcb->pcmd != rcb->mx.xpcr)
+                    {
+                        XPLMCommandEnd  (rcb->rg.xpcr);
+                        XPLMCommandBegin(rcb->mx.xpcr);
+                        rcb->pcmd = rcb->mx.xpcr;
+                        return 0;
+                    }
+                }
+                else
+                {
+                    if (rcb->pcmd != rcb->rg.xpcr)
+                    {
+                        XPLMCommandEnd  (rcb->mx.xpcr);
+                        XPLMCommandBegin(rcb->rg.xpcr);
+                        rcb->pcmd = rcb->rg.xpcr;
+                        return 0;
+                    }
+                }
                 return 0;
             }
             if (rcb->use_pkb)
@@ -2248,8 +2329,9 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             XPLMSetDataf(rcb->r_b_rat, p_ratio);
             return 0;
         default: // xplm_CommandEnd
-            if (rcb->rg.xpcr)
+            if (rcb->rg.xpcr && rcb->mx.xpcr)
             {
+                XPLMCommandEnd(rcb->mx.xpcr);
                 XPLMCommandEnd(rcb->rg.xpcr);
             }
             if (rcb->use_pkb == 0)
