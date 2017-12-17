@@ -2142,18 +2142,20 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             case xplm_CommandBegin:
                 // always start with regular braking
-                XPLMCommandBegin(rca->dat.h_brk_regulr);
-                rcb->pcmd = rca->dat.h_brk_regulr;
+                XPLMCommandBegin((rcb->pcmd = rca->dat.h_brk_regulr));
                 return 0;
-            case xplm_CommandContinue:
+            case xplm_CommandEnd:
+                XPLMCommandEnd(rca->dat.h_brk_mximum);
+                XPLMCommandEnd(rca->dat.h_brk_regulr);
+                return 0;
+            default: // xplm_CommandContinue
                 // adjust braking strength for speed
                 if (g_speed > 40.0f)
                 {
                     if (rcb->pcmd != rca->dat.h_brk_mximum)
                     {
-                        XPLMCommandEnd  (rca->dat.h_brk_regulr);
-                        XPLMCommandBegin(rca->dat.h_brk_mximum);
-                        rcb->pcmd = rca->dat.h_brk_mximum;
+                        XPLMCommandEnd  ((rcb->pcmd));
+                        XPLMCommandBegin((rcb->pcmd = rca->dat.h_brk_mximum));
                         return 0;
                     }
                 }
@@ -2161,16 +2163,11 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 {
                     if (rcb->pcmd != rca->dat.h_brk_regulr)
                     {
-                        XPLMCommandEnd  (rca->dat.h_brk_mximum);
-                        XPLMCommandBegin(rca->dat.h_brk_regulr);
-                        rcb->pcmd = rca->dat.h_brk_regulr;
+                        XPLMCommandEnd  ((rcb->pcmd));
+                        XPLMCommandBegin((rcb->pcmd = rca->dat.h_brk_regulr));
                         return 0;
                     }
                 }
-                return 0;
-            default:
-                XPLMCommandEnd(rca->dat.h_brk_mximum);
-                XPLMCommandEnd(rca->dat.h_brk_regulr);
                 return 0;
         }
     }
@@ -2200,8 +2197,7 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     if (ctx->acfspec.qpac.h_b_reg && ctx->acfspec.qpac.h_b_max)
                     {
                         // always start with regular braking
-                        XPLMCommandBegin(ctx->acfspec.qpac.h_b_reg);
-                        rcb->pcmd = ctx->acfspec.qpac.h_b_reg;
+                        XPLMCommandBegin((rcb->pcmd = ctx->acfspec.qpac.h_b_reg));
                         return 0;
                     }
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->atyp != NVP_ACF_A350_FF)); // use parking brake directly
@@ -2227,9 +2223,8 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         {
                             if (rcb->pcmd != ctx->acfspec.qpac.h_b_max)
                             {
-                                XPLMCommandEnd  (ctx->acfspec.qpac.h_b_reg);
-                                XPLMCommandBegin(ctx->acfspec.qpac.h_b_max);
-                                rcb->pcmd = ctx->acfspec.qpac.h_b_max;
+                                XPLMCommandEnd  ((rcb->pcmd));
+                                XPLMCommandBegin((rcb->pcmd = ctx->acfspec.qpac.h_b_max));
                                 return 0;
                             }
                         }
@@ -2237,9 +2232,8 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         {
                             if (rcb->pcmd != ctx->acfspec.qpac.h_b_reg)
                             {
-                                XPLMCommandEnd  (ctx->acfspec.qpac.h_b_max);
-                                XPLMCommandBegin(ctx->acfspec.qpac.h_b_reg);
-                                rcb->pcmd = ctx->acfspec.qpac.h_b_reg;
+                                XPLMCommandEnd  ((rcb->pcmd));
+                                XPLMCommandBegin((rcb->pcmd = ctx->acfspec.qpac.h_b_reg));
                                 return 0;
                             }
                         }
@@ -2281,8 +2275,7 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             if (rcb->rg.xpcr && rcb->mx.xpcr)
             {
                 // always start with regular braking
-                XPLMCommandBegin(rcb->rg.xpcr);
-                rcb->pcmd = rcb->rg.xpcr;
+                XPLMCommandBegin((rcb->pcmd = rcb->rg.xpcr));
                 return 0;
             }
             if (rcb->use_pkb)
@@ -2294,7 +2287,20 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             XPLMSetDataf(rcb->r_b_rat, p_ratio);
             XPLMSetDataf(rcb->p_b_rat, 0.0f);
             return 0;
-        case xplm_CommandContinue:
+        case xplm_CommandEnd:
+            if (rcb->rg.xpcr && rcb->mx.xpcr)
+            {
+                XPLMCommandEnd(rcb->mx.xpcr);
+                XPLMCommandEnd(rcb->rg.xpcr);
+            }
+            if (rcb->use_pkb == 0)
+            {
+                XPLMSetDataf(rcb->l_b_rat, 0.0f);
+                XPLMSetDataf(rcb->r_b_rat, 0.0f);
+            }
+            XPLMSetDataf(rcb->p_b_rat, XPLMGetDataf(rcb->p_b_flt));
+            return 0;
+        default: // xplm_CommandContinue
             if (rcb->rg.xpcr && rcb->mx.xpcr)
             {
                 // adjust braking strength for speed
@@ -2302,9 +2308,8 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 {
                     if (rcb->pcmd != rcb->mx.xpcr)
                     {
-                        XPLMCommandEnd  (rcb->rg.xpcr);
-                        XPLMCommandBegin(rcb->mx.xpcr);
-                        rcb->pcmd = rcb->mx.xpcr;
+                        XPLMCommandEnd  ((rcb->pcmd));
+                        XPLMCommandBegin((rcb->pcmd = rcb->mx.xpcr));
                         return 0;
                     }
                 }
@@ -2312,9 +2317,8 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 {
                     if (rcb->pcmd != rcb->rg.xpcr)
                     {
-                        XPLMCommandEnd  (rcb->mx.xpcr);
-                        XPLMCommandBegin(rcb->rg.xpcr);
-                        rcb->pcmd = rcb->rg.xpcr;
+                        XPLMCommandEnd  ((rcb->pcmd));
+                        XPLMCommandBegin((rcb->pcmd = rcb->rg.xpcr));
                         return 0;
                     }
                 }
@@ -2327,19 +2331,6 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             XPLMSetDataf(rcb->l_b_rat, p_ratio);
             XPLMSetDataf(rcb->r_b_rat, p_ratio);
-            return 0;
-        default: // xplm_CommandEnd
-            if (rcb->rg.xpcr && rcb->mx.xpcr)
-            {
-                XPLMCommandEnd(rcb->mx.xpcr);
-                XPLMCommandEnd(rcb->rg.xpcr);
-            }
-            if (rcb->use_pkb == 0)
-            {
-                XPLMSetDataf(rcb->l_b_rat, 0.0f);
-                XPLMSetDataf(rcb->r_b_rat, 0.0f);
-            }
-            XPLMSetDataf(rcb->p_b_rat, XPLMGetDataf(rcb->p_b_flt));
             return 0;
     }
     return 0;
