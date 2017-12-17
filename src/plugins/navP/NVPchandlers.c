@@ -2271,7 +2271,7 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     switch (inPhase)
     {
         case xplm_CommandBegin:
-             XPLMSetDataf(rcb->p_b_flt, 0.0f); // release park brake on manual brake application
+            XPLMSetDataf(rcb->p_b_flt, 0.0f); // release park brake on manual brake application
             if (rcb->rg.xpcr && rcb->mx.xpcr)
             {
                 // always start with regular braking
