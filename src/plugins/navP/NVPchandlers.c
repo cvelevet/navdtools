@@ -2150,7 +2150,7 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 return 0;
             default: // xplm_CommandContinue
                 // adjust braking strength for speed
-                if (g_speed > 40.0f)
+                if (g_speed > 30.0f)
                 {
                     if (rcb->pcmd != rca->dat.h_brk_mximum)
                     {
@@ -2219,7 +2219,7 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     if (ctx->acfspec.qpac.h_b_reg && ctx->acfspec.qpac.h_b_max)
                     {
                         // adjust braking strength for speed
-                        if (g_speed > 40.0f)
+                        if (g_speed > 30.0f)
                         {
                             if (rcb->pcmd != ctx->acfspec.qpac.h_b_max)
                             {
@@ -2304,7 +2304,7 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             if (rcb->rg.xpcr && rcb->mx.xpcr)
             {
                 // adjust braking strength for speed
-                if (g_speed > 40.0f)
+                if (g_speed > 30.0f)
                 {
                     if (rcb->pcmd != rcb->mx.xpcr)
                     {
