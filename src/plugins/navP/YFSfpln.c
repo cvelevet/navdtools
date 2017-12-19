@@ -1688,6 +1688,7 @@ static void fpl_print_leg_generic(yfms_context *yfms, int row, ndt_route_leg *le
     ndt_restriction restrs = leg->constraints;
     int alt_const_ft, alt_const_fl, spd_const;
     int tr_alt = (int)ndt_distance_get(yfms->data.init.trans_a, NDT_ALTUNIT_FT);
+    int crz_fl = (int)ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FT);
     switch (leg->type)
     {
         default:
@@ -1736,7 +1737,7 @@ static void fpl_print_leg_generic(yfms_context *yfms, int row, ndt_route_leg *le
                 restr_type = "";
                 break;
         }
-        if (tr_alt <= alt_const_ft)
+        if (tr_alt <= alt_const_ft || crz_fl <= alt_const_ft)
         {
             yfs_printf_rgt(yfms, row, 0, COLR_IDX_MAGENTA, "FL%03d%s", alt_const_fl, restr_type);
         }
