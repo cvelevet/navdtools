@@ -1323,6 +1323,7 @@ int ndt_flightplan_remove_leg(ndt_flightplan *flp, void *_leg)
                 // future: insert discontinuity
                 // currnt: route_leg_update should be able to sanitize correctly
                 ndt_list_rem(rsg->legs, leg);
+                leg->rsg = NULL;
                 goto cleanup;
             }
         }
@@ -1378,10 +1379,6 @@ cleanup: // remove empty route segments
     }
 
 end:
-    if (_leg)
-    {
-        ndt_route_leg_close(_leg);
-    }
     if (err)
     {
         char error[64];
