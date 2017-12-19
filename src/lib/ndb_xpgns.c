@@ -1518,7 +1518,8 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
                         proc->approach.type = NDT_APPRTYPE_IGS;
                         break;
                     case 'R':
-                    case 'P': // Navigraph-only
+                    case 'H': // Aerosoft-only ("RNP"?)
+                    case 'P': // Navigraph-only ("GPS")
                         proc->approach.type = NDT_APPRTYPE_RNAV;
                         break;
                     default:
