@@ -2151,19 +2151,17 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     refcon_assert1 *rca = rcb->assert;
     if (rca)
     {
-        switch (inPhase)
+        switch (inPhase) // FlightFactor/Assert A320
         {
-            case xplm_CommandBegin:
-                // always start with regular braking
+            case xplm_CommandBegin: // we start with regular brakes
                 XPLMCommandBegin((rcb->pcmd = rca->dat.h_brk_regulr));
                 return 0;
             case xplm_CommandEnd:
                 XPLMCommandEnd(rca->dat.h_brk_mximum);
                 XPLMCommandEnd(rca->dat.h_brk_regulr);
                 return 0;
-            default: // xplm_CommandContinue
-                // adjust braking strength for speed
-                if (g_speed > 30.0f)
+            default: // xplm_CommandContinue - adjust braking strength for speed
+                if (g_speed > 10.0f) // brakes_regular is very weak, but it's OK
                 {
                     if (rcb->pcmd != rca->dat.h_brk_mximum)
                     {
