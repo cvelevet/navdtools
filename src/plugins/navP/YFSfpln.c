@@ -948,7 +948,8 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
             {
                 if (ndt_flightplan_remove_leg(fpl_getfplan_for_leg(yfms, tmp), tmp) == 0)
                 {
-                    ndt_route_leg_close(&tmp); ndt_waypoint_close(&yfms->data.fpln.w_tp);
+                    ndt_waypoint_close(&yfms->data.fpln.w_tp);
+                    ndt_route_leg_close(&tmp);
                     break;
                 }
             }
@@ -1427,6 +1428,22 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
                 // can't clear either of current leg or destination
                 // future: perhaps clear current, direct next leg?
                 yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
+            }
+            if (yfms->data.fpln.w_tp)
+            {
+                if (yfms->data.fpln.w_tp == trk->src)
+                {
+                    // T-P source of trk (== cur. leg), can't clear
+                    yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
+                }
+                if (yfms->data.fpln.w_tp == leg->dst)
+                {
+                    if (ndt_flightplan_remove_leg(fpl_getfplan_for_leg(yfms, leg), leg) == 0)
+                    {
+                        ndt_waypoint_close(&yfms->data.fpln.w_tp); ndt_route_leg_close(&leg);
+                        yfs_spad_clear(yfms); return yfs_fpln_fplnupdt(yfms);
+                    }
+                }
             }
             if (leg->rsg == NULL)
             {
