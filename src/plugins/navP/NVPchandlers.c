@@ -101,6 +101,8 @@ typedef struct
     XPLMDataRef r_b_rat;
     XPLMDataRef protate;
     XPLMDataRef g_speed;
+    XPLMDataRef a_b_lev;
+    XPLMCommandRef abto;
     XPLMCommandRef pcmd;
     chandler_command rg;
     chandler_command mx;
@@ -759,12 +761,15 @@ void* nvp_chandlers_init(void)
     ctx->bking.rc_brk.p_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/parking_brake_ratio");
     ctx->bking.rc_brk.r_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/right_brake_ratio");
     ctx->bking.rc_brk.l_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/left_brake_ratio");
+    ctx->bking.rc_brk.a_b_lev = XPLMFindDataRef  ("sim/cockpit2/switches/auto_brake_level");
+    ctx->bking.rc_brk.abto    = XPLMFindCommand  ("sim/flight_controls/brakes_toggle_auto");
     if (!ctx->bking.tur.cb.command ||
         !ctx->bking.prk.cb.command || !ctx->bking.off.cb.command ||
         !ctx->bking.max.cb.command || !ctx->bking.reg.cb.command ||
         !ctx->bking.rc_brk.p_b_rat || !XPLMCanWriteDataRef(ctx->bking.rc_brk.p_b_rat) ||
         !ctx->bking.rc_brk.r_b_rat || !XPLMCanWriteDataRef(ctx->bking.rc_brk.r_b_rat) ||
-        !ctx->bking.rc_brk.l_b_rat || !XPLMCanWriteDataRef(ctx->bking.rc_brk.l_b_rat))
+        !ctx->bking.rc_brk.l_b_rat || !XPLMCanWriteDataRef(ctx->bking.rc_brk.l_b_rat) ||
+        !ctx->bking.rc_brk.a_b_lev || !XPLMCanWriteDataRef(ctx->bking.rc_brk.a_b_lev) || !ctx->bking.rc_brk.abto)
     {
         goto fail;
     }
@@ -2062,6 +2067,10 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         XPLMSetDataf(rcb->l_b_rat, p_ratio);
                         XPLMSetDataf(rcb->r_b_rat, p_ratio);
                     }
+                    if (XPLMGetDatai(rcb->a_b_lev) > 1)
+                    {
+                        XPLMCommandOnce(rcb->abto); // disable A/BRK
+                    }
                     return 0;
             }
         }
@@ -2121,6 +2130,10 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 XPLMSetDataf(rcb->l_b_rat, 0.0f);
                 XPLMSetDataf(rcb->r_b_rat, 0.0f);
+            }
+            if (XPLMGetDatai(rcb->a_b_lev) > 1)
+            {
+                XPLMCommandOnce(rcb->abto); // disable A/BRK
             }
             XPLMSetDataf(rcb->p_b_rat, XPLMGetDataf(rcb->p_b_flt));
             return 0;
