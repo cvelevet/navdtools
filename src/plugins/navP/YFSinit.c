@@ -124,17 +124,7 @@ void yfs_init_pageupdt(yfms_context *yfms)
     {
         if (ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_NA))
         {
-            int crzfl = (int)ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FL);
-            int crzft = (int)ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FT);
-            int trans = (int)ndt_distance_get(yfms->data.init.trans_a, NDT_ALTUNIT_FT);
-            if (trans < crzft)
-            {
-                yfs_printf_lft(yfms, 12, 0, COLR_IDX_BLUE, "FL%03d", crzfl);
-            }
-            else
-            {
-                yfs_printf_lft(yfms, 12, 0, COLR_IDX_BLUE,    "%5d", crzft);
-            }
+            yfs_printf_lft(yfms, 12, 0, COLR_IDX_BLUE, "FL%03d", (int)ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FL));
         }
         else
         {
@@ -598,7 +588,7 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
             {
                 yfms->data.init.cost_index = ci; yfs_spad_clear(yfms); yfs_init_pageupdt(yfms); return;
             }
-            yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); yfs_init_pageupdt(yfms); return;
+            yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); return;
         }
         return;
     }
@@ -614,22 +604,18 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                     yfms->data.init.crz_alt = ndt_distance_init(0, NDT_ALTUNIT_NA);
                     yfs_spad_clear(yfms); return yfs_init_pageupdt(yfms);
                 }
-                if (sscanf(buf, "%d", &crz_alt) == 1)
+                if (sscanf(buf, "FL%d", &crz_alt) == 1 ||
+                    sscanf(buf,   "%d", &crz_alt) == 1)
                 {
-                    // Lockheed SR-71 Blackbird can go up to FL850 ;-)
-                    if (crz_alt >= (1600 - 50) && crz_alt <= 85000)
-                    {
-                        crz_alt = ((crz_alt + 50) / 100); // round to nearest flight level
-                        yfms->data.init.crz_alt = ndt_distance_init(crz_alt, NDT_ALTUNIT_FL);
-                        yfs_spad_clear(yfms); return yfs_init_pageupdt(yfms);
-                    }
-                    if (crz_alt >= 16 && crz_alt <= 850)
+                    // :-) SR-71 Blackbird can do FL850
+                    if (crz_alt >= 25 && crz_alt <= 850)
                     {
                         yfms->data.init.crz_alt = ndt_distance_init(crz_alt, NDT_ALTUNIT_FL);
                         yfs_spad_clear(yfms); return yfs_init_pageupdt(yfms);
                     }
-                    yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); return yfs_init_pageupdt(yfms);
+                    yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); return;
                 }
+                yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
             }
         }
         return;
@@ -639,7 +625,7 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
         char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if  (strnlen(buf, 1))
         {
-            yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); yfs_init_pageupdt(yfms); return;
+            yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return;
         }
         yfs_spad_reset(yfms, "36090", -1); yfs_init_pageupdt(yfms); return;
     }
