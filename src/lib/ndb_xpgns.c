@@ -445,7 +445,7 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
                      "%s runway %s, heading %03d°, length %d ft, width %d ft",
                      apt->info.idnt, rwy->info.idnt, rwy->heading, length, width);
 
-            if (rwy->ils.avail)
+            if ((rwy->ils.avail = !!rwy->ils.avail))
             {
                 rwy->waypoint->range     = ndt_distance_init(18, NDT_ALTUNIT_NM);
                 rwy->waypoint->frequency = rwy->ils.freq = ndt_frequency_init(frequency);
@@ -453,6 +453,10 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
                          sizeof(rwy->info.desc) - strlen(rwy->info.desc),
                          ", ILS %.3lf course %03d° slope %.1lf",
                          ndt_frequency_get(rwy->ils.freq), rwy->ils.course, rwy->ils.slope);
+            }
+            else if (rwy->ils.slope > 0.1)
+            {
+                rwy->ils.avail = -1;
             }
 
             if (surfname || usgename)

@@ -1684,20 +1684,29 @@ int ndt_fmt_icaor_print_airportnfo(ndt_navdatabase *ndb, const char *icao)
         {
             j = ndt_distance_get(rwy->length, NDT_ALTUNIT_FT);
             k = ndt_distance_get(rwy->width,  NDT_ALTUNIT_FT);
-            if (rwy->ils.avail)
+            switch (rwy->ils.avail)
             {
-                fprintf(stdout, "    %-3s %03d°   Length: %5d, width: %3d, surface: %9s, %s: %.2lf (%03d°, %.1lf°)\n",
-                        rwy->info.idnt,   rwy->heading, j, k,
-                        surfacetype_name (rwy),
-                        navaid_type_name (rwy),
-                        ndt_frequency_get(rwy->ils.freq),
-                        rwy->ils.course,  rwy->ils.slope);
-            }
-            else
-            {
-                fprintf(stdout, "    %-3s %03d°   Length: %5d, width: %3d, surface: %9s\n",
-                        rwy->info.idnt, rwy->heading, j, k,
-                        surfacetype_name(rwy));
+                case 1:
+                {
+                    fprintf(stdout, "    %-3s %03d°   Length: %5d, width: %3d, surface: %9s, %s: %.2lf (%03d°, %.1lf°)\n",
+                            rwy->info.idnt, rwy->heading, j, k, surfacetype_name(rwy), navaid_type_name(rwy),
+                            ndt_frequency_get(rwy->ils.freq), rwy->ils.course, rwy->ils.slope);
+                    break;
+                }
+
+                case -1:
+                {
+                    fprintf(stdout, "    %-3s %03d°   Length: %5d, width: %3d, surface: %9s, glide path:  %.1lf°\n",
+                            rwy->info.idnt, rwy->heading, j, k, surfacetype_name(rwy), rwy->ils.slope);
+                    break;
+                }
+
+                default:
+                {
+                    fprintf(stdout, "    %-3s %03d°   Length: %5d, width: %3d, surface: %9s\n",
+                            rwy->info.idnt, rwy->heading, j, k, surfacetype_name(rwy));
+                    break;
+                }
             }
             for (j = 0; j < ndt_list_count(rwy->approaches); j++)
             {
