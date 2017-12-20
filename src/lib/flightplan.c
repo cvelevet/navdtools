@@ -1384,8 +1384,10 @@ end:
         char error[64];
         strerror_r(err, error, sizeof(error));
         ndt_log("ndt_flightplan_remove_leg: failure (%s)\n", error);
+        ndt_log("FUCK MY LIFE\n");//debug
         return err;
     }
+    ndt_log("WE ARE HERE\n");//debug
     return route_leg_update(flp);
 }
 
@@ -3495,6 +3497,7 @@ static int route_leg_update(ndt_flightplan *flp)
 
     /* Flightplan's leg list doesn't own the legs, so cleanup is easy */
     ndt_list_empty(flp->legs);
+    ndt_log("ARE WE SAFE???\n");//debug
 
     /*
      * Add all flightplan legs in order:
@@ -3771,5 +3774,6 @@ end:
         ndt_log("flightplan: route_leg_update failed (%s)\n", error);
         return err;
     }
+    ndt_log("SHIT GOT UPDATED\n");//debug
     return err;
 }

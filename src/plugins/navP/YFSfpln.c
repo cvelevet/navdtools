@@ -604,6 +604,13 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
                 {
                     distance = leg->dis;
                 }
+                if (leg->rsg == NULL)
+                {
+                    ndt_log("FUCKmyLIFE leg[%d] 0x%x type %d \"\" -> \"\"\n", index, leg, leg->type,
+                            leg->src ? leg->src->info.idnt : NULL,
+                            leg->dst ? leg->dst->info.idnt : NULL);//debug
+                    exit(0);//debug
+                }
                 double  distance_nmile = (double)ndt_distance_get(distance, NDT_ALTUNIT_ME) / 1852.;
                 switch (leg->rsg->type) // LSGG>BGTL(QPAC) suggests omb is used (as opposed to imb)
                 {
@@ -1431,15 +1438,24 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             }
             if (yfms->data.fpln.w_tp)
             {
-                if (yfms->data.fpln.w_tp == trk->src)
-                {
-                    // T-P source of trk (== cur. leg), can't clear
-                    yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
-                }
                 if (yfms->data.fpln.w_tp == leg->dst)
                 {
+                    if (yfms->data.fpln.w_tp == trk->src)
+                    {
+                        // T-P source of trk (== cur. leg), can't clear
+                        yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
+                    }
+                    ndt_log("314: leg->rsg 0x%x\n",                                leg->rsg);//debug
+                    ndt_log("---- leg->src \"%s\"\n", leg->src ? leg->src->info.idnt : NULL);//debug
+                    ndt_log("---- leg->dst \"%s\"\n", leg->dst ? leg->src->info.idnt : NULL);//debug
                     if (ndt_flightplan_remove_leg(fpl_getfplan_for_leg(yfms, leg), leg) == 0)
                     {
+                        ndt_log("---- leg->rsg 0x%x\n",                                leg->rsg);//debug
+                        ndt_log("---- leg->src \"%s\"\n", leg->src ? leg->src->info.idnt : NULL);//debug
+                        ndt_log("---- leg->dst \"%s\"\n", leg->dst ? leg->src->info.idnt : NULL);//debug
+                        ndt_log("DEBUGyLIFE leg[%d] 0x%x type %d \"\" -> \"\"\n", index, leg, leg->type,
+                                leg->src ? leg->src->info.idnt : NULL,
+                                leg->dst ? leg->dst->info.idnt : NULL);//debug
                         ndt_waypoint_close(&yfms->data.fpln.w_tp); ndt_route_leg_close(&leg);
                         yfs_spad_clear(yfms); return yfs_fpln_fplnupdt(yfms);
                     }
