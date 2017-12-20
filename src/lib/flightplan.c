@@ -3530,6 +3530,7 @@ static int route_leg_update(ndt_flightplan *flp)
             err = ENOMEM;
             goto end;
         }
+        ndt_log("RSG 0x%x with %d leg(s)\n", rsg, ndt_list_count(rsg->legs));//debug
         if ((err = list_add_legs(flp->legs, rsg->legs)))
         {
             goto end;
