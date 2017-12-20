@@ -1340,6 +1340,8 @@ cleanup: // remove empty route segments
         {
             if (ndt_list_count(rsg->legs) == 0)
             {
+                //fixme procedure RSGs will NEVER be in flp->rte, dumbass!
+                //fixme also there's 2 special RSGs for first and last legs, duh
                 if (rsg->type == NDT_RSTYPE_PRC)
                 {
                     if (rsg == flp->dep.sid.rsgt)
@@ -1371,6 +1373,7 @@ cleanup: // remove empty route segments
                 {
                     // TODO: missed approach?
                 }
+                ndt_log("REMOVING RSG 0x%s\n", rsg);//debug
                 ndt_list_rem  (flp->rte, rsg);
                 ndt_route_segment_close(&rsg);
                 goto end;

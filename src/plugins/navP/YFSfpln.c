@@ -1447,12 +1447,12 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
                     }
                     ndt_log("314: leg->rsg 0x%x\n",                                leg->rsg);//debug
                     ndt_log("---- leg->src \"%s\"\n", leg->src ? leg->src->info.idnt : NULL);//debug
-                    ndt_log("---- leg->dst \"%s\"\n", leg->dst ? leg->src->info.idnt : NULL);//debug
+                    ndt_log("---- leg->dst \"%s\"\n", leg->dst ? leg->dst->info.idnt : NULL);//debug
                     if (ndt_flightplan_remove_leg(fpl_getfplan_for_leg(yfms, leg), leg) == 0)
                     {
                         ndt_log("---- leg->rsg 0x%x\n",                                leg->rsg);//debug
                         ndt_log("---- leg->src \"%s\"\n", leg->src ? leg->src->info.idnt : NULL);//debug
-                        ndt_log("---- leg->dst \"%s\"\n", leg->dst ? leg->src->info.idnt : NULL);//debug
+                        ndt_log("---- leg->dst \"%s\"\n", leg->dst ? leg->dst->info.idnt : NULL);//debug
                         ndt_log("DEBUGyLIFE leg[%d] 0x%x type %d \"\" -> \"\"\n", index, leg, leg->type,
                                 leg->src ? leg->src->info.idnt : NULL,
                                 leg->dst ? leg->dst->info.idnt : NULL);//debug
