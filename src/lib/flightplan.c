@@ -1340,7 +1340,6 @@ cleanup: // remove empty route segments
             if (ndt_list_count(rsg->legs) == 0)
             {
                 //fixme procedure RSGs will NEVER be in flp->rte, dumbass!
-                //fixme also there's 2 special RSGs for first and last legs, duh
                 if (rsg->type == NDT_RSTYPE_PRC)
                 {
                     if (rsg == flp->dep.sid.rsgt)
@@ -1372,7 +1371,6 @@ cleanup: // remove empty route segments
                 {
                     // TODO: missed approach?
                 }
-                ndt_log("REMOVING RSG 0x%x\n", rsg);//debug
                 ndt_list_rem  (flp->rte, rsg);
                 ndt_route_segment_close(&rsg);
                 goto end;
@@ -1386,10 +1384,8 @@ end:
         char error[64];
         strerror_r(err, error, sizeof(error));
         ndt_log("ndt_flightplan_remove_leg: failure (%s)\n", error);
-        ndt_log("FUCK MY LIFE\n");//debug
         return err;
     }
-    ndt_log("WE ARE HERE\n");//debug
     return route_leg_update(flp);
 }
 
@@ -3499,7 +3495,6 @@ static int route_leg_update(ndt_flightplan *flp)
 
     /* Flightplan's leg list doesn't own the legs, so cleanup is easy */
     ndt_list_empty(flp->legs);
-    ndt_log("ARE WE SAFE???\n");//debug
 
     /*
      * Add all flightplan legs in order:
@@ -3530,7 +3525,6 @@ static int route_leg_update(ndt_flightplan *flp)
             err = ENOMEM;
             goto end;
         }
-        ndt_log("RSG 0x%x with %d leg(s)\n", rsg, ndt_list_count(rsg->legs));//debug
         if ((err = list_add_legs(flp->legs, rsg->legs)))
         {
             goto end;
@@ -3777,6 +3771,5 @@ end:
         ndt_log("flightplan: route_leg_update failed (%s)\n", error);
         return err;
     }
-    ndt_log("SHIT GOT UPDATED\n");//debug
     return err;
 }

@@ -33,6 +33,7 @@
 #include "YFSdrto.h"
 #include "YFSfpln.h"
 #include "YFSmain.h"
+#include "YFSmenu.h"
 #include "YFSspad.h"
 
 static void            yfs_lsk_callback_fpln(yfms_context *yfms, int key[2],                intptr_t refcon);
@@ -606,8 +607,7 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
                 }
                 if (leg->rsg == NULL)
                 {
-                    ndt_log("FUCKmyLIFE leg[%d] 0x%x type %d \"%s\" -> \"%s\"\n", index, leg, leg->type,
-                            leg->src ? leg->src->info.idnt : NULL, leg->dst ? leg->dst->info.idnt : NULL); exit(0);//debug
+                    yfs_menu_resetall(yfms); return yfs_spad_reset(yfms, "ERROR -> RESET", COLR_IDX_ORANGE);
                 }
                 double  distance_nmile = (double)ndt_distance_get(distance, NDT_ALTUNIT_ME) / 1852.;
                 switch (leg->rsg->type) // LSGG>BGTL(QPAC) suggests omb is used (as opposed to imb)
@@ -1443,25 +1443,18 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
                         // T-P source of trk (== cur. leg), can't clear
                         yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
                     }
-                    ndt_log("314: leg->rsg 0x%x\n",                                leg->rsg);//debug
-                    ndt_log("---- leg->src \"%s\"\n", leg->src ? leg->src->info.idnt : NULL);//debug
-                    ndt_log("---- leg->dst \"%s\"\n", leg->dst ? leg->dst->info.idnt : NULL);//debug
-                    if (ndt_flightplan_remove_leg(fpl_getfplan_for_leg(yfms, leg), leg) == 0)
+                    if (ndt_flightplan_remove_leg(fpl_getfplan_for_leg(yfms, leg), leg))
                     {
-                        ndt_log("---- leg->rsg 0x%x\n",                                leg->rsg);//debug
-                        ndt_log("---- leg->src \"%s\"\n", leg->src ? leg->src->info.idnt : NULL);//debug
-                        ndt_log("---- leg->dst \"%s\"\n", leg->dst ? leg->dst->info.idnt : NULL);//debug
-                        ndt_log("DEBUGyLIFE leg[%d] 0x%x type %d \"%s\" -> \"%s\"\n", index, leg, leg->type,
-                                leg->src ? leg->src->info.idnt : NULL,
-                                leg->dst ? leg->dst->info.idnt : NULL);//debug
-                        ndt_waypoint_close(&yfms->data.fpln.w_tp); ndt_route_leg_close(&leg);
-                        yfs_spad_clear(yfms); return yfs_fpln_fplnupdt(yfms);
+                        yfs_spad_reset(yfms, "UNKNOWN ERROR 2 A", COLR_IDX_ORANGE); return;
                     }
+                    ndt_waypoint_close(&yfms->data.fpln.w_tp);
+                    ndt_route_leg_close(&leg);
+                    goto do_fplnupdt;
                 }
             }
             if (leg->rsg == NULL)
             {
-                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 A", COLR_IDX_ORANGE); return;
+                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 B", COLR_IDX_ORANGE); return;
             }
             if (leg->rsg->type == NDT_RSTYPE_MAP)
             {
@@ -1473,13 +1466,14 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             }
             if (ndt_flightplan_remove_leg(fpl_getfplan_for_leg(yfms, leg), leg))
             {
-                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 B", COLR_IDX_ORANGE); return;
+                yfs_spad_reset(yfms, "UNKNOWN ERROR 2 C", COLR_IDX_ORANGE); return;
             }
-            yfms->data.fpln.mod.source    = trk;
-            yfms->data.fpln.mod.opaque    = (void*)trk->xpfms;
+        do_fplnupdt:
+            yfms->data.fpln.mod.source = trk;
+            yfms->data.fpln.mod.opaque = (void*)trk->xpfms;
             yfms->data.fpln.mod.operation = YFS_FPLN_MOD_SNGL;
-            yfms->data.fpln.mod.index     = yfms->data.fpln.lg_idx;
-            yfs_spad_clear(yfms);   return yfs_fpln_fplnupdt(yfms);
+            yfms->data.fpln.mod.index = yfms->data.fpln.lg_idx;
+            yfs_spad_clear(yfms); return yfs_fpln_fplnupdt(yfms);
         }
         if ((wpt = get_waypoint_from_scratchpad(yfms)) == NULL)
         {
