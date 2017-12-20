@@ -1043,11 +1043,12 @@ static const char* navaid_type_name(ndt_runway *rwy)
         if ((rwy->ils.course >= rwy->heading && rwy->ils.course - rwy->heading <= 3) ||
             (rwy->heading >= rwy->ils.course && rwy->heading - rwy->ils.course <= 3))
         {
-            return rwy->ils.slope > .1 ? "ILS" : "LOC";
+            // XXX: slopes > 6.0 degrees treated as IGS, not ILS (e.g. Navigraph LSZA)
+            return rwy->ils.slope > 6.1 ? "IGS" : rwy->ils.slope > 0.1 ? "ILS" : "LOC";
         }
         else
         {
-            return rwy->ils.slope > .1 ? "IGS" : "LDA";
+            return rwy->ils.slope > 0.1 ? "IGS" : "LDA";
         }
     }
     return NULL;
