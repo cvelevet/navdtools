@@ -1296,8 +1296,7 @@ int ndt_flightplan_remove_leg(ndt_flightplan *flp, void *_leg)
     /*
      * Comment of the month (May 2017): declare some variables.
      */
-    ndt_route_leg *leg = _leg, *item, *last = NULL;
-    ndt_route_segment *rsg, *dct, *tail;
+    ndt_route_leg *leg = _leg, *item; ndt_route_segment *rsg;
 
     /*
      * First: split airway segments to facilitate removal of legs mid-airway.
@@ -1373,7 +1372,7 @@ cleanup: // remove empty route segments
                 {
                     // TODO: missed approach?
                 }
-                ndt_log("REMOVING RSG 0x%s\n", rsg);//debug
+                ndt_log("REMOVING RSG 0x%x\n", rsg);//debug
                 ndt_list_rem  (flp->rte, rsg);
                 ndt_route_segment_close(&rsg);
                 goto end;
