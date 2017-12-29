@@ -1455,6 +1455,34 @@ ndt_procedure* ndt_procedure_open(ndt_navdatabase *ndb, ndt_procedure *proc)
     {
         return  NULL;
     }
+    switch (proc->type)
+    {
+        case NDT_PROCTYPE_SID_1:
+        case NDT_PROCTYPE_SID_4:
+            if (proc->transition.sid)
+            {
+                if (ndt_procedure_open(ndb, proc->transition.sid) == NULL)
+                {
+                    return NULL;
+                }
+            }
+            break;
+
+        case NDT_PROCTYPE_STAR3:
+        case NDT_PROCTYPE_STAR6:
+        case NDT_PROCTYPE_STAR9:
+            if (proc->transition.star)
+            {
+                if (ndt_procedure_open(ndb, proc->transition.star) == NULL)
+                {
+                    return NULL;
+                }
+            }
+            break;
+
+        default:
+            break;
+    }
     if (proc->opened)
     {
         return proc;
