@@ -1141,7 +1141,9 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
             // only set FAF for RNAV approaches, else the
             // QPAC plugin will disable ILS functionality
             if (leg->rsg->prc->approach.type == NDT_APPRTYPE_GLS ||
-                leg->rsg->prc->approach.type == NDT_APPRTYPE_RNAV)
+                leg->rsg->prc->approach.type == NDT_APPRTYPE_GPS ||
+                leg->rsg->prc->approach.type == NDT_APPRTYPE_RNP ||
+                leg->rsg->prc->approach.type == NDT_APPRTYPE_RNV)
             {
                 if (!arr_rwy->waypoint)
                 {
@@ -1355,7 +1357,9 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
         switch (flp->arr.apch.proc->approach.type)
         {
             case NDT_APPRTYPE_GLS:
-            case NDT_APPRTYPE_RNAV:
+            case NDT_APPRTYPE_GPS:
+            case NDT_APPRTYPE_RNP:
+            case NDT_APPRTYPE_RNV:
                 altitude = altitude + 10 * (altitude == 0) - 1; // NPA waypoint
                 break;
             default:
