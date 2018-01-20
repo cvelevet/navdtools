@@ -173,22 +173,26 @@ typedef struct ndt_procedure
     {
         enum
         {
-            NDT_APPRTYPE_CTL,           // circle-to-land (a.k.a. letdown)
+            NDT_APPRTYPE_FMS,           // FMS
             NDT_APPRTYPE_GLS,           // GLS
+            NDT_APPRTYPE_GPS,           // GPS
             NDT_APPRTYPE_IGS,           // IGS
             NDT_APPRTYPE_ILS,           // ILS
             NDT_APPRTYPE_LDA,           // LDA
             NDT_APPRTYPE_LOC,           // LOC
-            NDT_APPRTYPE_LOCB,          // LOC back course
+            NDT_APPRTYPE_LBC,           // LOC back course
+            NDT_APPRTYPE_MLS,           // MLS
             NDT_APPRTYPE_NDB,           // NDB
-            NDT_APPRTYPE_NDBD,          // NDB + DME
-            NDT_APPRTYPE_RNAV,          // RNAV
+            NDT_APPRTYPE_RNP,           // RNP
+            NDT_APPRTYPE_RNV,           // RNAV
+            NDT_APPRTYPE_SDF,           // SDF
             NDT_APPRTYPE_VOR,           // VOR
-            NDT_APPRTYPE_VORD,          // VOR + DME
-            NDT_APPRTYPE_VORT,          // VOR + TACAN
+            NDT_APPRTYPE_TAC,           // TACAN
             NDT_APPRTYPE_UNK,           // unknown
         } type;
 
+        int  dme;
+        char suffix[3];                 // when multiple approaches of same type
         char short_name[9];             // for space-constrainted listing
     } approach;
 

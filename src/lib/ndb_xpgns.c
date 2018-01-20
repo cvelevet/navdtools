@@ -1473,93 +1473,73 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
                 goto end;
             }
 
+            proc->approach.dme  = 0;
             proc->approach.type = NDT_APPRTYPE_UNK;
-            if (*apptyp == 'C')
+            switch (*procid)
             {
-                switch (*procid)
-                {
-                    case 'X': // Navigraph-only
-                        proc->approach.type = NDT_APPRTYPE_LDA;
-                        break;
-                    default:
-                        break;
-                }
-            }
-            if (*apptyp == 'D')
-            {
-                switch (*procid)
-                {
-                    case 'L':
-                        proc->approach.type = NDT_APPRTYPE_LOC;
-                        break;
-                    case 'B':
-                        proc->approach.type = NDT_APPRTYPE_LOCB;
-                        break;
-                    case 'S':
-                        proc->approach.type = NDT_APPRTYPE_VOR;
-                        break;
-                    case 'D':
-                        proc->approach.type = NDT_APPRTYPE_VORD;
-                        break;
-                    case 'T':
-                        proc->approach.type = NDT_APPRTYPE_VORT;
-                        break;
-                    case 'V':
-                        proc->approach.type = NDT_APPRTYPE_CTL;
-                        break;
-                    default:
-                        break;
-                }
-            }
-            if (*apptyp == 'G' || *apptyp == 'R')
-            {
-                switch (*procid)
-                {
-                    case 'J':
-                        proc->approach.type = NDT_APPRTYPE_GLS;
-                        break;
-                    case 'G': // Navigraph-only
-                        proc->approach.type = NDT_APPRTYPE_IGS;
-                        break;
-                    case 'R':
-                    case 'H': // Aerosoft-only ("RNP"?)
-                    case 'P': // Navigraph-only ("GPS")
-                        proc->approach.type = NDT_APPRTYPE_RNAV;
-                        break;
-                    default:
-                        break;
-                }
-            }
-            if (*apptyp == 'I')
-            {
-                switch (*procid)
-                {
-                    case 'I':
-                        proc->approach.type = NDT_APPRTYPE_ILS;
-                        break;
-                    case 'G': // Aerosoft-only
-                        proc->approach.type = NDT_APPRTYPE_IGS;
-                        break;
-                    case 'X': // Aerosoft-only
-                        proc->approach.type = NDT_APPRTYPE_LDA;
-                        break;
-                    default:
-                        break;
-                }
-            }
-            if (*apptyp == 'N')
-            {
-                switch (*procid)
-                {
-                    case 'N':
-                        proc->approach.type = NDT_APPRTYPE_NDB;
-                        break;
-                    case 'Q':
-                        proc->approach.type = NDT_APPRTYPE_NDBD;
-                        break;
-                    default:
-                        break;
-                }
+                // VOR-based
+                case 'D':
+                    proc->approach.type = NDT_APPRTYPE_VOR;
+                    proc->approach.dme  = 1;
+                    break;
+                case 'S':
+                case 'V':
+                    proc->approach.type = NDT_APPRTYPE_VOR;
+                    break;
+                case 'T':
+                    proc->approach.type = NDT_APPRTYPE_TAC;
+                    break;
+                // NDB-based
+                case 'N':
+                    proc->approach.type = NDT_APPRTYPE_NDB;
+                    break;
+                case 'Q':
+                    proc->approach.type = NDT_APPRTYPE_NDB;
+                    proc->approach.dme  = 1;
+                    break;
+                // LOC-based
+                case 'B':
+                    proc->approach.type = NDT_APPRTYPE_LBC;
+                    break;
+                case 'G':
+                    proc->approach.type = NDT_APPRTYPE_IGS;
+                    break;
+                case 'I':
+                    proc->approach.type = NDT_APPRTYPE_ILS;
+                    break;
+                case 'L':
+                    proc->approach.type = NDT_APPRTYPE_LOC;
+                    break;
+                case 'X':
+                    proc->approach.type = NDT_APPRTYPE_LDA;
+                    break;
+                // GPS-based
+                case 'H':
+                    proc->approach.type = NDT_APPRTYPE_RNP;
+                    break;
+                case 'J':
+                    proc->approach.type = NDT_APPRTYPE_GLS;
+                    break;
+                case 'P':
+                    proc->approach.type = NDT_APPRTYPE_GPS;
+                    break;
+                case 'R':
+                    proc->approach.type = NDT_APPRTYPE_RNV;
+                    break;
+                // other
+                case 'F':
+                    proc->approach.type = NDT_APPRTYPE_FMS;
+                    break;
+                case 'M':
+                case 'W':
+                case 'Y':
+                    proc->approach.type = NDT_APPRTYPE_MLS;
+                    break;
+                case 'U':
+                    proc->approach.type = NDT_APPRTYPE_SDF;
+                    break;
+                default:
+                    break;
             }
             snprintf(proc->approach.short_name, sizeof(proc->approach.short_name), "%s", procid);
             snprintf(proc->          info.idnt, sizeof(proc->          info.idnt), "%s", procid);
@@ -2026,47 +2006,68 @@ static int rename_finalappr(ndt_airport *apt)
                     const char *prefix = NULL;
                     switch (final->approach.type)
                     {
-                        case NDT_APPRTYPE_LDA:
-                            prefix = "LDA";
+                        // VOR-based
+                        case NDT_APPRTYPE_TAC:
+                            prefix = "TACAN";
                             break;
-                        case NDT_APPRTYPE_GLS:
-                            prefix = "GLS";
+                        case NDT_APPRTYPE_VOR:
+                            prefix = final->approach.dme ? "VORDME" : "VOR";
                             break;
+                        // NDB-based
+                        case NDT_APPRTYPE_NDB:
+                            prefix = final->approach.dme ? "NDBDME" : "NDB";
+                            break;
+                        // LOC-based
                         case NDT_APPRTYPE_IGS:
                             prefix = "IGS";
                             break;
                         case NDT_APPRTYPE_ILS:
                             prefix = "ILS";
                             break;
+                        case NDT_APPRTYPE_LBC:
+                            prefix = "LOCBC";
+                            break;
+                        case NDT_APPRTYPE_LDA:
+                            prefix = "LDA";
+                            break;
                         case NDT_APPRTYPE_LOC:
                             prefix = "LOC";
                             break;
-                        case NDT_APPRTYPE_LOCB:
-                            prefix = "LOCBC";
+                        // GPS-based
+                        case NDT_APPRTYPE_GLS:
+                            prefix = "GLS";
                             break;
-                        case NDT_APPRTYPE_NDB:
-                            prefix = "NDB";
+                        case NDT_APPRTYPE_GPS:
+                            prefix = "GPS";
                             break;
-                        case NDT_APPRTYPE_NDBD:
-                            prefix = "NDBDME";
+                        case NDT_APPRTYPE_RNP:
+                            prefix = "RNP";
                             break;
-                        case NDT_APPRTYPE_RNAV:
+                        case NDT_APPRTYPE_RNV:
                             prefix = "RNAV";
                             break;
-                        case NDT_APPRTYPE_CTL:
-                            prefix = "CTL";
+                        // other
+                        case NDT_APPRTYPE_FMS:
+                            prefix = "FMS";
                             break;
-                        case NDT_APPRTYPE_VOR:
-                            prefix = "VOR";
+                        case NDT_APPRTYPE_MLS:
+                            prefix = "MLS";
                             break;
-                        case NDT_APPRTYPE_VORD:
-                            prefix = "VORDME";
-                            break;
-                        case NDT_APPRTYPE_VORT:
-                            prefix = "VORTAC";
+                        case NDT_APPRTYPE_SDF:
+                            prefix = "SDF";
                             break;
                         default:
                             break;
+                    }
+                    if (strlen(final->info.idnt) > strlen(rwy->info.idnt) + 1)
+                    {
+                        final->approach.suffix[0] = '-';
+                        final->approach.suffix[1] = final->info.idnt[strlen(final->info.idnt) - 1];
+                        final->approach.suffix[2] = '\0';
+                    }
+                    else
+                    {
+                        final->approach.suffix[0] = '\0';
                     }
                     if (prefix && strlen(final->info.idnt) > strlen(rwy->info.idnt))
                     {
@@ -2077,20 +2078,16 @@ static int rename_finalappr(ndt_airport *apt)
                          * D28R-Y    VORDME-Y
                          */
                         snprintf(final->approach.short_name,
-                                 sizeof(final->approach.short_name), "%s%s%s", prefix,
-                                 strlen(final->info.idnt) ==
-                                 strlen(rwy  ->info.idnt) + 2 ? "-" : "",
-                                 final->info.idnt + strlen(rwy->info.idnt) + 1);
+                                 sizeof(final->approach.short_name),
+                                 "%s%s", prefix, final->approach.suffix);
                         /*
                          * Max. 11 characters:
                          * D28R      VORDME28R
                          * D28RY     VORDME28R-Y
                          * D28R-Y    VORDME28R-Y
                          */
-                        snprintf(temp, sizeof(temp), "%s%s%s%s", prefix, rwy->info.idnt,
-                                 strlen(final->info.idnt) ==
-                                 strlen(rwy  ->info.idnt) + 2 ? "-" : "",
-                                 final->info.idnt + strlen(rwy->info.idnt) + 1);
+                        snprintf(temp, sizeof(temp), "%s%s%s", prefix,
+                                 rwy->info.idnt, final->approach.suffix);
                         /*
                          * Update IDs for final approach and its transitions.
                          */
