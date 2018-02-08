@@ -297,6 +297,14 @@ typedef struct
 
     struct
     {
+        XPLMDataRef  nonp;
+        XPLMDataRef  data;
+        int   round_value;
+        float float_value;
+    } fov;
+
+    struct
+    {
         int         var_park_brake;
         XPLMDataRef ref_park_brake;
         int         var_speedbrake;
@@ -729,6 +737,13 @@ void* nvp_chandlers_init(void)
         (ctx->volumes.spc = XPLMFindDataRef(           "sim/operation/sound/speech_on")) == NULL ||
         (ctx->volumes.snd = XPLMFindDataRef(            "sim/operation/sound/sound_on")) == NULL ||
         (ctx->volumes.txt = XPLMFindDataRef(            "sim/operation/prefs/text_out")) == NULL)
+    {
+        goto fail;
+    }
+
+     /* Field of view save/restore */
+    if ((ctx->fov.nonp = XPLMFindDataRef("sim/graphics/settings/non_proportional_vertical_FOV")) == NULL ||
+        (ctx->fov.data = XPLMFindDataRef(                "sim/graphics/view/field_of_view_deg")) == NULL)
     {
         goto fail;
     }
@@ -1883,11 +1898,28 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 {
                     XPLMSpeakString("turn around set");
                 }
+                if (XPLMGetDatai(ctx->fov.nonp) == 0)
+                {
+                    ctx->fov.float_value = XPLMGetDataf(ctx->fov.data);
+                    ctx->fov.round_value = roundf(ctx->fov.float_value);
+                }
                 XPLMCommandOnce(ctx->views.cbs[1].command);
             }
             XPLMSetDatai    (ctx->callouts.ref_park_brake, 0);
             XPLMCommandOnce (ctx->      bking.prk.cb.command);
             XPLMSetDatai(ctx->callouts.ref_park_brake, speak);
+        }
+        else
+        {
+            /* Restore FOV after e.g. IXEG 733 */
+            if (XPLMGetDatai(ctx->fov.nonp) == 0)
+            {
+                if (ctx->fov.round_value != (int)roundf(XPLMGetDataf(ctx->fov.data)))
+                {
+                    XPLMSetDataf(ctx->fov.data, ctx->fov.float_value);
+                    XPLMSpeakString("F O V set");
+                }
+            }
         }
     }
     return 0;
