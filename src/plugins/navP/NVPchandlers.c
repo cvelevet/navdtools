@@ -70,12 +70,14 @@ typedef struct
         XPLMCommandRef h_brk_mximum;
         XPLMCommandRef toggle_r_ng1;
         XPLMCommandRef toggle_r_ng2;
+        XPLMCommandRef toggle_srvos;
         XPLMDataRef ldg_gears_lever;
         XPLMDataRef engine_lever_lt;
         XPLMDataRef engine_reverse1;
         XPLMDataRef engine_reverse2;
         int id_s32_fmgs_fcu1_fl_lvl;
-        int id_s32_click_autopilot1;
+        int id_s32_light_autopilot1;
+        int id_s32_light_autopilot2;
         int id_s32_click_ss_tkovr_l;
         int id_s32_click_thr_disc_l;
         int id_u32_emer_lights_mode;
@@ -3573,7 +3575,12 @@ static int chandler_32apc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         refcon_assert1 *a32 = inRefcon;
         if (a32->initialized)
         {
-            int32_t clicknow = 1; a32->api.ValueSet(a32->dat.id_s32_click_autopilot1, &clicknow);
+            int32_t ap1lite; a32->api.ValueGet(a32->dat.id_s32_light_autopilot1, &ap1lite);
+            int32_t ap2lite; a32->api.ValueGet(a32->dat.id_s32_light_autopilot1, &ap2lite);
+            if (ap1lite == 0 && ap2lite == 0)
+            {
+                XPLMCommandOnce(a32->dat.toggle_srvos);
+            }
         }
     }
     return 0;
@@ -5061,7 +5068,10 @@ static int ff_assert_init(refcon_assert1 *ffa)
         ffa->dat.p_brk_toggle            = XPLMFindCommand       ("sim/flight_controls/brakes_toggle_max");
         ffa->dat.toggle_r_ng1            = XPLMFindCommand       ("sim/engines/thrust_reverse_toggle_1");
         ffa->dat.toggle_r_ng2            = XPLMFindCommand       ("sim/engines/thrust_reverse_toggle_2");
+        ffa->dat.toggle_srvos            = XPLMFindCommand       ("sim/autopilot/servos_toggle");
         ffa->dat.id_s32_fmgs_fcu1_fl_lvl = ffa->api.ValueIdByName("Aircraft.FMGS.FCU1.Altitude");
+        ffa->dat.id_s32_light_autopilot1 = ffa->api.ValueIdByName("Aircraft.FMGS.FCU1.AutoPilotLight1");
+        ffa->dat.id_s32_light_autopilot2 = ffa->api.ValueIdByName("Aircraft.FMGS.FCU1.AutoPilotLight2");
         ffa->dat.id_u32_efis_nav_mod_lft = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeL.Target");
         ffa->dat.id_u32_efis_nav_mod_rgt = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeR.Target");
         ffa->dat.id_u32_efis_nav_rng_lft = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavRangeL.Target");
@@ -5070,8 +5080,9 @@ static int ff_assert_init(refcon_assert1 *ffa)
         ffa->dat.id_u32_emer_lights_mode = ffa->api.ValueIdByName("Aircraft.Cockpit.Overhead.LightEmerMode.Target");
         ffa->dat.id_s32_click_thr_disc_l = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click");
         ffa->dat.id_s32_click_ss_tkovr_l = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.SidestickTakeoverL.Click");
-        ffa->dat.id_s32_click_autopilot1 = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.FCU_AutoPilot1.Click");
         if (ffa->dat.id_s32_fmgs_fcu1_fl_lvl <= 0 ||
+            ffa->dat.id_s32_light_autopilot1 <= 0 ||
+            ffa->dat.id_s32_light_autopilot2 <= 0 ||
             ffa->dat.id_u32_efis_nav_mod_lft <= 0 ||
             ffa->dat.id_u32_efis_nav_mod_rgt <= 0 ||
             ffa->dat.id_u32_efis_nav_rng_lft <= 0 ||
@@ -5080,7 +5091,6 @@ static int ff_assert_init(refcon_assert1 *ffa)
             ffa->dat.id_u32_emer_lights_mode <= 0 ||
             ffa->dat.id_s32_click_thr_disc_l <= 0 ||
             ffa->dat.id_s32_click_ss_tkovr_l <= 0 ||
-            ffa->dat.id_s32_click_autopilot1 <= 0 ||
             ffa->dat.ldg_gears_lever      == NULL ||
             ffa->dat.engine_lever_lt      == NULL ||
             ffa->dat.engine_reverse1      == NULL ||
@@ -5091,7 +5101,8 @@ static int ff_assert_init(refcon_assert1 *ffa)
             ffa->dat.h_brk_regulr         == NULL ||
             ffa->dat.p_brk_toggle         == NULL ||
             ffa->dat.toggle_r_ng1         == NULL ||
-            ffa->dat.toggle_r_ng2         == NULL)
+            ffa->dat.toggle_r_ng2         == NULL ||
+            ffa->dat.toggle_srvos         == NULL)
         {
             ndt_log("navP [debug]: ff_assert_init: can't find required data\n");
             return EINVAL;
