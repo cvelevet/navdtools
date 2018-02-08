@@ -120,6 +120,7 @@ void nvp_plugin_message(XPLMPluginID inFromWho,
 //                }
                 xplane_first_load = 0;
             }
+            nvp_chandlers_onload(chandler_context);
             break;
 
         case XPLM_MSG_AIRPORT_LOADED:

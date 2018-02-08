@@ -1186,6 +1186,16 @@ int nvp_chandlers_reset(void *inContext)
         ctx->ground.flc_g = NULL;
     }
 
+    /* Re-enable Gizmo64 if present */
+    XPLMPluginID g64 = XPLMFindPluginBySignature("gizmo.x-plugins.com");
+    if (XPLM_NO_PLUGIN_ID != g64)
+    {
+        if (XPLMIsPluginEnabled(g64) == 0)
+        {
+            XPLMEnablePlugin(g64);
+        }
+    }
+
     /* all good */
     ndt_log("navP [info]: nvp_chandlers_reset OK\n"); return (ctx->initialized = 0);
 }
@@ -1196,6 +1206,31 @@ void nvp_chandlers_setmnu(void *inContext, void *inMenu)
     if (ctx)
     {
         ctx->menu_context = inMenu;
+    }
+}
+
+// some addons' datarefs have a trailing space for no reason :-(
+#define STRN_CASECMP_AUTO(s1, s2) strncasecmp(s1, s2, strlen(s2))
+void nvp_chandlers_onload(void *inContext)
+{
+    chandler_context *ctx = inContext;
+    XPLMDataRef dref_temporary = NULL;
+    char xaircraft_desc_str[261] = "";
+    if ((dref_temporary = XPLMFindDataRef("sim/aircraft/view/acf_descrip")))
+    {
+        dataref_read_string(dref_temporary, xaircraft_desc_str, sizeof(xaircraft_desc_str));
+        if (!STRN_CASECMP_AUTO(xaircraft_desc_str, "FlightFactor Airbus A320"))
+        {
+            // disable Gizmo64 before the FF320 gets to loads its own plugins
+            XPLMPluginID g64 = XPLMFindPluginBySignature("gizmo.x-plugins.com");
+            if (XPLM_NO_PLUGIN_ID != g64)
+            {
+                if (XPLMIsPluginEnabled(g64))
+                {
+                    XPLMDisablePlugin(g64);
+                }
+            }
+        }
     }
 }
 
@@ -1211,8 +1246,6 @@ static void print_acf_info(char *xaircraft_icao_code,
             xaircraft_desc_str, acf_file);
 }
 
-// some addons' datarefs have a trailing space for no reason :-(
-#define STRN_CASECMP_AUTO(s1, s2) strncasecmp(s1, s2, strlen(s2))
 int nvp_chandlers_update(void *inContext)
 {
     XPLMDataRef dref_temporary = NULL;
