@@ -238,6 +238,7 @@ typedef struct
         struct
         {
             XPLMDataRef fildov_deg;
+            XPLMDataRef fildov_non;
         } fildov_prsts;
 
         struct
@@ -495,7 +496,8 @@ void* nvp_menu_init(void)
             goto fail;
         }
     }
-    if (get_dataref(&ctx->data.fildov_prsts.fildov_deg, "sim/graphics/view/field_of_view_deg"))
+    if (get_dataref(&ctx->data.fildov_prsts.fildov_non, "sim/graphics/settings/non_proportional_vertical_FOV") ||
+        get_dataref(&ctx->data.fildov_prsts.fildov_deg,                 "sim/graphics/view/field_of_view_deg"))
     {
         goto fail;
     }
@@ -1308,6 +1310,11 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
     if (itx->mivalue >= MENUITEM_FILDOV_45DEG &&
         itx->mivalue <= MENUITEM_FILDOV_75DEG)
     {
+        if (XPLMGetDatai(ctx->data.fildov_prsts.fildov_non))
+        {
+            XPLMSpeakString("non proprotional F O V");
+            return;
+        }
         float  field_of_view;
         switch (itx->mivalue)
         {
