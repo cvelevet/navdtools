@@ -78,6 +78,7 @@ typedef struct
         int id_s32_fmgs_fcu1_fl_lvl;
         int id_s32_light_autopilot1;
         int id_s32_light_autopilot2;
+        int id_f32_p_spoilers_lever;
         int id_s32_click_ss_tkovr_l;
         int id_s32_click_thr_disc_l;
         int id_u32_emer_lights_mode;
@@ -2360,6 +2361,7 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         refcon_ixeg733   *i33 = NULL;
         refcon_eadt738   *x38 = NULL;
         chandler_context *ctx = inRefcon;
+        refcon_assert1   *a32 = ctx->revrs.assert; float f_val;
         int speak = XPLMGetDatai(ctx->callouts.ref_speedbrake);
         if (ctx->atyp == NVP_ACF_HA4T_RW)
         {
@@ -2376,28 +2378,25 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             case NVP_ACF_A320ULT:
             {
-                float current_ratio = XPLMGetDataf(ctx->spbrk.srat);
-                if (current_ratio < 0.49f)
+                a32->api.ValueGet(a32->dat.id_f32_p_spoilers_lever, &f_val);
+                float before = XPLMGetDataf(ctx->spbrk.srat);
+                XPLMCommandOnce(ctx->spbrk.sext);
+                if (before < XPLMGetDataf(ctx->spbrk.srat))
                 {
-                    // spoilers armed, disarm but don't extend
-                    {
-                        XPLMSetDataf(ctx->spbrk.srat, 0.5f);
-                    }
-                    if (XPLMGetDataf(ctx->spbrk.srat) > 0.49f)
+                    if (f_val < -.01f)
                     {
                         if (speak > 0) XPLMSpeakString("spoilers disarmed");
+                        return 0;
                     }
-                    return 0;
-                }
-                if (current_ratio < 0.88f)
-                {
-                    {
-                        XPLMSetDataf(ctx->spbrk.srat, current_ratio + 0.125f);
-                    }
-                    if (XPLMGetDataf(ctx->spbrk.srat) > 0.51f)
+                    if (f_val < +.01f)
                     {
                         if (speak > 0) XPLMSpeakString("speedbrake");
+                        return 0;
                     }
+                }
+                if (f_val > +.01f)
+                {
+                    if (speak > 0) XPLMSpeakString("speedbrake");
                     return 0;
                 }
                 return 0;
@@ -2483,6 +2482,7 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         refcon_ixeg733   *i33 = NULL;
         refcon_eadt738   *x38 = NULL;
         chandler_context *ctx = inRefcon;
+        refcon_assert1   *a32 = ctx->revrs.assert; float f_val;
         int speak = XPLMGetDatai(ctx->callouts.ref_speedbrake);
         if (ctx->atyp == NVP_ACF_HA4T_RW)
         {
@@ -2499,29 +2499,22 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             case NVP_ACF_A320ULT:
             {
-                float current_ratio = XPLMGetDataf(ctx->spbrk.srat);
-                if (current_ratio < 0.51f)
+                a32->api.ValueGet(a32->dat.id_f32_p_spoilers_lever, &f_val);
+                float before = XPLMGetDataf(ctx->spbrk.srat);
+                XPLMCommandOnce(ctx->spbrk.sret);
+                if (before > XPLMGetDataf(ctx->spbrk.srat))
                 {
-                    // already retracted: arm spoilers
-                    {
-                        XPLMSetDataf(ctx->spbrk.srat, 0.0f);
-                    }
-                    if (XPLMGetDataf(ctx->spbrk.srat) < 0.01f)
+                    if (f_val < +.01f)
                     {
                         if (speak > 0) XPLMSpeakString("spoilers armed");
+                        return 0;
                     }
-                    return 0;
-                }
-                if (current_ratio > 0.62f)
-                {
-                    {
-                        XPLMSetDataf(ctx->spbrk.srat, current_ratio - 0.125f);
-                    }
-                    if (XPLMGetDataf(ctx->spbrk.srat) < 0.51f)
+                    if (f_val < +.51f &&
+                        XPLMGetDataf(ctx->spbrk.srat) < +.26f)
                     {
                         if (speak > 0) XPLMSpeakString("speedbrake retracted");
+                        return 0;
                     }
-                    return 0;
                 }
                 return 0;
             }
@@ -5072,6 +5065,7 @@ static int ff_assert_init(refcon_assert1 *ffa)
         ffa->dat.id_s32_fmgs_fcu1_fl_lvl = ffa->api.ValueIdByName("Aircraft.FMGS.FCU1.Altitude");
         ffa->dat.id_s32_light_autopilot1 = ffa->api.ValueIdByName("Aircraft.FMGS.FCU1.AutoPilotLight1");
         ffa->dat.id_s32_light_autopilot2 = ffa->api.ValueIdByName("Aircraft.FMGS.FCU1.AutoPilotLight2");
+        ffa->dat.id_f32_p_spoilers_lever = ffa->api.ValueIdByName("Aircraft.Cockpit.Pedestal.SpoilersLever");
         ffa->dat.id_u32_efis_nav_mod_lft = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeL.Target");
         ffa->dat.id_u32_efis_nav_mod_rgt = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeR.Target");
         ffa->dat.id_u32_efis_nav_rng_lft = ffa->api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavRangeL.Target");
@@ -5083,6 +5077,7 @@ static int ff_assert_init(refcon_assert1 *ffa)
         if (ffa->dat.id_s32_fmgs_fcu1_fl_lvl <= 0 ||
             ffa->dat.id_s32_light_autopilot1 <= 0 ||
             ffa->dat.id_s32_light_autopilot2 <= 0 ||
+            ffa->dat.id_f32_p_spoilers_lever <= 0 ||
             ffa->dat.id_u32_efis_nav_mod_lft <= 0 ||
             ffa->dat.id_u32_efis_nav_mod_rgt <= 0 ||
             ffa->dat.id_u32_efis_nav_rng_lft <= 0 ||
