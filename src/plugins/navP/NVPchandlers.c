@@ -1886,9 +1886,10 @@ static int dataref_wrte_string(XPLMDataRef dataref, char *string_buffer, size_t 
  */
 static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    chandler_context *ctx = inRefcon;
     if (inPhase == xplm_CommandEnd)
     {
+        chandler_context *ctx = inRefcon;
+        XPLMPluginID pid; XPLMCommandRef cmd; XPLMDataRef data;
         int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
         /* this can happen after calling XPLMReloadPlugins() */
         if (ctx->initialized == 0)
@@ -1951,6 +1952,23 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 {
                     XPLMSetDataf(ctx->fov.data, ctx->fov.float_value);
                     XPLMSpeakString("F O V set");
+                }
+            }
+            /* Stop BetterPushback if there actually is a currently ongoing pushback operation */
+            if (XPLM_NO_PLUGIN_ID != (pid = XPLMFindPluginBySignature("skiselkov.BetterPushback")))
+            {
+                if (XPLMIsPluginEnabled(pid))
+                {
+                    if ((data = XPLMFindDataRef("bp/connected")))
+                    {
+                        if (XPLMGetDatai(data))
+                        {
+                            if ((cmd = XPLMFindCommand("BetterPushback/stop")))
+                            {
+                                XPLMCommandOnce(cmd);
+                            }
+                        }
+                    }
                 }
             }
         }
