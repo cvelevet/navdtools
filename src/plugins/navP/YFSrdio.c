@@ -837,7 +837,7 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
             case XPDR_GND:
             case XPDR_ALT:
             default:
-                mact = 1.0f; // OFF
+                mact = 0.0f; // OFF
                 sact = 2.0f; // ON
                 break;
         }
