@@ -130,6 +130,7 @@ typedef struct
 typedef struct
 {
     acf_type ac_type;
+    int   up_to_date;
     char afname[257];
     char afpath[513];
     char author[501];
@@ -149,8 +150,9 @@ acf_info_context;
 int uf_dref_string_read(XPLMDataRef dataref, char *string_buffer, size_t buffer_size);
 int uf_dref_string_wrte(XPLMDataRef dataref, char *string_buffer, size_t buffer_size);
 const char*                                 acf_type_get_name(acf_type aircraft_type);
-int                                         acf_type_init_cts(acf_info_context *info);
-int                                         acf_type_resetall(acf_info_context *info);
-int                                         acf_type_get_info(acf_info_context *info);
+acf_info_context*                           acf_type_info_get                  (void);
+int                                         acf_type_info_reset                (void);
+acf_info_context*                           acf_type_info_update               (void);
+int                                         acf_type_info_acf_ctx_init         (void);
 
 #endif /* ACF_TYPES_H */
