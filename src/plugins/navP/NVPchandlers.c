@@ -4300,7 +4300,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,    1, "params/wxrType");                           // real weather radar ON
             _DO(1, XPLMSetDatai,    1, "params/metric");                            // metric measurement ON
             _DO(1, XPLMSetDatai,    1, "params/wheel");                             // scr. wheel support ON
-            _DO(1, XPLMSetDatai,    1, "params/ground_start_unit");                 // minimal ground config
+            _DO(1, XPLMSetDatai,    0, "params/ground_start_unit");                 // minimal ground config
             _DO(1, XPLMSetDatai,    1, "params/fuel_truck");                        // minimal ground config
             _DO(1, XPLMSetDatai,    1, "params/stairs");                            // minimal ground config
             _DO(1, XPLMSetDatai,    1, "params/stop");                              // minimal ground config
