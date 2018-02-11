@@ -29,8 +29,8 @@
 typedef enum
 {
         ACF_TYP_GENERIC = 0x0000000,
-        ACF_TYP_A319_TL = 0x0008001,
-        ACF_TYP_A320_FF = 0x0008002,
+        ACF_TYP_A319_TL = 0x0000001,
+        ACF_TYP_A320_FF = 0x0000002,
         ACF_TYP_A320_JD = 0x0000004,
         ACF_TYP_A320_QP = 0x0000008,
         ACF_TYP_A330_JD = 0x0000010,
