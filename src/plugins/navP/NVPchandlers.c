@@ -3922,16 +3922,17 @@ static int first_fcall_do(chandler_context *ctx)
                         // we can set fuel and payload directly, but control of the doors, equipment
                         // etc. requires setting several data fields -- w/out further documentation,
                         // don't touch the latter, let's use EFB to board/load this aircraft instead
-                        int (value_id); uint32_t default_supply[2] = { 0, 1, }; float default_weight[4] = { 0.0f, 60.0f, 691.0f, 1000.0f,  };
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.ExtBleedRequest")) > 0) rca->api.ValueSet(value_id, &default_supply[0]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.ExtPowerRequest")) > 0) rca->api.ValueSet(value_id, &default_supply[1]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.ShocksRequest"  )) > 0) rca->api.ValueSet(value_id, &default_supply[1]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.PayloadWeight"  )) > 0) rca->api.ValueSet(value_id, &default_weight[0]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelCenter"     )) > 0) rca->api.ValueSet(value_id, &default_weight[1]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelOuterL"     )) > 0) rca->api.ValueSet(value_id, &default_weight[2]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelOuterL"     )) > 0) rca->api.ValueSet(value_id, &default_weight[2]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelInnerL"     )) > 0) rca->api.ValueSet(value_id, &default_weight[3]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelInnerR"     )) > 0) rca->api.ValueSet(value_id, &default_weight[3]);
+                        int (value_id); uint32_t defaults_integ[3] = { 00, 01, 1200, }; float defaults_float[4] = { 0.00f, 60.00f, 691.00f, 1000.00f, };
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.ExtBleedRequest"       )) > 0) rca->api.ValueSet(value_id, &defaults_integ[0]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.ExtPowerRequest"       )) > 0) rca->api.ValueSet(value_id, &defaults_integ[1]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.ShocksRequest"         )) > 0) rca->api.ValueSet(value_id, &defaults_integ[1]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.PayloadWeight"         )) > 0) rca->api.ValueSet(value_id, &defaults_float[0]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelCenter"            )) > 0) rca->api.ValueSet(value_id, &defaults_float[1]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelOuterL"            )) > 0) rca->api.ValueSet(value_id, &defaults_float[2]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelOuterL"            )) > 0) rca->api.ValueSet(value_id, &defaults_float[2]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelInnerL"            )) > 0) rca->api.ValueSet(value_id, &defaults_float[3]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelInnerR"            )) > 0) rca->api.ValueSet(value_id, &defaults_float[3]);
+                        if ((value_id = rca->api.ValueIdByName("Aircraft.Navigation.ATC.CodeSet")) > 0) rca->api.ValueSet(value_id, &defaults_integ[2]);
                     }
                 }
                 if (ctx->mcdu.rc.i_disabled == -1)
@@ -4744,6 +4745,9 @@ static int first_fcall_do(chandler_context *ctx)
         default:
             break;
     }
+
+    /* set transponder code */
+    _DO(0, XPLMSetDatai, 1200, "sim/cockpit2/radios/actuators/transponder_code");
 
     /* resolve addon-specific references early (might be faster?) */
     chandler_command *list[] =
