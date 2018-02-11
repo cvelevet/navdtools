@@ -488,7 +488,7 @@ int acf_type_get_info(acf_info_context *info)
             snprintf(new_icao, sizeof(new_icao), "%s", info->icaoid);
             break;
     }
-    if (!strncmp(info->icaoid, new_icao, sizeof(new_icao)))
+    if (strncmp(info->icaoid, new_icao, sizeof(new_icao)))
     {
         ndt_log("acf_type [info]: '%s' -> '%s'\n", info->icaoid, new_icao);
         snprintf(info->icaoid, sizeof(info->icaoid), "%s", new_icao);
