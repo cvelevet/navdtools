@@ -2255,7 +2255,7 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         switch (inPhase) // FlightFactor/Assert A320
         {
             case xplm_CommandBegin:
-                if (g_speed < 30.0f && g_speed > 10.0f) // we must be taxiing
+                if (g_speed < 40.0f && g_speed > 14.0f) // we must be taxiing
                 {
                     XPLMCommandBegin((rcb->pcmd = rca->dat.h_brk_regulr));
                     return 0;
