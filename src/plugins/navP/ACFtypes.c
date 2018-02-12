@@ -169,8 +169,9 @@ acf_info_context* acf_type_info_update()
             global_info->assert.initialized = 0;
             break;
         }
-        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.airbus.fbw") ||
-            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.A380.airbus.fbw"))
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.airbus.fbw")      ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.A380.airbus.fbw") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("ToLiSs.Airbus.systems"))
         {
             if (!STRN_CASECMP_AUTO(global_info->author, "QualityPark"))
             {
