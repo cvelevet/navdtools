@@ -857,6 +857,7 @@ static void toggle_main_window(yfms_context *yfms)
             yfms->xpl.fb76.rightMidRotary         = XPLMFindDataRef("1-sim/adf/rightMidRotary"                  );
             yfms->xpl.fb76.rightSmallRotary       = XPLMFindDataRef("1-sim/adf/rightSmallRotary"                );
             yfms->xpl.fb77.anim_25_rotery         = XPLMFindDataRef("anim/25/rotery"                            );
+            yfms->xpl.fb77.anim_67_switch         = XPLMFindDataRef("anim/67/switch"                            );
             yfms->xpl.fb77.anim_85_switch         = XPLMFindDataRef("anim/85/switch"                            );
             yfms->xpl.fb77.anim_175_button        = XPLMFindDataRef("anim/175/button"                           );
             yfms->xpl.tekt.cl3_fms_selector       = XPLMFindDataRef("cl300/fms_selector"                        );
@@ -975,7 +976,7 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.has_custom_navigation = 1;
                 yfms->xpl.atyp = YFS_ATYP_FB76; break;
             }
-            if (yfms->xpl.fb77.anim_25_rotery &&
+            if (yfms->xpl.fb77.anim_25_rotery && yfms->xpl.fb77.anim_67_switch &&
                 yfms->xpl.fb77.anim_85_switch && yfms->xpl.fb77.anim_175_button)
             {
                 yfms->xpl.has_custom_nav_radios = 1;

@@ -469,6 +469,10 @@ static void set_altimeter(yfms_context *yfms, int in[2])
                         XPLMSetDatai(yfms->xpl.q350.pressModeLeft,  !!yfms->ndt.alt.unit);
                         XPLMSetDatai(yfms->xpl.q350.pressModeRight, !!yfms->ndt.alt.unit);
                     }
+                    if (yfms->xpl.atyp == YFS_ATYP_FB77)
+                    {
+                        XPLMSetDatai(yfms->xpl.fb77.anim_67_switch, !!yfms->ndt.alt.unit);
+                    }
                     break;
                 }
                 while (0);
@@ -495,6 +499,10 @@ static void set_altimeter(yfms_context *yfms, int in[2])
                 {
                     XPLMSetDatai(yfms->xpl.q350.pressModeLeft,  !yfms->ndt.alt.unit);
                     XPLMSetDatai(yfms->xpl.q350.pressModeRight, !yfms->ndt.alt.unit);
+                }
+                if (yfms->xpl.atyp == YFS_ATYP_FB77)
+                {
+                    XPLMSetDatai(yfms->xpl.fb77.anim_67_switch, !yfms->ndt.alt.unit);
                 }
                 yfms->ndt.alt.unit = !yfms->ndt.alt.unit; return;
             }

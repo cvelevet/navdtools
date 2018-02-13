@@ -534,6 +534,7 @@ typedef struct
         struct
         {
             XPLMDataRef anim_25_rotery;
+            XPLMDataRef anim_67_switch;
             XPLMDataRef anim_85_switch;
             XPLMDataRef anim_175_button;
         }
