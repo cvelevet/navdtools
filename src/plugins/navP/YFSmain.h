@@ -478,7 +478,9 @@ typedef struct
         {
             XPLMDataRef XPDRPower;
             XPLMDataRef XPDRAltitude;
+            XPLMDataRef BaroUnitCapt;
             XPLMDataRef BaroStdCapt;
+            XPLMDataRef BaroUnitFO;
             XPLMDataRef BaroStdFO;
             XPLMCommandRef VHF2Co;
             XPLMCommandRef VHF1Capt;
@@ -496,6 +498,8 @@ typedef struct
         qpac;
         struct
         {
+            XPLMDataRef pressModeLeft;
+            XPLMDataRef pressModeRight;
             XPLMDataRef pressLeftButton;
             XPLMDataRef pressLeftRotary;
             XPLMDataRef pressRightButton;
@@ -504,7 +508,9 @@ typedef struct
         q350;
         struct
         {
+            XPLMDataRef BaroUnitCapt;
             XPLMDataRef BaroStdCapt;
+            XPLMDataRef BaroUnitFO;
             XPLMDataRef BaroStdFO;
         }
         q380;

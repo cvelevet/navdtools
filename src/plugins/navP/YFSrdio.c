@@ -454,6 +454,21 @@ static void set_altimeter(yfms_context *yfms, int in[2])
                             inhg_converted = ((float)in[0] / 100.0f);
                             break;
                     }
+                    if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+                    {
+                        XPLMSetDatai(yfms->xpl.qpac.BaroUnitCapt,   !!yfms->ndt.alt.unit);
+                        XPLMSetDatai(yfms->xpl.qpac.BaroUnitFO,     !!yfms->ndt.alt.unit);
+                    }
+                    if (yfms->xpl.atyp == YFS_ATYP_Q380)
+                    {
+                        XPLMSetDatai(yfms->xpl.q380.BaroUnitCapt,   !!yfms->ndt.alt.unit);
+                        XPLMSetDatai(yfms->xpl.q380.BaroUnitFO,     !!yfms->ndt.alt.unit);
+                    }
+                    if (yfms->xpl.atyp == YFS_ATYP_Q350)
+                    {
+                        XPLMSetDatai(yfms->xpl.q350.pressModeLeft,  !!yfms->ndt.alt.unit);
+                        XPLMSetDatai(yfms->xpl.q350.pressModeRight, !!yfms->ndt.alt.unit);
+                    }
                     break;
                 }
                 while (0);
@@ -465,6 +480,21 @@ static void set_altimeter(yfms_context *yfms, int in[2])
                     uint32_t lunit; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_u32_lunit, &lunit);
                     lunit = !lunit; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &lunit);
                     return          yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &lunit);
+                }
+                if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+                {
+                    XPLMSetDatai(yfms->xpl.qpac.BaroUnitCapt,   !yfms->ndt.alt.unit);
+                    XPLMSetDatai(yfms->xpl.qpac.BaroUnitFO,     !yfms->ndt.alt.unit);
+                }
+                if (yfms->xpl.atyp == YFS_ATYP_Q380)
+                {
+                    XPLMSetDatai(yfms->xpl.q380.BaroUnitCapt,   !yfms->ndt.alt.unit);
+                    XPLMSetDatai(yfms->xpl.q380.BaroUnitFO,     !yfms->ndt.alt.unit);
+                }
+                if (yfms->xpl.atyp == YFS_ATYP_Q350)
+                {
+                    XPLMSetDatai(yfms->xpl.q350.pressModeLeft,  !yfms->ndt.alt.unit);
+                    XPLMSetDatai(yfms->xpl.q350.pressModeRight, !yfms->ndt.alt.unit);
                 }
                 yfms->ndt.alt.unit = !yfms->ndt.alt.unit; return;
             }

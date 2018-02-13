@@ -817,7 +817,9 @@ static void toggle_main_window(yfms_context *yfms)
             yfms->xpl.ixeg.baro_inhg_sby_0001_ind = XPLMFindDataRef("ixeg/733/altimeter/baro_inhg_sby_0001_ind" );
             yfms->xpl.qpac.XPDRPower              = XPLMFindDataRef("AirbusFBW/XPDRPower"                       );
             yfms->xpl.qpac.XPDRAltitude           = XPLMFindDataRef("AirbusFBW/XPDRAltitude"                    );
+            yfms->xpl.qpac.BaroUnitCapt           = XPLMFindDataRef("AirbusFBW/BaroUnitCapt"                    );
             yfms->xpl.qpac.BaroStdCapt            = XPLMFindDataRef("AirbusFBW/BaroStdCapt"                     );
+            yfms->xpl.qpac.BaroUnitFO             = XPLMFindDataRef("AirbusFBW/BaroUnitFO"                      );
             yfms->xpl.qpac.BaroStdFO              = XPLMFindDataRef("AirbusFBW/BaroStdFO"                       );
             yfms->xpl.qpac.RMPSwapCapt            = XPLMFindCommand("AirbusFBW/RMPSwapCapt"                     );
             yfms->xpl.qpac.RMPSwapCo              = XPLMFindCommand("AirbusFBW/RMPSwapCo"                       );
@@ -831,11 +833,15 @@ static void toggle_main_window(yfms_context *yfms)
             yfms->xpl.qpac.RMP2FreqUpSml          = XPLMFindCommand("AirbusFBW/RMP2FreqUpSml"                   );
             yfms->xpl.qpac.RMP2FreqDownLrg        = XPLMFindCommand("AirbusFBW/RMP2FreqDownLrg"                 );
             yfms->xpl.qpac.RMP2FreqDownSml        = XPLMFindCommand("AirbusFBW/RMP2FreqDownSml"                 );
+            yfms->xpl.q350.pressModeLeft          = XPLMFindDataRef("1-sim/pres/pressModeLeft/switch"           );
+            yfms->xpl.q350.pressModeRight         = XPLMFindDataRef("1-sim/pres/pressModeRight/switch"          );
             yfms->xpl.q350.pressLeftButton        = XPLMFindDataRef("1-sim/pres/pressLeftButton"                );
             yfms->xpl.q350.pressLeftRotary        = XPLMFindDataRef("1-sim/pres/pressLeftRotary"                );
             yfms->xpl.q350.pressRightButton       = XPLMFindDataRef("1-sim/pres/pressRightButton"               );
             yfms->xpl.q350.pressRightRotary       = XPLMFindDataRef("1-sim/pres/pressRightRotary"               );
+            yfms->xpl.q380.BaroUnitCapt           = XPLMFindDataRef("com/petersaircraft/airbus/BaroUnitCapt"    );
             yfms->xpl.q380.BaroStdCapt            = XPLMFindDataRef("com/petersaircraft/airbus/BaroStdCapt"     );
+            yfms->xpl.q380.BaroUnitFO             = XPLMFindDataRef("com/petersaircraft/airbus/BaroUnitFO"      );
             yfms->xpl.q380.BaroStdFO              = XPLMFindDataRef("com/petersaircraft/airbus/BaroStdFO"       );
             yfms->xpl.fb76.systemMode             = XPLMFindDataRef("1-sim/transponder/systemMode"              );
             yfms->xpl.fb76.baroRotary_stby        = XPLMFindDataRef("1-sim/gauges/baroRotary_stby"              );
@@ -935,7 +941,8 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.atyp = YFS_ATYP_IXEG; break;
             }
             if (yfms->xpl.qpac.XPDRPower       && yfms->xpl.qpac.XPDRAltitude    &&
-                yfms->xpl.qpac.BaroStdCapt     && yfms->xpl.qpac.BaroStdFO       &&
+                yfms->xpl.qpac.BaroUnitCapt    && yfms->xpl.qpac.BaroStdCapt     &&
+                yfms->xpl.qpac.BaroUnitFO      && yfms->xpl.qpac.BaroStdFO       &&
                 yfms->xpl.qpac.RMPSwapCapt     && yfms->xpl.qpac.RMPSwapCo       &&
                 yfms->xpl.qpac.VHF1Capt        && yfms->xpl.qpac.VHF2Co          &&
                 yfms->xpl.qpac.RMP1FreqUpLrg   && yfms->xpl.qpac.RMP1FreqUpSml   &&
@@ -946,15 +953,17 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.has_custom_nav_radios = 1;
                 yfms->xpl.atyp = YFS_ATYP_QPAC; break;
             }
-            if (yfms->xpl.q350.pressLeftButton  && yfms->xpl.q350.pressLeftRotary &&
+            if (yfms->xpl.q350.pressModeLeft    && yfms->xpl.q350.pressModeRight  &&
+                yfms->xpl.q350.pressLeftButton  && yfms->xpl.q350.pressLeftRotary &&
                 yfms->xpl.q350.pressRightButton && yfms->xpl.q350.pressRightRotary)
             {
                 yfms->xpl.has_custom_nav_radios = 1;
                 yfms->xpl.atyp = YFS_ATYP_Q350; break;
             }
-            if (yfms->xpl.q380.BaroStdCapt && yfms->xpl.q380.BaroStdFO)
+            if (yfms->xpl.q380.BaroUnitFO   && yfms->xpl.q380.BaroStdFO &&
+                yfms->xpl.q380.BaroUnitCapt && yfms->xpl.q380.BaroStdCapt)
             {
-                //              yfms->xpl.has_custom_nav_radios = 1; // TODO: check is required
+//              yfms->xpl.has_custom_nav_radios = 1; // TODO: check if required
                 yfms->xpl.atyp = YFS_ATYP_Q380; break;
             }
             if (yfms->xpl.fb76.systemMode      && yfms->xpl.fb76.baroRotary_stby   &&
