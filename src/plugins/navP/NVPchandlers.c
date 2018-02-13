@@ -3582,11 +3582,27 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,      0, "1-sim/fcu/navL2/flag");                   // sync with above
             _DO(1, XPLMSetDatai,      0, "1-sim/fcu/navR/flag");                    // sync with above
             _DO(1, XPLMSetDatai,      0, "1-sim/fcu/navR2/flag");                   // sync with above
-            _DO(1, XPLMSetDatai,      1, "1-sim/fcu/altModeSwitch");                // FCU alt. sel. increm.  (1000ft)
+            _DO(1, XPLMSetDatai,      1, "1-sim/fcu/altModeSwitch");                // FCU alt. sel. increm. (1Kft)
             _DO(1, XPLMSetDataf,   3.0f, "1-sim/fcu/ndModeLeft/switch");            // ND m. sel. (cap. side) (arc)
             _DO(1, XPLMSetDataf,   2.0f, "1-sim/fcu/ndModeRight/switch");           // ND m. sel. (f/o. side) (nav)
             _DO(1, XPLMSetDataf,   1.0f, "1-sim/fcu/ndZoomLeft/switch");            // ND r. sel. (cap. side) ( 20)
             _DO(1, XPLMSetDataf,   4.0f, "1-sim/fcu/ndZoomRight/switch");           // ND r. sel. (f/o. side) (160)
+            _DO(1, XPLMSetDatai,      0, "AirbusFBW/NDShowARPTCapt");               // ND --APT-- (cap. side) (off)
+            _DO(1, XPLMSetDatai,      0, "AirbusFBW/NDShowARPTFO");                 // ND --APT-- (f/o. side) (off)
+            _DO(1, XPLMSetDatai,      0, "AirbusFBW/NDShowCSTRCapt");               // ND --CST-- (cap. side) (off)
+            _DO(1, XPLMSetDatai,      0, "AirbusFBW/NDShowCSTRFO");                 // ND --CST-- (f/o. side) (off)
+            _DO(1, XPLMSetDatai,      0, "AirbusFBW/NDShowNDBCapt");                // ND --NDB-- (cap. side) (off)
+            _DO(1, XPLMSetDatai,      0, "AirbusFBW/NDShowNDBFO");                  // ND --NDB-- (f/o. side) (off)
+            _DO(1, XPLMSetDatai,      0, "AirbusFBW/NDShowVORDCapt");               // ND --VOR-- (cap. side) (off)
+            _DO(1, XPLMSetDatai,      0, "AirbusFBW/NDShowVORDFO");                 // ND --VOR-- (f/o. side) (off)
+            _DO(1, XPLMSetDatai,      0, "AirbusFBW/NDShowWPTCapt");                // ND --WPT-- (cap. side) (off)
+            _DO(1, XPLMSetDatai,      0, "AirbusFBW/NDShowWPTFO");                  // ND --WPT-- (f/o. side) (off)
+            _DO(1, XPLMSetDatai,      0, "AirbusFBW/TCASSelectedND1");              // ND traffic (cap. side) (off)
+            _DO(1, XPLMSetDatai,      0, "AirbusFBW/TCASSelectedND2");              // ND traffic (f/o. side) (off)
+            _DO(1, XPLMSetDatai,      0, "AirbusFBW/TerrainSelectedND1");           // ND terrain (cap. side) (off)
+            _DO(1, XPLMSetDatai,      0, "AirbusFBW/TerrainSelectedND2");           // ND terrain (f/o. side) (off)
+            _DO(1, XPLMSetDatai,      0, "AirbusFBW/WXSelectedND1");                // ND weather (cap. side) (off)
+            _DO(1, XPLMSetDatai,      0, "AirbusFBW/WXSelectedND2");                // ND weather (f/o. side) (off)
             _DO(1, XPLMSetDatai,      1, "1-sim/radio/button/1/16");                // RMP1: microph. on VHF1 (on)
             _DO(1, XPLMSetDatai,      1, "1-sim/radio/push/1/1");                   // RMP1: receiver on VHF1 (on)
             _DO(1, XPLMSetDataf, 270.0f, "1-sim/radio/1/1/rotary");                 // RMP1: receiver on VHF1 (volume)
@@ -3637,6 +3653,44 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,      1, "1-sim/air/crossBeedSwitch");              // Air panel: c.b. selec. (auto)
             _DO(1, XPLMSetDataf,   0.4f, "1-sim/air/ckptSettingRotery");            // Air panel: cock. temp. (purser)
             _DO(1, XPLMSetDataf,   0.4f, "1-sim/air/cabinSettingRotery");           // Air panel: cabin temp. (purser)
+            _DO(1, XPLMSetDatai,   7000, "1-sim/options/Transition Altitude");      // preferred default settings
+            _DO(1, XPLMSetDatai,      0, "1-sim/options/autoreverse");              // preferred default settings
+            _DO(1, XPLMSetDatai,      0, "1-sim/options/Auto Helper");              // preferred default settings
+            _DO(1, XPLMSetDatai,      0, "1-sim/options/Auto Pause");               // preferred default settings
+            _DO(1, XPLMSetDatai,      1, "1-sim/options/Real Limits");              // preferred default settings
+            _DO(1, XPLMSetDatai,      0, "1-sim/options/Baro Units");               // preferred default settings
+            _DO(1, XPLMSetDatai,      1, "1-sim/options/Difficulty");               // preferred default settings
+            _DO(1, XPLMSetDatai,      1, "1-sim/options/Draw Lines");               // preferred default settings
+            _DO(1, XPLMSetDatai,      0, "1-sim/options/ScreenGlow");               // preferred default settings
+            _DO(1, XPLMSetDatai,      1, "1-sim/options/ILS Align");                // preferred default settings
+            _DO(1, XPLMSetDatai,      1, "1-sim/options/Flashing");                 // preferred default settings
+            _DO(1, XPLMSetDatai,      0, "1-sim/options/Pilots");                   // preferred default settings
+            _DO(1, XPLMSetDatai,      0, "1-sim/options/Popups");                   // preferred default settings
+            _DO(1, XPLMSetDatai,      1, "1-sim/options/Wheel");                    // preferred default settings
+            _DO(1, XPLMSetDatai,      1, "1-sim/options/Font");                     // preferred default settings
+            _DO(1, XPLMSetDatai,      1, "1-sim/options/Time");                     // preferred default settings
+            _DO(1, XPLMSetDatai,      0, "1-sim/options/XFMC");                     // preferred default settings
+            _DO(1, XPLMSetDatai,      0, "1-sim/options/side");                     // preferred default settings
+            _DO(1, XPLMSetDatai,      1, "1-sim/ext/fuel_truck");                   // minimal ground config
+            _DO(1, XPLMSetDatai,      1, "1-sim/ext/stairs");                       // minimal ground config
+            _DO(1, XPLMSetDatai,      0, "1-sim/ext/clean");                        // minimal ground config
+            _DO(1, XPLMSetDatai,      0, "1-sim/ext/train");                        // minimal ground config
+            _DO(1, XPLMSetDatai,      0, "1-sim/ext/gate");                         // minimal ground config
+            _DO(1, XPLMSetDatai,      1, "1-sim/ext/gpu1");                         // minimal ground config
+            _DO(1, XPLMSetDatai,      1, "1-sim/ext/gpu2");                         // minimal ground config
+            _DO(1, XPLMSetDatai,      1, "1-sim/ext/stop");                         // minimal ground config
+            _DO(1, XPLMSetDatai,      0, "1-sim/ext/acu");                          // minimal ground config
+            _DO(1, XPLMSetDatai,      1, "1-sim/ext/bus");                          // minimal ground config
+            _DO(1, XPLMSetDatai,      0, "1-sim/ext/gau");                          // minimal ground config
+            _DO(1, XPLMSetDatai,      1, "1-sim/ext/LSU");                          // minimal ground config
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
+            {
+                int door_open[1] = { 1, };
+                XPLMSetDatavi(d_ref, &door_open[0], 0, 1); // passeng. 1L
+                XPLMSetDatavi(d_ref, &door_open[0], 2, 1); // passeng. 2L
+                XPLMSetDatavi(d_ref, &door_open[0], 8, 1); // luggage FWD
+                XPLMSetDatavi(d_ref, &door_open[0], 9, 1); // luggage AFT
+            }
             break;
 
         case ACF_TYP_A380_PH:
