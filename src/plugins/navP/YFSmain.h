@@ -546,7 +546,7 @@ typedef struct
             XPLMDataRef CruiseSpeed_KIAS;
             XPLMDataRef HA4T_shared_KIAS;
             XPLMDataRef E175_mouse_x_pos;
-//          XPLMDataRef E195_mouse_x_pos; // TODO
+            XPLMDataRef E195_mouse_x_pos;
         }
         tekt;
         struct

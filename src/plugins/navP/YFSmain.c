@@ -865,7 +865,7 @@ static void toggle_main_window(yfms_context *yfms)
             yfms->xpl.tekt.CruiseSpeed_KIAS       = XPLMFindDataRef("Tekton_FMS/CruiseSpeed_KIAS"               );
             yfms->xpl.tekt.HA4T_shared_KIAS       = XPLMFindDataRef("Hawker4000/shared/KIAS_MACH"               );
             yfms->xpl.tekt.E175_mouse_x_pos       = XPLMFindDataRef("XCrafts/ERJ_175/mouse_x_pos"               );
-//          yfms->xpl.tekt.E195_mouse_x_pos       = XPLMFindDataRef("XCrafts/ERJ_195/mouse_x_pos"               ); // TODO
+            yfms->xpl.tekt.E195_mouse_x_pos       = XPLMFindDataRef("XCrafts/ERJ_195/mouse_x_pos"               );
 
            /*
             * FlightFactor A320 Ultimate
@@ -964,7 +964,6 @@ static void toggle_main_window(yfms_context *yfms)
             if (yfms->xpl.q380.BaroUnitFO   && yfms->xpl.q380.BaroStdFO &&
                 yfms->xpl.q380.BaroUnitCapt && yfms->xpl.q380.BaroStdCapt)
             {
-//              yfms->xpl.has_custom_nav_radios = 1; // TODO: check if required
                 yfms->xpl.atyp = YFS_ATYP_Q380; break;
             }
             if (yfms->xpl.fb76.systemMode      && yfms->xpl.fb76.baroRotary_stby   &&
@@ -1017,7 +1016,8 @@ static void toggle_main_window(yfms_context *yfms)
                             yfms->xpl.otto.vmax_kias, yfms->xpl.otto.vmax_mach);
                     yfms->xpl.atyp = YFS_ATYP_XPLN; break;
                 }
-                if (yfms->xpl.tekt.E175_mouse_x_pos)
+                if (yfms->xpl.tekt.E175_mouse_x_pos ||
+                    yfms->xpl.tekt.E195_mouse_x_pos)
                 {
                     yfms->xpl.otto.vmax_auto = 1;
                     yfms->xpl.otto.vmax_kias = 295; // Vmo: 320 KIAS
