@@ -3571,6 +3571,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");  // VOR2 on ND2 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");    // VOR1 on ND1 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
+            _DO(0,XPLMSetDataf,0.0f,"sim/flightmodel/weight/m_fixed");              // weight/balance
             break;
 
         case ACF_TYP_A350_FF:
@@ -3730,6 +3731,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
+            _DO(0,XPLMSetDataf,0.0f,"sim/flightmodel/weight/m_fixed");
             break;
 
         case ACF_TYP_B737_EA:
@@ -3763,7 +3765,8 @@ static int first_fcall_do(chandler_context *ctx)
                 XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 1, 1);                // Panel (f/o. side): daylight
                 XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 2, 1);                // Panel (backgrnd.): neon off
             }
-            break;
+            _DO(0, XPLMSetDataf, 0.0f, "sim/flightmodel/misc/cgz_ref_to_default");
+            _DO(0, XPLMSetDataf, 0.0f, "sim/flightmodel/weight/m_fixed");
 
         case ACF_TYP_B757_FF:
         case ACF_TYP_B767_FF:
@@ -4002,6 +4005,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
             _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+            _DO(0,XPLMSetDataf,0.0f,"sim/flightmodel/weight/m_fixed");
             break;
 
         case ACF_TYP_HA4T_RW:
@@ -4029,6 +4033,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
             _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+            _DO(0,XPLMSetDataf,0.0f,"sim/flightmodel/weight/m_fixed");
             break;
 
         case ACF_TYP_SSJ1_RZ:
@@ -4100,6 +4105,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
             _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
+            _DO(0,XPLMSetDataf,0.0f,"sim/flightmodel/weight/m_fixed");
             break;
         }
 
@@ -4345,6 +4351,7 @@ static int first_fcall_do(chandler_context *ctx)
                     }
                 }
             }
+            _DO(0, XPLMSetDataf, 0.0f, "sim/flightmodel/weight/m_fixed");
             break;
 
         default:
