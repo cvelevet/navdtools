@@ -3767,6 +3767,7 @@ static int first_fcall_do(chandler_context *ctx)
             }
             _DO(0, XPLMSetDataf, 0.0f, "sim/flightmodel/misc/cgz_ref_to_default");
             _DO(0, XPLMSetDataf, 0.0f, "sim/flightmodel/weight/m_fixed");
+            break;
 
         case ACF_TYP_B757_FF:
         case ACF_TYP_B767_FF:
