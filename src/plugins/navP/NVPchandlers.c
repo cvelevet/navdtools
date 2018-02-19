@@ -4168,9 +4168,12 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 0, "thranda/views/InstRefl");                      // various aircraft
             _DO(0, XPLMSetDatai, 0, "thranda/views/WindowRefl");                    // various aircraft
             _DO(0, XPLMSetDatai, 0, "thranda/views/staticelements");                // various aircraft
-            _DO(0, XPLMSetDatai, 0, "simcoders/rep/staticelements/visible");        // all REP packages
             _DO(0, XPLMSetDatai, 1, "thranda/cockpit/actuators/HideYokeL");         // various aircraft
             _DO(0, XPLMSetDatai, 1, "thranda/cockpit/actuators/HideYokeR");         // various aircraft
+            if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
+            {
+                _DO(0, XPLMSetDatai, 0, "simcoders/rep/staticelements/visible");
+            }
             if ((d_ref = XPLMFindDataRef("com/dkmp/WindowRefl")) &&
                 (xplmType_Int & XPLMGetDataRefTypes(d_ref)))
             {
