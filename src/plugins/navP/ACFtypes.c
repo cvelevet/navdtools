@@ -19,6 +19,7 @@
  */
 
 #include <errno.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -82,6 +83,28 @@ acf_info_context* acf_type_info_get()
         {
             return NULL;
         }
+        global_info->weight.gwcgz_m = XPLMFindDataRef("sim/flightmodel/misc/cgz_ref_to_default");
+        global_info->weight.minimum = XPLMFindDataRef("sim/aircraft/weight/acf_m_empty");
+        global_info->weight.payload = XPLMFindDataRef("sim/flightmodel/weight/m_fixed");
+        global_info->weight.current = XPLMFindDataRef("sim/flightmodel/weight/m_total");
+        global_info->weight.maximum = XPLMFindDataRef("sim/aircraft/weight/acf_m_max");
+        global_info->fuel.pertank   = XPLMFindDataRef("sim/flightmodel/weight/m_fuel");
+        global_info->fuel.tankrat   = XPLMFindDataRef("sim/aircraft/overflow/acf_tank_rat");
+        global_info->fuel.maximum   = XPLMFindDataRef("sim/aircraft/weight/acf_m_fuel_tot");
+        global_info->fuel.current   = XPLMFindDataRef("sim/flightmodel/weight/m_fuel_total");
+        if (global_info->weight.gwcgz_m == NULL ||
+            global_info->weight.minimum == NULL ||
+            global_info->weight.payload == NULL ||
+            global_info->weight.current == NULL ||
+            global_info->weight.maximum == NULL ||
+            global_info->fuel.  pertank == NULL ||
+            global_info->fuel.  tankrat == NULL ||
+            global_info->fuel.  maximum == NULL ||
+            global_info->fuel.  current == NULL)
+        {
+            free(global_info);
+            return NULL;
+        }
         acf_type_info_reset();
     }
     return global_info;
@@ -100,6 +123,31 @@ int acf_type_info_reset()
         global_info->up_to_date = 0;
     }
     return 0;
+}
+
+struct tank_sorter
+{
+    int index;
+    float rat;
+};
+
+static int compare_tanks_by_volume(const void *t1, const void *t2)
+{
+    const struct tank_sorter *ts1 = t1;
+    const struct tank_sorter *ts2 = t2;
+    if (ts1->rat < .01f)
+    {
+        return 1; // empty tanks go to the end (we should never get them anyway)
+    }
+    if (ts1->rat < ts2->rat)
+    {
+        return -1; // tanks with lower ratio/volume refuel first
+    }
+    if (ts1->rat > ts2->rat)
+    {
+        return 1; // tanks with higher ratio/volume refuel later
+    }
+    return (ts1->index < ts2->index) ? -1 : 1; // ratios equal so order by index
 }
 
 acf_info_context* acf_type_info_update()
@@ -157,6 +205,77 @@ acf_info_context* acf_type_info_update()
             global_info->engine_type1 = t[0];
         }
     }
+
+    /* update fuel tank characteristics */
+    struct tank_sorter fuel_tank_for_sorting[9]; int lsingles[9];
+    float rr[9], max_f = XPLMGetDataf(global_info->fuel.maximum);
+    int iii = XPLMGetDatavf(global_info->fuel.tankrat, rr, 0, 9);
+    for (int ii = 0; ii < 9 && ii < iii; ii++)
+    {
+        if (ii == 0)
+        {
+            global_info->fuel.tanks.count = 0;
+        }
+        if (rr[ii] > .01f)
+        {
+            global_info->fuel.tanks.max[ii] = rr[ii] * max_f;
+            global_info->fuel.tanks.rat[ii] = rr[ii];
+            fuel_tank_for_sorting[ii].rat   = rr[ii];
+            fuel_tank_for_sorting[ii].index = ii;
+            global_info->fuel.tanks.count++;
+        }
+        else
+        {
+            break; // we don't support holes in fuel tank configuration -- will probably never happen anyway
+        }
+    }
+    qsort(fuel_tank_for_sorting, global_info->fuel.tanks.count, sizeof(struct tank_sorter), &compare_tanks_by_volume);
+    global_info->fuel.tanks.max_kg = floorf(max_f); global_info->fuel.tanks.max_lb = floorf(max_f / 0.45359f); int lc;
+    for (int ii = 0, jj = 1, kk = 0, ll = 0; ii < global_info->fuel.tanks.count;)
+    {
+        // all tanks are now volume-sorted, but we still need to move all single
+        // tanks to the end, after any fuel tank "couples"; first, store couples
+        if ((jj < global_info->fuel.tanks.count) && (fuel_tank_for_sorting[jj].rat ==
+                                                     fuel_tank_for_sorting[ii].rat))
+        {
+            global_info->fuel.tanks.rfo[kk++] = fuel_tank_for_sorting[ii].index; ii += 2;
+            global_info->fuel.tanks.rfo[kk++] = fuel_tank_for_sorting[jj].index; jj += 2;
+            lc = kk; // first index after last fuel tank couple is sorted
+        }
+        else
+        {
+            lsingles[ll++] = fuel_tank_for_sorting[ii].index; ii += 1; jj+= 1;
+        }
+    }
+    for (int ii = 0; ii < lc; ii++)
+    {
+        global_info->fuel.tanks.cpl[ii] = 1;
+    }
+    for (int ii = lc, jj = 0; ii < global_info->fuel.tanks.count; ii++, jj++)
+    {
+        // append single tanks to refueling order list
+        global_info->fuel.tanks.rfo[ii] = lsingles[jj];
+        global_info->fuel.tanks.cpl[ii] = 0;
+    }
+#if 0
+    for (int ii = 0; ii < global_info->fuel.tanks.count; ii++)
+    {
+        if (ii == 0)
+        {
+            ndt_log("acf_types [debug]: fuel tanks (native order):\n");
+        }
+        ndt_log("acf_types [debug]: %d with ratio %.3f\n", ii, global_info->fuel.tanks.rat[ii]);
+    }
+    for (int ii = 0; ii < global_info->fuel.tanks.count; ii++)
+    {
+        int jj = global_info->fuel.tanks.rfo[ii];
+        if (ii == 0)
+        {
+            ndt_log("acf_types [debug]: fuel tanks (refuel order):\n");
+        }
+        ndt_log("acf_types [debug]: %d with ratio %.3f\n", jj, global_info->fuel.tanks.rat[jj]);
+    }
+#endif
 
     /* check enabled plugins to determine which plane we're flying */
     do // dummy loop we can break out of
@@ -478,7 +597,17 @@ int acf_type_info_acf_ctx_init()
         global_info->assert.dat.toggle_r_ng1            = XPLMFindCommand                      ("sim/engines/thrust_reverse_toggle_1"              );
         global_info->assert.dat.toggle_r_ng2            = XPLMFindCommand                      ("sim/engines/thrust_reverse_toggle_2"              );
         global_info->assert.dat.toggle_srvos            = XPLMFindCommand                      ("sim/autopilot/servos_toggle"                      );
-        global_info->assert.dat.id_s32_fmgs_fcu1_fl_lvl = global_info->assert.api.ValueIdByName("Aircraft.FMGS.FCU1.Altitude"                      );
+        global_info->assert.dat.id_s32_acft_request_chk = global_info->assert.api.ValueIdByName("Aircraft.ShocksRequest"                           );
+        global_info->assert.dat.id_s32_acft_request_gpu = global_info->assert.api.ValueIdByName("Aircraft.ExtPowerRequest"                         );
+        global_info->assert.dat.id_f32_acft_dryweightkg = global_info->assert.api.ValueIdByName("Aircraft.DryOperationalWeight"                    );
+        global_info->assert.dat.id_f32_acft_dryweightcg = global_info->assert.api.ValueIdByName("Aircraft.DryOperationalCenter"                    );
+        global_info->assert.dat.id_f32_acft_payload_cgz = global_info->assert.api.ValueIdByName("Aircraft.PayloadCenterZ"                          );
+        global_info->assert.dat.id_f32_acft_payload_kgs = global_info->assert.api.ValueIdByName("Aircraft.PayloadWeight"                           );
+        global_info->assert.dat.id_f32_acft_fuel_outerl = global_info->assert.api.ValueIdByName("Aircraft.FuelOuterL"                              );
+        global_info->assert.dat.id_f32_acft_fuel_outerr = global_info->assert.api.ValueIdByName("Aircraft.FuelOuterR"                              );
+        global_info->assert.dat.id_f32_acft_fuel_innerl = global_info->assert.api.ValueIdByName("Aircraft.FuelInnerL"                              );
+        global_info->assert.dat.id_f32_acft_fuel_innerr = global_info->assert.api.ValueIdByName("Aircraft.FuelInnerR"                              );
+        global_info->assert.dat.id_f32_acft_fuel_center = global_info->assert.api.ValueIdByName("Aircraft.FuelCenter"                              );
         global_info->assert.dat.id_s32_light_autopilot1 = global_info->assert.api.ValueIdByName("Aircraft.FMGS.FCU1.AutoPilotLight1"               );
         global_info->assert.dat.id_s32_light_autopilot2 = global_info->assert.api.ValueIdByName("Aircraft.FMGS.FCU1.AutoPilotLight2"               );
         global_info->assert.dat.id_f32_p_spoilers_lever = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Pedestal.SpoilersLever"          );
@@ -488,9 +617,19 @@ int acf_type_info_acf_ctx_init()
         global_info->assert.dat.id_u32_efis_nav_rng_rgt = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavRangeR.Target"     );
         global_info->assert.dat.id_u32_fcu_tgt_alt_step = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Panel.FCU_AltitudeStep.Target"   );
         global_info->assert.dat.id_u32_emer_lights_mode = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Overhead.LightEmerMode.Target"   );
-        global_info->assert.dat.id_s32_click_thr_disc_l = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click");
         global_info->assert.dat.id_s32_click_ss_tkovr_l = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Panel.SidestickTakeoverL.Click"  );
-        if (global_info->assert.dat.id_s32_fmgs_fcu1_fl_lvl <= 0 ||
+        global_info->assert.dat.id_s32_click_thr_disc_l = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click");
+        if (global_info->assert.dat.id_s32_acft_request_chk <= 0 ||
+            global_info->assert.dat.id_s32_acft_request_gpu <= 0 ||
+            global_info->assert.dat.id_f32_acft_dryweightkg <= 0 ||
+            global_info->assert.dat.id_f32_acft_dryweightcg <= 0 ||
+            global_info->assert.dat.id_f32_acft_payload_cgz <= 0 ||
+            global_info->assert.dat.id_f32_acft_payload_kgs <= 0 ||
+            global_info->assert.dat.id_f32_acft_fuel_outerl <= 0 ||
+            global_info->assert.dat.id_f32_acft_fuel_outerr <= 0 ||
+            global_info->assert.dat.id_f32_acft_fuel_innerl <= 0 ||
+            global_info->assert.dat.id_f32_acft_fuel_innerr <= 0 ||
+            global_info->assert.dat.id_f32_acft_fuel_center <= 0 ||
             global_info->assert.dat.id_s32_light_autopilot1 <= 0 ||
             global_info->assert.dat.id_s32_light_autopilot2 <= 0 ||
             global_info->assert.dat.id_f32_p_spoilers_lever <= 0 ||
@@ -500,8 +639,8 @@ int acf_type_info_acf_ctx_init()
             global_info->assert.dat.id_u32_efis_nav_rng_rgt <= 0 ||
             global_info->assert.dat.id_u32_fcu_tgt_alt_step <= 0 ||
             global_info->assert.dat.id_u32_emer_lights_mode <= 0 ||
-            global_info->assert.dat.id_s32_click_thr_disc_l <= 0 ||
             global_info->assert.dat.id_s32_click_ss_tkovr_l <= 0 ||
+            global_info->assert.dat.id_s32_click_thr_disc_l <= 0 ||
             global_info->assert.dat.ldg_gears_lever      == NULL ||
             global_info->assert.dat.engine_lever_lt      == NULL ||
             global_info->assert.dat.engine_reverse1      == NULL ||
@@ -521,4 +660,454 @@ int acf_type_info_acf_ctx_init()
         global_info->assert.initialized = 1; return 0;
     }
     return 0;
+}
+
+int acf_type_is_engine_running(void)
+{
+    if (global_info && global_info->up_to_date)
+    {
+        int nbe, run[9]; XPLMDataRef ref;
+        if ((ref = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running")))
+        {
+            if ((nbe = XPLMGetDatavi(ref, run, 0, global_info->engine_count)))
+            {
+                for (int i = 0; i < nbe && i < global_info->engine_count; i++)
+                {
+                    if (run[i])
+                    {
+                        return 1;
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+int acf_type_load_get(acf_info_context *info, float *weight)
+{
+    if (info == NULL || weight == NULL)
+    {
+        return ENOMEM;
+    }
+    if (info->up_to_date == 0)
+    {
+        return EINVAL;
+    }
+    if (info->ac_type == ACF_TYP_A320_FF)
+    {
+        if (global_info->assert.initialized == 0)
+        {
+            return EINVAL;
+        }
+        global_info->assert.api.ValueGet(global_info->assert.dat.id_f32_acft_payload_kgs, weight);
+        return 0;
+    }
+    *weight = XPLMGetDataf(global_info->weight.payload);
+    return 0;
+}
+
+int acf_type_load_set(acf_info_context *info, float *weight)
+{
+    if (info == NULL || weight == NULL)
+    {
+        return ENOMEM;
+    }
+    if (info->up_to_date == 0)
+    {
+        return EINVAL;
+    }
+    if (*weight < 0.0f)
+    {
+        return ERANGE;
+    }
+    if (info->ac_type == ACF_TYP_A320_FF)
+    {
+        if (global_info->assert.initialized == 0)
+        {
+            return EINVAL;
+        }
+        global_info->assert.api.ValueSet(global_info->assert.dat.id_f32_acft_payload_kgs, weight);
+        // TODO: compute and set id_f32_acft_payload_cgz (offset in meters)
+        return acf_type_load_get(info, weight);
+    }
+    XPLMSetDataf(global_info->weight.payload, *weight);
+    return acf_type_load_get(info, weight);
+}
+
+int acf_type_zfwt_get(acf_info_context *info, float *weight)
+{
+    if (info == NULL || weight == NULL)
+    {
+        return ENOMEM;
+    }
+    if (info->up_to_date == 0)
+    {
+        return EINVAL;
+    }
+    if (info->ac_type == ACF_TYP_A320_FF)
+    {
+        if (global_info->assert.initialized == 0)
+        {
+            return EINVAL;
+        }
+        assert_context *ac = &global_info->assert; float oew, p;
+        ac->api.ValueGet(ac->dat.id_f32_acft_dryweightkg, &oew);
+        ac->api.ValueGet(ac->dat.id_f32_acft_payload_kgs, &p);
+        *weight = (oew + p);
+        return 0;
+    }
+    float currwt = XPLMGetDataf(global_info->weight.current);
+    float fuelwt = XPLMGetDataf(global_info->fuel.  current);
+    *weight = (currwt - fuelwt);
+    return 0;
+}
+
+int acf_type_zfwt_set(acf_info_context *info, float *weight)
+{
+    if (info == NULL || weight == NULL)
+    {
+        return ENOMEM;
+    }
+    if (info->up_to_date == 0)
+    {
+        return EINVAL;
+    }
+    if (*weight < 0.0f)
+    {
+        return ERANGE;
+    }
+    float zfwt, load; int ret;
+    if ((ret = acf_type_zfwt_get(info, &zfwt)) ||
+        (ret = acf_type_load_get(info, &load)))
+    {
+        return ret;
+    }
+    else
+    {
+        float diff = *weight - zfwt; load += diff;
+    }
+    if (load < 0.0f)
+    {
+        load = 0.0f;
+    }
+    if ((ret = acf_type_load_set(info, &load)))
+    {
+        return ret;
+    }
+    return acf_type_zfwt_get(info, weight);
+}
+
+int acf_type_oewt_get(acf_info_context *info, float *weight)
+{
+    if (info == NULL || weight == NULL)
+    {
+        return ENOMEM;
+    }
+    if (info->up_to_date == 0)
+    {
+        return EINVAL;
+    }
+    if (info->ac_type == ACF_TYP_A320_FF)
+    {
+        if (global_info->assert.initialized == 0)
+        {
+            return EINVAL;
+        }
+        assert_context *ac = &global_info->assert;
+        ac->api.ValueGet(ac->dat.id_f32_acft_dryweightkg, weight);
+        return 0;
+    }
+    *weight = XPLMGetDataf(global_info->weight.minimum);
+    return 0;
+}
+
+int acf_type_grwt_get(acf_info_context *info, float *weight)
+{
+    if (info == NULL || weight == NULL)
+    {
+        return ENOMEM;
+    }
+    if (info->up_to_date == 0)
+    {
+        return EINVAL;
+    }
+    if (info->ac_type == ACF_TYP_A320_FF)
+    {
+        if (global_info->assert.initialized == 0)
+        {
+            return EINVAL;
+        }
+        *weight = XPLMGetDataf(global_info->weight.current); // TODO: use API?
+        return 0;
+    }
+    *weight = XPLMGetDataf(global_info->weight.current);
+    return 0;
+}
+
+int acf_type_fmax_get(acf_info_context *info, float *weight)
+{
+    if (info == NULL || weight == NULL)
+    {
+        return ENOMEM;
+    }
+    if (info->up_to_date == 0)
+    {
+        return EINVAL;
+    }
+    if (info->ac_type == ACF_TYP_A320_FF)
+    {
+        if (global_info->assert.initialized == 0)
+        {
+            return EINVAL;
+        }
+        *weight = XPLMGetDataf(global_info->fuel.maximum); // TODO: use API?
+        return 0;
+    }
+    *weight = XPLMGetDataf(global_info->fuel.maximum);
+    return 0;
+}
+
+static void refuel(acf_info_context *info, float by)
+{
+    float src[9], max[9], dst[9];
+    int count = info->fuel.tanks.count, tank_idx = 0;
+    XPLMGetDatavf(info->fuel.pertank, src, 0, count);
+    for (int i = 0; i < count; i++)
+    {
+        float m = info->fuel.tanks.max[i] - src[i];
+        if (0.0f > m) // should never happen
+        {
+            max[i] = 0.0f;
+        }
+        else
+        {
+            max[i] = m; // per-tank remaining capacity
+        }
+        dst[i] = 0.00f; // per-tank fuel *added*
+    }
+    while (tank_idx < count && info->fuel.tanks.cpl[tank_idx] > 0)
+    {
+        if (by <= 0.0f)
+        {
+            goto do_refuel; // no more fuel to add
+        }
+        int index2 = info->fuel.tanks.rfo[tank_idx + 1];
+        int index1 = info->fuel.tanks.rfo[tank_idx];
+        float max2 = max[index1] + max[index2];
+        if (((max2) <= 0.0f))
+        {
+            tank_idx += 2; continue; // already full
+        }
+        if (((max2 - by) <= 0.0f))
+        {
+            dst[index1] = max[index1]; by -= dst[index1];
+            dst[index2] = max[index2]; by -= dst[index2];
+            tank_idx += 2; continue; // tank couple full
+        }
+        if (src[index1] != src[index2] && fabsf(src[index1] - src[index2]) < 100.0f)
+        {
+            // reasonably small fuel imbalance: lets' fix it
+            max[index1] = (max[index1] + max[index2]) / 2.0f;
+            src[index1] = (src[index1] + src[index2]) / 2.0f;
+            max[index2] = (max[index1]); src[index2] = (src[index1]);
+        }
+        dst[index1] += by / 2.0f; if (dst[index1] > max[index1]) dst[index1] = max[index1];
+        dst[index2] += by / 2.0f; if (dst[index2] > max[index2]) dst[index2] = max[index2];
+        goto do_refuel; // all fuel was assigned
+    }
+    while (tank_idx < count)
+    {
+        if (by <= 0.0f)
+        {
+            goto do_refuel; // no fuel remaining
+        }
+        int index = info->fuel.tanks.rfo[tank_idx];
+        if ((max[index]) <= 0.0f)
+        {
+            tank_idx += 1; continue; // already full
+        }
+        if ((max[index] - by) <= 0.0f)
+        {
+            dst[index] = max[index]; by -= dst[index];
+            tank_idx += 1; continue; // tank now full
+        }
+        dst[index] += by; if (dst[index] > max[index]) dst[index] = max[index];
+        goto do_refuel; // all fuel was assigned
+    }
+do_refuel:
+    for (int i = 0; i < count; i++)
+    {
+        dst[i] += src[i];
+    }
+    XPLMSetDatavf(info->fuel.pertank, dst, 0, count);
+}
+
+static void defuel(acf_info_context *info, float by)
+{
+    float fuelqt[9];
+    int count = info->fuel.tanks.count, idx = count - 1;
+    XPLMGetDatavf(info->fuel.pertank, fuelqt, 0, count);
+    while (idx >= 0 && info->fuel.tanks.cpl[idx] <= 0)
+    {
+        if (by <= 0.0f)
+        {
+            goto do_defuel; // no more fuel to get
+        }
+        int index = info->fuel.tanks.rfo[idx];
+        if ((fuelqt[index]) <= 0.0f)
+        {
+            idx -= 1; continue; // already empty
+        }
+        if ((fuelqt[index] - by) <= 0.0f)
+        {
+            by -= fuelqt[index]; fuelqt[index] = 0.0f;
+            idx -= 1; continue; // this tank is empty
+        }
+        fuelqt[index] -= by; if (fuelqt[index] < 0.0f) fuelqt[index] = 0.0f;
+        goto do_defuel; // all fuel was removed
+    }
+    while (idx >= 1)
+    {
+        if (by <= 0.0f)
+        {
+            goto do_defuel; // no more fuel to get
+        }
+        int index2 = info->fuel.tanks.rfo[idx];
+        int index1 = info->fuel.tanks.rfo[idx - 1];
+        float qty2 = fuelqt[index1] + fuelqt[index2];
+        if (((qty2) <= 0.0f))
+        {
+            idx -= 2; continue; // already empty
+        }
+        if (((qty2 - by) <= 0.0f))
+        {
+            by -= fuelqt[index1]; fuelqt[index1] = 0.0f;
+            by -= fuelqt[index2]; fuelqt[index2] = 0.0f;
+            idx -= 2; continue; // both tanks now empty
+        }
+        if (fuelqt[index1] != fuelqt[index2] && fabsf(fuelqt[index1] - fuelqt[index2]) < 100.0f)
+        {
+            // reasonably small fuel imbalance: lets' fix it
+            fuelqt[index1] = (fuelqt[index1] + fuelqt[index2]) / 2.0f;
+            fuelqt[index2] = (fuelqt[index1]);
+        }
+        fuelqt[index1] -= by / 2.0f; if (fuelqt[index1] < 0.0f) fuelqt[index1] = 0.0f;
+        fuelqt[index2] -= by / 2.0f; if (fuelqt[index2] < 0.0f) fuelqt[index2] = 0.0f;
+        goto do_defuel; // all fuel was removed
+    }
+do_defuel:
+    XPLMSetDatavf(info->fuel.pertank, fuelqt, 0, count);
+}
+
+int acf_type_fuel_get(acf_info_context *info, float *weight)
+{
+    if (info == NULL || weight == NULL)
+    {
+        return ENOMEM;
+    }
+    if (info->up_to_date == 0)
+    {
+        return EINVAL;
+    }
+    if (info->ac_type == ACF_TYP_A320_FF)
+    {
+        if (global_info->assert.initialized == 0)
+        {
+            return EINVAL;
+        }
+        float tank[5]; assert_context *ac = &global_info->assert;
+        ac->api.ValueGet(ac->dat.id_f32_acft_fuel_outerl, &tank[0]);
+        ac->api.ValueGet(ac->dat.id_f32_acft_fuel_outerr, &tank[1]);
+        ac->api.ValueGet(ac->dat.id_f32_acft_fuel_innerl, &tank[2]);
+        ac->api.ValueGet(ac->dat.id_f32_acft_fuel_innerr, &tank[3]);
+        ac->api.ValueGet(ac->dat.id_f32_acft_fuel_center, &tank[4]);
+        *weight = (tank[0] + tank[1] + tank[2] + tank[3] + tank[4]);
+        return 0;
+    }
+    *weight = XPLMGetDataf(global_info->fuel.current);
+    return 0;
+}
+
+int acf_type_fuel_set(acf_info_context *info, float *weight)
+{
+    if (info == NULL || weight == NULL)
+    {
+        return ENOMEM;
+    }
+    if (info->up_to_date == 0)
+    {
+        return EINVAL;
+    }
+    if (*weight < 0.0f)
+    {
+        return ERANGE;
+    }
+    if (info->ac_type == ACF_TYP_A320_FF)
+    {
+        if (global_info->assert.initialized == 0)
+        {
+            return EINVAL;
+        }
+        float maxi[5], remg, tank[5]; assert_context *ac = &global_info->assert;
+        global_info->fuel.tanks.max[1] -= 152.6; // compensate for ACF/API difference
+        global_info->fuel.tanks.max[2] -= 152.6; // compensate for ACF/API difference
+        maxi[0] = global_info->fuel.tanks.max[3] - (tank[0] = 60.0f); // minimum fuel
+        maxi[1] = global_info->fuel.tanks.max[4] - (tank[1] = 60.0f); // minimum fuel
+        maxi[2] = global_info->fuel.tanks.max[1] - (tank[2] = 60.0f); // minimum fuel
+        maxi[3] = global_info->fuel.tanks.max[2] - (tank[3] = 60.0f); // minimum fuel
+        maxi[4] = global_info->fuel.tanks.max[0] - (tank[4] = 60.0f); // minimum fuel
+        if ((remg = *weight - (tank[0] + tank[1] + tank[2] + tank[3] + tank[4])) < 0)
+        {
+            goto assert_done;
+        }
+        if ((remg - maxi[0] - maxi[1]) < 0.0f)
+        {
+            tank[0] += remg / 2.0f;
+            tank[1] += remg / 2.0f;
+            goto assert_done;
+        }
+        else
+        {
+            tank[0] += maxi[0]; remg -= maxi[0];
+            tank[1] += maxi[1]; remg -= maxi[1];
+        }
+        if ((remg - maxi[2] - maxi[3]) < 0.0f)
+        {
+            tank[2] += remg / 2.0f;
+            tank[3] += remg / 2.0f;
+            goto assert_done;
+        }
+        else
+        {
+            tank[2] += maxi[2]; remg -= maxi[2];
+            tank[3] += maxi[3]; remg -= maxi[3];
+        }
+        if ((remg - maxi[4]) < 0.0f)
+        {
+            tank[4] += remg;
+            goto assert_done;
+        }
+        else
+        {
+            tank[4] += maxi[4];
+        }
+    assert_done:
+        ac->api.ValueSet(ac->dat.id_f32_acft_fuel_outerl, &tank[0]);
+        ac->api.ValueSet(ac->dat.id_f32_acft_fuel_outerr, &tank[1]);
+        ac->api.ValueSet(ac->dat.id_f32_acft_fuel_innerl, &tank[2]);
+        ac->api.ValueSet(ac->dat.id_f32_acft_fuel_innerr, &tank[3]);
+        ac->api.ValueSet(ac->dat.id_f32_acft_fuel_center, &tank[4]);
+        return acf_type_fuel_get(info, weight);
+    }
+    float diff = *weight - XPLMGetDataf(global_info->fuel.current);
+    if (0.0f < diff)
+    {
+        refuel(info, +diff);
+    }
+    if (0.0f > diff)
+    {
+        defuel(info, -diff);
+    }
+    return acf_type_fuel_get(info, weight);
 }

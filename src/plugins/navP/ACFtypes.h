@@ -112,7 +112,17 @@ typedef struct
         XPLMDataRef engine_lever_lt;
         XPLMDataRef engine_reverse1;
         XPLMDataRef engine_reverse2;
-        int id_s32_fmgs_fcu1_fl_lvl;
+        int id_s32_acft_request_chk;
+        int id_s32_acft_request_gpu;
+        int id_f32_acft_dryweightkg;
+        int id_f32_acft_dryweightcg;
+        int id_f32_acft_payload_cgz;
+        int id_f32_acft_payload_kgs;
+        int id_f32_acft_fuel_outerl;
+        int id_f32_acft_fuel_outerr;
+        int id_f32_acft_fuel_innerl;
+        int id_f32_acft_fuel_innerr;
+        int id_f32_acft_fuel_center;
         int id_s32_light_autopilot1;
         int id_s32_light_autopilot2;
         int id_f32_p_spoilers_lever;
@@ -140,6 +150,34 @@ typedef struct
     XPLMDataRef dric;
     int engine_count;
     int engine_type1;
+    struct
+    {
+        XPLMDataRef minimum;
+        XPLMDataRef maximum;
+        XPLMDataRef current;
+        XPLMDataRef payload;
+        XPLMDataRef gwcgz_m;
+    }
+    weight;
+    struct
+    {
+        XPLMDataRef maximum;
+        XPLMDataRef current;
+        XPLMDataRef pertank;
+        XPLMDataRef tankrat;
+        struct
+        {
+            int    count;
+            float max_kg;
+            float max_lb;
+            float cpl[9];
+            float rat[9];
+            float rfo[9];
+            float max[9];
+        }
+        tanks;
+    }
+    fuel;
     union
     {
         assert_context assert;
@@ -150,9 +188,20 @@ acf_info_context;
 int uf_dref_string_read(XPLMDataRef dataref, char *string_buffer, size_t buffer_size);
 int uf_dref_string_wrte(XPLMDataRef dataref, char *string_buffer, size_t buffer_size);
 const char*                                 acf_type_get_name(acf_type aircraft_type);
+int                                         acf_type_set_fuel(acf_info_context *info);
 acf_info_context*                           acf_type_info_get                  (void);
 int                                         acf_type_info_reset                (void);
 acf_info_context*                           acf_type_info_update               (void);
 int                                         acf_type_info_acf_ctx_init         (void);
+int                                         acf_type_is_engine_running         (void);
+int                          acf_type_load_get(acf_info_context *info, float *weight);
+int                          acf_type_load_set(acf_info_context *info, float *weight);
+int                          acf_type_zfwt_get(acf_info_context *info, float *weight);
+int                          acf_type_zfwt_set(acf_info_context *info, float *weight);
+int                          acf_type_grwt_get(acf_info_context *info, float *weight);
+int                          acf_type_oewt_get(acf_info_context *info, float *weight);
+int                          acf_type_fmax_get(acf_info_context *info, float *weight);
+int                          acf_type_fuel_get(acf_info_context *info, float *weight);
+int                          acf_type_fuel_set(acf_info_context *info, float *weight);
 
 #endif /* ACF_TYPES_H */

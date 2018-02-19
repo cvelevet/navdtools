@@ -18,6 +18,7 @@
  *     Timothy D. Walker
  */
 
+#include <errno.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -37,18 +38,27 @@
 
 #include "common/common.h"
 
+#include "ACFtypes.h"
 #include "NVPmenu.h"
 
-#define REFUEL_DIALG_CAPW 120
-#define REFUEL_DIALG_CAPH  24
-#define REFUEL_DIALG_CLBW 140
-#define REFUEL_DIALG_CLBH  24
-#define REFUEL_DIALG_DEFW 200
-#define REFUEL_DIALG_DEFH 200
-#define REFUEL_DIALG_TXTW  50
-#define REFUEL_DIALG_TXTH  24
-#define REFUEL_FUEL_KHSEC 34.0f // 34kg/0.5s: 40,800kg of fuel in 10m (600s)
-#define REFUEL_PLOD_KHSEC 26.0f // 26kg/0.5s: 300 pax (x104kg) in 10m (600s)
+#define REFUEL_DIALG_CAPW (120)
+#define REFUEL_DIALG_CAPH ( 24)
+#define REFUEL_DIALG_CLBW (140)
+#define REFUEL_DIALG_CLBH ( 24)
+#define REFUEL_DIALG_DEFW (200)
+#define REFUEL_DIALG_DEFH (200)
+#define REFUEL_DIALG_TXTW ( 50)
+#define REFUEL_DIALG_TXTH ( 24)
+#define LOAD_MINIMUM_RATE (20.0f)
+#define LOAD_MINIMUM_DIFF (38.5f) // half an FSEconomy human
+#define AUTOSNPRINTF(string, format, ...) snprintf(string, sizeof(string), format, __VA_ARGS__)
+
+enum
+{
+    NVP_MENU_DECR = -1,
+    NVP_MENU_DONE = +0,
+    NVP_MENU_INCR = +1,
+};
 
 typedef struct
 {
@@ -158,22 +168,23 @@ typedef struct
 
         struct
         {
+            acf_info_context *ic;
             int      adjust_fuel;
-            int      adjust_plod;
-            int   num_fuel_tanks;
-            float min_fuel_total;
-            float max_fuel_total;
-            float fuel_tank_r[9];
+            int      adjust_load;
+            int   refuel_started;
+            int   brding_started;
+            int   payload_is_zfw;
             float fuel_target_kg;
-            float plod_target_kg;
+            float load_target_kg;
+            float fuel_rate_kg_s;
+            float load_rate_kg_s;
+            float last_fuel_amnt;
+            float last_load_amnt;
             char  fueltot_str[9];
             char  payload_str[9];
-            XPLMDataRef pay_load;
-            XPLMDataRef fuel_max;
-            XPLMDataRef fuel_rat;
-            XPLMDataRef fuel_qty;
-            XPLMDataRef fuel_tot;
             XPWidgetID dialog_id;
+            XPWidgetID f_txtl_id;
+            XPWidgetID p_txtl_id;
             XPWidgetID f_txtf_id;
             XPWidgetID p_txtf_id;
             XPWidgetID button_id;
@@ -636,14 +647,6 @@ void* nvp_menu_init(void)
     {
         XPLMAppendMenuSeparator(ctx->id);
     }
-    if (get_dataref(&ctx->data.refuel_dialg.fuel_max, "sim/aircraft/weight/acf_m_fuel_tot" ) ||
-        get_dataref(&ctx->data.refuel_dialg.fuel_rat, "sim/aircraft/overflow/acf_tank_rat" ) ||
-        get_dataref(&ctx->data.refuel_dialg.fuel_qty, "sim/flightmodel/weight/m_fuel"      ) ||
-        get_dataref(&ctx->data.refuel_dialg.fuel_tot, "sim/flightmodel/weight/m_fuel_total") ||
-        get_dataref(&ctx->data.refuel_dialg.pay_load, "sim/flightmodel/weight/m_fixed"     ))
-    {
-        goto fail;
-    }
 
     /* speak local weather */
     if (append_menu_item("Speak weather", &ctx->items.speakweather,
@@ -857,17 +860,17 @@ int nvp_menu_setup(void *_menu_context)
         inBM = (((REFUEL_DIALG_DEFH * 15 / 20) & (~1)));
         inTP = (((REFUEL_DIALG_CAPH) - 1 + (inBM)));
         inRT = (((REFUEL_DIALG_CAPW) - 1 + (inLT)));
-        XPWidgetID f_txtx_ll = XPCreateWidget(inLT, inTP, inRT, inBM,
-                                              1, "(KG x1000) FUEL", 0,
-                                              ctx->data.refuel_dialg.dialog_id,
-                                              xpWidgetClass_Caption);
-        if (!f_txtx_ll)
+        ctx->data.refuel_dialg.f_txtl_id = XPCreateWidget(inLT, inTP, inRT, inBM,
+                                                          1, "(KG x1000) FUEL", 0,
+                                                          ctx->data.refuel_dialg.dialog_id,
+                                                          xpWidgetClass_Caption);
+        if (!ctx->data.refuel_dialg.f_txtl_id)
         {
             ndt_log("navP [warning]: could not create label for fuel entry\n");
             menu_rm_item(ctx, ctx->items.refuel_dialg.id);
             ctx->setupdone = -1; return -1;
         }
-        XPSetWidgetProperty(f_txtx_ll, xpProperty_CaptionLit, 1);
+        XPSetWidgetProperty(ctx->data.refuel_dialg.f_txtl_id, xpProperty_CaptionLit, 1);
         inLT = (REFUEL_DIALG_CAPW + inLT * 2); // right next to the field caption
         inTP = (REFUEL_DIALG_TXTH) - 1 + (inBM = inBM - 2); // widget mismatch
         inRT = (REFUEL_DIALG_TXTW) - 1 + (inLT);
@@ -888,17 +891,17 @@ int nvp_menu_setup(void *_menu_context)
         inBM = (((REFUEL_DIALG_DEFH * 12 / 20) & (~1)));
         inTP = (((REFUEL_DIALG_CAPH) - 1 + (inBM)));
         inRT = (((REFUEL_DIALG_CAPW) - 1 + (inLT)));
-        XPWidgetID p_txtx_ll = XPCreateWidget(inLT, inTP, inRT, inBM,
-                                              1, "(KG x1000) PAYLOAD", 0,
-                                              ctx->data.refuel_dialg.dialog_id,
-                                              xpWidgetClass_Caption);
-        if (!p_txtx_ll)
+        ctx->data.refuel_dialg.p_txtl_id = XPCreateWidget(inLT, inTP, inRT, inBM,
+                                                          1, "(KG x1000) PAYLOAD", 0,
+                                                          ctx->data.refuel_dialg.dialog_id,
+                                                          xpWidgetClass_Caption);
+        if (!ctx->data.refuel_dialg.p_txtl_id)
         {
             ndt_log("navP [warning]: could not create label for payload entry\n");
             menu_rm_item(ctx, ctx->items.refuel_dialg.id);
             ctx->setupdone = -1; return -1;
         }
-        XPSetWidgetProperty(p_txtx_ll, xpProperty_CaptionLit, 1);
+        XPSetWidgetProperty(ctx->data.refuel_dialg.p_txtl_id, xpProperty_CaptionLit, 1);
         inLT = (REFUEL_DIALG_CAPW + inLT * 2); // right next to the field caption
         inTP = (REFUEL_DIALG_TXTH) - 1 + (inBM = inBM - 2); // widget mismatch
         inRT = (REFUEL_DIALG_TXTW) - 1 + (inLT);
@@ -1021,6 +1024,149 @@ static void menu_rm_item(menu_context *ctx, int index)
 #undef MENUITEM_UNDEF_VAL
 }
 
+static void wb_handler(menu_context *ctx)
+{
+    if (XPIsWidgetVisible(ctx->data.refuel_dialg.dialog_id))
+    {
+        return;
+    }
+    if ((ctx->data.refuel_dialg.ic = acf_type_info_update()) == NULL)
+    {
+        ndt_log("navP [error]: wb_handler: acf_type_info_update() failed");
+        XPLMSpeakString("fuel and load dialog failure");
+        return;
+    }
+    float fmax, fuel, load, zfwt, grwt; int e;
+    if ((e = acf_type_info_acf_ctx_init()))
+    {
+        if (e == EAGAIN)
+        {
+            XPLMSpeakString("please try again later");
+            return;
+        }
+        ndt_log("navP [error]: wb_handler: acf_type_info_acf_ctx_init() failed (%d)", e);
+        XPLMSpeakString("fuel and load dialog failure");
+        return;
+    }
+    if ((e = acf_type_fmax_get(ctx->data.refuel_dialg.ic, &fmax)))
+    {
+        ndt_log("navP [error]: wb_handler: acf_type_fmax_get() failed (%d)", e);
+        XPLMSpeakString("fuel and load dialog failure");
+        return;
+    }
+    else
+    {
+        fmax /= 1000.0f;
+    }
+    if ((e = acf_type_fuel_get(ctx->data.refuel_dialg.ic, &fuel)))
+    {
+        ndt_log("navP [error]: wb_handler: acf_type_fuel_get() failed (%d)", e);
+        XPLMSpeakString("fuel and load dialog failure");
+        return;
+    }
+    else
+    {
+        fuel /= 1000.0f;
+    }
+    if ((e = acf_type_load_get(ctx->data.refuel_dialg.ic, &load)))
+    {
+        ndt_log("navP [error]: wb_handler: acf_type_load_get() failed (%d)", e);
+        XPLMSpeakString("fuel and load dialog failure");
+        return;
+    }
+    else
+    {
+        load /= 1000.0f;
+    }
+    if ((e = acf_type_zfwt_get(ctx->data.refuel_dialg.ic, &zfwt)))
+    {
+        ndt_log("navP [error]: wb_handler: acf_type_zfwt_get() failed (%d)", e);
+        XPLMSpeakString("fuel and load dialog failure");
+        return;
+    }
+    else
+    {
+        zfwt /= 1000.0f;
+    }
+    if ((e = acf_type_grwt_get(ctx->data.refuel_dialg.ic, &grwt)))
+    {
+        ndt_log("navP [error]: wb_handler: acf_type_grwt_get() failed (%d)", e);
+        XPLMSpeakString("fuel and load dialog failure");
+        return;
+    }
+    else
+    {
+        grwt /= 1000.0f;
+    }
+    int g[4]; mainw_center(g, REFUEL_DIALG_DEFW, REFUEL_DIALG_DEFH);
+    {
+        // set boarding and fueling rates based on resp. OEW and fuel capacity
+        // so airliners can: fuel in ~12.5 minutes, deboard in about 5 minutes
+        // 40T for 16,000kgs (~150pax) in ~5 minutes: 16000/40/300 = 1.33OEW/s
+        // sanitize to a minimum to 20.0kgs per second so it also works for GA
+        if ((ctx->data.refuel_dialg.load_rate_kg_s = ((grwt - fuel - load) *  4.0f / 3.0f)) < LOAD_MINIMUM_RATE)
+        {
+            (ctx->data.refuel_dialg.load_rate_kg_s = LOAD_MINIMUM_RATE);
+        }
+        if ((ctx->data.refuel_dialg.fuel_rate_kg_s = ((fmax) / 750.000f)) < LOAD_MINIMUM_RATE)
+        {
+            (ctx->data.refuel_dialg.fuel_rate_kg_s = LOAD_MINIMUM_RATE);
+        }
+        if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A320_QP)
+        {
+            (ctx->data.refuel_dialg.fuel_rate_kg_s = 80.0f); // QPAC plugin resets fuel if it varies too little
+        }
+    }
+    switch (ctx->data.refuel_dialg.ic->ac_type)
+    {
+        case ACF_TYP_A320_FF:
+            {
+                ctx->data.refuel_dialg.payload_is_zfw = 1;
+                XPShowWidget(ctx->data.refuel_dialg.f_txtl_id);
+                XPShowWidget(ctx->data.refuel_dialg.f_txtf_id);
+                XPShowWidget(ctx->data.refuel_dialg.p_txtl_id);
+                XPShowWidget(ctx->data.refuel_dialg.p_txtf_id);
+                AUTOSNPRINTF(ctx->data.refuel_dialg.fueltot_str, "%.2f", fuel);
+                AUTOSNPRINTF(ctx->data.refuel_dialg.payload_str, "%.2f", zfwt);
+                XPSetWidgetDescriptor(ctx->data.refuel_dialg.p_txtl_id, "(KG x1000) ZFW");
+            }
+            break;
+        case ACF_TYP_B737_XG:
+            {
+                ctx->data.refuel_dialg.payload_is_zfw = 1;
+                XPShowWidget(ctx->data.refuel_dialg.f_txtl_id);
+                XPShowWidget(ctx->data.refuel_dialg.f_txtf_id);
+                XPShowWidget(ctx->data.refuel_dialg.p_txtl_id);
+                XPShowWidget(ctx->data.refuel_dialg.p_txtf_id);
+                AUTOSNPRINTF(ctx->data.refuel_dialg.fueltot_str, "%.2f", fuel);
+                AUTOSNPRINTF(ctx->data.refuel_dialg.payload_str, "%.2f", zfwt);
+                XPSetWidgetDescriptor(ctx->data.refuel_dialg.p_txtl_id, "(KG x1000) ZFW");
+            }
+            break;
+        default:
+            ctx->data.refuel_dialg.payload_is_zfw = 0;
+            XPShowWidget(ctx->data.refuel_dialg.f_txtl_id);
+            XPShowWidget(ctx->data.refuel_dialg.f_txtf_id);
+            XPShowWidget(ctx->data.refuel_dialg.p_txtl_id);
+            XPShowWidget(ctx->data.refuel_dialg.p_txtf_id);
+            AUTOSNPRINTF(ctx->data.refuel_dialg.fueltot_str, "%.2f", fuel);
+            AUTOSNPRINTF(ctx->data.refuel_dialg.payload_str, "%.2f", load);
+            XPSetWidgetDescriptor(ctx->data.refuel_dialg.p_txtl_id, "(KG x1000) PAYLOAD");
+            break;
+    }
+    if (ctx->data.refuel_dialg.rfc)
+    {
+        XPLMUnregisterFlightLoopCallback(ctx->data.refuel_dialg.rfc, ctx);
+        ctx->data.refuel_dialg.rfc = NULL;
+    }
+    XPSetWidgetDescriptor(ctx->data.refuel_dialg.f_txtf_id, ctx->data.refuel_dialg.fueltot_str);
+    XPSetWidgetDescriptor(ctx->data.refuel_dialg.p_txtf_id, ctx->data.refuel_dialg.payload_str);
+    XPSetWidgetGeometry     (ctx->data.refuel_dialg.dialog_id, g[0], g[1], g[2], g[3]);
+    XPShowWidget            (ctx->data.refuel_dialg.dialog_id);
+    XPBringRootWidgetToFront(ctx->data.refuel_dialg.dialog_id);
+    return;
+}
+
 static void menu_handler(void *inMenuRef, void *inItemRef)
 {
     menu_context *ctx = inMenuRef;
@@ -1054,57 +1200,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
 
     if (itx->mivalue == MENUITEM_REFUEL_DIALG)
     {
-        float fuel_rat[9];
-        ctx->data.refuel_dialg.num_fuel_tanks = 0;
-        ctx->data.refuel_dialg.max_fuel_total =
-        floorf(XPLMGetDataf(ctx->data.refuel_dialg.fuel_max));
-        ctx->data.refuel_dialg.min_fuel_total =
-        floorf(XPLMGetDataf(ctx->data.refuel_dialg.fuel_max) / 6.242f); // 18726max -> 3000min (QPAC A320)
-        XPLMGetDatavf(ctx->data.refuel_dialg.fuel_rat, fuel_rat, 0, 9);
-        for (int i = 0; i < 9; i++)
-        {
-            if (fuel_rat[i] > .01f)
-            {
-                ctx->data.refuel_dialg.fuel_tank_r[i] = fuel_rat[i];
-                ctx->data.refuel_dialg.num_fuel_tanks++;
-            }
-        }
-#if 0
-        {
-            ndt_log("navP [info]: Fuel tanks: %d, ratio:", ctx->data.refuel_dialg.num_fuel_tanks);
-            for (int i = 0; i < ctx->data.refuel_dialg.num_fuel_tanks; i++)
-            {
-                ndt_log(" %.3f", ctx->data.refuel_dialg.fuel_tank_r[i]);
-            }
-            ndt_log(", maximum: %.0f kgs (%.0f lbs)\n",
-                    ctx->data.refuel_dialg.max_fuel_total,
-                    floorf(XPLMGetDataf(ctx->data.refuel_dialg.fuel_max) / 0.45359f));
-        }
-#endif
-        if (XPIsWidgetVisible(ctx->data.refuel_dialg.dialog_id) == 0)
-        {
-            int g[4];
-            if (ctx->data.refuel_dialg.rfc)
-            {
-                XPLMUnregisterFlightLoopCallback(ctx->data.refuel_dialg.rfc, ctx);
-                ctx->data.refuel_dialg.rfc = NULL;
-            }
-            snprintf(       ctx->data.refuel_dialg.fueltot_str,
-                     sizeof(ctx->data.refuel_dialg.fueltot_str), "%.2f",
-                     XPLMGetDataf(ctx->data.refuel_dialg.fuel_tot) / 1000.0f);
-            XPSetWidgetDescriptor(ctx->data.refuel_dialg.f_txtf_id,
-                                  ctx->data.refuel_dialg.fueltot_str);
-            snprintf(       ctx->data.refuel_dialg.payload_str,
-                     sizeof(ctx->data.refuel_dialg.payload_str), "%.2f",
-                     XPLMGetDataf(ctx->data.refuel_dialg.pay_load) / 1000.0f);
-            XPSetWidgetDescriptor(ctx->data.refuel_dialg.p_txtf_id,
-                                  ctx->data.refuel_dialg.payload_str);
-            mainw_center            (g, REFUEL_DIALG_DEFW, REFUEL_DIALG_DEFH);
-            XPSetWidgetGeometry     (ctx->data.refuel_dialg.dialog_id, g[0], g[1], g[2], g[3]);
-            XPShowWidget            (ctx->data.refuel_dialg.dialog_id);
-            XPBringRootWidgetToFront(ctx->data.refuel_dialg.dialog_id);
-        }
-        return;
+        return wb_handler(ctx);
     }
 
     if (itx->mivalue == MENUITEM_SPEAKWEATHER)
@@ -1715,60 +1811,206 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
     }
     if (inMessage == xpMsg_PushButtonPressed)
     {
-        float temp1, temp2; char descr_buf[9]; descr_buf[8] = '\0';
+        float temp; char descr_buf[9] = "";
         menu_context *ctx = (void*)XPGetWidgetProperty((void*)inParam1, xpProperty_Refcon, NULL);
-        ctx->data.refuel_dialg.adjust_fuel = ctx->data.refuel_dialg.adjust_plod = 0;
-        XPHideWidget         (ctx->data.refuel_dialg.dialog_id);
         XPGetWidgetDescriptor(ctx->data.refuel_dialg.f_txtf_id, descr_buf, sizeof(descr_buf) - 1);
-        if (sscanf(descr_buf, "%f", &temp1) == 1)
+        if (sscanf(descr_buf, "%f", &temp) == 1)
         {
-            temp2 = XPLMGetDataf(ctx->data.refuel_dialg.fuel_tot);
-            ctx->data.refuel_dialg.fuel_target_kg = 1000.0f * temp1;
-            if (fabsf(temp2 - ctx->data.refuel_dialg.fuel_target_kg) > 50.0f)
+            float current_fuel; acf_type_fuel_get(ctx->data.refuel_dialg.ic, &current_fuel);
+            float maximum_fuel; acf_type_fmax_get(ctx->data.refuel_dialg.ic, &maximum_fuel);
+            float minimum_fuel = maximum_fuel / 6.0f; float request_fuel = temp * 1000.0f;
+            if (fabsf(request_fuel - current_fuel) > LOAD_MINIMUM_DIFF)
             {
-                ctx->data.refuel_dialg.adjust_fuel = 1;
+                if (request_fuel > current_fuel)
+                {
+                    ctx->data.refuel_dialg.refuel_started = 0;
+                    ctx->data.refuel_dialg.adjust_fuel = NVP_MENU_INCR;
+                }
+                else
+                {
+                    ctx->data.refuel_dialg.refuel_started = 0;
+                    ctx->data.refuel_dialg.adjust_fuel = NVP_MENU_DECR;
+                }
+                ctx->data.refuel_dialg.fuel_target_kg = request_fuel;
             }
-            if (ctx->data.refuel_dialg.fuel_target_kg < ctx->data.refuel_dialg.min_fuel_total)
+            else
             {
-                ctx->data.refuel_dialg.fuel_target_kg = ctx->data.refuel_dialg.min_fuel_total;
+                ctx->data.refuel_dialg.adjust_fuel = NVP_MENU_DONE;
             }
-            if (ctx->data.refuel_dialg.fuel_target_kg > ctx->data.refuel_dialg.max_fuel_total)
+            if (ctx->data.refuel_dialg.fuel_target_kg > maximum_fuel)
             {
-                ctx->data.refuel_dialg.fuel_target_kg = ctx->data.refuel_dialg.max_fuel_total;
+                ctx->data.refuel_dialg.fuel_target_kg = maximum_fuel;
+            }
+            if (ctx->data.refuel_dialg.fuel_target_kg < minimum_fuel &&
+                ctx->data.refuel_dialg.fuel_target_kg < 3175.0f) // 7,000 pounds
+            {
+                ctx->data.refuel_dialg.fuel_target_kg = minimum_fuel;
             }
         }
-        XPGetWidgetDescriptor(ctx->data.refuel_dialg.p_txtf_id, descr_buf, sizeof(descr_buf) - 1);
-        if (sscanf(descr_buf, "%f", &temp1) == 1)
+        else
         {
-            temp2 = XPLMGetDataf(ctx->data.refuel_dialg.pay_load);
-            ctx->data.refuel_dialg.plod_target_kg = 1000.0f * temp1;
-            if (fabsf(temp2 - ctx->data.refuel_dialg.plod_target_kg) > 50.0f)
+            ctx->data.refuel_dialg.adjust_fuel = NVP_MENU_DONE;
+        }
+        XPGetWidgetDescriptor(ctx->data.refuel_dialg.p_txtf_id, descr_buf, sizeof(descr_buf) - 1);
+        if (sscanf(descr_buf, "%f", &temp) == 1)
+        {
+            float current_load; acf_type_load_get(ctx->data.refuel_dialg.ic, &current_load);
+            float current_zfwt; acf_type_zfwt_get(ctx->data.refuel_dialg.ic, &current_zfwt);
+            float request_load = temp * 1000.0f; float request_zfwt = temp * 1000.0f;
+            if (ctx->data.refuel_dialg.payload_is_zfw)
             {
-                ctx->data.refuel_dialg.adjust_plod = 1;
+                float diff = request_zfwt - current_zfwt;
+                request_load = current_load + diff;
             }
-            if (ctx->data.refuel_dialg.fuel_target_kg < 50.0f)
+            if (fabsf(request_load - current_load) > LOAD_MINIMUM_DIFF)
             {
-                ctx->data.refuel_dialg.fuel_target_kg = 0.0f;
+                if (request_load > current_load)
+                {
+                    ctx->data.refuel_dialg.brding_started = 0;
+                    ctx->data.refuel_dialg.load_rate_kg_s /= 2.0f;
+                    ctx->data.refuel_dialg.adjust_load = NVP_MENU_INCR;
+                }
+                else
+                {
+                    ctx->data.refuel_dialg.brding_started = 0;
+                    ctx->data.refuel_dialg.adjust_load = NVP_MENU_DECR;
+                }
+                ctx->data.refuel_dialg.load_target_kg = request_load;
             }
+            else
+            {
+                ctx->data.refuel_dialg.adjust_load = NVP_MENU_DONE;
+            }
+            if (ctx->data.refuel_dialg.load_target_kg < LOAD_MINIMUM_DIFF)
+            {
+                ctx->data.refuel_dialg.load_target_kg = 0.0f;
+            }
+        }
+        else
+        {
+            ctx->data.refuel_dialg.adjust_load = NVP_MENU_DONE;
         }
         if (ctx->data.refuel_dialg.rfc)
         {
             XPLMUnregisterFlightLoopCallback(ctx->data.refuel_dialg.rfc, ctx);
         }
-        if (ctx->data.refuel_dialg.adjust_fuel || ctx->data.refuel_dialg.adjust_plod)
+        if (ctx->data.refuel_dialg.adjust_fuel != NVP_MENU_DONE ||
+            ctx->data.refuel_dialg.adjust_load != NVP_MENU_DONE)
         {
-            ndt_log("navP [info]: loading/unloading:");
-            if (ctx->data.refuel_dialg.adjust_fuel)
+            if (acf_type_is_engine_running() != 0 &&
+                ctx->data.refuel_dialg.adjust_load != NVP_MENU_DONE)
             {
-                ndt_log(" fuel %.2f metric tons", ctx->data.refuel_dialg.fuel_target_kg / 1000.0f);
-                ndt_log(ctx->data.refuel_dialg.adjust_plod ? "," : "\n");
+                XPLMSpeakString("cannot set payload in flight");
+                XPHideWidget(inWidget);
+                return 1;
             }
-            if (ctx->data.refuel_dialg.adjust_plod)
+            for (int ii = 1; ii <= ctx->data.refuel_dialg.ic->fuel.tanks.count; ii++)
             {
-                ndt_log(" payload %.2f metric tons\n", ctx->data.refuel_dialg.plod_target_kg / 1000.0f);
+                if (ii == ctx->data.refuel_dialg.ic->fuel.tanks.count)
+                {
+                    ndt_log("%.3f, capacity: %.0f kgs (%.0f lbs)\n",
+                            ctx->data.refuel_dialg.ic->fuel.tanks.rat[ii-1],
+                            ctx->data.refuel_dialg.ic->fuel.tanks.max_kg,
+                            ctx->data.refuel_dialg.ic->fuel.tanks.max_lb);
+                }
+                else
+                {
+                    if (ii == 1)
+                    {
+                        ndt_log("navP [info]: fuel tank count: %d, ratios: ", ctx->data.refuel_dialg.ic->fuel.tanks.count);
+                    }
+                    ndt_log("%.3f ", ctx->data.refuel_dialg.ic->fuel.tanks.rat[ii-1]);
+                }
             }
-            XPLMRegisterFlightLoopCallback((ctx->data.refuel_dialg.rfc = &refuel_hdlr1), 1.5f, ctx);
+            if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A320_FF)
+            {
+                if (XPIsWidgetVisible(inWidget))
+                {
+                    XPHideWidget(inWidget);
+                }
+                if (acf_type_is_engine_running() == 0) // cold & dark
+                {
+                    if (ctx->data.refuel_dialg.adjust_load == NVP_MENU_DONE)
+                    {
+                        acf_type_zfwt_get(ctx->data.refuel_dialg.ic, &ctx->data.refuel_dialg.load_target_kg);
+                    }
+                    else
+                    {
+                        XPGetWidgetDescriptor(ctx->data.refuel_dialg.p_txtf_id, descr_buf, sizeof(descr_buf) - 1);
+                        if (sscanf(descr_buf, "%f", &temp) == 1)
+                        {
+                            ctx->data.refuel_dialg.load_target_kg = temp * 1000.0f;
+                        }
+                        else
+                        {
+                            ndt_log("navP [error]: failed to set load\n");
+                            XPLMSpeakString("failed to set payload");
+                            return 1;
+                        }
+                    }
+                    if (ctx->data.refuel_dialg.adjust_fuel == NVP_MENU_DONE)
+                    {
+                        acf_type_fuel_get(ctx->data.refuel_dialg.ic, &ctx->data.refuel_dialg.fuel_target_kg);
+                    }
+                    assert_context *ac = &ctx->data.refuel_dialg.ic->assert;
+                    float zero_fuel_center_z_axis; int32_t weight_boarding = 1;
+                    float takeoff_fuel_target_kgs, takeoff_load_target_kgs, oewt;
+                    int twb = ac->api.ValueIdByName("Aircraft.TakeoffWeightBoarding");
+                    int tcd = ac->api.ValueIdByName("Aircraft.TakeoffCenterDry");
+                    int twd = ac->api.ValueIdByName("Aircraft.TakeoffWeightDry");
+                    int tbf = ac->api.ValueIdByName("Aircraft.TakeoffBlockFuel");
+                    if (twb <= 0 || tcd <= 0 || twd <= 0 || tbf <= 0)
+                    {
+                        ndt_log("navP [error]: fuel and load data failure\n");
+                        XPLMSpeakString("fuel and load data failure");
+                        return 1;
+                    }
+                    else
+                    {
+                        /*
+                         * Zero-fuel center of gravity (super-simplified):
+                         * * +25.00% MAC while empty (payload == 00,000kgs)
+                         * * +35.00% MAC when loaded (payload == 20,000kgs)
+                         */
+                        acf_type_oewt_get(ctx->data.refuel_dialg.ic, &oewt);
+                        float rq_payload = ctx->data.refuel_dialg.load_target_kg - oewt;
+                        takeoff_fuel_target_kgs = ctx->data.refuel_dialg.fuel_target_kg;
+                        takeoff_load_target_kgs = ctx->data.refuel_dialg.load_target_kg;
+                        zero_fuel_center_z_axis = (25.0f + (10.0f * (rq_payload / 20000.0f)));
+                    }
+                    ac->api.ValueSet(tcd, &zero_fuel_center_z_axis);
+                    ac->api.ValueSet(twd, &takeoff_load_target_kgs);
+                    ac->api.ValueSet(tbf, &takeoff_fuel_target_kgs);
+                    ac->api.ValueSet(twb, &weight_boarding); XPLMSpeakString("fuel and load set");
+                    ndt_log("navP [info]: set block fuel (%.0f) ZFW (%.0f) and ZFWCG (%.1f)\n", takeoff_fuel_target_kgs, takeoff_load_target_kgs, zero_fuel_center_z_axis);
+                    return 1;
+                }
+                else if (acf_type_fuel_set(ctx->data.refuel_dialg.ic, &ctx->data.refuel_dialg.fuel_target_kg))
+                {
+                    ndt_log("navP [error]: failed to set fuel\n");
+                    XPLMSpeakString("re-fueling failed");
+                    return 1;
+                }
+                ndt_log("navP [info]: set fuel load (%.0f)\n", ctx->data.refuel_dialg.fuel_target_kg);
+                XPLMSpeakString("re-fueling done");
+                return 1;
+            }
+            else
+            {
+                ndt_log("navP [info]: loading/unloading: ");
+            }
+            if (ctx->data.refuel_dialg.adjust_fuel != NVP_MENU_DONE)
+            {
+                ndt_log("fuel %.2f metric tons (%.0fkg/s)", ctx->data.refuel_dialg.fuel_target_kg / 1000.0f, ctx->data.refuel_dialg.fuel_rate_kg_s);
+                ndt_log(ctx->data.refuel_dialg.adjust_load ? ", " : "\n");
+            }
+            if (ctx->data.refuel_dialg.adjust_load != NVP_MENU_DONE)
+            {
+                ndt_log("payload %.2f metric tons (%.0fkg/s)\n", ctx->data.refuel_dialg.load_target_kg / 1000.0f, ctx->data.refuel_dialg.load_rate_kg_s);
+            }
+            XPLMRegisterFlightLoopCallback((ctx->data.refuel_dialg.rfc = &refuel_hdlr1), 4.0f, ctx);
         }
+        XPHideWidget(inWidget);
         return 1;
     }
     return 0;
@@ -1779,78 +2021,200 @@ static float refuel_hdlr1(float inElapsedSinceLastCall,
                           int   inCounter,
                           void *inRefcon)
 {
-    int disable_cllbk = 1, c = 0;
-    menu_context *ctx = inRefcon;
-    if (ctx->data.refuel_dialg.adjust_fuel)
+    menu_context *ctx = inRefcon; float fuel, load;
+    acf_type_fuel_get(ctx->data.refuel_dialg.ic, &fuel);
+    acf_type_load_get(ctx->data.refuel_dialg.ic, &load);
+    if (ctx->data.refuel_dialg.adjust_fuel == NVP_MENU_INCR)
     {
-        float fuel_qty[9];
-        float fuel_tot = XPLMGetDataf(ctx->data.refuel_dialg.fuel_tot);
-        if   (fuel_tot < ctx->data.refuel_dialg.fuel_target_kg - 1.0f)
+        if (ctx->data.refuel_dialg.refuel_started)
         {
-            disable_cllbk = 0;
-            XPLMGetDatavf(ctx->data.refuel_dialg.fuel_qty, fuel_qty, 0,
-                          ctx->data.refuel_dialg.num_fuel_tanks);
-            for (int i = 0; i < ctx->data.refuel_dialg.num_fuel_tanks; i++)
+            if (fuel <= ctx->data.refuel_dialg.last_fuel_amnt) // no increase
             {
-                fuel_qty[i] += REFUEL_FUEL_KHSEC * ctx->data.refuel_dialg.fuel_tank_r[i];
+                XPLMSpeakString("fueling failed");
+                ndt_log("navP [error]: refuel failed\n");
+                ctx->data.refuel_dialg.adjust_fuel = NVP_MENU_DONE;
+                goto adjust_load;
             }
-            XPLMSetDatavf(ctx->data.refuel_dialg.fuel_qty, fuel_qty, 0,
-                          ctx->data.refuel_dialg.num_fuel_tanks);
-        }
-        else if (fuel_tot > ctx->data.refuel_dialg.fuel_target_kg + 1.0f + REFUEL_FUEL_KHSEC)
-        {
-            disable_cllbk = 0;
-            XPLMGetDatavf(ctx->data.refuel_dialg.fuel_qty, fuel_qty, 0,
-                          ctx->data.refuel_dialg.num_fuel_tanks);
-            for (int i = 0; i < ctx->data.refuel_dialg.num_fuel_tanks; i++)
-            {
-                fuel_qty[i] -= REFUEL_FUEL_KHSEC * ctx->data.refuel_dialg.fuel_tank_r[i];
-            }
-            XPLMSetDatavf(ctx->data.refuel_dialg.fuel_qty, fuel_qty, 0,
-                          ctx->data.refuel_dialg.num_fuel_tanks);
+            ctx->data.refuel_dialg.last_fuel_amnt = fuel;
         }
         else
         {
-            if (c == 0)
+            ctx->data.refuel_dialg.last_fuel_amnt = fuel;
+            ctx->data.refuel_dialg.refuel_started = 1;
+        }
+        if (fuel <= ctx->data.refuel_dialg.fuel_target_kg - 1.0f)
+        {
+            fuel += ctx->data.refuel_dialg.fuel_rate_kg_s;
+            if (acf_type_fuel_set(ctx->data.refuel_dialg.ic, &fuel))
             {
-                c += 1;
-                XPLMSpeakString("Fueling/de-fueling done");
+                XPLMSpeakString("fueling failed");
+                ndt_log("navP [error]: refuel failed\n");
+                ctx->data.refuel_dialg.adjust_fuel = NVP_MENU_DONE;
             }
-            ctx->data.refuel_dialg.adjust_fuel = 0;
-            ndt_log("navP [info]: refuel/defuel procedure completed\n");
-        }
-    }
-    if (ctx->data.refuel_dialg.adjust_plod)
-    {
-        float pay_load = XPLMGetDataf(ctx->data.refuel_dialg.pay_load);
-        if   (pay_load < ctx->data.refuel_dialg.plod_target_kg - 1.0f)
-        {
-            disable_cllbk = 0;
-            XPLMSetDataf(ctx->data.refuel_dialg.pay_load, pay_load + REFUEL_PLOD_KHSEC);
-        }
-        else if (pay_load > ctx->data.refuel_dialg.plod_target_kg + 1.0f + REFUEL_PLOD_KHSEC)
-        {
-            disable_cllbk = 0;
-            XPLMSetDataf(ctx->data.refuel_dialg.pay_load, pay_load - REFUEL_PLOD_KHSEC);
         }
         else
         {
-            if (c == 0)
-            {
-                c += 1;
-                XPLMSpeakString("Boarding/de-boarding done");
-            }
-            ctx->data.refuel_dialg.adjust_plod = 0;
-            ndt_log("navP [info]: board/deboard procedure completed\n");
+            XPLMSpeakString("fueling done");
+            ctx->data.refuel_dialg.adjust_fuel = NVP_MENU_DONE;
+            ndt_log("navP [info]: refueling completed (%f)\n", fuel);
         }
     }
-    if (disable_cllbk)
+    if (ctx->data.refuel_dialg.adjust_fuel == NVP_MENU_DECR)
     {
+        if (ctx->data.refuel_dialg.refuel_started)
+        {
+            if (fuel >= ctx->data.refuel_dialg.last_fuel_amnt) // no deccrease
+            {
+                XPLMSpeakString("de-fueling failed");
+                ndt_log("navP [error]: defueling failed\n");
+                ctx->data.refuel_dialg.adjust_fuel = NVP_MENU_DONE;
+                goto adjust_load;
+            }
+            ctx->data.refuel_dialg.last_fuel_amnt = fuel;
+        }
+        else
+        {
+            ctx->data.refuel_dialg.last_fuel_amnt = fuel;
+            ctx->data.refuel_dialg.refuel_started = 1;
+        }
+        if (fuel >= ctx->data.refuel_dialg.fuel_target_kg + 1.0f)
+        {
+            fuel -= ctx->data.refuel_dialg.fuel_rate_kg_s;
+            if (acf_type_fuel_set(ctx->data.refuel_dialg.ic, &fuel))
+            {
+                XPLMSpeakString("de-fueling failed");
+                ndt_log("navP [error]: defueling failed\n");
+                ctx->data.refuel_dialg.adjust_fuel = NVP_MENU_DONE;
+            }
+        }
+        else
+        {
+            XPLMSpeakString("de-fueling done");
+            ctx->data.refuel_dialg.adjust_fuel = NVP_MENU_DONE;
+            ndt_log("navP [info]: defueling completed (%f)\n", fuel);
+        }
+    }
+adjust_load:
+    if (ctx->data.refuel_dialg.adjust_load == NVP_MENU_INCR)
+    {
+        if (ctx->data.refuel_dialg.brding_started)
+        {
+            if (load <= ctx->data.refuel_dialg.last_load_amnt) // no increase
+            {
+                XPLMSpeakString("boarding failed");
+                ndt_log("navP [error]: boarding failed\n");
+                ctx->data.refuel_dialg.adjust_load = NVP_MENU_DONE;
+                goto adjust_done;
+            }
+            ctx->data.refuel_dialg.last_load_amnt = load;
+        }
+        else
+        {
+            ctx->data.refuel_dialg.last_load_amnt = load;
+            ctx->data.refuel_dialg.brding_started = 1;
+        }
+        if (load <= ctx->data.refuel_dialg.load_target_kg - 1.0f)
+        {
+            load += ctx->data.refuel_dialg.load_rate_kg_s;
+            if (acf_type_load_set(ctx->data.refuel_dialg.ic, &load))
+            {
+                XPLMSpeakString("boarding failed");
+                ndt_log("navP [error]: boarding failed\n");
+                ctx->data.refuel_dialg.adjust_load = NVP_MENU_DONE;
+            }
+        }
+        else
+        {
+            XPLMSpeakString("boarding complete");
+            ctx->data.refuel_dialg.adjust_load = NVP_MENU_DONE;
+            ndt_log("navP [info]: boarding completed (%f)\n", load);
+        }
+    }
+    if (ctx->data.refuel_dialg.adjust_load == NVP_MENU_DECR)
+    {
+        if (ctx->data.refuel_dialg.brding_started)
+        {
+            if (load >= ctx->data.refuel_dialg.last_load_amnt) // no deccrease
+            {
+                XPLMSpeakString("de-boarding failed");
+                ndt_log("navP [error]: deboarding failed\n");
+                ctx->data.refuel_dialg.adjust_load = NVP_MENU_DONE;
+                goto adjust_done;
+            }
+            ctx->data.refuel_dialg.last_load_amnt = load;
+        }
+        else
+        {
+            ctx->data.refuel_dialg.last_load_amnt = load;
+            ctx->data.refuel_dialg.brding_started = 1;
+        }
+        if (load >= ctx->data.refuel_dialg.load_target_kg + 1.0f)
+        {
+            load -= ctx->data.refuel_dialg.load_rate_kg_s;
+            if (acf_type_load_set(ctx->data.refuel_dialg.ic, &load))
+            {
+                XPLMSpeakString("de-boarding failed");
+                ndt_log("navP [error]: deboarding failed\n");
+                ctx->data.refuel_dialg.adjust_load = NVP_MENU_DONE;
+            }
+        }
+        else
+        {
+            XPLMSpeakString("de-boarding complete");
+            ctx->data.refuel_dialg.adjust_load = NVP_MENU_DONE;
+            ndt_log("navP [info]: deboarding completed (%f)\n", load);
+        }
+    }
+adjust_done:
+    if (ctx->data.refuel_dialg.adjust_fuel == NVP_MENU_DONE &&
+        ctx->data.refuel_dialg.adjust_load == NVP_MENU_DONE)
+    {
+        float grwt; acf_type_grwt_get(ctx->data.refuel_dialg.ic, &grwt);
+        float zfwt; acf_type_zfwt_get(ctx->data.refuel_dialg.ic, &zfwt);
+        float lowt; acf_type_load_get(ctx->data.refuel_dialg.ic, &lowt);
+        float fuwt; acf_type_fuel_get(ctx->data.refuel_dialg.ic, &fuwt);
+        switch (ctx->data.refuel_dialg.ic->ac_type)
+        {
+            case ACF_TYP_B737_XG:
+                {
+                    /*
+                     * Zero-fuel center of gravity (super-simplified):
+                     * * +20.00% MAC while empty (payload == 00,000kgs)
+                     * * +25.00% MAC when loaded (payload == 16,666kgs)
+                     *
+                     * Takeoff center of gravity, offset (simplified):
+                     * * -0.50% with wing tanks only (fuel <= 9,000kgs)
+                     * * -6.00% with all tanks full (fuel == 16,000kgs)
+                     *
+                     * Translation to X-Plane's cgz_ref_to_default:
+                     * * -16.0f (dataref) ~= -450.6% MAC
+                     * * +00.0f (dataref) ~= +020.0% MAC
+                     * * +16.0f (dataref) ~= +490.6% MAC
+                     * Factor: 1.00% MAC ~= 16.0f/470.6f
+                     */
+                    float offset, zfw_cgz = (20.0f + (5.0f * (load / 16666.0f)));
+                    if (fuel > 9000.0f)
+                    {
+                        offset = ((((fuel - 9000.0f) / 7000.0f) * -5.5f) - 0.5f);
+                    }
+                    else
+                    {
+                        offset = ((fuel / 9000.0f) * -0.5f);
+                    }
+                    ndt_log("navP [info]: IXEG B733 Classic: ZFWCG %+.1f GWCG %+.1f\n", (zfw_cgz), (zfw_cgz + offset));
+                    XPLMSetDataf(ctx->data.refuel_dialg.ic->weight.gwcgz_m, (((zfw_cgz + offset) - 20.0f) / 29.4125f));
+                }
+                break;
+            default:
+                break;
+        }
+        ndt_log("navP [info]: aircraft GW %.0f ZFW %.0f load %.0f fuel %.0f cgz_ref_to_default %+.3f\n", grwt, zfwt, lowt, fuwt, XPLMGetDataf(ctx->data.refuel_dialg.ic->weight.gwcgz_m));
         return 0;
     }
-    return 0.5f;
+    return 1.0f;
 }
 
+#undef AUTOSNPRINTF
 #undef REFUEL_DIALG_CAPW
 #undef REFUEL_DIALG_CAPH
 #undef REFUEL_DIALG_CLBW
@@ -1859,7 +2223,7 @@ static float refuel_hdlr1(float inElapsedSinceLastCall,
 #undef REFUEL_DIALG_DEFH
 #undef REFUEL_DIALG_TXTW
 #undef REFUEL_DIALG_TXTH
-#undef REFUEL_FUEL_KHSEC
-#undef REFUEL_PLOD_KHSEC
+#undef LOAD_MINIMUM_DIFF
+#undef LOAD_MINIMUM_RATE
 #undef SPEEDBOOSTER_DEFAULTV
 #undef SPEEDBOOSTER_SETVALUE

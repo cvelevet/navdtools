@@ -3456,7 +3456,7 @@ static int first_fcall_do(chandler_context *ctx)
         {
             return 0; // try again later
         }
-        ndt_log("navP [error]: failed to initialise aircaft-specific context");
+        ndt_log("navP [error]: first_fcall_do: acf_type_info_acf_ctx_init() failed");
         XPLMSpeakString("nav P first call failed");
         return (ctx->first_fcall = 0) - 1;
     }
@@ -3465,39 +3465,24 @@ static int first_fcall_do(chandler_context *ctx)
         case ACF_TYP_A320_FF:
             {
                 assert_context *rca = &ctx->info->assert;
-                if ((d_ref = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running")))
+                if (acf_type_is_engine_running() == 0) // cold & dark
                 {
-                    int ENGN_running[2]; XPLMGetDatavi(d_ref, ENGN_running, 0, 2);
-                    if (ENGN_running[1] == 0 && ENGN_running[0] == 0) // C & D
-                    {
-                        // we can set fuel and payload directly, but control of the doors, equipment
-                        // etc. requires setting several data fields -- w/out further documentation,
-                        // don't touch the latter, let's use EFB to board/load this aircraft instead
-                        int (value_id); uint32_t defaults_integ[3] = { 00, 01, 1200, }; float defaults_float[4] = { 0.00f, 60.00f, 691.00f, 1000.00f, };
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.ExtBleedRequest"       )) > 0) rca->api.ValueSet(value_id, &defaults_integ[0]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.ExtPowerRequest"       )) > 0) rca->api.ValueSet(value_id, &defaults_integ[1]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.ShocksRequest"         )) > 0) rca->api.ValueSet(value_id, &defaults_integ[1]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.PayloadWeight"         )) > 0) rca->api.ValueSet(value_id, &defaults_float[0]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelCenter"            )) > 0) rca->api.ValueSet(value_id, &defaults_float[1]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelOuterL"            )) > 0) rca->api.ValueSet(value_id, &defaults_float[2]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelOuterL"            )) > 0) rca->api.ValueSet(value_id, &defaults_float[2]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelInnerL"            )) > 0) rca->api.ValueSet(value_id, &defaults_float[3]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.FuelInnerR"            )) > 0) rca->api.ValueSet(value_id, &defaults_float[3]);
-                        if ((value_id = rca->api.ValueIdByName("Aircraft.Navigation.ATC.CodeSet")) > 0) rca->api.ValueSet(value_id, &defaults_integ[2]);
-                    }
+                    int32_t request_true = 1; float p = 500.0f, f = 3175.0f;
+                    rca->api.ValueSet(rca->dat.id_s32_acft_request_chk, &request_true);
+                    rca->api.ValueSet(rca->dat.id_s32_acft_request_gpu, &request_true);
+                    acf_type_load_set(ctx->info, &p); acf_type_fuel_set(ctx->info, &f);
                 }
                 if (ctx->mcdu.rc.i_disabled == -1)
                 {
-                    chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc);  // XXX: remap hotkeys
+                    chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc); // XXX: remap hotkeys
                 }
-                uint32_t default_value[7] = { 30, 1, 3, 2, 1, 4, 1, };
-                rca->api.ValueSet(rca->dat.id_s32_fmgs_fcu1_fl_lvl, &default_value[0]);     // FCU alt. sel. target   (3000ft)
-                rca->api.ValueSet(rca->dat.id_u32_fcu_tgt_alt_step, &default_value[1]);     // FCU alt. sel. increm.  (1000ft)
-                rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &default_value[2]);     // ND m. sel. (cap. side) (arc)
-                rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_rgt, &default_value[3]);     // ND m. sel. (f/o. side) (nav)
-                rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_lft, &default_value[4]);     // ND r. sel. (cap. side) ( 20)
-                rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_rgt, &default_value[5]);     // ND r. sel. (f/o. side) (160)
-                rca->api.ValueSet(rca->dat.id_u32_emer_lights_mode, &default_value[6]);     // arm em. exit lts
+                uint32_t defaults_u32[6] = { 0, 3, 2, 1, 4, 1, };
+                rca->api.ValueSet(rca->dat.id_u32_fcu_tgt_alt_step, &defaults_u32[0]); // FCU alt. sel. incre. (100ft)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &defaults_u32[1]); // ND m. sel. (cap. side) (arc)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_rgt, &defaults_u32[2]); // ND m. sel. (f/o. side) (nav)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_lft, &defaults_u32[3]); // ND r. sel. (cap. side) ( 20)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_rgt, &defaults_u32[4]); // ND r. sel. (f/o. side) (160)
+                rca->api.ValueSet(rca->dat.id_u32_emer_lights_mode, &defaults_u32[5]); // arm em. exit lts
 
                 /* Re-register some callbacks: to get calls before the plugin */
                 UNREGSTR_CHANDLER(ctx->gear.landing_gear_toggle);
@@ -3527,7 +3512,7 @@ static int first_fcall_do(chandler_context *ctx)
                 int OHPLightSwitches[1] = { 1, };
                 XPLMSetDatavi(d_ref, &OHPLightSwitches[0], 7, 1);                   // strobes: automatic
             }
-            _DO(1, XPLMSetDatai, 1, "AirbusFBW/ALT100_1000");                       // FCU alt. sel. increm.  (1000ft)
+            _DO(1, XPLMSetDatai, 1, "AirbusFBW/ALT100_1000");                       // FCU alt. sel. incr. (1000ft) // no scrollwheel
             _DO(1, XPLMSetDatai, 3, "AirbusFBW/NDmodeCapt");                        // ND m. sel. (cap. side) (arc)
             _DO(1, XPLMSetDatai, 2, "AirbusFBW/NDmodeFO");                          // ND m. sel. (f/o. side) (nav)
             _DO(1, XPLMSetDatai, 1, "AirbusFBW/NDrangeCapt");                       // ND r. sel. (cap. side) ( 20)
@@ -3547,7 +3532,7 @@ static int first_fcall_do(chandler_context *ctx)
                     XPLMSetDatavf(d_ref, &DUBrightness[0], i, 1);
                 }
             }
-            _DO(1, XPLMSetDatai, 1, "AirbusFBW/ALT100_1000");                       // FCU alt. sel. increm.  (1000ft)
+            _DO(1, XPLMSetDatai, 1, "AirbusFBW/ALT100_1000");                       // FCU alt. sel. incr. (1000ft) // no scrollwheel
             _DO(1, XPLMSetDatai, 3, "AirbusFBW/NDmodeCapt");                        // ND m. sel. (cap. side) (arc)
             _DO(1, XPLMSetDatai, 2, "AirbusFBW/NDmodeFO");                          // ND m. sel. (f/o. side) (nav)
             _DO(1, XPLMSetDatai, 1, "AirbusFBW/NDrangeCapt");                       // ND r. sel. (cap. side) ( 20)
@@ -3571,7 +3556,12 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");  // VOR2 on ND2 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");    // VOR1 on ND1 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
-            _DO(0,XPLMSetDataf,0.0f,"sim/flightmodel/weight/m_fixed");              // weight/balance
+            if (acf_type_is_engine_running() == 0)
+            {
+                float load = 500.0f, fuel = 3175.0f;
+                acf_type_load_set(ctx->info, &load);
+                acf_type_fuel_set(ctx->info, &fuel);
+            }
             break;
 
         case ACF_TYP_A350_FF:
@@ -3583,7 +3573,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,      0, "1-sim/fcu/navL2/flag");                   // sync with above
             _DO(1, XPLMSetDatai,      0, "1-sim/fcu/navR/flag");                    // sync with above
             _DO(1, XPLMSetDatai,      0, "1-sim/fcu/navR2/flag");                   // sync with above
-            _DO(1, XPLMSetDatai,      1, "1-sim/fcu/altModeSwitch");                // FCU alt. sel. increm. (1Kft)
+            _DO(1, XPLMSetDatai,      0, "1-sim/fcu/altModeSwitch");                // FCU alt. sel. incre. (100ft)
             _DO(1, XPLMSetDataf,   3.0f, "1-sim/fcu/ndModeLeft/switch");            // ND m. sel. (cap. side) (arc)
             _DO(1, XPLMSetDataf,   2.0f, "1-sim/fcu/ndModeRight/switch");           // ND m. sel. (f/o. side) (nav)
             _DO(1, XPLMSetDataf,   1.0f, "1-sim/fcu/ndZoomLeft/switch");            // ND r. sel. (cap. side) ( 20)
@@ -3721,17 +3711,24 @@ static int first_fcall_do(chandler_context *ctx)
                 XPLMSetDatavf(d_ref, &panel_brightness_ratio[0], 0, 1);             // Cockpit/flood lights
             }
             _DO(1, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");                  // ND m. sel. (cap. side) (arc)
-            _DO(1, XPLMSetDatai, 3, "sim/cockpit2/EFIS/map_range");                 // ND r. sel. (cap. side) (20)
-            _DO(1, XPLMSetDatai, 1, "com/petersaircraft/aibus/ALT100_1000");        // FCU alt. sel. increm.  (1000ft)
+            _DO(1, XPLMSetDatai, 3, "sim/cockpit2/EFIS/map_range");                 // ND r. sel. (cap. side) ( 20)
+            _DO(1, XPLMSetDatai, 1, "com/petersaircraft/airbus/ALT100_1000");       // FCU alt. sel. incr. (1000ft) // no scrollwheel
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");  // VOR1 on ND2 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");  // VOR2 on ND2 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");    // VOR1 on ND1 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_airport_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_weather_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_tcas_on");
             _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
-            _DO(0,XPLMSetDataf,0.0f,"sim/flightmodel/weight/m_fixed");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_ndb_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_vor_on");
+            if (acf_type_is_engine_running() == 0)
+            {
+                float load = 500.0f, fuel = 3175.0f;
+                acf_type_load_set(ctx->info, &load);
+                acf_type_fuel_set(ctx->info, &fuel);
+            }
             break;
 
         case ACF_TYP_B737_EA:
@@ -3765,8 +3762,12 @@ static int first_fcall_do(chandler_context *ctx)
                 XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 1, 1);                // Panel (f/o. side): daylight
                 XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 2, 1);                // Panel (backgrnd.): neon off
             }
-            _DO(0, XPLMSetDataf, 0.0f, "sim/flightmodel/misc/cgz_ref_to_default");
-            _DO(0, XPLMSetDataf, 0.0f, "sim/flightmodel/weight/m_fixed");
+            if (acf_type_is_engine_running() == 0)
+            {
+                float load = 500.0f, fuel = 3175.0f;
+                acf_type_load_set(ctx->info, &load);
+                acf_type_fuel_set(ctx->info, &fuel);
+            }
             break;
 
         case ACF_TYP_B757_FF:
@@ -3800,9 +3801,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,    1, "anim/4/button");                            // Engine elec. contr. (R) (on)
             _DO(1, XPLMSetDatai,    1, "anim/8/button");                            // Engine-dr. hy. pump (L) (on)
             _DO(1, XPLMSetDatai,    1, "anim/11/button");                           // Engine-dr. hy. pump (R) (on)
-            _DO(1, XPLMSetDatai,    1, "anim/54/button");                           // Air: trim air valve sw. (on)
-            _DO(1, XPLMSetDatai,    1, "anim/55/button");                           // Air: L recirc. fans sw. (on)
-            _DO(1, XPLMSetDatai,    1, "anim/56/button");                           // Air: R recirc. fans sw. (on)
             _DO(1, XPLMSetDatai,    1, "anim/59/button");                           // Air: L bleed ISLN valve (on/open)
             _DO(1, XPLMSetDatai,    1, "anim/87/button");                           // Air: R bleed ISLN valve (on/open)
             _DO(1, XPLMSetDatai,    1, "anim/90/button");                           // Air: C bleed ISLN valve (on/open)
@@ -3937,8 +3935,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,    1, "anim/116/button");                          // Engine elec. contr. (L) (norm)
             _DO(1, XPLMSetDatai,    1, "anim/117/button");                          // Engine elec. contr. (R) (norm)
             _DO(1, XPLMSetDatai,    1, "anim/154/button");                          // Engine autostart switch (on)
-            _DO(1, XPLMSetDatai,    1, "anim/134/button");                          // Air: upper recirc. fans (on)
-            _DO(1, XPLMSetDatai,    1, "anim/135/button");                          // Air: lower recirc. fans (on)
             _DO(1, XPLMSetDatai,    1, "anim/137/button");                          // Air: L t. air valve sw. (on)
             _DO(1, XPLMSetDatai,    1, "anim/138/button");                          // Air: R t. air valve sw. (on)
             _DO(1, XPLMSetDatai,    1, "anim/139/button");                          // Air: L bleed ISLN valve (auto)
@@ -4006,7 +4002,12 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
             _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
-            _DO(0,XPLMSetDataf,0.0f,"sim/flightmodel/weight/m_fixed");
+            if (acf_type_is_engine_running() == 0)
+            {
+                float load = 500.0f, fuel = 3175.0f;
+                acf_type_load_set(ctx->info, &load);
+                acf_type_fuel_set(ctx->info, &fuel);
+            }
             break;
 
         case ACF_TYP_HA4T_RW:
@@ -4034,7 +4035,12 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
             _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
-            _DO(0,XPLMSetDataf,0.0f,"sim/flightmodel/weight/m_fixed");
+            if (acf_type_is_engine_running() == 0)
+            {
+                float load = 250.0f, fuel = 1587.5f;
+                acf_type_load_set(ctx->info, &load);
+                acf_type_fuel_set(ctx->info, &fuel);
+            }
             break;
 
         case ACF_TYP_SSJ1_RZ:
@@ -4106,7 +4112,12 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
             _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
-            _DO(0,XPLMSetDataf,0.0f,"sim/flightmodel/weight/m_fixed");
+            if (acf_type_is_engine_running() == 0)
+            {
+                float load = 500.0f, fuel = 3175.0f;
+                acf_type_load_set(ctx->info, &load);
+                acf_type_fuel_set(ctx->info, &fuel);
+            }
             break;
         }
 
@@ -4352,7 +4363,11 @@ static int first_fcall_do(chandler_context *ctx)
                     }
                 }
             }
-            _DO(0, XPLMSetDataf, 0.0f, "sim/flightmodel/weight/m_fixed");
+            if (XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("com.simcoders.rep") &&
+                0 == acf_type_is_engine_running() && 0 == skview)
+            {
+                float load = 100.0f; acf_type_load_set(ctx->info, &load);
+            }
             break;
 
         default:
