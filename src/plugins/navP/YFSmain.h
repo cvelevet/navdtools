@@ -512,6 +512,12 @@ typedef struct
             XPLMDataRef BaroStdCapt;
             XPLMDataRef BaroUnitFO;
             XPLMDataRef BaroStdFO;
+            XPLMDataRef PeterCRZ;
+            XPLMDataRef PeterFLX;
+            XPLMDataRef PeterCI;
+            XPLMDataRef PeterV1;
+            XPLMDataRef PeterV2;
+            XPLMDataRef PeterVR;
         }
         q380;
         struct

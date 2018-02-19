@@ -394,6 +394,14 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
         {
             yfms->data.init.corte_name[0] = 0;
         }
+        if (yfms->xpl.atyp == YFS_ATYP_Q380)
+        {
+            XPLMSetDataf(yfms->xpl.q380.PeterCI, ((((float)yfms->data.init.cost_index) * 200.0f) / 650.0f));
+            XPLMSetDataf(yfms->xpl.q380.PeterFLX, 50.0f); // XXX stopgap measure
+            XPLMSetDataf(yfms->xpl.q380.PeterV1, 130.0f); // XXX stopgap measure
+            XPLMSetDataf(yfms->xpl.q380.PeterVR, 140.0f); // XXX stopgap measure
+            XPLMSetDataf(yfms->xpl.q380.PeterV2, 150.0f); // XXX stopgap measure
+        }
         yfms->data.init.ialized         = 1;
         yfms->data.fpln.lg_idx          = 0;
         yfms->data.fpln.awys.open       = 0;
@@ -586,6 +594,14 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
             int ci; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
             if (strnlen(buf, 1) && sscanf(buf, "%d", &ci) == 1 && ci >= 0 && ci <= 999)
             {
+                if (yfms->xpl.atyp == YFS_ATYP_Q380)
+                {
+                    if (ci < 0 || ci > 999)
+                    {
+                        yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); return;
+                    }
+                    XPLMSetDataf(yfms->xpl.q380.PeterCI, ((((float)ci) * 200.0f) / 650.0f));
+                }
                 yfms->data.init.cost_index = ci; yfs_spad_clear(yfms); yfs_init_pageupdt(yfms); return;
             }
             yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); return;
@@ -601,6 +617,10 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
             {
                 if (strcmp(buf, "CLR") == 0)
                 {
+                    if (yfms->xpl.atyp == YFS_ATYP_Q380)
+                    {
+                        XPLMSetDatai(yfms->xpl.q380.PeterCRZ, 0);
+                    }
                     yfms->data.init.crz_alt = ndt_distance_init(0, NDT_ALTUNIT_NA);
                     yfs_spad_clear(yfms); return yfs_init_pageupdt(yfms);
                 }
@@ -610,6 +630,14 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
                     // :-) SR-71 Blackbird can do FL850
                     if (crz_alt >= 25 && crz_alt <= 850)
                     {
+                        if (yfms->xpl.atyp == YFS_ATYP_Q380)
+                        {
+                            if (crz_alt < 100 || crz_alt > 430)
+                            {
+                                yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); return;
+                            }
+                            XPLMSetDatai(yfms->xpl.q380.PeterCRZ, crz_alt);
+                        }
                         yfms->data.init.crz_alt = ndt_distance_init(crz_alt, NDT_ALTUNIT_FL);
                         yfs_spad_clear(yfms); return yfs_init_pageupdt(yfms);
                     }

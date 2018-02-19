@@ -843,6 +843,12 @@ static void toggle_main_window(yfms_context *yfms)
             yfms->xpl.q380.BaroStdCapt            = XPLMFindDataRef("com/petersaircraft/airbus/BaroStdCapt"     );
             yfms->xpl.q380.BaroUnitFO             = XPLMFindDataRef("com/petersaircraft/airbus/BaroUnitFO"      );
             yfms->xpl.q380.BaroStdFO              = XPLMFindDataRef("com/petersaircraft/airbus/BaroStdFO"       );
+            yfms->xpl.q380.PeterCRZ               = XPLMFindDataRef("com/petersaircraft/airbus/CruiseFL"        );
+            yfms->xpl.q380.PeterFLX               = XPLMFindDataRef("com/petersaircraft/airbus/FlexTemp"        );
+            yfms->xpl.q380.PeterCI                = XPLMFindDataRef("com/petersaircraft/airbus/CostIndex"       );
+            yfms->xpl.q380.PeterV1                = XPLMFindDataRef("com/petersaircraft/airbus/V1Setting"       );
+            yfms->xpl.q380.PeterV2                = XPLMFindDataRef("com/petersaircraft/airbus/V2Setting"       );
+            yfms->xpl.q380.PeterVR                = XPLMFindDataRef("com/petersaircraft/airbus/VRSetting"       );
             yfms->xpl.fb76.systemMode             = XPLMFindDataRef("1-sim/transponder/systemMode"              );
             yfms->xpl.fb76.baroRotary_stby        = XPLMFindDataRef("1-sim/gauges/baroRotary_stby"              );
             yfms->xpl.fb76.baroRotary_left        = XPLMFindDataRef("1-sim/gauges/baroRotary_left"              );
@@ -961,7 +967,10 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.has_custom_nav_radios = 1;
                 yfms->xpl.atyp = YFS_ATYP_Q350; break;
             }
-            if (yfms->xpl.q380.BaroUnitFO   && yfms->xpl.q380.BaroStdFO &&
+            if (yfms->xpl.q380.PeterV1      && yfms->xpl.q380.PeterV2   &&
+                yfms->xpl.q380.PeterVR      && yfms->xpl.q380.PeterCI   &&
+                yfms->xpl.q380.PeterCRZ     && yfms->xpl.q380.PeterFLX  &&
+                yfms->xpl.q380.BaroUnitFO   && yfms->xpl.q380.BaroStdFO &&
                 yfms->xpl.q380.BaroUnitCapt && yfms->xpl.q380.BaroStdCapt)
             {
                 yfms->xpl.atyp = YFS_ATYP_Q380; break;
