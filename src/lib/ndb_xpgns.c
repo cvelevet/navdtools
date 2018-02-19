@@ -1473,14 +1473,12 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
                 goto end;
             }
 
-            proc->approach.dme  = 0;
             proc->approach.type = NDT_APPRTYPE_UNK;
             switch (*procid)
             {
                 // VOR-based
                 case 'D':
-                    proc->approach.type = NDT_APPRTYPE_VOR;
-                    proc->approach.dme  = 1;
+                    proc->approach.type = NDT_APPRTYPE_VDM;
                     break;
                 case 'S':
                 case 'V':
@@ -1494,8 +1492,7 @@ static int parse_procedures(char *src, ndt_navdatabase *ndb, ndt_airport *apt)
                     proc->approach.type = NDT_APPRTYPE_NDB;
                     break;
                 case 'Q':
-                    proc->approach.type = NDT_APPRTYPE_NDB;
-                    proc->approach.dme  = 1;
+                    proc->approach.type = NDT_APPRTYPE_NDM;
                     break;
                 // LOC-based
                 case 'B':
@@ -2004,34 +2001,40 @@ static int rename_finalappr(ndt_airport *apt)
                     (final->type == NDT_PROCTYPE_FINAL))
                 {
                     const char *prefix = NULL;
-                    switch (final->approach.type)
+                    switch (final->approach.type) // acronym source: IXEG B733CL
                     {
                         // VOR-based
-                        case NDT_APPRTYPE_TAC:
-                            prefix = "TACAN";
+                        case NDT_APPRTYPE_VDM:
+                            prefix = "VDM";
                             break;
                         case NDT_APPRTYPE_VOR:
-                            prefix = final->approach.dme ? "VORDME" : "VOR";
+                            prefix = "VOR";
+                            break;
+                        case NDT_APPRTYPE_TAC:
+                            prefix = "TAC";
                             break;
                         // NDB-based
                         case NDT_APPRTYPE_NDB:
-                            prefix = final->approach.dme ? "NDBDME" : "NDB";
+                            prefix = "NDB";
+                            break;
+                        case NDT_APPRTYPE_NDM:
+                            prefix = "NDM";
                             break;
                         // LOC-based
-                        case NDT_APPRTYPE_IGS:
-                            prefix = "IGS";
-                            break;
-                        case NDT_APPRTYPE_ILS:
-                            prefix = "ILS";
-                            break;
                         case NDT_APPRTYPE_LBC:
-                            prefix = "LOCBC";
+                            prefix = "LBC";
                             break;
                         case NDT_APPRTYPE_LDA:
                             prefix = "LDA";
                             break;
                         case NDT_APPRTYPE_LOC:
                             prefix = "LOC";
+                            break;
+                        case NDT_APPRTYPE_IGS:
+                            prefix = "IGS";
+                            break;
+                        case NDT_APPRTYPE_ILS:
+                            prefix = "ILS";
                             break;
                         // GPS-based
                         case NDT_APPRTYPE_GLS:
@@ -2044,13 +2047,13 @@ static int rename_finalappr(ndt_airport *apt)
                             prefix = "RNP";
                             break;
                         case NDT_APPRTYPE_RNV:
-                            prefix = "RNAV";
+                            prefix = "RNV";
                             break;
                         // other
-                        case NDT_APPRTYPE_FMS:
+                        case NDT_APPRTYPE_FMS: // never found in any database(s)
                             prefix = "FMS";
                             break;
-                        case NDT_APPRTYPE_MLS:
+                        case NDT_APPRTYPE_MLS: // never found in any database(s)
                             prefix = "MLS";
                             break;
                         case NDT_APPRTYPE_SDF:
@@ -2061,9 +2064,8 @@ static int rename_finalappr(ndt_airport *apt)
                     }
                     if (strlen(final->info.idnt) > strlen(rwy->info.idnt) + 1)
                     {
-                        final->approach.suffix[0] = '-';
-                        final->approach.suffix[1] = final->info.idnt[strlen(final->info.idnt) - 1];
-                        final->approach.suffix[2] = '\0';
+                        final->approach.suffix[0] = final->info.idnt[strlen(final->info.idnt) - 1];
+                        final->approach.suffix[1] = '\0';
                     }
                     else
                     {
@@ -2072,22 +2074,22 @@ static int rename_finalappr(ndt_airport *apt)
                     if (prefix && strlen(final->info.idnt) > strlen(rwy->info.idnt))
                     {
                         /*
-                         * Max. 8 characters:
-                         * D28R      VORDME
-                         * D28RY     VORDME-Y
-                         * D28R-Y    VORDME-Y
+                         * Max. 7 characters:
+                         * D28R      VDM28R
+                         * D28RY     VDMY28R
+                         * D28R-Y    VDMY28R
                          */
                         snprintf(final->approach.short_name,
-                                 sizeof(final->approach.short_name),
-                                 "%s%s", prefix, final->approach.suffix);
+                                 sizeof(final->approach.short_name), "%s%s%s",
+                                 prefix, final->approach.suffix, rwy->info.idnt);
                         /*
-                         * Max. 11 characters:
-                         * D28R      VORDME28R
-                         * D28RY     VORDME28R-Y
-                         * D28R-Y    VORDME28R-Y
+                         * Max. 8 characters:
+                         * D28R      VDM28R
+                         * D28RY     VDM28R-Y
+                         * D28R-Y    VDM28R-Y
                          */
-                        snprintf(temp, sizeof(temp), "%s%s%s", prefix,
-                                 rwy->info.idnt, final->approach.suffix);
+                        snprintf(temp, sizeof(temp), "%s%s%s%s", prefix, rwy->info.idnt,
+                                 *final->approach.suffix ? "-" : "", final->approach.suffix);
                         /*
                          * Update IDs for final approach and its transitions.
                          */

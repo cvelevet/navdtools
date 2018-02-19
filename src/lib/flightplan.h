@@ -183,17 +183,18 @@ typedef struct ndt_procedure
             NDT_APPRTYPE_LBC,           // LOC back course
             NDT_APPRTYPE_MLS,           // MLS
             NDT_APPRTYPE_NDB,           // NDB
+            NDT_APPRTYPE_NDM,           // NDB + DME
             NDT_APPRTYPE_RNP,           // RNP
             NDT_APPRTYPE_RNV,           // RNAV
             NDT_APPRTYPE_SDF,           // SDF
+            NDT_APPRTYPE_VDM,           // VOR + DME
             NDT_APPRTYPE_VOR,           // VOR
             NDT_APPRTYPE_TAC,           // TACAN
             NDT_APPRTYPE_UNK,           // unknown
         } type;
 
-        int  dme;
-        char suffix[3];                 // when multiple approaches of same type
-        char short_name[9];             // for space-constrainted listing
+        char suffix[2];                 // when multiple approaches of same type
+        char short_name[9];             // short form listing, maxlen "RNAVZ12C"
     } approach;
 
     enum ndt_procedure_type
