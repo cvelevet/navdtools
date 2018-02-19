@@ -1565,6 +1565,14 @@ ndt_procedure* ndt_procedure_get(ndt_list *procedures,  const char *name, ndt_ru
             {
                 return proc;
             }
+            if (proc && proc->type == NDT_PROCTYPE_FINAL)
+            {
+                if ((strcmp(proc->approach.short_name, name) == 0) &&
+                    (runway == NULL || runway == ndt_runway_get(proc->runways, runway->info.idnt)))
+                {
+                    return proc;
+                }
+            }
         }
     }
     return NULL;
