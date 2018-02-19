@@ -1036,7 +1036,7 @@ static void wb_handler(menu_context *ctx)
         XPLMSpeakString("fuel and load dialog failure");
         return;
     }
-    float fmax, fuel, load, zfwt, grwt; int e;
+    float fmax_k, fuel_t, load_t, zfwt_t, grwt_t; int e;
     if ((e = acf_type_info_acf_ctx_init()))
     {
         if (e == EAGAIN)
@@ -1048,17 +1048,7 @@ static void wb_handler(menu_context *ctx)
         XPLMSpeakString("fuel and load dialog failure");
         return;
     }
-    if ((e = acf_type_fmax_get(ctx->data.refuel_dialg.ic, &fmax)))
-    {
-        ndt_log("navP [error]: wb_handler: acf_type_fmax_get() failed (%d)", e);
-        XPLMSpeakString("fuel and load dialog failure");
-        return;
-    }
-    else
-    {
-        fmax /= 1000.0f;
-    }
-    if ((e = acf_type_fuel_get(ctx->data.refuel_dialg.ic, &fuel)))
+    if ((e = acf_type_fuel_get(ctx->data.refuel_dialg.ic, &fuel_t)))
     {
         ndt_log("navP [error]: wb_handler: acf_type_fuel_get() failed (%d)", e);
         XPLMSpeakString("fuel and load dialog failure");
@@ -1066,9 +1056,9 @@ static void wb_handler(menu_context *ctx)
     }
     else
     {
-        fuel /= 1000.0f;
+        fuel_t /= 1000.0f;
     }
-    if ((e = acf_type_load_get(ctx->data.refuel_dialg.ic, &load)))
+    if ((e = acf_type_load_get(ctx->data.refuel_dialg.ic, &load_t)))
     {
         ndt_log("navP [error]: wb_handler: acf_type_load_get() failed (%d)", e);
         XPLMSpeakString("fuel and load dialog failure");
@@ -1076,9 +1066,9 @@ static void wb_handler(menu_context *ctx)
     }
     else
     {
-        load /= 1000.0f;
+        load_t /= 1000.0f;
     }
-    if ((e = acf_type_zfwt_get(ctx->data.refuel_dialg.ic, &zfwt)))
+    if ((e = acf_type_zfwt_get(ctx->data.refuel_dialg.ic, &zfwt_t)))
     {
         ndt_log("navP [error]: wb_handler: acf_type_zfwt_get() failed (%d)", e);
         XPLMSpeakString("fuel and load dialog failure");
@@ -1086,9 +1076,9 @@ static void wb_handler(menu_context *ctx)
     }
     else
     {
-        zfwt /= 1000.0f;
+        zfwt_t /= 1000.0f;
     }
-    if ((e = acf_type_grwt_get(ctx->data.refuel_dialg.ic, &grwt)))
+    if ((e = acf_type_grwt_get(ctx->data.refuel_dialg.ic, &grwt_t)))
     {
         ndt_log("navP [error]: wb_handler: acf_type_grwt_get() failed (%d)", e);
         XPLMSpeakString("fuel and load dialog failure");
@@ -1096,7 +1086,13 @@ static void wb_handler(menu_context *ctx)
     }
     else
     {
-        grwt /= 1000.0f;
+        grwt_t /= 1000.0f;
+    }
+    if ((e = acf_type_fmax_get(ctx->data.refuel_dialg.ic, &fmax_k)))
+    {
+        ndt_log("navP [error]: wb_handler: acf_type_fmax_get() failed (%d)", e);
+        XPLMSpeakString("fuel and load dialog failure");
+        return;
     }
     int g[4]; mainw_center(g, REFUEL_DIALG_DEFW, REFUEL_DIALG_DEFH);
     {
@@ -1104,11 +1100,11 @@ static void wb_handler(menu_context *ctx)
         // so airliners can: fuel in ~12.5 minutes, deboard in about 5 minutes
         // 40T for 16,000kgs (~150pax) in ~5 minutes: 16000/40/300 = 1.33OEW/s
         // sanitize to a minimum to 20.0kgs per second so it also works for GA
-        if ((ctx->data.refuel_dialg.load_rate_kg_s = ((grwt - fuel - load) *  4.0f / 3.0f)) < LOAD_MINIMUM_RATE)
+        if ((ctx->data.refuel_dialg.load_rate_kg_s = ((grwt_t - fuel_t - load_t) *  4.0f / 3.0f)) < LOAD_MINIMUM_RATE)
         {
             (ctx->data.refuel_dialg.load_rate_kg_s = LOAD_MINIMUM_RATE);
         }
-        if ((ctx->data.refuel_dialg.fuel_rate_kg_s = ((fmax) / 750.000f)) < LOAD_MINIMUM_RATE)
+        if ((ctx->data.refuel_dialg.fuel_rate_kg_s = ((fmax_k) / 750.000f)) < LOAD_MINIMUM_RATE)
         {
             (ctx->data.refuel_dialg.fuel_rate_kg_s = LOAD_MINIMUM_RATE);
         }
@@ -1126,8 +1122,8 @@ static void wb_handler(menu_context *ctx)
                 XPShowWidget(ctx->data.refuel_dialg.f_txtf_id);
                 XPShowWidget(ctx->data.refuel_dialg.p_txtl_id);
                 XPShowWidget(ctx->data.refuel_dialg.p_txtf_id);
-                AUTOSNPRINTF(ctx->data.refuel_dialg.fueltot_str, "%.2f", fuel);
-                AUTOSNPRINTF(ctx->data.refuel_dialg.payload_str, "%.2f", zfwt);
+                AUTOSNPRINTF(ctx->data.refuel_dialg.fueltot_str, "%.2f", fuel_t);
+                AUTOSNPRINTF(ctx->data.refuel_dialg.payload_str, "%.2f", zfwt_t);
                 XPSetWidgetDescriptor(ctx->data.refuel_dialg.p_txtl_id, "(KG x1000) ZFW");
             }
             break;
@@ -1138,8 +1134,8 @@ static void wb_handler(menu_context *ctx)
                 XPShowWidget(ctx->data.refuel_dialg.f_txtf_id);
                 XPShowWidget(ctx->data.refuel_dialg.p_txtl_id);
                 XPShowWidget(ctx->data.refuel_dialg.p_txtf_id);
-                AUTOSNPRINTF(ctx->data.refuel_dialg.fueltot_str, "%.2f", fuel);
-                AUTOSNPRINTF(ctx->data.refuel_dialg.payload_str, "%.2f", zfwt);
+                AUTOSNPRINTF(ctx->data.refuel_dialg.fueltot_str, "%.2f", fuel_t);
+                AUTOSNPRINTF(ctx->data.refuel_dialg.payload_str, "%.2f", zfwt_t);
                 XPSetWidgetDescriptor(ctx->data.refuel_dialg.p_txtl_id, "(KG x1000) ZFW");
             }
             break;
@@ -1149,8 +1145,8 @@ static void wb_handler(menu_context *ctx)
             XPShowWidget(ctx->data.refuel_dialg.f_txtf_id);
             XPShowWidget(ctx->data.refuel_dialg.p_txtl_id);
             XPShowWidget(ctx->data.refuel_dialg.p_txtf_id);
-            AUTOSNPRINTF(ctx->data.refuel_dialg.fueltot_str, "%.2f", fuel);
-            AUTOSNPRINTF(ctx->data.refuel_dialg.payload_str, "%.2f", load);
+            AUTOSNPRINTF(ctx->data.refuel_dialg.fueltot_str, "%.2f", fuel_t);
+            AUTOSNPRINTF(ctx->data.refuel_dialg.payload_str, "%.2f", load_t);
             XPSetWidgetDescriptor(ctx->data.refuel_dialg.p_txtl_id, "(KG x1000) PAYLOAD");
             break;
     }
