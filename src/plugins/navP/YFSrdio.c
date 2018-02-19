@@ -686,14 +686,18 @@ static int get_transponder_mode(yfms_context *yfms)
                 case 2:
                     return XPDR_TAR;
                 default:
-                    return altr ? XPDR_ALT : XPDR_GND;
+                    return altr > 0 ? XPDR_ALT : XPDR_GND;
             }
         }
         if (mode == 1)
         {
             return XPDR_AUT;
         }
-        return XPDR_SBY;
+        if (altr > 0)
+        {
+            return XPDR_SBY;
+        }
+        return XPDR_OFF;
     }
     if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
     {
@@ -806,6 +810,11 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
         switch  (mode)
         {
             case XPDR_OFF:
+                tmod = 0; // THRT
+                tcas = 0; // STBY
+                altr = 0; // OFF
+                xpdr = 0; // STBY
+                break;
             case XPDR_SBY:
                 tmod = 0; // THRT
                 tcas = 0; // STBY
