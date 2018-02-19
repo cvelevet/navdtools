@@ -672,10 +672,6 @@ static int has_transponder_auto(yfms_context *yfms)
 
 static int get_transponder_mode(yfms_context *yfms)
 {
-    if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
-    {
-        return XPDR_OFF;
-    }
     if (yfms->xpl.atyp == YFS_ATYP_ASRT)
     {
         uint32_t altr; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.xpdr.id_u32_altr, &altr);
@@ -698,6 +694,10 @@ static int get_transponder_mode(yfms_context *yfms)
             return XPDR_AUT;
         }
         return XPDR_SBY;
+    }
+    if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
+    {
+        return XPDR_OFF;
     }
     if (yfms->xpl.atyp == YFS_ATYP_IXEG)
     {
