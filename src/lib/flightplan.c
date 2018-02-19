@@ -1572,6 +1572,20 @@ ndt_procedure* ndt_procedure_get(ndt_list *procedures,  const char *name, ndt_ru
                 {
                     return proc;
                 }
+                if ((strncmp("RNAV", name, 4) == 0))
+                {
+                    char rnv[10]; snprintf(rnv, sizeof(rnv), "RNV%s", &name[4]);
+                    if ((strcmp(proc->info.idnt, rnv) == 0) &&
+                        (runway == NULL || runway == ndt_runway_get(proc->runways, runway->info.idnt)))
+                    {
+                        return proc;
+                    }
+                    if ((strcmp(proc->approach.short_name, rnv) == 0) &&
+                        (runway == NULL || runway == ndt_runway_get(proc->runways, runway->info.idnt)))
+                    {
+                        return proc;
+                    }
+                }
             }
         }
     }
