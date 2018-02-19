@@ -4657,7 +4657,7 @@ static int first_fcall_do(chandler_context *ctx)
             XPLMSetDataf(ctx->volumes.wvr, 0.25f / 1.25f);
             XPLMSetDataf(ctx->volumes.gvr, 0.25f / 1.25f);
             XPLMSetDataf(ctx->volumes.pvr, 0.25f / 1.25f);
-            XPLMSetDataf(ctx->volumes.fvr, 0.25f / 4.00f);
+            XPLMSetDataf(ctx->volumes.fvr, 0.25f / 2.50f);
         }
         else
         {

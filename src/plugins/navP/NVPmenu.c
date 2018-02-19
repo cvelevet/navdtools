@@ -1387,7 +1387,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume / 1.25f);
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume / 1.25f);
             XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume / 1.25f);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume / 4.00f);
+            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume / 2.50f);
         }
         else
         {
