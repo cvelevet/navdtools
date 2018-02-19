@@ -3725,7 +3725,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_vor_on");
             if (acf_type_is_engine_running() == 0)
             {
-                float load = 500.0f, fuel = 3175.0f;
+                float load = 500.0f, fuel = 6350.0f;
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
             }
@@ -4057,7 +4057,6 @@ static int first_fcall_do(chandler_context *ctx)
                 ctx->first_fcall = -2; // pass 1, enable pass 2
                 XPLMSetDatai(av_pwr_on, 1); return 0;
             }
-
             // items that require avionics power to change state
             _DO(1, XPLMSetDataf, 0.0f, "but/temp/airL");
             _DO(1, XPLMSetDataf, 0.0f, "but/temp/airR");
@@ -4073,7 +4072,6 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 ctx->first_fcall += -1; return 0; // pass 2, enable pass 3
             }
-
             // everything else
             _DO(1, XPLMSetDataf, 1.0f, "door/lock");
             _DO(1, XPLMSetDataf, 1.0f, "elec/cap1");
@@ -4098,7 +4096,6 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 XPLMCommandOnce(cr);
             }
-
             // datarefs: X-Plane default
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
