@@ -757,9 +757,9 @@ int acf_type_zfwt_get(acf_info_context *info, float *weight)
         *weight = (oew + p);
         return 0;
     }
-    float currwt = XPLMGetDataf(global_info->weight.current);
-    float fuelwt = XPLMGetDataf(global_info->fuel.  current);
-    *weight = (currwt - fuelwt);
+    float mptywt = XPLMGetDataf(global_info->weight.minimum);
+    float loadwt = XPLMGetDataf(global_info->weight.payload);
+    *weight = mptywt + loadwt;
     return 0;
 }
 
@@ -785,7 +785,7 @@ int acf_type_zfwt_set(acf_info_context *info, float *weight)
     }
     else
     {
-        float diff = *weight - zfwt; load += diff;
+        *weight -= zfwt; load += *weight;
     }
     if (load < 0.0f)
     {
@@ -832,16 +832,22 @@ int acf_type_grwt_get(acf_info_context *info, float *weight)
     {
         return EINVAL;
     }
-    if (info->ac_type == ACF_TYP_A320_FF)
+    float oewt, load, fuel; int ret;
+    if ((ret = acf_type_oewt_get(info, &oewt)) ||
+        (ret = acf_type_load_get(info, &load)) ||
+        (ret = acf_type_fuel_get(info, &fuel)))
     {
-        if (global_info->assert.initialized == 0)
-        {
-            return EINVAL;
-        }
-        *weight = XPLMGetDataf(global_info->weight.current); // TODO: use API?
-        return 0;
+        return ret;
     }
-    *weight = XPLMGetDataf(global_info->weight.current);
+    else
+    {
+        /*
+         * must compute gross weight ourselves: X-Plane does not recompute
+         * the relevant dataref immediately -- we may be adjusting several
+         * applicable parameters before a flight loop gets to recompute GW
+         */
+        *weight = oewt + load + fuel;
+    }
     return 0;
 }
 

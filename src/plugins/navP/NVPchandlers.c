@@ -3764,9 +3764,9 @@ static int first_fcall_do(chandler_context *ctx)
             }
             if (acf_type_is_engine_running() == 0)
             {
-                float load = 500.0f, fuel = 3175.0f;
-                acf_type_load_set(ctx->info, &load);
-                acf_type_fuel_set(ctx->info, &fuel);
+                float fuel = 3175.0f, zfwt = 33333.3f;
+                acf_type_fuel_set  (ctx->info, &fuel);
+                acf_type_zfwt_set  (ctx->info, &zfwt);
             }
             break;
 
