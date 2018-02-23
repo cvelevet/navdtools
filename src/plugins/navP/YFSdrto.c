@@ -68,8 +68,9 @@ void yfs_drto_pageupdt(yfms_context *yfms)
     {
         yfs_main_rline(yfms, i, -1);
     }
-    if (yfms->xpl.has_custom_navigation)
+    if (yfms->xpl.has_custom_navigation || yfms->xpl.atyp == YFS_ATYP_Q380)
     {
+        /* Peter sets override_fms_advance each loop breaking our DIRTO */
         return yfs_printf_ctr(yfms, 6, COLR_IDX_WHITE, "%s", "PAGE INOP");
     }
 
