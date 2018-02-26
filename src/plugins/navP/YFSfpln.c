@@ -1453,7 +1453,8 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             {
                 if (yfms->data.fpln.w_tp == leg->dst)
                 {
-                    if (yfms->data.fpln.w_tp == trk->src)
+                    if (yfms->data.phase > FMGS_PHASE_PRE &&
+                        yfms->data.fpln.w_tp == trk->src)
                     {
                         // T-P source of trk (== cur. leg), can't clear
                         yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
