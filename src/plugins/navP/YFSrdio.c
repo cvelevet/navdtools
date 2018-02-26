@@ -816,14 +816,14 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 xpdr = 0; // STBY
                 break;
             case XPDR_SBY:
-                tmod = 0; // THRT
+                tmod = 1; // ALL
                 tcas = 0; // STBY
                 altr = 1; // ON
                 xpdr = 0; // STBY
                 break;
             case XPDR_AUT:
-                tmod = 0; // THRT
-                tcas = 0; // STBY
+                tmod = 3; // BLW
+                tcas = 2; // TA/RA
                 altr = 1; // ON
                 xpdr = 1; // AUTO
                 break;
@@ -839,15 +839,10 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 altr = 1; // ON
                 xpdr = 2; // ON
                 break;
-            case XPDR_GND:// will not set X-Plane dataref to 2
-//              tmod = 0; // THRT
-//              tcas = 0; // STBY
-//              altr = 0; // OFF
-//              xpdr = 2; // ON
-//              break;
+            case XPDR_GND:// will not set X-Plane dataref to 2, so map it to ALT
             case XPDR_ALT:
             default:
-                tmod = 0; // THRT
+                tmod = 1; // ALL
                 tcas = 0; // STBY
                 altr = 1; // ON
                 xpdr = 2; // ON
@@ -870,7 +865,7 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 sact = 0.0f; // STBY
                 break;
             case XPDR_AUT:
-                mact = 0.0f; // OFF
+                mact = 2.0f; // TA/RA
                 sact = 1.0f; // AUTO
                 break;
             case XPDR_TAO:
