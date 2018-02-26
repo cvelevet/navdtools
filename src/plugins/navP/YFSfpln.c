@@ -1448,12 +1448,16 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (strcmp(buf, "CLR") == 0)
         {
-            if (index == yfms->data.fpln.lg_idx ||
-                index == yfms->data.fpln.dindex ||
+            if (index == yfms->data.fpln.dindex ||
                 index == ndt_list_count(yfms->data.fpln.legs) - 1)
             {
-                // can't clear either of current leg or destination
-                // future: perhaps clear current, direct next leg?
+                // clearing destination: would fuck us big time
+                yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
+            }
+            if (index == yfms->data.fpln.lg_idx &&
+                yfms->data.phase > FMGS_PHASE_PRE)
+            {
+                // can't clear currently tracked leg (in flight)
                 yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
             }
             if (yfms->data.fpln.w_tp)
