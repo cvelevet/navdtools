@@ -815,9 +815,18 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)
     /* Update index to tracked leg as required */
     if (yfms->data.fpln.mod.operation != YFS_FPLN_MOD_DCTO)
     {
-        if (yfms->data.phase <= FMGS_PHASE_PRE && yfms->data.fpln.lg_idx == 0)
+        if (yfms->data.phase <= FMGS_PHASE_PRE)
         {
-            goto end;
+            // user broke DIRTO on ground, reset
+            // to tracking the first leg instead
+            if (yfms->data.fpln.w_tp == NULL)
+            {
+                yfms->data.fpln.lg_idx = +0;
+            }
+            if (yfms->data.fpln.lg_idx == 0)
+            {
+                goto end;
+            }
         }
         if (tracking_destination)
         {
@@ -1462,6 +1471,12 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             }
             if (yfms->data.fpln.w_tp)
             {
+                if (yfms->data.fpln.w_tp == leg->src &&
+                    index == yfms->data.fpln.lg_idx)
+                {
+                    // leg is a direct to with T-P src, can't clear
+                    yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
+                }
                 if (yfms->data.fpln.w_tp == leg->dst)
                 {
                     if (yfms->data.phase > FMGS_PHASE_PRE &&
@@ -1519,8 +1534,14 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
              * Also forbid insertion before the currently tracked leg, even on
              * the ground, if we are tracking said leg after using a direct to.
              */
-            if (yfms->data.phase > FMGS_PHASE_PRE || yfms->data.fpln.w_tp)
+            if (yfms->data.phase > FMGS_PHASE_PRE)
             {
+                yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
+            }
+            if (yfms->data.fpln.w_tp &&
+                yfms->data.fpln.w_tp == leg->src)
+            {
+                // leg is a dirto with T-P src - cannot prepend
                 yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
             }
         }
