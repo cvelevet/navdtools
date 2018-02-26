@@ -29,6 +29,7 @@ void yfs_fpln_pageopen(yfms_context *yfms                                   );
 void yfs_fpln_pageupdt(yfms_context *yfms                                   );
 void yfs_fpln_fplnsync(yfms_context *yfms                                   );
 void yfs_fpln_fplnupdt(yfms_context *yfms                                   );
+void yfs_fpln_trackleg(yfms_context *yfms, int index                        );
 void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert);
 
 #endif /* YFS_FPLN_H */

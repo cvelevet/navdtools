@@ -405,6 +405,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                 if (gskts >= 90.0f || gskts >= XPLMGetDataf(yfms->xpl.acf_vs0))
                 {
                     yfms->data.phase = FMGS_PHASE_TOF;
+                    yfs_fpln_trackleg(yfms, -1);
                     break;
                 }
                 break;

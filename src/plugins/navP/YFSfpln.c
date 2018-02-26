@@ -293,7 +293,7 @@ static void xplm_fpln_sync(yfms_context *yfms)
     {
         XPLMClearFMSEntry(i);
     }
-    for (int i = 0, j = 1; i <= yfms->data.fpln.xplm_last; i++)
+    for (int i = 0; i <= yfms->data.fpln.xplm_last; i++)
     {
         if (yfms->data.fpln.xplm_info[i].waypoint != XPLM_NAV_NOT_FOUND)
         {
@@ -308,18 +308,8 @@ static void xplm_fpln_sync(yfms_context *yfms)
                                   yfms->data.fpln.xplm_info[i].longitud,
                                   yfms->data.fpln.xplm_info[i].altitude);
         }
-        if (i && j && yfms->data.fpln.xplm_info[i].legindex >= yfms->data.fpln.lg_idx)
-        {
-            if (yfms->data.fpln.xplm_info[i].legindex > yfms->data.fpln.lg_idx)
-            {
-                j = 0; // destination now set to last waypoint of previous leg
-            }
-            if (j)
-            {
-                XPLMSetDestinationFMSEntry(i);
-            }
-        }
     }
+    yfs_fpln_trackleg(yfms, yfms->data.fpln.lg_idx);
 
     /* ensure we recompute distance remaining to destination */
     yfms->data.fpln.dist.ref_leg_id = -1;
@@ -500,16 +490,21 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
     /* update indexes for tracked and displayed legs */
     if (yfms->data.init.ialized)
     {
-        int t = XPLMGetDestinationFMSEntry(),s = fpl_getindex_for_line(yfms, 1);
-        if (t < yfms->data.fpln.xplm_last + 1)
+        int s = fpl_getindex_for_line(yfms, 1);
+        if (yfms->data.phase > FMGS_PHASE_PRE) // flight: can update tracked leg
         {
-            yfms->data.fpln.lg_idx = yfms->data.fpln.xplm_info[t].legindex;     // track
+            int t = XPLMGetDestinationFMSEntry();
+            if (t < yfms->data.fpln.xplm_last + 1)
+            {
+                yfms->data.fpln.lg_idx = yfms->data.fpln.xplm_info[t].legindex;
+            }
         }
         for (int i = 1, set = 0; i <= yfms->data.fpln.xplm_last; i++)
         {
             if (set > 0 && yfms->data.fpln.xplm_info[i].legindex > s)
             {
-                XPLMSetDisplayedFMSEntry(set); break;                           // display
+                //fixme: A380
+                XPLMSetDisplayedFMSEntry(set); break;
             }
             if (yfms->data.fpln.xplm_info[i].legindex >= s)
             {
@@ -813,10 +808,8 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)
     /* Update index to tracked leg as required */
     if (yfms->data.fpln.mod.operation != YFS_FPLN_MOD_DCTO)
     {
-        if (yfms->data.fpln.lg_idx == 0)
+        if (yfms->data.phase <= FMGS_PHASE_PRE && yfms->data.fpln.lg_idx == 0)
         {
-            // inserting leg before index 0 becomes a poor man's "direct to"
-            // rationale: inserting before leg 0 will only happen on ground
             goto end;
         }
         if (tracking_destination)
@@ -890,6 +883,30 @@ end:/* We should be fully synced with navdlib now */
     yfms->data.fpln.mod.source    = NULL;
     yfms->data.fpln.mod.operation = YFS_FPLN_MOD_NONE;
     xplm_fpln_sync(yfms); return yfs_fpln_pageupdt(yfms);
+}
+
+void yfs_fpln_trackleg(yfms_context *yfms, int index)
+{
+    if (index < 0)
+    {
+        index = yfms->data.fpln.lg_idx;
+    }
+    for (int i = 0, j = 1; i <= yfms->data.fpln.xplm_last; i++)
+    {
+        if (i && j && yfms->data.fpln.xplm_info[i].legindex >= index)
+        {
+            if (yfms->data.fpln.xplm_info[i].legindex > index)
+            {
+                j = 0; // destination now set to last waypoint of previous leg
+            }
+            if (j)
+            {
+                yfms->data.fpln.lg_idx = index;
+                XPLMSetDestinationFMSEntry(i);
+                return;
+            }
+        }
+    }
 }
 
 void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
@@ -1486,31 +1503,12 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             /*
              * We're trying to insert a leg before the currently tracked leg,
              * which will invariably result in an immediate alteration of the
-             * aircraft's flight path. We have to assume we're doing a direct
-             * to said newly-inserted waypoint, because it's probably the only
-             * thing that makes sense at this point.
-             *
-             * The QPAC FMS simply disallows an insertion before the currently
-             * tracked waypoint, we'll do the same in YFMS with one exception.
-             * If we're tracking the last leg, we're likely in a high-workflow
-             * situation, going to the DIR page to insert a direct is slow and
-             * ineffective, allow insertion of said direct as described above.
-             *
-             * Currently, index == 0 is a special case, because it means we're
-             * still tracking the flight plan's very first leg; doing a direct
-             * to at this point is unlikely, the more obvious use case here is
-             * filling the flight plan on the ground after initialization of
-             * the departure and arrival airports. On the real Airbus FMS, a
-             * flight plan discontinuity will be inserted between the departure
-             * and arrival airport waypoints, so our special case doesn't apply.
+             * aircraft's flight path. Only allow it when we're not in flight.
+             * Also forbid insertion before the currently tracked leg, even on
+             * the ground, if we are tracking said leg after using a direct to.
              */
-            if (index > 0)
+            if (yfms->data.phase > FMGS_PHASE_PRE || yfms->data.fpln.w_tp)
             {
-//              // on second thought, exception is slightly pointless
-//              if (index == ndt_list_count(yfms->data.fpln.legs) - 1)
-//              {
-//                  yfs_fpln_directto(yfms, index, wpt); return;
-//              }
                 yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
             }
         }
