@@ -268,6 +268,17 @@ typedef struct
             ndt_airport *to;      // arrival airport
         }
         init;
+        enum
+        {
+            FMGS_PHASE_END = 0,
+            FMGS_PHASE_PRE = 1,
+            FMGS_PHASE_TOF = 2,
+            FMGS_PHASE_CLB = 3,
+            FMGS_PHASE_CRZ = 4,
+            FMGS_PHASE_DES = 5,
+            FMGS_PHASE_APP = 6,
+            FMGS_PHASE_GOA = 7,
+        } phase;
         struct
         {
             struct
@@ -431,12 +442,14 @@ typedef struct
         // PAGE_FPLN
         XPLMCommandRef direct_to;
         // miscellaneous
+        XPLMDataRef acf_vs0;
         XPLMDataRef true_psi;
         XPLMDataRef latitude;
         XPLMDataRef longitude;
-        XPLMDataRef elevation;
         XPLMDataRef tropopause;
         XPLMDataRef groundspeed;
+        XPLMDataRef elevation_agl;
+        XPLMDataRef elevation_msl;
         // autopilot
         XPLMDataRef machno;
         XPLMDataRef vvi_fpm_pilot;
@@ -444,6 +457,7 @@ typedef struct
         XPLMDataRef altitude_ft_pilot;
         XPLMDataRef airspeed_kts_pilot;
         XPLMDataRef airspeed_dial_kts_mach;
+        XPLMDataRef altitude_dial_mcp_feet;
         XPLMCommandRef knots_mach_toggle;
         // miscellaneous
         XPLMFlightLoop_f fl_callback;

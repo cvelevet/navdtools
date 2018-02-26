@@ -148,6 +148,9 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfms->data.rdio.asrt_delayed_baro_s = 0;
     yfms->data.rdio.asrt_delayed_redraw = 0;
 
+    /* flight phase */
+    yfms->data.phase = FMGS_PHASE_END;
+
     /* all good */
     if (XPIsWidgetVisible(yfms->mwindow.id))
     {
@@ -352,11 +355,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     /* always update aircraft position (TODO: update tracked leg?) */
     yfms->data.aircraft_pos = ndt_position_init(XPLMGetDatad(yfms->xpl.latitude),
                                                 XPLMGetDatad(yfms->xpl.longitude),
-                                                ndt_distance_init((int64_t)(XPLMGetDatad(yfms->xpl.elevation) / .3048), NDT_ALTUNIT_FT));
-
-    //fixme: implement our own transponder automatic mode??
-    //PE: when connecting, also auto-set XPDR code to 1200?
-    //PE: when connected, autoset mode C upon engine start?
+                                                ndt_distance_init((int64_t)(XPLMGetDatad(yfms->xpl.elevation_msl) / .3048), NDT_ALTUNIT_FT));
 
     /*
      * process delayed standby <=> active frequency swap from the radio page
@@ -389,19 +388,111 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     /* if main window visible, update currently displayed page */
     yfs_curr_pageupdt(yfms);
 
+    /* update FMGS phase (inspired by switching conditions, in FMGS P. Guide) */
+    int crzfeet = ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FT);
+    float gskts = XPLMGetDataf(yfms->xpl.groundspeed) * 3.6f / 1.852f;
+    int aglfeet = XPLMGetDataf(yfms->xpl.elevation_agl) / 0.3048f;
+    int mcpfeet = XPLMGetDataf(yfms->xpl.altitude_dial_mcp_feet);
+    int mslfeet = XPLMGetDataf(yfms->xpl.altitude_ft_pilot);
+    int vvi_fpm = XPLMGetDataf(yfms->xpl.vvi_fpm_pilot);
+    switch (yfms->data.phase)
+    {
+        case FMGS_PHASE_END:
+            break;
+        case FMGS_PHASE_PRE:
+            if (crzfeet > 1000)
+            {
+                if (gskts >= 90.0f || gskts >= XPLMGetDataf(yfms->xpl.acf_vs0))
+                {
+                    yfms->data.phase = FMGS_PHASE_TOF;
+                    break;
+                }
+                break;
+            }
+            break;
+        case FMGS_PHASE_TOF:
+            if (crzfeet > 1000)
+            {
+                // TODO: use accel. alt. instead of AGL elevation
+                if (aglfeet > 1000 || (crzfeet - mslfeet) < 1000)
+                {
+                    yfms->data.phase = FMGS_PHASE_CLB;
+                    break;
+                }
+                break;
+            }
+            break;
+        case FMGS_PHASE_CLB:
+            if (crzfeet > 1000)
+            {
+                if ((crzfeet - mslfeet) < 50)
+                {
+                    yfms->data.phase = FMGS_PHASE_CRZ;
+                    break;
+                }
+                break;
+            }
+            break;
+        case FMGS_PHASE_CRZ:
+            if (crzfeet > 1000)
+            {
+                // TODO: passing T/D condition
+                if (vvi_fpm < -250) // descending
+                {
+                    /// TODO: not descent if distance reaming > 200nm
+                    if ((crzfeet - mcpfeet) < 1000)
+                    {
+                        yfms->data.phase = FMGS_PHASE_DES;
+                        break;
+                    }
+                }
+                break;
+            }
+            break;
+        case FMGS_PHASE_DES:
+            if (crzfeet > 1000)
+            {
+                break; // TODO: auto-activate APP at deceleration point
+            }
+            break;
+        case FMGS_PHASE_GOA:
+            if (crzfeet > 1000)
+            {
+                break; // TODO: auto-activate APP at deceleration point
+            }
+            break;
+        case FMGS_PHASE_APP:
+            if (crzfeet > 1000)
+            {
+                break; // TODO: activate GOA when applicable
+            }
+            break;
+	default:
+            break;
+    }
+    if (aglfeet < 50)
+    {
+        if ((gskts < 90.0f && gskts < XPLMGetDataf(yfms->xpl.acf_vs0)) ||
+            (gskts < 40.0f)) // TODO: wait 30 seconds, ignore groundspeed
+        {
+            yfms->data.phase = FMGS_PHASE_END;
+            return .25f; // TODO: delete XPLM plan, reset YFMS, clear scratchpad
+        }
+    }
+    // TODO: NEW CRZ ALT (may happen during either of CLB/CRZ), re-enter CLB if required
+
     /* autopilot-related functions */
     if (yfms->xpl.otto.vmax_auto)
     {
-        int vspeed_ft_min = XPLMGetDataf(yfms->xpl.vvi_fpm_pilot);
-        int airspeed_ismn = XPLMGetDatai(yfms->xpl.airspeed_is_mach);
-        if (vspeed_ft_min < -750 && airspeed_ismn != 0) // Mach Number Descent
+        int airspeed_is_mach = XPLMGetDatai(yfms->xpl.airspeed_is_mach);
+        if (vvi_fpm < -750 && airspeed_is_mach != 0) // Mach Number Descent
         {
             if (yfms->xpl.otto.vmax_flch >= 00)
             {
                 yfms->xpl.otto.vmax_flch  = -1;
             }
             if (yfms->xpl.otto.vmax_flch == -1 && // only switch once per descent
-                yfms->xpl.otto.flt_vmo > XPLMGetDataf(yfms->xpl.altitude_ft_pilot))
+                yfms->xpl.otto.flt_vmo > (float)mslfeet)
             {
                 // passed FL/Vmo descending, switch A/T target to KIAS
                 {
@@ -414,14 +505,14 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                 }
             }
         }
-        if (vspeed_ft_min > +750 && airspeed_ismn == 0) // Indicated KTS Climb
+        if (vvi_fpm > +750 && airspeed_is_mach == 0) // Indicated KTS Climb
         {
             if (yfms->xpl.otto.vmax_flch <= 00)
             {
                 yfms->xpl.otto.vmax_flch  = +1;
             }
             if (yfms->xpl.otto.vmax_flch == +1 && // only switch once per climb
-                yfms->xpl.otto.flt_vmo < XPLMGetDataf(yfms->xpl.altitude_ft_pilot))
+                yfms->xpl.otto.flt_vmo < (float)mslfeet)
             {
                 // passed FL/Vmo climbing, switch A/T target to Mach
                 {
