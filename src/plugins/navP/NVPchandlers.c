@@ -3740,8 +3740,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDataf,   0.0f, "ixeg/733/aircond/aircond_cont_cabin_sel_act");    // Cont. cab. air temper. (normal)
             _DO(1, XPLMSetDataf,   0.0f, "ixeg/733/aircond/aircond_pass_cabin_sel_act");    // Pass. cab. air temper. (normal)
             _DO(1, XPLMSetDataf,   1.0f, "ixeg/733/bleedair/bleedair_recirc_fan_act");      // Bleed air recirc. fans (auto)
-//          _DO(1, XPLMSetDataf, -20.0f, "ixeg/733/ehsi/dh_pt_act");                        // ADI DH REF (cap. side) (reset)   // note: only works when power is on
-//          _DO(1, XPLMSetDataf, -20.0f, "ixeg/733/ehsi/dh_cpt_act");                       // ADI DH REF (f/o. side) (reset)   // note: only works when power is on
             _DO(1, XPLMSetDataf,   2.0f, "ixeg/733/ehsi/ehsi_mode_pt_act");                 // HSI m.sel. (cap. side) (map)
             _DO(1, XPLMSetDataf,   3.0f, "ixeg/733/ehsi/ehsi_mode_cpt_act");                // HSI m.sel. (f/o. side) (ctr)
             _DO(1, XPLMSetDataf,   1.0f, "ixeg/733/ehsi/ehsi_range_pt_act");                // HSI r.sel. (cap. side) ( 20)
@@ -3762,11 +3760,18 @@ static int first_fcall_do(chandler_context *ctx)
                 XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 1, 1);                // Panel (f/o. side): daylight
                 XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 2, 1);                // Panel (backgrnd.): neon off
             }
+            if ((d_ref = XPLMFindDataRef("ixeg/733/misc/smoking_act")))
+            {
+                if (1.0f < XPLMGetDataf(d_ref))
+                {
+                    XPLMSetDataf(d_ref, 1.0f); // ON -> AUTO silent even w/power
+                }
+            }
             if (acf_type_is_engine_running() == 0)
             {
-                float fuel = 3175.0f, zfwt = 33333.3f;
-                acf_type_fuel_set  (ctx->info, &fuel);
-                acf_type_zfwt_set  (ctx->info, &zfwt);
+                float gas = 3175.0f, zfw = 33333.3f;
+                acf_type_fuel_set (ctx->info, &gas);
+                acf_type_zfwt_set (ctx->info, &zfw);
             }
             break;
 
