@@ -288,10 +288,17 @@ acf_info_context* acf_type_info_update()
             global_info->assert.initialized = 0;
             break;
         }
-        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.airbus.fbw")      ||
-            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("QPAC.A380.airbus.fbw") ||
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(      "QPAC.airbus.fbw") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature( "QPAC.A380.airbus.fbw") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(  "ToLiss.A319.systems") ||
             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("ToLiSs.Airbus.systems"))
         {
+            if (!STRN_CASECMP_AUTO(global_info->descrp, "A319") &&
+                !STRN_CASECMP_AUTO(global_info->icaoid, "A319"))
+            {
+                global_info->ac_type = ACF_TYP_A319_TL;
+                break;
+            }
             if (!STRN_CASECMP_AUTO(global_info->author, "QualityPark"))
             {
                 global_info->ac_type = ACF_TYP_A320_QP;
@@ -313,8 +320,8 @@ acf_info_context* acf_type_info_update()
                 global_info->ac_type = ACF_TYP_A380_PH;
                 break;
             }
-            ndt_log("acf_type [warning]: no aircraft type match despite plugin (QPAC.airbus.fbw)\n");
-            global_info->ac_type = ACF_TYP_A320_QP;
+            ndt_log("acf_type [warning]: no aircraft type match despite plugin (AirbusFBW)\n");
+            global_info->ac_type = ACF_TYP_A319_TL;
             break; // still QPAC-based variant
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("bs.x737.plugin"))

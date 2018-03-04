@@ -1367,23 +1367,22 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         }
         switch (ic->ac_type)
         {
+            case ACF_TYP_A319_TL:
+                break;
             case ACF_TYP_A320_FF:
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume / 1.25f);
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume / 1.25f);
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume / 1.25f);
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume / 1.25f);
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume / 1.25f);
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume / 1.25f);
                 break;
             case ACF_TYP_B737_XG:
                 break;
             default:
-                if (ic->ac_type != ACF_TYP_A319_TL)
-                {
-                    XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume);
-                }
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume);
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume);
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume);
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume);
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume);
                 break;
         }
