@@ -1199,6 +1199,12 @@ int nvp_chandlers_update(void *inContext)
             ctx->throt.thall = ctx->ground.idle.throttle_all;
             break;
 
+        case ACF_TYP_A319_TL:
+            ctx->otto.disc.cc.name = "toliss_airbus/ap_disc_left_stick";
+/*untested*/ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+            ctx->otto.conn.cc.name = "toliss_airbus/ap1_push";
+            break;
+
         case ACF_TYP_A320_QP:
         case ACF_TYP_A330_RW:
         case ACF_TYP_A350_FF:
@@ -2533,6 +2539,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             case ACF_TYP_A320_JD:
             case ACF_TYP_A330_JD:
                 return 1; // no callouts for J.A.R. addons
+            case ACF_TYP_A319_TL:
             case ACF_TYP_A320_QP:
             case ACF_TYP_A330_RW:
             case ACF_TYP_A350_FF:
@@ -2972,6 +2979,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     }
                     cdu->i_disabled = 0; break;
 
+                case ACF_TYP_A319_TL:
                 case ACF_TYP_A320_QP:
                 case ACF_TYP_A330_RW:
                     if (NULL == (cdu->command[0] = XPLMFindCommand("AirbusFBW/UndockMCDU1")) ||
@@ -3494,25 +3502,36 @@ static int first_fcall_do(chandler_context *ctx)
             }
             break;
 
+        case ACF_TYP_A319_TL:
         case ACF_TYP_A320_QP:
-            if ((cr = XPLMFindCommand("AirbusFBW/PopUpPedestal1")))
+            if (ctx->info->ac_type == ACF_TYP_A320_QP)
             {
-                XPLMCommandOnce(cr);
+                if ((cr = XPLMFindCommand("AirbusFBW/PopUpPedestal1")))
+                {
+                    XPLMCommandOnce(cr);
+                }
+                _DO(1, XPLMSetDatai, 0, "AirbusFBW/ALT100_1000"); // FCU alt. sel. incr. (1000ft) // no scrollwheel
+            }
+            else
+            {
+                _DO(1, XPLMSetDatai, 0, "AirbusFBW/ALT100_1000"); // FCU alt. sel. incre. (100ft)
             }
             if ((d_ref = XPLMFindDataRef("AirbusFBW/DUBrightness")))
             {
-                float DUBrightness[1] = { 0.8f, };
-                for  (int i = 0; i < 8; i++)
-                {
-                    XPLMSetDatavf(d_ref, &DUBrightness[0], i, 1);
-                }
+                float f[8] = { 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, };
+                XPLMSetDatavf(d_ref, f, 0, 8);
             }
             if ((d_ref = XPLMFindDataRef("AirbusFBW/OHPLightSwitches")))
             {
-                int OHPLightSwitches[1] = { 1, };
-                XPLMSetDatavi(d_ref, &OHPLightSwitches[0], 7, 1);                   // strobes: automatic
+                int AOHPLightSwitches[1] = { 1, };
+                XPLMSetDatavi(d_ref, &AOHPLightSwitches[0],  7, 1);                 // strobes: automatic
+                XPLMSetDatavi(d_ref, &AOHPLightSwitches[0], 10, 1);                 // emerg. lights: arm
+                _DO(1, XPLMSetDataf, 0.5f, "AirbusFBW/WXAlphaND1");                 // ND1 weather to 50%
+                _DO(1, XPLMSetDataf, 0.5f, "AirbusFBW/WXAlphaND2");                 // ND2 weather to 50%
             }
-            _DO(1, XPLMSetDatai, 1, "AirbusFBW/ALT100_1000");                       // FCU alt. sel. incr. (1000ft) // no scrollwheel
+            _DO(1, XPLMSetDatai, 1, "AirbusFBW/RMP1Switch");                        // Radio management pan. 1 (on)
+            _DO(1, XPLMSetDatai, 1, "AirbusFBW/RMP2Switch");                        // Radio management pan. 2 (on)
+            _DO(1, XPLMSetDatai, 0, "AirbusFBW/ALT100_1000");                       // FCU alt. sel. incre. (100ft)
             _DO(1, XPLMSetDatai, 3, "AirbusFBW/NDmodeCapt");                        // ND m. sel. (cap. side) (arc)
             _DO(1, XPLMSetDatai, 2, "AirbusFBW/NDmodeFO");                          // ND m. sel. (f/o. side) (nav)
             _DO(1, XPLMSetDatai, 1, "AirbusFBW/NDrangeCapt");                       // ND r. sel. (cap. side) ( 20)
@@ -3521,6 +3540,8 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");  // VOR2 on ND2 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");    // VOR1 on ND1 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/audio_selection_com1"); // C1:TX/RX
+            _DO(0, XPLMSetDatai, 6, "sim/cockpit2/radios/actuators/audio_com_selection");  // C1:TX/RX
             break;
 
         case ACF_TYP_A330_RW:
@@ -4423,6 +4444,12 @@ static int first_fcall_do(chandler_context *ctx)
      */
     switch (ctx->info->ac_type)
     {
+        case ACF_TYP_A319_TL:
+            ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
+            ctx->ground.idle.r_t[0]   = 0.10800f; // IAE/CFM: N1: ~26.1/26.4% @ NTD
+            ctx->ground.idle.r_t[1]   = 0.10800f; // IAE/CFM: N1: ~26.1/26.4% @ NTD
+            ctx->ground.idle.minimums = 1; break;
+
         case ACF_TYP_A320_QP:
             ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
             ctx->ground.idle.r_t[0]   = 0.10875f; // ~26.1% N1 @ NTD
@@ -4664,23 +4691,22 @@ static int first_fcall_do(chandler_context *ctx)
         }
         switch (ctx->info->ac_type)
         {
+            case ACF_TYP_A319_TL:
+                break;
             case ACF_TYP_A320_FF:
-                XPLMSetDataf(ctx->volumes.wvr, 0.20f);
                 XPLMSetDataf(ctx->volumes.fvr, 0.20f);
                 XPLMSetDataf(ctx->volumes.gvr, 0.20f);
                 XPLMSetDataf(ctx->volumes.pvr, 0.20f);
+                XPLMSetDataf(ctx->volumes.wvr, 0.20f);
                 XPLMSetDataf(ctx->volumes.wxr, 0.20f);
                 break;
             case ACF_TYP_B737_XG:
                 break;
             default:
-                if (ctx->info->ac_type != ACF_TYP_A319_TL)
-                {
-                    XPLMSetDataf(ctx->volumes.wvr, 0.25f);
-                }
                 XPLMSetDataf(ctx->volumes.fvr, 0.25f);
                 XPLMSetDataf(ctx->volumes.gvr, 0.25f);
                 XPLMSetDataf(ctx->volumes.pvr, 0.25f);
+                XPLMSetDataf(ctx->volumes.wvr, 0.25f);
                 XPLMSetDataf(ctx->volumes.wxr, 0.25f);
                 break;
         }
