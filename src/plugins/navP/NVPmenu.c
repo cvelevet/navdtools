@@ -1286,6 +1286,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
          * NOTE: NVPchandlers.c, first_fcall_do() has code covering the same
          * functionality, don't forget to update it when making changes here
          */
+        acf_info_context *ic;
         XPLMDataRef tp, cust;
         float vradio, volume;
         switch (itx->mivalue)
@@ -1310,6 +1311,11 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
                 break;
             default:
                 return;
+        }
+        if ((ic = acf_type_info_update()) == NULL)
+        {
+            XPLMSpeakString("Volume error");
+            return;
         }
         if ((tp = XPLMFindDataRef("aerobask/eclipse/m_trk")) && (XPLMGetDataf(tp)))
         {
@@ -1350,24 +1356,36 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             {
                 XPLMSetDataf(cust,        volume); // Carenado 3.0 master slider
             }
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume);
+            if ((ic->ac_type == ACF_TYP_A320_FF) == 1)
+            {
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume / 1.25f);
+            }
+            else if ((ic->ac_type != ACF_TYP_A319_TL))
+            {
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume);
+            }
         }
-        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(XPLM_FF_SIGNATURE))
+        switch (ic->ac_type)
         {
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume / 1.25f);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume / 1.25f);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume / 1.25f);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume / 1.25f);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume / 1.25f);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume / 2.50f);
-        }
-        else
-        {
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume);
-            XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume);
+            case ACF_TYP_A320_FF:
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume / 1.25f);
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume / 1.25f);
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume / 1.25f);
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume / 1.25f);
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume / 1.25f);
+                break;
+            case ACF_TYP_B737_XG:
+                break;
+            default:
+                if (ic->ac_type != ACF_TYP_A319_TL)
+                {
+                    XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume);
+                }
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume);
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume);
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume);
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume);
+                break;
         }
         XPLMSetDataf(ctx->data.volume_prsts.dr_vol_atc, vradio);
         XPLMSetDatai(ctx->data.volume_prsts.dr_all_snd, 1);

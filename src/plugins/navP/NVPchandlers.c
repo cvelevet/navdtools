@@ -4653,24 +4653,36 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 XPLMSetDataf(ctx->volumes.tmp, 0.25f); // Carenado 3.0 master slider
             }
-            XPLMSetDataf(ctx->volumes.evr, 0.25f);
+            if ((ctx->info->ac_type == ACF_TYP_A320_FF) == 1)
+            {
+                XPLMSetDataf(ctx->volumes.evr, 0.20f);
+            }
+            else if ((ctx->info->ac_type != ACF_TYP_A319_TL))
+            {
+                XPLMSetDataf(ctx->volumes.evr, 0.25f);
+            }
         }
-        if (ctx->info->ac_type == ACF_TYP_A320_FF)
+        switch (ctx->info->ac_type)
         {
-            XPLMSetDataf(ctx->volumes.evr, 0.25f / 1.25f);
-            XPLMSetDataf(ctx->volumes.wxr, 0.25f / 1.25f);
-            XPLMSetDataf(ctx->volumes.wvr, 0.25f / 1.25f);
-            XPLMSetDataf(ctx->volumes.gvr, 0.25f / 1.25f);
-            XPLMSetDataf(ctx->volumes.pvr, 0.25f / 1.25f);
-            XPLMSetDataf(ctx->volumes.fvr, 0.25f / 2.50f);
-        }
-        else
-        {
-            XPLMSetDataf(ctx->volumes.wxr, 0.25f);
-            XPLMSetDataf(ctx->volumes.wvr, 0.25f);
-            XPLMSetDataf(ctx->volumes.gvr, 0.25f);
-            XPLMSetDataf(ctx->volumes.pvr, 0.25f);
-            XPLMSetDataf(ctx->volumes.fvr, 0.25f);
+            case ACF_TYP_A320_FF:
+                XPLMSetDataf(ctx->volumes.wvr, 0.20f);
+                XPLMSetDataf(ctx->volumes.fvr, 0.20f);
+                XPLMSetDataf(ctx->volumes.gvr, 0.20f);
+                XPLMSetDataf(ctx->volumes.pvr, 0.20f);
+                XPLMSetDataf(ctx->volumes.wxr, 0.20f);
+                break;
+            case ACF_TYP_B737_XG:
+                break;
+            default:
+                if (ctx->info->ac_type != ACF_TYP_A319_TL)
+                {
+                    XPLMSetDataf(ctx->volumes.wvr, 0.25f);
+                }
+                XPLMSetDataf(ctx->volumes.fvr, 0.25f);
+                XPLMSetDataf(ctx->volumes.gvr, 0.25f);
+                XPLMSetDataf(ctx->volumes.pvr, 0.25f);
+                XPLMSetDataf(ctx->volumes.wxr, 0.25f);
+                break;
         }
         XPLMSetDataf(ctx->volumes.atc, 0.50f);
     }
