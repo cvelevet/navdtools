@@ -88,6 +88,9 @@ typedef struct
 typedef struct
 {
     int              ready;
+    chandler_callback mwcb;
+    XPLMCommandRef   iscst;
+    XPLMDataRef    m_w_ref;
     XPLMDataRef    pkb_ref;
     XPLMCommandRef h_b_max;
     XPLMCommandRef h_b_reg;
@@ -563,6 +566,7 @@ static int chandler_ffap1(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_32apc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_32apd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_32atd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_31isc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_flap_func (                                        float, float, int, void*);
@@ -1104,6 +1108,12 @@ int nvp_chandlers_reset(void *inContext)
         ctx->ground.idle.thrott_array = NULL;
         ctx->ground.idle.minimums = 0;
         ctx->ground.flc_g = NULL;
+    }
+
+    /* Unregister aircraft-specific command handlers */
+    if (ctx->acfspec.qpac.mwcb.handler)
+    {
+        UNREGSTR_CHANDLER(ctx->acfspec.qpac.mwcb);
     }
 
     /* Re-enable Gizmo64 if present */
@@ -3270,6 +3280,18 @@ static int chandler_32atd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
+static int chandler_31isc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        if (XPLMGetDatai(((refcon_qpacfbw*)inRefcon)->m_w_ref) == 0)
+        {
+            XPLMCommandOnce(((refcon_qpacfbw*)inRefcon)->iscst);
+        }
+    }
+    return 1;
+}
+
 static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandBegin) // before X-Plane moves the handle
@@ -4730,6 +4752,14 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
 {
     if (fbw && fbw->ready == 0)
     {
+        if ((fbw->iscst   = XPLMFindCommand("AirbusFBW/PopUpND2")) &&//fixme
+            (fbw->m_w_ref = XPLMFindDataRef("AirbusFBW/MasterWarn")))
+        {
+            if ((fbw->mwcb.command = XPLMFindCommand("sim/annunciator/clear_master_warning")))
+            {
+                REGISTER_CHANDLER(fbw->mwcb, chandler_31isc, 0, fbw);
+            }
+        }
         if ((fbw->pkb_ref = XPLMFindDataRef("1-sim/parckBrake")))
         {
             /*
