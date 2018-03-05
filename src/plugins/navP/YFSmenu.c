@@ -44,6 +44,8 @@
 #include "YFSrdio.h"
 #include "YFSspad.h"
 
+#define DEFAULT_CALLBACK_RATE (0.25f) /* every 1/4 second should (almost) not be perceivable by users */
+
 static void  yfs_key_callback_menu(void *yfms);
 static void  yfs_lsk_callback_menu(void *yfms, int key[2], intptr_t refcon);
 static float yfs_flight_loop_cback(float, float, int, void*);
@@ -378,15 +380,21 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         }
         yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_lvalu, &yfms->data.rdio.asrt_delayed_baro_v);
         yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_s32_rvalu, &yfms->data.rdio.asrt_delayed_baro_v);
-        yfms->data.rdio.asrt_delayed_baro_s = 0; return .125f;
+        yfms->data.rdio.asrt_delayed_baro_s = 0; return 0.125f;
     }
     if (yfms->data.rdio.asrt_delayed_redraw)
     {
-        yfms->data.rdio.asrt_delayed_redraw = 0; return .250f;
+        yfms->data.rdio.asrt_delayed_redraw = 0; return 0.250f;
     }
 
     /* if main window visible, update currently displayed page */
     yfs_curr_pageupdt(yfms);
+
+    /* skip some computations when we're in the "done" flight phase */
+    if (yfms->data.phase <= FMGS_PHASE_END)
+    {
+        return DEFAULT_CALLBACK_RATE;
+    }
 
     /* update FMGS phase (inspired by switching conditions, in FMGS P. Guide) */
     int crzfeet = ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FT);
@@ -476,8 +484,9 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         if ((gskts < 90.0f && gskts < XPLMGetDataf(yfms->xpl.acf_vs0)) ||
             (gskts < 40.0f)) // TODO: wait 30 seconds, ignore groundspeed
         {
+            // TODO: delete XPLM plan, reset YFMS, clear scratchpad
             yfms->data.phase = FMGS_PHASE_END;
-            return .25f; // TODO: delete XPLM plan, reset YFMS, clear scratchpad
+            return DEFAULT_CALLBACK_RATE;
         }
     }
     // TODO: NEW CRZ ALT (may happen during either of CLB/CRZ), re-enter CLB if required
@@ -528,6 +537,5 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         }
     }
 
-    /* every 1/4 second should (almost) not be perceivable by users */
-    return .25f;
+    return DEFAULT_CALLBACK_RATE;
 }
