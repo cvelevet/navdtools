@@ -699,10 +699,6 @@ static int get_transponder_mode(yfms_context *yfms)
         }
         return XPDR_OFF;
     }
-    if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
-    {
-        return XPDR_OFF;
-    }
     if (yfms->xpl.atyp == YFS_ATYP_IXEG)
     {
         if ((int)roundf(XPLMGetDataf(yfms->xpl.ixeg.xpdr_stby_act)) == 2)
@@ -746,6 +742,10 @@ static int get_transponder_mode(yfms_context *yfms)
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB77)
     {
+        if (XPLMGetDatai(yfms->xpl.transponder_mode) == 0)
+        {
+            return XPDR_OFF;
+        }
         switch (XPLMGetDatai(yfms->xpl.fb77.anim_85_switch))
         {
             case 4:
@@ -764,10 +764,10 @@ static int get_transponder_mode(yfms_context *yfms)
     {
         switch (XPLMGetDatai(yfms->xpl.qpac.XPDRPower))
         {
-            case 0:
-                return XPDR_SBY;
             case 1:
                 return XPDR_AUT;
+            case 0:
+                return XPLMGetDatai(yfms->xpl.qpac.XPDRAltitude) ? XPDR_SBY : XPDR_OFF;
             default:
                 return XPLMGetDatai(yfms->xpl.qpac.XPDRAltitude) ? XPDR_ALT : XPDR_GND;
         }
@@ -895,9 +895,11 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
             case XPDR_OFF:
             case XPDR_SBY:
                 XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 0); // STBY
+                XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, mode != XPDR_OFF);
                 break;
             case XPDR_AUT:
-                XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 1); // AUTO
+                XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    1); // AUTO
+                XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1); // ON
                 break;
             case XPDR_TAO:
             case XPDR_TAR:
@@ -905,9 +907,9 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
             case XPDR_ALT:
             default:
                 XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 2); // ON
+                XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, mode != XPDR_GND);
                 break;
         }
-        XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, mode != XPDR_GND);
         return;
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB76)
