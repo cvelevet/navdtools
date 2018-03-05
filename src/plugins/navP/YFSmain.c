@@ -958,6 +958,7 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.qpac.RMP2FreqDownLrg && yfms->xpl.qpac.RMP2FreqDownSml)
             {
                 yfms->xpl.has_custom_nav_radios = 1;
+                yfms->xpl.has_custom_navigation = 1;
                 yfms->xpl.atyp = YFS_ATYP_QPAC; break;
             }
             if (yfms->xpl.q350.pressModeLeft    && yfms->xpl.q350.pressModeRight  &&
@@ -965,6 +966,7 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.q350.pressRightButton && yfms->xpl.q350.pressRightRotary)
             {
                 yfms->xpl.has_custom_nav_radios = 1;
+                yfms->xpl.has_custom_navigation = 1;
                 yfms->xpl.atyp = YFS_ATYP_Q350; break;
             }
             if (yfms->xpl.q380.PeterV1      && yfms->xpl.q380.PeterV2   &&
