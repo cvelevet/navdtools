@@ -200,7 +200,7 @@ static double get_frequency4idt(const char *idt, yfms_context *yfms, int navaid_
     int idx = strlen(idt) - 1;
     if (idt[idx] < 'A' || idt[idx] > 'Z')
     {
-        return -1.; // not an identifier
+        return -2.; // not an identifier
     }
     ndt_distance  distce, newdis;
     ndt_waypoint *navaid = NULL, *currnt;
@@ -1672,10 +1672,16 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
             }
             yfs_spad_reset(yfms, buf, -1); return; // frequency to scratchpad
         }
-        if ((freq = get_frequency4idt(buf, yfms, YVP_NAV_VOR|YVP_NAV_LOC|YVP_NAV_DME)) < 0. &&
-            (freq = get_nav_frequency(buf)) < 0.)
+        if ((freq = get_frequency4idt(buf, yfms, YVP_NAV_VOR|YVP_NAV_LOC|YVP_NAV_DME)) < 0.)
         {
-            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+            if ((freq != -2.))
+            {
+                return yfs_spad_reset(yfms, "NOT IN DATA BASE", -1);
+            }
+            if ((freq = get_nav_frequency(buf)) < 0.)
+            {
+                return yfs_spad_reset(yfms, "FORMAT ERROR", -1);
+            }
         }
         if (key[0] == 0)
         {
@@ -1747,10 +1753,17 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
             strncpy(&buf[0], &yfms->mwindow.screen.text[6][5], 6); buf[6] = 0;
             yfs_spad_reset(yfms, buf, -1); return; // frequency to scratchpad
         }
-        if ((freq = get_frequency4idt(buf, yfms, YVP_NAV_VOR|YVP_NAV_LOC|YVP_NAV_DME)) < 0. &&
-            (freq = get_nav_frequency(buf)) < 0.)
+        if ((freq = get_frequency4idt(buf, yfms, YVP_NAV_VOR|YVP_NAV_LOC|YVP_NAV_DME)) < 0.)
         {
-            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+            if ((freq != -2.))
+            {
+                return yfs_spad_reset(yfms, "NOT IN DATA BASE", -1);
+            }
+            if ((freq = get_nav_frequency(buf)) < 0.)
+            {
+                return yfs_spad_reset(yfms, "FORMAT ERROR", -1);
+            }
+            hz10 = (int)round(freq * 100.);
         }
         else
         {
@@ -1814,10 +1827,16 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
             }
             yfs_spad_reset(yfms, buf, -1); return; // frequency to scratchpad
         }
-        if ((freq = get_frequency4idt(buf, yfms, YVP_NAV_NDB)) < 0. &&
-            (freq = get_adf_frequency(buf)) < 0.)
+        if ((freq = get_frequency4idt(buf, yfms, YVP_NAV_NDB)) < 0.)
         {
-            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+            if ((freq != -2.))
+            {
+                return yfs_spad_reset(yfms, "NOT IN DATA BASE", -1);
+            }
+            if ((freq = get_nav_frequency(buf)) < 0.)
+            {
+                return yfs_spad_reset(yfms, "FORMAT ERROR", -1);
+            }
         }
         switch (yfms->xpl.atyp)
         {
