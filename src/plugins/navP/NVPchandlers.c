@@ -1665,6 +1665,7 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     chandler_context *ctx = inRefcon;
     refcon_braking *rcb = &ctx->bking.rc_brk;
     assert_context *rca = rcb->assert; float p_ratio = 1.0f;
+    float g_speed = XPLMGetDataf(rcb->g_speed) * 3.6f / 1.852f;
     if (rca)
     {
         if (rca->initialized) switch (inPhase)
@@ -1701,8 +1702,17 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     }
                     if (ctx->acfspec.qpac.h_b_max)
                     {
-                        XPLMCommandBegin(ctx->acfspec.qpac.h_b_max);
-                        return 0;
+                        if (g_speed > 2.0f)
+                        {
+                            XPLMCommandBegin((rcb->pcmd = ctx->acfspec.qpac.h_b_max));
+                            return 0;
+                        }
+                        else
+                        {
+                            rcb->pcmd = NULL;
+                        }
+                        // when aircraft is stationary, hold commands act as park
+                        // brake toggles instead, don't use them but fall through
                     }
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type != ACF_TYP_A350_FF)); // use parking brake directly
                     return 0;
@@ -1712,9 +1722,9 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         XPLMSetDataf(rcb->l_b_rat, 0.0f);
                         XPLMSetDataf(rcb->r_b_rat, 0.0f);
                     }
-                    if (ctx->acfspec.qpac.h_b_max)
+                    if (ctx->acfspec.qpac.h_b_max && rcb->pcmd)
                     {
-                        XPLMCommandEnd(ctx->acfspec.qpac.h_b_max);
+                        XPLMCommandEnd(rcb->pcmd);
                     }
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(rcb->p_b_int));
                     return 0;
@@ -1723,10 +1733,6 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     {
                         XPLMSetDataf(rcb->l_b_rat, p_ratio);
                         XPLMSetDataf(rcb->r_b_rat, p_ratio);
-                    }
-                    if (XPLMGetDatai(rcb->a_b_lev) > 1)
-                    {
-                        XPLMCommandOnce(rcb->abto); // disable A/BRK
                     }
                     return 0;
             }
@@ -1751,6 +1757,10 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         case xplm_CommandBegin:
             XPLMSetDataf(rcb->p_b_flt, 0.0f); // release park brake on manual brake application
+            if (XPLMGetDatai(rcb->a_b_lev) > 1)
+            {
+                XPLMCommandOnce(rcb->abto); // disable A/BRK
+            }
             if (rcb->mx.xpcr)
             {
                 XPLMCommandBegin(rcb->mx.xpcr);
@@ -1787,10 +1797,6 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 XPLMSetDataf(rcb->l_b_rat, 0.0f);
                 XPLMSetDataf(rcb->r_b_rat, 0.0f);
-            }
-            if (XPLMGetDatai(rcb->a_b_lev) > 1)
-            {
-                XPLMCommandOnce(rcb->abto); // disable A/BRK
             }
             XPLMSetDataf(rcb->p_b_rat, XPLMGetDataf(rcb->p_b_flt));
             return 0;
@@ -1852,9 +1858,22 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     }
                     if (ctx->acfspec.qpac.h_b_reg && ctx->acfspec.qpac.h_b_max)
                     {
-                        // always start with regular braking
-                        XPLMCommandBegin((rcb->pcmd = ctx->acfspec.qpac.h_b_reg));
-                        return 0;
+                        if (g_speed > 40.0f)
+                        {
+                            XPLMCommandBegin((rcb->pcmd = ctx->acfspec.qpac.h_b_max));
+                            return 0;
+                        }
+                        if (g_speed > 2.0f)
+                        {
+                            XPLMCommandBegin((rcb->pcmd = ctx->acfspec.qpac.h_b_reg));
+                            return 0;
+                        }
+                        else
+                        {
+                            rcb->pcmd = NULL;
+                        }
+                        // when aircraft is stationary, hold commands act as park
+                        // brake toggles instead, don't use them but fall through
                     }
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type != ACF_TYP_A350_FF)); // use parking brake directly
                     return 0;
@@ -1864,37 +1883,13 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         XPLMSetDataf(rcb->l_b_rat, 0.0f);
                         XPLMSetDataf(rcb->r_b_rat, 0.0f);
                     }
-                    if (ctx->acfspec.qpac.h_b_reg && ctx->acfspec.qpac.h_b_max)
+                    if (ctx->acfspec.qpac.h_b_reg && ctx->acfspec.qpac.h_b_max && rcb->pcmd)
                     {
-                        XPLMCommandEnd(ctx->acfspec.qpac.h_b_max);
-                        XPLMCommandEnd(ctx->acfspec.qpac.h_b_reg);
+                        XPLMCommandEnd(rcb->pcmd);
                     }
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(rcb->p_b_int));
                     return 0;
                 default: // xplm_CommandContinue
-                    if (ctx->acfspec.qpac.h_b_reg && ctx->acfspec.qpac.h_b_max)
-                    {
-                        // adjust braking strength for speed
-                        if (g_speed > 30.0f)
-                        {
-                            if (rcb->pcmd != ctx->acfspec.qpac.h_b_max)
-                            {
-                                XPLMCommandEnd  ((rcb->pcmd));
-                                XPLMCommandBegin((rcb->pcmd = ctx->acfspec.qpac.h_b_max));
-                                return 0;
-                            }
-                        }
-                        else
-                        {
-                            if (rcb->pcmd != ctx->acfspec.qpac.h_b_reg)
-                            {
-                                XPLMCommandEnd  ((rcb->pcmd));
-                                XPLMCommandBegin((rcb->pcmd = ctx->acfspec.qpac.h_b_reg));
-                                return 0;
-                            }
-                        }
-                        return 0;
-                    }
                     if (rcb->use_pkb == 0)
                     {
                         XPLMSetDataf(rcb->l_b_rat, p_ratio);
@@ -1928,6 +1923,10 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         case xplm_CommandBegin:
             XPLMSetDataf(rcb->p_b_flt, 0.0f); // release park brake on manual brake application
+            if (XPLMGetDatai(rcb->a_b_lev) > 1)
+            {
+                XPLMCommandOnce(rcb->abto); // disable A/BRK
+            }
             if (rcb->rg.xpcr && rcb->mx.xpcr)
             {
                 // always start with regular braking
@@ -4771,24 +4770,11 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
         if ((fbw->h_b_max = XPLMFindCommand("sim/flight_controls/brakes_max"    )) &&
             (fbw->h_b_reg = XPLMFindCommand("sim/flight_controls/brakes_regular")))
         {
-            if ((fbw->pkb_ref = XPLMFindDataRef("com/petersaircraft/airbus/ParkBrake")))
+            if ((fbw->pkb_ref = XPLMFindDataRef("AirbusFBW/ParkBrake")) ||
+                (fbw->pkb_ref = XPLMFindDataRef("com/petersaircraft/airbus/ParkBrake")))
             {
                 /*
-                 * Peter's A380 seems less twitchy than the other QPACs…
-                 */
-                (fbw->ready = 1); return 0;
-            }
-            if ((fbw->pkb_ref = XPLMFindDataRef("AirbusFBW/ParkBrake")))
-            {
-                /*
-                 * The QPAC A320 and RWDesigns's braking is so twitchy, we
-                 * simply bypass braking commands altogether; instead use
-                 * the parking brake toggle directly…
-                 */
-                (fbw->h_b_max = fbw->h_b_reg = NULL);
-
-                /*
-                 * We're (finally) good to go!
+                 * We're good to go!
                  */
                 (fbw->ready = 1); return 0;
             }
