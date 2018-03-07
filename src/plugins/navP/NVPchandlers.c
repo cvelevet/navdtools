@@ -182,37 +182,10 @@ typedef struct
     int        kill_daniel;
     void     *menu_context;
     acf_info_context *info;
-
-    /*
-     * Note to self: the QPAC plugin (at least A320) seems to overwrite radio
-     * frequency datarefs with its own; I found the datarefs but they're not
-     * writable. There are custom commands though:
-     *
-     * - AirbusFBW/RMP3FreqUpLrg
-     * - AirbusFBW/RMP3FreqUpSml
-     * - AirbusFBW/RMP3FreqDownLrg
-     * - AirbusFBW/RMP3FreqDownSml
-     * - AirbusFBW/RMP3Swap etc.
-     *
-     * A plugin could control radio frequencies manually via said commands.
-     *
-     * It's worth noting that RMP1 != COM1, RMP2 != COM2; each RMP may control
-     * either of COM1 or 2; before changing frequencies via an RMP, we must set
-     * the RMP to the COM radio we want to change frequency for using the
-     * relevant custom command:
-     *
-     * - AirbusFBW/VHF1RMP3
-     * - AirbusFBW/VHF2RMP3
-     *
-     * RMP3 should be the backup radio panel located overhead the pilots.
-     */
     refcon_volumes volumes;
-
-    refcon_ground ground;
-
-    refcon_thrust throt;
-
-    refcon_gear gear;
+    refcon_ground   ground;
+    refcon_thrust    throt;
+    refcon_gear       gear;
 
     struct
     {
@@ -3286,6 +3259,7 @@ static int chandler_31isc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (XPLMGetDatai(((refcon_qpacfbw*)inRefcon)->m_w_ref) == 0)
         {
             XPLMCommandOnce(((refcon_qpacfbw*)inRefcon)->iscst);
+            return 0; // bypass the ToLiSS plugin (and X-Plane)
         }
     }
     return 1;
@@ -4759,7 +4733,7 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
         {
             if ((fbw->mwcb.command = XPLMFindCommand("sim/annunciator/clear_master_warning")))
             {
-                REGISTER_CHANDLER(fbw->mwcb, chandler_31isc, 0, fbw);
+                REGISTER_CHANDLER(fbw->mwcb, chandler_31isc, 1/*before ToLiSS plugin*/, fbw);
             }
         }
         if ((fbw->pkb_ref = XPLMFindDataRef("1-sim/parckBrake")))
