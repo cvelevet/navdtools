@@ -4701,6 +4701,10 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 XPLMSetDataf(ctx->volumes.tmp, 0.25f); // Carenado 3.0 master slider
             }
+            if ((ctx->volumes.tmp = XPLMFindDataRef("toliss_airbus/master_volume")))
+            {
+                XPLMSetDataf(ctx->volumes.tmp, 0.25f); // ToLiSS-A319: master slider
+            }
             if ((ctx->info->ac_type == ACF_TYP_A320_FF) == 1)
             {
                 XPLMSetDataf(ctx->volumes.evr, 0.20f);
@@ -4713,6 +4717,7 @@ static int first_fcall_do(chandler_context *ctx)
         switch (ctx->info->ac_type)
         {
             case ACF_TYP_A319_TL:
+            case ACF_TYP_B737_XG:
                 break;
             case ACF_TYP_A320_FF:
                 XPLMSetDataf(ctx->volumes.fvr, 0.20f);
@@ -4720,8 +4725,6 @@ static int first_fcall_do(chandler_context *ctx)
                 XPLMSetDataf(ctx->volumes.pvr, 0.20f);
                 XPLMSetDataf(ctx->volumes.wvr, 0.20f);
                 XPLMSetDataf(ctx->volumes.wxr, 0.20f);
-                break;
-            case ACF_TYP_B737_XG:
                 break;
             default:
                 XPLMSetDataf(ctx->volumes.fvr, 0.25f);
@@ -4751,8 +4754,8 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
 {
     if (fbw && fbw->ready == 0)
     {
-        if ((fbw->iscst   = XPLMFindCommand("AirbusFBW/PopUpND2")) &&//fixme
-            (fbw->m_w_ref = XPLMFindDataRef("AirbusFBW/MasterWarn")))
+        if ((fbw->m_w_ref = XPLMFindDataRef("AirbusFBW/MasterWarn")) &&
+            (fbw->iscst   = XPLMFindCommand("toliss_airbus/iscs_open")))
         {
             if ((fbw->mwcb.command = XPLMFindCommand("sim/annunciator/clear_master_warning")))
             {

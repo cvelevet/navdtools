@@ -1356,6 +1356,10 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             {
                 XPLMSetDataf(cust,        volume); // Carenado 3.0 master slider
             }
+            if ((cust = XPLMFindDataRef("toliss_airbus/master_volume")))
+            {
+                XPLMSetDataf(cust,        volume); // ToLiSS-A319: master slider
+            }
             if ((ic->ac_type == ACF_TYP_A320_FF) == 1)
             {
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume / 1.25f);
@@ -1368,6 +1372,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         switch (ic->ac_type)
         {
             case ACF_TYP_A319_TL:
+            case ACF_TYP_B737_XG:
                 break;
             case ACF_TYP_A320_FF:
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume / 1.25f);
@@ -1375,8 +1380,6 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume / 1.25f);
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume / 1.25f);
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume / 1.25f);
-                break;
-            case ACF_TYP_B737_XG:
                 break;
             default:
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume);
