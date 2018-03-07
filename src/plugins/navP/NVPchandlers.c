@@ -3254,7 +3254,7 @@ static int chandler_32atd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_31isc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    if (inPhase == xplm_CommandEnd)
+    if (inPhase == xplm_CommandBegin) // before any other processing takes place
     {
         if (XPLMGetDatai(((refcon_qpacfbw*)inRefcon)->m_w_ref) == 0)
         {
