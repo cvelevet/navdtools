@@ -490,6 +490,7 @@ typedef struct
         } ixeg;
         struct
         {
+            XPLMDataRef XPDR[4];
             XPLMDataRef XPDRPower;
             XPLMDataRef XPDRAltitude;
             XPLMDataRef BaroUnitCapt;

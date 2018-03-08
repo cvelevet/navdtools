@@ -992,6 +992,19 @@ static void set_transponder_code(yfms_context *yfms, int code)
     {
         uint32_t u32_code = code; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_code, &u32_code); return;
     }
+    if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+    {
+        int xpdr[4];
+        xpdr[0] = (code / 1000); code = (code % 1000);
+        xpdr[1] = (code /  100); code = (code %  100);
+        xpdr[2] = (code /   10); code = (code %   10);
+        xpdr[3] = (code /    1); code = (code %    1);
+        XPLMSetDatai(yfms->xpl.qpac.XPDR[0], xpdr[0]);
+        XPLMSetDatai(yfms->xpl.qpac.XPDR[1], xpdr[1]);
+        XPLMSetDatai(yfms->xpl.qpac.XPDR[2], xpdr[2]);
+        XPLMSetDatai(yfms->xpl.qpac.XPDR[3], xpdr[3]);
+        return;
+    }
     XPLMSetDatai(yfms->xpl.transponder_code, code); return;
 }
 

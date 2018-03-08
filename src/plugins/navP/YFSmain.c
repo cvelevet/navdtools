@@ -815,6 +815,10 @@ static void toggle_main_window(yfms_context *yfms)
             yfms->xpl.ixeg.radios_adf2_010_act    = XPLMFindDataRef("ixeg/733/radios/radios_adf2_010_act"       );
             yfms->xpl.ixeg.radios_adf2_001_act    = XPLMFindDataRef("ixeg/733/radios/radios_adf2_001_act"       );
             yfms->xpl.ixeg.baro_inhg_sby_0001_ind = XPLMFindDataRef("ixeg/733/altimeter/baro_inhg_sby_0001_ind" );
+            yfms->xpl.qpac.XPDR[0]                = XPLMFindDataRef("AirbusFBW/XPDR4"                           );
+            yfms->xpl.qpac.XPDR[1]                = XPLMFindDataRef("AirbusFBW/XPDR3"                           );
+            yfms->xpl.qpac.XPDR[2]                = XPLMFindDataRef("AirbusFBW/XPDR2"                           );
+            yfms->xpl.qpac.XPDR[3]                = XPLMFindDataRef("AirbusFBW/XPDR1"                           );
             yfms->xpl.qpac.XPDRPower              = XPLMFindDataRef("AirbusFBW/XPDRPower"                       );
             yfms->xpl.qpac.XPDRAltitude           = XPLMFindDataRef("AirbusFBW/XPDRAltitude"                    );
             yfms->xpl.qpac.BaroUnitCapt           = XPLMFindDataRef("AirbusFBW/BaroUnitCapt"                    );
@@ -947,7 +951,9 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.has_custom_navigation = 1;
                 yfms->xpl.atyp = YFS_ATYP_IXEG; break;
             }
-            if (yfms->xpl.qpac.XPDRPower       && yfms->xpl.qpac.XPDRAltitude    &&
+            if (yfms->xpl.qpac.XPDR[0]         && yfms->xpl.qpac.XPDR[1]         &&
+                yfms->xpl.qpac.XPDR[2]         && yfms->xpl.qpac.XPDR[3]         &&
+                yfms->xpl.qpac.XPDRPower       && yfms->xpl.qpac.XPDRAltitude    &&
                 yfms->xpl.qpac.BaroUnitCapt    && yfms->xpl.qpac.BaroStdCapt     &&
                 yfms->xpl.qpac.BaroUnitFO      && yfms->xpl.qpac.BaroStdFO       &&
                 yfms->xpl.qpac.RMPSwapCapt     && yfms->xpl.qpac.RMPSwapCo       &&
