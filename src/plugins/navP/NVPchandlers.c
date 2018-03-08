@@ -4707,8 +4707,10 @@ static int first_fcall_do(chandler_context *ctx)
         }
         switch (ctx->info->ac_type)
         {
-            case ACF_TYP_A319_TL:
             case ACF_TYP_B737_XG:
+                break;
+            case ACF_TYP_A319_TL:
+                XPLMSetDataf(ctx->volumes.pvr, 0.25f);
                 break;
             case ACF_TYP_A320_FF:
                 XPLMSetDataf(ctx->volumes.fvr, 0.20f);
