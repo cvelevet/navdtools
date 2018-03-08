@@ -90,7 +90,7 @@ typedef struct
     int              ready;
     chandler_callback mwcb;
     XPLMCommandRef   iscst;
-    XPLMDataRef    m_w_ref;
+    XPLMDataRef    gpws[4];
     XPLMDataRef    pkb_ref;
     XPLMCommandRef h_b_max;
     XPLMCommandRef h_b_reg;
@@ -3256,7 +3256,10 @@ static int chandler_31isc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     if (inPhase == xplm_CommandBegin) // before any other processing takes place
     {
-        if (XPLMGetDatai(((refcon_qpacfbw*)inRefcon)->m_w_ref) == 0)
+        if (XPLMGetDataf(((refcon_qpacfbw*)inRefcon)->gpws[0]) < 0.5f &&
+            XPLMGetDataf(((refcon_qpacfbw*)inRefcon)->gpws[1]) < 0.5f &&
+            XPLMGetDataf(((refcon_qpacfbw*)inRefcon)->gpws[2]) < 0.5f &&
+            XPLMGetDataf(((refcon_qpacfbw*)inRefcon)->gpws[3]) < 0.5f)
         {
             XPLMCommandOnce(((refcon_qpacfbw*)inRefcon)->iscst);
             return 0; // bypass the ToLiSS plugin (and X-Plane)
@@ -4742,10 +4745,13 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
 {
     if (fbw && fbw->ready == 0)
     {
-        if ((fbw->m_w_ref = XPLMFindDataRef("AirbusFBW/MasterWarn")) &&
-            (fbw->iscst   = XPLMFindCommand("toliss_airbus/iscs_open")))
+        if ((fbw->mwcb.command = XPLMFindCommand("AirbusFBW/GPWSMute")) &&
+            (fbw->iscst        = XPLMFindCommand("toliss_airbus/iscs_open")))
         {
-            if ((fbw->mwcb.command = XPLMFindCommand("sim/annunciator/clear_master_warning")))
+            if ((fbw->gpws[0] = XPLMFindDataRef("ckpt/lamp/205")) &&
+                (fbw->gpws[1] = XPLMFindDataRef("ckpt/lamp/206")) &&
+                (fbw->gpws[2] = XPLMFindDataRef("ckpt/lamp/221")) &&
+                (fbw->gpws[3] = XPLMFindDataRef("ckpt/lamp/222")))
             {
                 REGISTER_CHANDLER(fbw->mwcb, chandler_31isc, 1/*before ToLiSS plugin*/, fbw);
             }
