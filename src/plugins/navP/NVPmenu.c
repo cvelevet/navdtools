@@ -1371,8 +1371,10 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         }
         switch (ic->ac_type)
         {
-            case ACF_TYP_A319_TL:
             case ACF_TYP_B737_XG:
+                break;
+            case ACF_TYP_A319_TL:
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume);
                 break;
             case ACF_TYP_A320_FF:
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume / 1.25f);
