@@ -3486,14 +3486,6 @@ static int first_fcall_do(chandler_context *ctx)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_lft, &defaults_u32[3]); // ND r. sel. (cap. side) ( 20)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_rgt, &defaults_u32[4]); // ND r. sel. (f/o. side) (160)
                 rca->api.ValueSet(rca->dat.id_u32_emer_lights_mode, &defaults_u32[5]); // arm em. exit lts
-
-                /* Re-register some callbacks: to get calls before the plugin */
-                UNREGSTR_CHANDLER(ctx->gear.landing_gear_toggle);
-                UNREGSTR_CHANDLER(ctx->gear.  landing_gear_down);
-                UNREGSTR_CHANDLER(ctx->gear.    landing_gear_up);
-                REGISTER_CHANDLER(ctx->gear.    landing_gear_up, chandler_ghndl, 1, &ctx->gear);
-                REGISTER_CHANDLER(ctx->gear.  landing_gear_down, chandler_ghndl, 1, &ctx->gear);
-                REGISTER_CHANDLER(ctx->gear.landing_gear_toggle, chandler_ghndl, 1, &ctx->gear);
             }
             break;
 
@@ -4411,6 +4403,14 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1200, "sim/cockpit2/radios/actuators/transponder_code");
             break;
     }
+
+    /* Re-register gear callbacks (get calls before any newly-loaded plugins) */
+    UNREGSTR_CHANDLER(ctx->gear.landing_gear_toggle);
+    UNREGSTR_CHANDLER(ctx->gear.  landing_gear_down);
+    UNREGSTR_CHANDLER(ctx->gear.    landing_gear_up);
+    REGISTER_CHANDLER(ctx->gear.    landing_gear_up, chandler_ghndl, 1, &ctx->gear);
+    REGISTER_CHANDLER(ctx->gear.  landing_gear_down, chandler_ghndl, 1, &ctx->gear);
+    REGISTER_CHANDLER(ctx->gear.landing_gear_toggle, chandler_ghndl, 1, &ctx->gear);
 
     /* resolve addon-specific references early (might be faster?) */
     chandler_command *list[] =
