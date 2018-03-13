@@ -1302,6 +1302,10 @@ int nvp_chandlers_update(void *inContext)
         default: // not generic but no usable commands
             break;
     }
+    // new addon type: clear refs
+    ctx->otto.conn.cc.xpcr = NULL;
+    ctx->otto.disc.cc.xpcr = NULL;
+    ctx->athr.disc.cc.xpcr = NULL;
 
     /* plane-specific braking ratios */
     if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
