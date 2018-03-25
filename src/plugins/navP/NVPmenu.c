@@ -91,6 +91,7 @@ typedef struct
         MENUITEM_XFLTS1_SM_IC,
         MENUITEM_XFLTS1_NABLE,
         MENUITEM_XFLTS1_DSBLE,
+        MENUITEM_RESET_ALLSYS,
         MENUITEM_CALLOUTS_STS,
         MENUITEM_SPEEDBOOSTER,
         MENUITEM_CLOUD_KILLER,
@@ -150,6 +151,7 @@ typedef struct
             item_context    nable;
             item_context    dsble;
         } xflts1;
+        item_context reset_allsys;
         item_context callouts_sts;
         item_context speedbooster;
         item_context cloud_killer;
@@ -262,6 +264,11 @@ typedef struct
         {
             XPLMPluginID plugin_id;
         } xfsr;
+
+        struct
+        {
+            XPLMCommandRef all_sys_op;
+        } reset;
 
         struct
         {
@@ -596,6 +603,21 @@ void* nvp_menu_init(void)
                 goto fail;
             }
         }
+    }
+
+    /* failure reset helper */
+    if (append_menu_item("Reset all failures", &ctx->items.reset_allsys,
+                         MENUITEM_RESET_ALLSYS, ctx->id))
+    {
+        goto fail;
+    }
+    else
+    {
+        XPLMAppendMenuSeparator(ctx->id);
+    }
+    if ((ctx->data.reset.all_sys_op = XPLMFindCommand("sim/operation/fix_all_systems")) == NULL)
+    {
+        goto fail;
     }
 
     /* toggle: callouts on/off */
@@ -1146,6 +1168,13 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
 
     if (itx->mivalue == MENUITEM_NOTHING_TODO)
     {
+        return;
+    }
+
+    if (itx->mivalue == MENUITEM_RESET_ALLSYS)
+    {
+        XPLMCommandOnce(ctx->data.reset.all_sys_op);
+        XPLMSpeakString("default failures fixed");
         return;
     }
 
