@@ -90,6 +90,7 @@ typedef struct
     int              ready;
     chandler_callback mwcb;
     XPLMCommandRef   iscst;
+    XPLMDataRef    tolb[3];
     XPLMDataRef    gpws[4];
     XPLMDataRef    pkb_ref;
     XPLMCommandRef h_b_max;
@@ -1673,13 +1674,24 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     XPLMSetDatai(rcb->p_b_int, (ctx->info->ac_type == ACF_TYP_A350_FF));
                     if (rcb->use_pkb == 0)
                     {
-                        XPLMSetDataf(rcb->l_b_rat, p_ratio); XPLMSetDataf(rcb->r_b_rat, p_ratio);
                         XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type == ACF_TYP_A350_FF));
+                    }
+                    if (ctx->acfspec.qpac.tolb[2])
+                    {
+                        XPLMSetDatai(ctx->acfspec.qpac.tolb[2], 1);
+                        XPLMSetDataf(ctx->acfspec.qpac.tolb[1], p_ratio);
+                        XPLMSetDataf(ctx->acfspec.qpac.tolb[0], p_ratio);
+                        return 0;
+                    }
+                    if (rcb->use_pkb == 0)
+                    {
+                        XPLMSetDataf(rcb->l_b_rat, p_ratio);
+                        XPLMSetDataf(rcb->r_b_rat, p_ratio);
                         return 0;
                     }
                     if (ctx->acfspec.qpac.h_b_max)
                     {
-                        if (g_speed > 2.0f)
+                        if (g_speed > 3.0f)
                         {
                             XPLMCommandBegin((rcb->pcmd = ctx->acfspec.qpac.h_b_max));
                             return 0;
@@ -1694,6 +1706,12 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type != ACF_TYP_A350_FF)); // use parking brake directly
                     return 0;
                 case xplm_CommandEnd:
+                    if (ctx->acfspec.qpac.tolb[2])
+                    {
+                        XPLMSetDataf(ctx->acfspec.qpac.tolb[0], 0.0f);
+                        XPLMSetDataf(ctx->acfspec.qpac.tolb[1], 0.0f);
+                        XPLMSetDatai(ctx->acfspec.qpac.tolb[2], 0);
+                    }
                     if (rcb->use_pkb == 0)
                     {
                         XPLMSetDataf(rcb->l_b_rat, 0.0f);
@@ -1706,6 +1724,10 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(rcb->p_b_int));
                     return 0;
                 default: // xplm_CommandContinue
+                    if (ctx->acfspec.qpac.tolb[2])
+                    {
+                        return 0;
+                    }
                     if (rcb->use_pkb == 0)
                     {
                         XPLMSetDataf(rcb->l_b_rat, p_ratio);
@@ -1829,8 +1851,19 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     XPLMSetDatai(rcb->p_b_int, (ctx->info->ac_type == ACF_TYP_A350_FF));
                     if (rcb->use_pkb == 0)
                     {
-                        XPLMSetDataf(rcb->l_b_rat, p_ratio); XPLMSetDataf(rcb->r_b_rat, p_ratio);
                         XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type == ACF_TYP_A350_FF));
+                    }
+                    if (ctx->acfspec.qpac.tolb[2])
+                    {
+                        XPLMSetDatai(ctx->acfspec.qpac.tolb[2], 1);
+                        XPLMSetDataf(ctx->acfspec.qpac.tolb[1], p_ratio);
+                        XPLMSetDataf(ctx->acfspec.qpac.tolb[0], p_ratio);
+                        return 0;
+                    }
+                    if (rcb->use_pkb == 0)
+                    {
+                        XPLMSetDataf(rcb->l_b_rat, p_ratio);
+                        XPLMSetDataf(rcb->r_b_rat, p_ratio);
                         return 0;
                     }
                     if (ctx->acfspec.qpac.h_b_reg && ctx->acfspec.qpac.h_b_max)
@@ -1840,7 +1873,7 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             XPLMCommandBegin((rcb->pcmd = ctx->acfspec.qpac.h_b_max));
                             return 0;
                         }
-                        if (g_speed > 2.0f)
+                        if (g_speed > 3.0f)
                         {
                             XPLMCommandBegin((rcb->pcmd = ctx->acfspec.qpac.h_b_reg));
                             return 0;
@@ -1855,6 +1888,12 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type != ACF_TYP_A350_FF)); // use parking brake directly
                     return 0;
                 case xplm_CommandEnd:
+                    if (ctx->acfspec.qpac.tolb[2])
+                    {
+                        XPLMSetDataf(ctx->acfspec.qpac.tolb[0], 0.0f);
+                        XPLMSetDataf(ctx->acfspec.qpac.tolb[1], 0.0f);
+                        XPLMSetDatai(ctx->acfspec.qpac.tolb[2], 0);
+                    }
                     if (rcb->use_pkb == 0)
                     {
                         XPLMSetDataf(rcb->l_b_rat, 0.0f);
@@ -1867,6 +1906,12 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(rcb->p_b_int));
                     return 0;
                 default: // xplm_CommandContinue
+                    if (ctx->acfspec.qpac.tolb[2])
+                    {
+                        XPLMSetDataf(ctx->acfspec.qpac.tolb[0], p_ratio);
+                        XPLMSetDataf(ctx->acfspec.qpac.tolb[1], p_ratio);
+                        return 0;
+                    }
                     if (rcb->use_pkb == 0)
                     {
                         XPLMSetDataf(rcb->l_b_rat, p_ratio);
@@ -4770,11 +4815,20 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
             (fbw->h_b_max = fbw->h_b_reg = NULL);
             (fbw->ready = 1); return 0;
         }
-        if ((fbw->h_b_max = XPLMFindCommand("sim/flight_controls/brakes_max"    )) &&
-            (fbw->h_b_reg = XPLMFindCommand("sim/flight_controls/brakes_regular")))
+        if ((fbw->pkb_ref = XPLMFindDataRef("AirbusFBW/ParkBrake")) ||
+            (fbw->pkb_ref = XPLMFindDataRef("com/petersaircraft/airbus/ParkBrake")))
         {
-            if ((fbw->pkb_ref = XPLMFindDataRef("AirbusFBW/ParkBrake")) ||
-                (fbw->pkb_ref = XPLMFindDataRef("com/petersaircraft/airbus/ParkBrake")))
+            if ((fbw->tolb[0] = XPLMFindDataRef("AirbusFBW/BrakePedalInputLeft"))  &&
+                (fbw->tolb[1] = XPLMFindDataRef("AirbusFBW/BrakePedalInputRight")) &&
+                (fbw->tolb[2] = XPLMFindDataRef("AirbusFBW/BrakePedalInputOverride")))
+            {
+                /*
+                 * We're good to go!
+                 */
+                (fbw->ready = 1); return 0;
+            }
+            if ((fbw->h_b_max = XPLMFindCommand("sim/flight_controls/brakes_max"    )) &&
+                (fbw->h_b_reg = XPLMFindCommand("sim/flight_controls/brakes_regular")))
             {
                 /*
                  * We're good to go!
