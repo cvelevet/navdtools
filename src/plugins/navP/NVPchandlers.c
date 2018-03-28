@@ -3525,12 +3525,12 @@ static int first_fcall_do(chandler_context *ctx)
                 {
                     chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc); // XXX: remap hotkeys
                 }
-                uint32_t defaults_u32[6] = { 0, 3, 2, 1, 4, 1, };
+                uint32_t defaults_u32[6] = { 0, 3, 2, 1, 2, 1, };
                 rca->api.ValueSet(rca->dat.id_u32_fcu_tgt_alt_step, &defaults_u32[0]); // FCU alt. sel. incre. (100ft)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &defaults_u32[1]); // ND m. sel. (cap. side) (arc)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_rgt, &defaults_u32[2]); // ND m. sel. (f/o. side) (nav)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_lft, &defaults_u32[3]); // ND r. sel. (cap. side) ( 20)
-                rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_rgt, &defaults_u32[4]); // ND r. sel. (f/o. side) (160)
+                rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_rgt, &defaults_u32[4]); // ND r. sel. (f/o. side) ( 40)
                 rca->api.ValueSet(rca->dat.id_u32_emer_lights_mode, &defaults_u32[5]); // arm em. exit lts
             }
             break;
@@ -3568,7 +3568,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 3, "AirbusFBW/NDmodeCapt");                        // ND m. sel. (cap. side) (arc)
             _DO(1, XPLMSetDatai, 2, "AirbusFBW/NDmodeFO");                          // ND m. sel. (f/o. side) (nav)
             _DO(1, XPLMSetDatai, 1, "AirbusFBW/NDrangeCapt");                       // ND r. sel. (cap. side) ( 20)
-            _DO(1, XPLMSetDatai, 4, "AirbusFBW/NDrangeFO");                         // ND r. sel. (f/o. side) (160)
+            _DO(1, XPLMSetDatai, 2, "AirbusFBW/NDrangeFO");                         // ND r. sel. (f/o. side) ( 40)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");  // VOR1 on ND2 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");  // VOR2 on ND2 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");    // VOR1 on ND1 off
@@ -3590,7 +3590,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 3, "AirbusFBW/NDmodeCapt");                        // ND m. sel. (cap. side) (arc)
             _DO(1, XPLMSetDatai, 2, "AirbusFBW/NDmodeFO");                          // ND m. sel. (f/o. side) (nav)
             _DO(1, XPLMSetDatai, 1, "AirbusFBW/NDrangeCapt");                       // ND r. sel. (cap. side) ( 20)
-            _DO(1, XPLMSetDatai, 4, "AirbusFBW/NDrangeFO");                         // ND r. sel. (f/o. side) (160)
+            _DO(1, XPLMSetDatai, 2, "AirbusFBW/NDrangeFO");                         // ND r. sel. (f/o. side) ( 40)
             _DO(1, XPLMSetDataf,.8f,"A330/LIGHTS/INTEG_LT");                        // ins. label light
             _DO(1, XPLMSetDatai, 1, "A330/lighting/DOME_LIGHT");                    // ambi. dome light
             _DO(1, XPLMSetDatai, 1, "A330/OVERHEAD/EMEREXITLT_SWITCH");             // arm em. exit lts
@@ -3631,7 +3631,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDataf,   3.0f, "1-sim/fcu/ndModeLeft/switch");            // ND m. sel. (cap. side) (arc)
             _DO(1, XPLMSetDataf,   2.0f, "1-sim/fcu/ndModeRight/switch");           // ND m. sel. (f/o. side) (nav)
             _DO(1, XPLMSetDataf,   1.0f, "1-sim/fcu/ndZoomLeft/switch");            // ND r. sel. (cap. side) ( 20)
-            _DO(1, XPLMSetDataf,   4.0f, "1-sim/fcu/ndZoomRight/switch");           // ND r. sel. (f/o. side) (160)
+            _DO(1, XPLMSetDataf,   2.0f, "1-sim/fcu/ndZoomRight/switch");           // ND r. sel. (f/o. side) ( 40)
             _DO(1, XPLMSetDatai,      0, "AirbusFBW/NDShowARPTCapt");               // ND --APT-- (cap. side) (off)
             _DO(1, XPLMSetDatai,      0, "AirbusFBW/NDShowARPTFO");                 // ND --APT-- (f/o. side) (off)
             _DO(1, XPLMSetDatai,      0, "AirbusFBW/NDShowCSTRCapt");               // ND --CST-- (cap. side) (off)
@@ -3797,7 +3797,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDataf,   2.0f, "ixeg/733/ehsi/ehsi_mode_pt_act");                 // HSI m.sel. (cap. side) (map)
             _DO(1, XPLMSetDataf,   3.0f, "ixeg/733/ehsi/ehsi_mode_cpt_act");                // HSI m.sel. (f/o. side) (ctr)
             _DO(1, XPLMSetDataf,   1.0f, "ixeg/733/ehsi/ehsi_range_pt_act");                // HSI r.sel. (cap. side) ( 20)
-            _DO(1, XPLMSetDataf,   4.0f, "ixeg/733/ehsi/ehsi_range_cpt_act");               // HSI r.sel. (f/o. side) (160)
+            _DO(1, XPLMSetDataf,   2.0f, "ixeg/733/ehsi/ehsi_range_cpt_act");               // HSI r.sel. (f/o. side) ( 40)
             _DO(1, XPLMSetDataf,   0.0f, "ixeg/733/rheostats/light_breakers_act");          // Circuit breakers light (off)
             _DO(1, XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_pedpanel_act");          // Panel light (pedestal) (daylight)
             _DO(1, XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_overhead_act");          // Panel light (overhead) (daylight)
@@ -3882,7 +3882,7 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 _DO(1, XPLMSetDatai, 1, "1-sim/ndpanel/2/hsiModeButton");               // ND m. sel. (f/o. side) (ctr)
                 _DO(1, XPLMSetDatai, 2, "1-sim/ndpanel/2/hsiModeRotary");               // ND m. sel. (f/o. side) (map)
-                _DO(1, XPLMSetDatai, 4, "1-sim/ndpanel/2/hsiRangeRotary");              // ND r. sel. (f/o. side) (160)
+                _DO(1, XPLMSetDatai, 2, "1-sim/ndpanel/2/hsiRangeRotary");              // ND r. sel. (f/o. side) ( 40)
                 _DO(1, XPLMSetDatai, 2, "1-sim/ndpanel/1/hsiModeRotary");               // ND m. sel. (cap. side) (map)
                 _DO(1, XPLMSetDatai, 1, "1-sim/ndpanel/1/hsiRangeRotary");              // ND r. sel. (cap. side) ( 20)
                 _DO(1, XPLMSetDatai, 0, "757Avionics/options/PFD/FdType");              // avionics: Integrated Cue FD     (off)
@@ -3907,7 +3907,7 @@ static int first_fcall_do(chandler_context *ctx)
             {
 //              _DO(1, XPLMSetDatai, 1, "1-sim/ndpanel/2/hsiModeButton");               // requires a Modern EFIS Panel
                 _DO(1, XPLMSetDatai, 4, "1-sim/ndpanel/2/hsiModeRotary");               // ND m. sel. (f/o. side) (map)
-                _DO(1, XPLMSetDatai, 4, "1-sim/ndpanel/2/hsiRangeRotary");              // ND r. sel. (f/o. side) (160)
+                _DO(1, XPLMSetDatai, 2, "1-sim/ndpanel/2/hsiRangeRotary");              // ND r. sel. (f/o. side) ( 40)
                 _DO(1, XPLMSetDatai, 4, "1-sim/ndpanel/1/hsiModeRotary");               // ND m. sel. (cap. side) (map)
                 _DO(1, XPLMSetDatai, 1, "1-sim/ndpanel/1/hsiRangeRotary");              // ND r. sel. (cap. side) ( 20)
                 _DO(1, XPLMSetDatai, 1, "757Avionics/options/PFD/FdType");              // avionics: Integrated Cue FD     (yes)
