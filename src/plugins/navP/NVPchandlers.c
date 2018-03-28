@@ -1117,19 +1117,23 @@ void nvp_chandlers_onload(void *inContext)
 {
     chandler_context *ctx = inContext;
     XPLMDataRef dref_temporary = NULL;
-    char xaircraft_desc_str[261] = "";
-    if ((dref_temporary = XPLMFindDataRef("sim/aircraft/view/acf_descrip")))
+    char s[261] = ""; XPLMPluginID gi;
+    // auto-disable Gizmo64 before other aircrafts get to load their own plugins
+    if (XPLM_NO_PLUGIN_ID != (gi = XPLMFindPluginBySignature("gizmo.x-plugins.com")))
     {
-        uf_dref_string_read(dref_temporary, xaircraft_desc_str, sizeof(xaircraft_desc_str));
-        if (!STRN_CASECMP_AUTO(xaircraft_desc_str, "FlightFactor Airbus A320"))
+        if (XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("SilverLiningV2.Clouds") &&
+            XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("SilverLiningV3.Clouds") &&
+            XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("SilverLiningV4.Clouds"))
         {
-            // disable Gizmo64 before the FF320 gets to loads its own plugins
-            XPLMPluginID g64 = XPLMFindPluginBySignature("gizmo.x-plugins.com");
-            if (XPLM_NO_PLUGIN_ID != g64)
+            if ((dref_temporary = XPLMFindDataRef("sim/aircraft/view/acf_author")))
             {
-                if (XPLMIsPluginEnabled(g64))
+                uf_dref_string_read(dref_temporary, s, sizeof(s));
+                if (STRN_CASECMP_AUTO(s, "IXEG") != 0)
                 {
-                    XPLMDisablePlugin(g64);
+                    if (XPLMIsPluginEnabled(gi))
+                    {
+                        XPLMDisablePlugin(gi);
+                    }
                 }
             }
         }
