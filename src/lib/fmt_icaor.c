@@ -1633,7 +1633,7 @@ end:
     return ret;
 }
 
-int ndt_fmt_icaor_print_airportnfo(ndt_navdatabase *ndb, const char *icao)
+int ndt_fmt_icaor_print_airportnfo(ndt_navdatabase *ndb, const char *icao, int rwy_unit)
 {
     ndt_procedure *pr1, *pr2;
     ndt_route_leg       *leg;
@@ -1683,8 +1683,23 @@ int ndt_fmt_icaor_print_airportnfo(ndt_navdatabase *ndb, const char *icao)
     {
         if ((rwy = ndt_list_item(apt->runways, i)))
         {
-            j = ndt_distance_get(rwy->length, NDT_ALTUNIT_FT);
-            k = ndt_distance_get(rwy->width,  NDT_ALTUNIT_FT);
+            j = ndt_distance_get(rwy->length, NDT_ALTUNIT_NA);
+            k = ndt_distance_get(rwy->width,  NDT_ALTUNIT_NA);
+            switch (rwy_unit)
+            {
+                case NDT_ALTUNIT_FT:
+                    j = round(j / 3048.);
+                    k = round(k / 3048.);
+                    break;
+                case NDT_ALTUNIT_ME:
+                    j = round(j / 10000.);
+                    k = round(k / 10000.);
+                    break;
+                default:
+                    j = ndt_distance_get(rwy->length, rwy_unit);
+                    k = ndt_distance_get(rwy->width,  rwy_unit);
+                    break;
+            }
             switch (rwy->ils.avail)
             {
                 case 1:
