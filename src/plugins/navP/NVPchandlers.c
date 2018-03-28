@@ -1671,11 +1671,8 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 case xplm_CommandBegin: // release parkbrake on manual brake application
                     // the FlightFactor-QPAC A350 has its parking brake dataref inverted
-                    XPLMSetDatai(rcb->p_b_int, (ctx->info->ac_type == ACF_TYP_A350_FF));
-                    if (rcb->use_pkb == 0)
-                    {
-                        XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type == ACF_TYP_A350_FF));
-                    }
+                    XPLMSetDatai(rcb->             p_b_int, (ctx->info->ac_type == ACF_TYP_A350_FF));
+                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type == ACF_TYP_A350_FF));
                     if (ctx->acfspec.qpac.tolb[2])
                     {
                         XPLMSetDatai(ctx->acfspec.qpac.tolb[2], 1);
@@ -1848,11 +1845,8 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 case xplm_CommandBegin: // release parkbrake on manual brake application
                     // the FlightFactor-QPAC A350 has its parking brake dataref inverted
-                    XPLMSetDatai(rcb->p_b_int, (ctx->info->ac_type == ACF_TYP_A350_FF));
-                    if (rcb->use_pkb == 0)
-                    {
-                        XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type == ACF_TYP_A350_FF));
-                    }
+                    XPLMSetDatai(rcb->             p_b_int, (ctx->info->ac_type == ACF_TYP_A350_FF));
+                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type == ACF_TYP_A350_FF));
                     if (ctx->acfspec.qpac.tolb[2])
                     {
                         XPLMSetDatai(ctx->acfspec.qpac.tolb[2], 1);
