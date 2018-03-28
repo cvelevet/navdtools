@@ -4328,6 +4328,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "cl300/fms/alt_rep");
             _DO(0, XPLMSetDatai, 1, "cl300/hide_pilots");
             // datarefs: X-Plane default
+            _DO(0,XPLMSetDataf,0.8f,"sim/cockpit/electrical/instrument_brightness"); // set all at once
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");
