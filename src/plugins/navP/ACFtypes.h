@@ -151,6 +151,8 @@ typedef struct
     XPLMDataRef dric;
     int engine_count;
     int engine_type1;
+    int has_auto_thr;
+    int has_rvrs_thr;
     struct
     {
         XPLMDataRef minimum;

@@ -205,6 +205,28 @@ acf_info_context* acf_type_info_update()
             global_info->engine_type1 = t[0];
         }
     }
+    switch (global_info->engine_type1)
+    {
+        case 4: case 5: // twin turbojet/turbofan
+            if ((tmp = XPLMFindDataRef("sim/aircraft/prop/acf_revthrust_eq")))
+            {
+                global_info->has_rvrs_thr = XPLMGetDatai(tmp) != 0;
+            }
+            global_info->has_auto_thr = global_info->engine_count >= 2;
+            break;
+        case 0: case 1: // piston engines
+        case 2: case 8: // and turboprops
+            if ((tmp = XPLMFindDataRef("sim/aircraft/prop/acf_revthrust_eq")))
+            {
+                global_info->has_rvrs_thr = XPLMGetDatai(tmp) ? 1 : -1;
+            }
+            global_info->has_auto_thr = 0;
+            break;
+        default:
+            global_info->has_rvrs_thr = 0;
+            global_info->has_auto_thr = 0;
+            break;
+    }
 
     /* update fuel tank characteristics */
     struct tank_sorter fuel_tank_for_sorting[9]; int lsingles[9];
