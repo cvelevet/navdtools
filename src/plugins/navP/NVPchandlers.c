@@ -3386,21 +3386,18 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 return 0;
             }
             // there isn't a way to set throttle to a given position yet
-            // so, allow finer-grained adjustments using XPLMCommandOnce
-            // we can hold as long desired w/out continuing said command
-            // note: for X-Plane 10 ground model, ideal N1 is ~30% @KNTD
-            //       that's model/controls/engine_lever1 around 0.40000f
-            //       or Aircraft.Cockpit.Pedestal.EngineLever1 ~= 26.26f
-            //       this should equate to 4 calls 2 throttle_up command
-            if (XPLMGetDataf(a320->dat.engine_lever_lt) < 0.31f) // idle
+            // instead, allow adjustments using XPLMCommandOnce but only
+            // towards our "ideal" position - we may need multiple calls
+            if (XPLMGetDataf(a320->dat.engine_lever_lt) < 0.31f &&
+                XPLMGetDataf(a320->dat.engine_lever_rt) < 0.31f) // idle thrust
             {
-                // add 2 calls, for 3 total, should give
-                // enough power to set things in motion,
-                // and 1 call away from our ideal 30% N1
-                XPLMCommandOnce(a320->dat.throttles_up);
                 XPLMCommandOnce(a320->dat.throttles_up);
             }
-            XPLMCommandOnce(a320->dat.throttles_up);
+            if (XPLMGetDataf(a320->dat.engine_lever_lt) > 0.37f ||
+                XPLMGetDataf(a320->dat.engine_lever_rt) > 0.37f) // > ~26.0% N1
+            {
+                XPLMCommandOnce(a320->dat.throttles_dn);
+            }
             return 0;
         }
         if (XPLMGetDataf(ground.idle.throttle_all) < 0.5f)

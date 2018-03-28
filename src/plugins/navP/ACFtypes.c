@@ -594,6 +594,7 @@ int acf_type_info_acf_ctx_init()
         /* Initialize the aircraft's data references via the provided API */
         global_info->assert.dat.ldg_gears_lever         = XPLMFindDataRef                      ("model/controls/gears_lever"                       );
         global_info->assert.dat.engine_lever_lt         = XPLMFindDataRef                      ("model/controls/engine_lever1"                     );
+        global_info->assert.dat.engine_lever_rt         = XPLMFindDataRef                      ("model/controls/engine_lever2"                     );
         global_info->assert.dat.engine_reverse1         = XPLMFindDataRef                      ("model/controls/engine_reverse1"                   );
         global_info->assert.dat.engine_reverse2         = XPLMFindDataRef                      ("model/controls/engine_reverse2"                   );
         global_info->assert.dat.throttles_up            = XPLMFindCommand                      ("sim/engines/throttle_up"                          );

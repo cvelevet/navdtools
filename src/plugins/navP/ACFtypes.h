@@ -110,6 +110,7 @@ typedef struct
         XPLMCommandRef toggle_srvos;
         XPLMDataRef ldg_gears_lever;
         XPLMDataRef engine_lever_lt;
+        XPLMDataRef engine_lever_rt;
         XPLMDataRef engine_reverse1;
         XPLMDataRef engine_reverse2;
         int id_s32_acft_request_chk;
