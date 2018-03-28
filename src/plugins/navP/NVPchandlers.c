@@ -332,6 +332,8 @@ typedef struct
         void          *assert;
         int         n_engines;
         XPLMDataRef prop_mode;
+        XPLMCommandRef propdn;
+        XPLMCommandRef propup;
     } revrs;
 
     struct
@@ -1057,6 +1059,8 @@ int nvp_chandlers_reset(void *inContext)
     ctx->acfspec.  qpac.ready = 0;
     ctx->acfspec.  i733.ready = 0;
     ctx->acfspec.  x738.ready = 0;
+    ctx->revrs.        propdn = NULL;
+    ctx->revrs.        propup = NULL;
     ctx->throt.         thall = NULL;
     ctx->otto.ffst.        dr = NULL;
     ctx->otto.conn.cc.   name = NULL;
@@ -1286,17 +1290,15 @@ int nvp_chandlers_update(void *inContext)
 
         case ACF_TYP_GENERIC:
         {
-            switch (ctx->info->engine_type1)
+            if (ctx->info->has_rvrs_thr == -1) // XXX: prop-driven w/out reverse
             {
-                case 4: case 5: // twin turbojet/turbofan
-                    if (ctx->info->engine_count >= 2)
-                    {
-                        ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-                        ctx->athr.toga.cc.name = "sim/autopilot/autothrottle_on";
-                        break;
-                    }
-                default:
-                    break;
+                ctx->revrs.propdn = XPLMFindCommand("sim/engines/prop_down");
+                ctx->revrs.propup = XPLMFindCommand("sim/engines/prop_up");
+            }
+            if (ctx->info->has_auto_thr == 1)
+            {
+                ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+                ctx->athr.toga.cc.name = "sim/autopilot/autothrottle_on";
             }
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
@@ -2397,10 +2399,24 @@ static int chandler_rt_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
  */
 static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
+    chandler_context *ctx = inRefcon;
+    if (ctx->revrs.propup)
+    {
+        switch (inPhase)
+        {
+            case xplm_CommandBegin:
+                XPLMCommandBegin(ctx->revrs.propup);
+                return 0;
+            case xplm_CommandEnd:
+                XPLMCommandEnd(ctx->revrs.propup);
+                return 0;
+            default:
+                return 0;
+        }
+    }
     if (inPhase == xplm_CommandEnd)
     {
-        chandler_context *ctx = inRefcon;
-        assert_context   *a32 = ctx->revrs.assert;
+        assert_context *a32 = ctx->revrs.assert;
         if (a32)
         {
             if (XPLMGetDataf(a32->dat.engine_reverse1) > 0.5f)
@@ -2425,10 +2441,24 @@ static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
+    chandler_context *ctx = inRefcon;
+    if (ctx->revrs.propdn)
+    {
+        switch (inPhase)
+        {
+            case xplm_CommandBegin:
+                XPLMCommandBegin(ctx->revrs.propdn);
+                return 0;
+            case xplm_CommandEnd:
+                XPLMCommandEnd(ctx->revrs.propdn);
+                return 0;
+            default:
+                return 0;
+        }
+    }
     if (inPhase == xplm_CommandEnd)
     {
-        chandler_context *ctx = inRefcon;
-        assert_context   *a32 = ctx->revrs.assert;
+        assert_context *a32 = ctx->revrs.assert;
         if (a32)
         {
             if (XPLMGetDataf(a32->dat.engine_reverse1) < 0.5f)
