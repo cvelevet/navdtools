@@ -65,12 +65,14 @@
 #define OPT_IRTE 275
 #define OPT_ANFO 276
 #define OPT_QPAC 277
+#define OPT_MTRC 278
 
 // navigation data
 static char *info_aptidt = NULL;
 static char *path_navdat = NULL;
 static char *path_xplane = NULL;
 static char *qpac_aptids = NULL;
+static int rwu = NDT_ALTUNIT_FT;
 
 // file input/output
 static char *path_in     = NULL;
@@ -100,6 +102,7 @@ static struct option navdconv_opts[] =
     { "examples",      no_argument,       NULL, OPT_XMPL, },
     { "v",             no_argument,       NULL, OPT_VRSN, },
     { "version",       no_argument,       NULL, OPT_VRSN, },
+    { "metric",        no_argument,       NULL, OPT_MTRC, },
 
     // navigation data
     { "db",            required_argument, NULL, OPT_DTBS, },
@@ -190,7 +193,7 @@ static int print_airportnfo(void)
     {
         return EINVAL;
     }
-    return ndt_fmt_icaor_print_airportnfo(navdata, info_aptidt);
+    return ndt_fmt_icaor_print_airportnfo(navdata, info_aptidt, rwu);
 }
 
 static int sidstar_procedure(ndt_navdatabase *ndb, int type,
@@ -797,6 +800,10 @@ static int parse_options(int argc, char **argv)
 
             case OPT_VRSN:
                 exit(print_version());
+
+            case OPT_MTRC:
+                rwu = NDT_ALTUNIT_ME;
+                break;
 
             case OPT_ANFO:
                 free(info_aptidt);

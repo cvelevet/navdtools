@@ -33,6 +33,6 @@ int ndt_fmt_icaor_flightplan_write    (ndt_flightplan *flightplan, FILE       *f
 int ndt_fmt_icaox_flightplan_write    (ndt_flightplan *flightplan, FILE       *file );
 int ndt_fmt_irecp_flightplan_write    (ndt_flightplan *flightplan, FILE       *file );
 int ndt_fmt_sbrif_flightplan_write    (ndt_flightplan *flightplan, FILE       *file );
-int ndt_fmt_icaor_print_airportnfo    (ndt_navdatabase   *navdata, const char *icao);
+int ndt_fmt_icaor_print_airportnfo(ndt_navdatabase *db, const char *icao, int rwunit);
 
 #endif /* NDT_FMT_ICAOR_H */
