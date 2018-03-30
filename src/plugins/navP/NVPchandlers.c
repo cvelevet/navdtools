@@ -24,6 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "Widgets/XPStandardWidgets.h"
+#include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMDataAccess.h"
 #include "XPLM/XPLMDisplay.h"
 #include "XPLM/XPLMMenus.h"
@@ -140,6 +142,13 @@ typedef struct
         float r_idle;
         int minimums;
     } idle;
+    struct
+    {
+        int   ice_detected;
+        int        counter;
+        XPWidgetID  wid[3];
+        XPLMDataRef ice[4]; // ice ratio (pitot, inlet, prop, wing)
+    } ovly;
 } refcon_ground;
 
 typedef struct
@@ -937,6 +946,31 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->ground.idle.preset, chandler_idleb, 0, &ctx->ground);
         ctx->bking.rc_brk.g_speed = ctx->ground.ground_spd;
     }
+    /* and icing cheat warning overlay data */
+    ctx->ground.ovly.ice[0] = XPLMFindDataRef("sim/flightmodel/failures/pitot_ice");
+    ctx->ground.ovly.ice[1] = XPLMFindDataRef("sim/flightmodel/failures/inlet_ice");
+    ctx->ground.ovly.ice[2] = XPLMFindDataRef("sim/flightmodel/failures/prop_ice");
+    ctx->ground.ovly.ice[3] = XPLMFindDataRef("sim/flightmodel/failures/frm_ice");
+    if (!ctx->ground.ovly.ice[0] || !ctx->ground.ovly.ice[1] ||
+        !ctx->ground.ovly.ice[2] || !ctx->ground.ovly.ice[3])
+    {
+        goto fail;
+    }
+    if (!(ctx->ground.ovly.wid[0] = XPCreateWidget(0, 0, 0, 0, 0, "", 1, NULL, xpWidgetClass_SubWindow)))
+    {
+        goto fail;
+    }
+    if (!(ctx->ground.ovly.wid[1] = XPCreateWidget(0, 0, 0, 0, 0, "", 0, ctx->ground.ovly.wid[0], xpWidgetClass_Caption)))
+    {
+        goto fail;
+    }
+    if (!(ctx->ground.ovly.wid[2] = XPCreateWidget(0, 0, 0, 0, 0, "ICE", 1, NULL, xpWidgetClass_Caption)))
+    {
+        goto fail;
+    }
+    XPSetWidgetProperty(ctx->ground.ovly.wid[0], xpProperty_SubWindowType, xpSubWindowStyle_Screen);
+    XPSetWidgetProperty(ctx->ground.ovly.wid[1], xpProperty_CaptionLit, 1);
+    XPSetWidgetProperty(ctx->ground.ovly.wid[2], xpProperty_CaptionLit, 1);
 
     /* all good */
     return ctx;
@@ -3410,8 +3444,8 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     if (inPhase == xplm_CommandEnd)
     {
-        refcon_ground ground = *((refcon_ground*)inRefcon);
-        assert_context *a320 = ground.assert;
+        refcon_ground *grndp = inRefcon;
+        assert_context *a320 = grndp->assert;
         if (a320)
         {
             if (XPLMGetDataf(a320->dat.engine_reverse1) > 0.5f ||
@@ -3434,19 +3468,19 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             return 0;
         }
-        if (XPLMGetDataf(ground.idle.throttle_all) < 0.5f)
+        if (XPLMGetDataf(grndp->idle.throttle_all) < 0.5f)
         {
-            if (ground.idle.minimums > 0)
+            if (grndp->idle.minimums > 0)
             {
-                if (ground.idle.thrott_array)
+                if (grndp->idle.thrott_array)
                 {
-                    XPLMSetDatavf(ground.idle.thrott_array, ground.idle.r_t, 0, 2);
+                    XPLMSetDatavf(grndp->idle.thrott_array, grndp->idle.r_t, 0, 2);
                     return 0;
                 }
-                XPLMSetDataf(ground.idle.throttle_all, ground.idle.r_taxi);
+                XPLMSetDataf(grndp->idle.throttle_all, grndp->idle.r_taxi);
                 return 0;
             }
-            XPLMSetDataf(ground.idle.throttle_all, 0.2f);
+            XPLMSetDataf(grndp->idle.throttle_all, 0.2f);
             return 0;
         }
         return 0;
@@ -3484,9 +3518,40 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 {
     if (inRefcon)
     {
-        refcon_ground ground = *((refcon_ground*)inRefcon);
-        float ground_spd_kts = XPLMGetDataf(ground.ground_spd) * 3.6f / 1.852f;
-        float thrott_cmd_all = XPLMGetDataf(ground.idle.throttle_all) + T_ZERO;
+        refcon_ground *grndp = inRefcon;
+        float ground_spd_kts = XPLMGetDataf(grndp->ground_spd) * 3.6f / 1.852f;
+        float thrott_cmd_all = XPLMGetDataf(grndp->idle.throttle_all) + T_ZERO;
+
+        if (++grndp->ovly.counter >= 8) // every other second
+        {
+            if (XPLMGetDataf(grndp->ovly.ice[0]) > 0.0125f ||
+                XPLMGetDataf(grndp->ovly.ice[1]) > 0.0125f ||
+                XPLMGetDataf(grndp->ovly.ice[2]) > 0.0125f ||
+                XPLMGetDataf(grndp->ovly.ice[3]) > 0.0125f)
+            {
+                if (grndp->ovly.ice_detected == 0)
+                {
+                    XPLMSpeakString("ice detected");
+                }
+                if (XPIsWidgetVisible(grndp->ovly.wid[2]) == 0)
+                {
+                    int xx, xx1, yy, yy1; xx = 32; xx1 = 52; yy = 32; yy1 = 52;
+                    XPSetWidgetGeometry(grndp->ovly.wid[2], xx, yy1, xx1, yy);
+                    XPShowWidget(grndp->ovly.wid[2]);
+                }
+                grndp->ovly.ice_detected = 1;
+            }
+            else
+            {
+                if (XPIsWidgetVisible(grndp->ovly.wid[2]))
+                {
+                    XPHideWidget(grndp->ovly.wid[2]);
+                }
+                grndp->ovly.ice_detected = 0;
+            }
+            // TODO: ground speed readout
+            grndp->ovly.counter = 0;
+        }
 
 #if 0
         float gstest[] =
@@ -3499,28 +3564,28 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         };
         for (int i = 0; i < (sizeof(gstest) / sizeof(gstest[0])); i++)
         {
-            ACF_ROLL_SET(acf_roll_c, gstest[i], ground.nominal_roll_c);
+            ACF_ROLL_SET(acf_roll_c, gstest[i], grndp->nominal_roll_c);
             ndt_log("navP [debug]: acf_roll_co[%5.2fkts]: %.4f (nominal %.4f) (difference %.4f)\n",
-                    gstest[i], acf_roll_c, ground.nominal_roll_c, acf_roll_c - ground.nominal_roll_c);
+                    gstest[i], acf_roll_c, grndp->nominal_roll_c, acf_roll_c - grndp->nominal_roll_c);
         }
 #endif
 
         // first, raise our throttles to a minimum idle if required
-        if (ground.idle.minimums >= 2)
+        if (grndp->idle.minimums >= 2)
         {
-            if (thrott_cmd_all < ground.idle.r_idle)
+            if (thrott_cmd_all < grndp->idle.r_idle)
             {
-                XPLMSetDataf(ground.idle.throttle_all, ground.idle.r_idle);
+                XPLMSetDataf(grndp->idle.throttle_all, grndp->idle.r_idle);
             }
         }
 
         // then, update ground roll friction coefficient as required
         if (ground_spd_kts > GS_KT_MIN && ground_spd_kts < GS_KT_MAX)
         {
-            float arc; ACF_ROLL_SET(arc, ground_spd_kts, ground.nominal_roll_c);
-            XPLMSetDataf(ground.acf_roll_c, arc); return -4; // should be smooth
+            float arc; ACF_ROLL_SET(arc, ground_spd_kts, grndp->nominal_roll_c);
+            XPLMSetDataf(grndp->acf_roll_c, arc); return -4; // should be smooth
         }
-        XPLMSetDataf(ground.acf_roll_c, ground.nominal_roll_c); return 0.25f;
+        XPLMSetDataf(grndp->acf_roll_c, grndp->nominal_roll_c); return 0.25f;
     }
     return 0;
 }
@@ -4708,6 +4773,7 @@ static int first_fcall_do(chandler_context *ctx)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
     }
+    ctx->ground.ovly.ice_detected = ctx->ground.ovly.counter = 0;
     XPLMRegisterFlightLoopCallback((ctx->ground.flc_g = &gnd_stab_hdlr), 1, &ctx->ground);
 
 #define TIM_ONLY
