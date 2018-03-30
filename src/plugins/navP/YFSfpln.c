@@ -614,7 +614,7 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
 //                      switch (leg->type)
                         break;
                     case NDT_RSTYPE_AWY:
-                        yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 1, COLR_IDX_WHITE, "%.5s", leg->awyleg->awy->info.idnt);
+                        yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 1, COLR_IDX_WHITE, "%.6s", leg->awyleg->awy->info.idnt);
                         yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 8, COLR_IDX_WHITE,              "TRK%03.0lf", leg->omb);
                         yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_GREEN,        "%.0lf     ", distance_nmile);
                         if (i == 4) yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 3, COLR_IDX_WHITE,              "%s", "NM");
