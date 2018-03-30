@@ -3541,7 +3541,10 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                 }
                 grndp->ovly.ice_detected = 1;
             }
-            else
+            else if (XPLMGetDataf(grndp->ovly.ice[0]) < 0.0025f &&
+                     XPLMGetDataf(grndp->ovly.ice[1]) < 0.0025f &&
+                     XPLMGetDataf(grndp->ovly.ice[2]) < 0.0025f &&
+                     XPLMGetDataf(grndp->ovly.ice[3]) < 0.0025f)
             {
                 if (XPIsWidgetVisible(grndp->ovly.wid[2]))
                 {
