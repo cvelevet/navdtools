@@ -1118,6 +1118,7 @@ static void wb_handler(menu_context *ctx)
     }
     switch (ctx->data.refuel_dialg.ic->ac_type)
     {
+        case ACF_TYP_A319_TL:
         case ACF_TYP_A320_FF:
         case ACF_TYP_B737_XG:
             XPShowWidget(ctx->data.refuel_dialg.f_txtl_id);
@@ -1946,6 +1947,22 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
                     }
                     ndt_log("%.3f ", ctx->data.refuel_dialg.ic->fuel.tanks.rat[ii-1]);
                 }
+            }
+            if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A319_TL)
+            {
+                if (ctx->data.refuel_dialg.adjust_fuel != NVP_MENU_DONE)
+                {
+                    if (acf_type_fuel_set(ctx->data.refuel_dialg.ic, &ctx->data.refuel_dialg.fuel_target_kg))
+                    {
+                        ndt_log("navP [error]: failed to set fuel\n");
+                        XPLMSpeakString("re-fueling failed");
+                        return 1;
+                    }
+                    ndt_log("navP [info]: set fuel load (%.0f)\n", ctx->data.refuel_dialg.fuel_target_kg);
+                    XPLMSpeakString("re-fueling done");
+                    return 1;
+                }
+                return 1;
             }
             if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A320_FF)
             {
