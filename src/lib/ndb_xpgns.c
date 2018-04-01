@@ -2062,7 +2062,7 @@ static int rename_finalappr(ndt_airport *apt)
                         default:
                             break;
                     }
-                    if (strlen(final->info.idnt) > strlen(rwy->info.idnt) + 1)
+                    if ((strlen(final->info.idnt) - strlen(rwy->info.idnt)) > 1)
                     {
                         final->approach.suffix[0] = final->info.idnt[strlen(final->info.idnt) - 1];
                         final->approach.suffix[1] = '\0';
@@ -2074,22 +2074,31 @@ static int rename_finalappr(ndt_airport *apt)
                     if (prefix && strlen(final->info.idnt) > strlen(rwy->info.idnt))
                     {
                         /*
-                         * Max. 7 characters:
-                         * D28R      VDM28R
-                         * D28RY     VDMY28R
-                         * D28R-Y    VDMY28R
+                         * Max. 5 characters:
+                         * D28R      VDM
+                         * D28-A     VDM-A
+                         * D28RY     VDM-Y
+                         * D28R-Y    VDM-Y
                          */
                         snprintf(final->approach.short_name,
-                                 sizeof(final->approach.short_name), "%s%s%s",
-                                 prefix, final->approach.suffix, rwy->info.idnt);
-                        /*
-                         * Max. 8 characters:
-                         * D28R      VDM28R
-                         * D28RY     VDM28R-Y
-                         * D28R-Y    VDM28R-Y
-                         */
-                        snprintf(temp, sizeof(temp), "%s%s%s%s", prefix, rwy->info.idnt,
+                                 sizeof(final->approach.short_name), "%s%s%s", prefix,
                                  *final->approach.suffix ? "-" : "", final->approach.suffix);
+                        /*
+                         * Max. 7 characters:
+                         * D28R      VDM28R
+                         * D28-A     VDM28-A
+                         * D28RY     VDM28RY
+                         * D28R-Y    VDM28RY
+                         */
+                        if (strnlen(rwy->info.idnt, 3) < 3)
+                        {
+                            snprintf(temp, sizeof(temp), "%s%s%s%s", prefix, rwy->info.idnt,
+                                     *final->approach.suffix ? "-" : "", final->approach.suffix);
+                        }
+                        else
+                        {
+                            snprintf(temp, sizeof(temp), "%s%s%s", prefix, rwy->info.idnt, final->approach.suffix);
+                        }
                         /*
                          * Update IDs for final approach and its transitions.
                          */
