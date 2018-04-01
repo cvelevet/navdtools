@@ -1084,7 +1084,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     }
     if (mode != XPDR_OFF)
     {
-        yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", XPLMGetDatai(yfms->xpl.transponder_code));
+        yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%04d", get_transponder_code(yfms));
     }
 
     /* line 9: headers (white) */
