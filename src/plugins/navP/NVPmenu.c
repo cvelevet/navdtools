@@ -1318,26 +1318,26 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
          */
         acf_info_context *ic;
         XPLMDataRef tp, cust;
-        float vradio, volume;
+        float vr, ve, volume;
         switch (itx->mivalue)
         {
             case MENUITEM_VOLUME_PRST0:
-                volume = 0.00f; vradio = sqrtf(volume);
+                volume = ve = vr = 0.00f;
                 break;
             case MENUITEM_VOLUME_PRST1:
-                volume = 0.10f; vradio = sqrtf(volume);
+                volume = 0.10f; ve = 0.125f; vr = sqrtf(volume);
                 break;
             case MENUITEM_VOLUME_PRST2:
-                volume = 0.25f; vradio = sqrtf(volume);
+                volume = 0.25f; ve = volume; vr = sqrtf(volume);
                 break;
             case MENUITEM_VOLUME_PRST3:
-                volume = 0.50f; vradio = sqrtf(volume);
+                volume = 0.50f; ve = volume; vr = sqrtf(volume);
                 break;
             case MENUITEM_VOLUME_PRST4:
-                volume = 0.75f; vradio = sqrtf(volume);
+                volume = 0.75f; ve = volume; vr = sqrtf(volume);
                 break;
             case MENUITEM_VOLUME_PRST5:
-                volume = 1.00f; vradio = sqrtf(volume);
+                volume = 1.00f; ve = volume; vr = sqrtf(volume);
                 break;
             default:
                 return;
@@ -1351,8 +1351,8 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         {
             if ((cust = XPLMFindDataRef("aerobask/eclipse/custom_volume_ratio")))
             {
-                XPLMSetDataf(cust, volume);
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume / 2.5f);
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, ve / 2.5f);
+                XPLMSetDataf(cust, ve);
             }
             else
             {
@@ -1362,41 +1362,43 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         }
         else
         {
-            if ((cust = XPLMFindDataRef("volume/engines")))
-            {
-                XPLMSetDataf(cust,        volume); // FF Boeing T7 sounds slider
-            }
+            // FlightFactor Boeing 777-200LR Worldliner
             if ((cust = XPLMFindDataRef("volume/ambient")))
             {
-                XPLMSetDataf(cust,        volume); // FF Boeing T7 sounds slider
+                XPLMSetDataf(cust, volume);
+            }
+            if ((cust = XPLMFindDataRef("volume/engines")))
+            {
+                XPLMSetDataf(cust, ve * 1.0f);
             }
             if ((cust = XPLMFindDataRef("volume/callouts")))
             {
-                XPLMSetDataf(cust, 1.6f * volume); // FF Boeing T7 sounds slider
+                XPLMSetDataf(cust, ve * 1.6f); // values > 0 allowed
             }
+            // FlightFactor-STS Boeing 757v2/767
             if ((cust = XPLMFindDataRef("volumeX")))
             {
-                XPLMSetDataf(cust, volume / 2.5f); // FlightFactor master slider
+                XPLMSetDataf(cust, ve / 2.5f);
             }
+            // FlightFactor/QPAC/ToLiSS Airbus A350 "Advanced"
             if ((cust = XPLMFindDataRef("1-sim/options/Volume")))
             {
-                XPLMSetDataf(cust,        volume); // Airbus350XWB master slider
+                XPLMSetDataf(cust, ve);
             }
+            // some older Carenado aircraft
             if ((cust = XPLMFindDataRef("com/dkmp/mastervolknob")))
             {
-                XPLMSetDataf(cust,        volume); // Carenado 3.0 master slider
+                XPLMSetDataf(cust, ve);
             }
+            // ToLiSS Airbus A319
             if ((cust = XPLMFindDataRef("toliss_airbus/master_volume")))
             {
-                XPLMSetDataf(cust,        volume); // ToLiSS-A319: master slider
+                XPLMSetDataf(cust, ve);
             }
-            if ((ic->ac_type == ACF_TYP_A320_FF) == 1)
+            // all aircraft: engine volume ratio
+            if ((ic->ac_type != ACF_TYP_A319_TL))
             {
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume / 1.25f);
-            }
-            else if ((ic->ac_type != ACF_TYP_A319_TL))
-            {
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, volume);
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, ve);
             }
         }
         switch (ic->ac_type)
@@ -1404,7 +1406,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             case ACF_TYP_B737_XG:
                 break;
             case ACF_TYP_A319_TL:
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume);
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, ve);
                 break;
             case ACF_TYP_A320_FF:
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume / 1.25f);
@@ -1412,6 +1414,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume / 1.25f);
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume / 1.25f);
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume / 1.25f);
+                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, ((ve)) / 1.25f);
                 break;
             default:
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume);
@@ -1421,7 +1424,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
                 XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume);
                 break;
         }
-        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_atc, vradio);
+        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_atc, vr);
         XPLMSetDatai(ctx->data.volume_prsts.dr_all_snd, 1);
         XPLMSpeakString("Volume set");
         return;
