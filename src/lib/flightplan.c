@@ -300,7 +300,7 @@ int ndt_flightplan_set_departsid(ndt_flightplan *flp, const char *name, const ch
     if (trans && !(nrte = ndt_procedure_gettr(proc->transition.enroute, trans)))
     {
         ndt_log("flightplan: %s: invalid transition '%s' for %s (SID)\n",
-                flp->dep.apt->info.idnt, trans, name);
+                flp->dep.apt->info.idnt, trans, proc->info.idnt);
         err = EINVAL;
         goto end;
     }
@@ -481,7 +481,7 @@ int ndt_flightplan_set_arrivstar(ndt_flightplan *flp, const char *name, const ch
     if (trans && !(nrte = ndt_procedure_gettr(proc->transition.enroute, trans)))
     {
         ndt_log("flightplan: %s: invalid transition '%s' for %s (STAR)\n",
-                flp->arr.apt->info.idnt, trans, name);
+                flp->arr.apt->info.idnt, trans, proc->info.idnt);
         err = EINVAL;
         goto end;
     }
@@ -596,7 +596,7 @@ int ndt_flightplan_set_arrivapch(ndt_flightplan *flp, const char *name, const ch
     if (trans && !(aptr = ndt_procedure_gettr(proc->transition.approach, trans)))
     {
         ndt_log("flightplan: %s: invalid transition '%s' for %s (approach)\n",
-                flp->arr.apt->info.idnt, trans, name);
+                flp->arr.apt->info.idnt, trans, proc->info.idnt);
         err = EINVAL;
         goto end;
     }
@@ -676,10 +676,12 @@ end:
     if (err)
     {
         strerror_r(err, errbuf, sizeof(errbuf));
-        ndt_log("flightplan: failed to set approach [%s%s%s] (%s)\n",
+        ndt_log("flightplan: failed to set runway %s approach [%s%s%s] (%s)\n",
+                flp && flp->arr.rwy ? flp->arr.rwy->info.idnt : NULL,
                 trans ? trans : "",
                 trans ?   "." : "",
-                name  ?  name : "", errbuf);
+                name  ?  name : "",
+                errbuf);
         return err;
     }
     return route_leg_update(flp);
