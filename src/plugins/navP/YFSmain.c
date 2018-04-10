@@ -999,6 +999,11 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.has_custom_navigation = 1;
                 yfms->xpl.atyp = YFS_ATYP_FB77; break;
             }
+            if (XPLMGetDatai(yfms->xpl.override_fms))
+            {
+                ndt_log("YFMS [info]: override_fms_advance set, assuming custom navigation\n");
+                yfms->xpl.has_custom_navigation = 1;
+            }
             /*
              * http://www.hochwarth.com/misc/AviationCalculator.html#CrossoverAltitude
              *
@@ -1231,7 +1236,7 @@ void* yfs_main_init(void)
         (yfms->xpl.airspeed_dial_kts_mach          = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_dial_kts_mach"                )) == NULL ||
         (yfms->xpl.altitude_dial_mcp_feet          = XPLMFindDataRef("sim/cockpit2/autopilot/altitude_vnav_ft"                      )) == NULL ||
         (yfms->xpl.knots_mach_toggle               = XPLMFindCommand("sim/autopilot/knots_mach_toggle"                              )) == NULL ||
-        (yfms->xpl.direct_to                       = XPLMFindCommand("sim/FMS/direct"                                               )) == NULL)
+        (yfms->xpl.override_fms                    = XPLMFindDataRef("sim/operation/override/override_fms_advance"                  )) == NULL)
     {
         ndt_log("YFMS [error]: could not load aircraft-related datarefs and commands\n");
         goto fail;

@@ -440,7 +440,7 @@ typedef struct
         XPLMDataRef HSI_source_select_pilot;
         XPLMDataRef HSI_source_select_copilot;
         // PAGE_FPLN
-        XPLMCommandRef direct_to;
+        XPLMDataRef override_fms;
         // miscellaneous
         XPLMDataRef acf_vs0;
         XPLMDataRef true_psi;
