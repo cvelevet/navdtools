@@ -586,7 +586,7 @@ int ndt_flightplan_set_arrivapch(ndt_flightplan *flp, const char *name, const ch
         goto end;
     }
 
-    if (!(proc = ndt_procedure_get(flp->arr.rwy->approaches, name, NULL)))
+    if (!(proc = ndt_procedure_get(flp->arr.rwy->approaches, name, flp->arr.rwy)))
     {
         ndt_log("flightplan: %s: invalid approach '%s' for runway %s\n",
                 flp->arr.apt->info.idnt, name, flp->arr.rwy->info.idnt);
@@ -1553,37 +1553,57 @@ void ndt_procedure_close(ndt_procedure **ptr)
     *ptr = NULL;
 }
 
-ndt_procedure* ndt_procedure_get(ndt_list *procedures,  const char *name, ndt_runway *runway)
+ndt_procedure* ndt_procedure_get(ndt_list *procedures, const char *name, ndt_runway *runway)
 {
     if (procedures && name)
     {
         for (size_t i = 0; i < ndt_list_count(procedures); i++)
         {
             ndt_procedure *proc = ndt_list_item(procedures, i);
-            if ((proc && strcmp(proc->info.idnt, name) == 0) &&
-                (runway == NULL || runway == ndt_runway_get(proc->runways, runway->info.idnt)))
+            if ((proc && strcmp(proc->info.idnt, name) == 0))
             {
-                return proc;
+                if (runway == NULL)
+                {
+                    if (proc->type != NDT_PROCTYPE_FINAL)
+                    {
+                        return proc;
+                    }
+                    continue;
+                }
+                if (runway == ndt_runway_get(proc->runways, runway->info.idnt))
+                {
+                    return proc;
+                }
+                continue;
             }
             if (proc && proc->type == NDT_PROCTYPE_FINAL)
             {
-                if ((strcmp(proc->approach.short_name, name) == 0) &&
-                    (runway == NULL || runway == ndt_runway_get(proc->runways, runway->info.idnt)))
+                if ((strcmp(proc->approach.short_name, name) == 0))
                 {
-                    return proc;
+                    if (runway == ndt_runway_get(proc->runways, runway->info.idnt))
+                    {
+                        return proc;
+                    }
+                    continue;
                 }
                 if ((strncmp("RNAV", name, 4) == 0))
                 {
                     char rnv[10]; snprintf(rnv, sizeof(rnv), "RNV%s", &name[4]);
-                    if ((strcmp(proc->info.idnt, rnv) == 0) &&
-                        (runway == NULL || runway == ndt_runway_get(proc->runways, runway->info.idnt)))
+                    if ((strcmp(proc->info.idnt, rnv) == 0))
                     {
-                        return proc;
+                        if (runway == ndt_runway_get(proc->runways, runway->info.idnt))
+                        {
+                            return proc;
+                        }
+                        continue;
                     }
-                    if ((strcmp(proc->approach.short_name, rnv) == 0) &&
-                        (runway == NULL || runway == ndt_runway_get(proc->runways, runway->info.idnt)))
+                    if ((strcmp(proc->approach.short_name, rnv) == 0))
                     {
-                        return proc;
+                        if (runway == ndt_runway_get(proc->runways, runway->info.idnt))
+                        {
+                            return proc;
+                        }
+                        continue;
                     }
                 }
             }
