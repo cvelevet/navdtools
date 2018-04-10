@@ -459,10 +459,12 @@ typedef struct
         XPLMDataRef airspeed_dial_kts_mach;
         XPLMDataRef altitude_dial_mcp_feet;
         XPLMCommandRef knots_mach_toggle;
-        // miscellaneous
+        // other: miscellaneous data
         XPLMFlightLoop_f fl_callback;
-        int has_custom_nav_radios;
-        int has_custom_navigation;
+        XPLMCommandRef   contact_atc;
+        XPLMPluginID    plugin_id_pe;
+        int    has_custom_nav_radios;
+        int    has_custom_navigation;
         enum
         {
             YFS_ATYP_NSET =  0,

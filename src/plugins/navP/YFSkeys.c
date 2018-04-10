@@ -499,6 +499,24 @@ int yfs_afterwindw(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
     {
         if ((inFlags & (xplm_ShiftFlag|xplm_OptionAltFlag|xplm_ControlFlag)) == 0)
         {
+            if (XPLM_VK_TAB == inVirtualKey)
+            {
+                if (XPLM_NO_PLUGIN_ID != ((yfms_context*)inRefcon)->xpl.plugin_id_pe)
+                {
+                    if ((inFlags & (xplm_DownFlag)) == xplm_DownFlag)
+                    {
+                        XPLMCommandBegin(((yfms_context*)inRefcon)->xpl.contact_atc);
+                        return 0;
+                    }
+                    if ((inFlags & (xplm_UpFlag)) == xplm_UpFlag)
+                    {
+                        XPLMCommandEnd(((yfms_context*)inRefcon)->xpl.contact_atc);
+                        return 0;
+                    }
+                    return 0;
+                }
+                return 1;
+            }
             if ((inFlags & (xplm_DownFlag)) == xplm_DownFlag)
             {
 #if 0
@@ -508,15 +526,8 @@ int yfs_afterwindw(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
                     return 0;
                 }
 #else
-                if (XPLM_VK_TAB == inVirtualKey)
+                if (XPLM_VK_RETURN == inVirtualKey)
                 {
-                    yfs_main_toggl(inRefcon);
-                    return 0;
-                }
-                if (XPLM_VK_RETURN == inVirtualKey &&
-                    XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("com.pilotedge.plugin.xplane"))
-                {
-                    // XXX: we just assume our PTT/Contact/ATC is Return :-(
                     yfs_main_toggl(inRefcon);
                     return 0;
                 }

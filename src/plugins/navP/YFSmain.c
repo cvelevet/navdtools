@@ -1220,14 +1220,15 @@ void* yfs_main_init(void)
         (yfms->xpl.HSI_source_select_pilot         = XPLMFindDataRef("sim/cockpit2/radios/actuators/HSI_source_select_pilot"        )) == NULL ||
         (yfms->xpl.HSI_source_select_copilot       = XPLMFindDataRef("sim/cockpit2/radios/actuators/HSI_source_select_copilot"      )) == NULL ||
         (yfms->xpl.nav2_obs_deg_mag_copilot        = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav2_obs_deg_mag_copilot"       )) == NULL ||
-        (yfms->xpl.acf_vs0                         = XPLMFindDataRef("sim/aircraft/view/acf_Vso"                                    )) == NULL ||
+        (yfms->xpl.override_fms                    = XPLMFindDataRef("sim/operation/override/override_fms_advance"                  )) == NULL || // PAGE_FPLN
+        (yfms->xpl.acf_vs0                         = XPLMFindDataRef("sim/aircraft/view/acf_Vso"                                    )) == NULL || // miscellaneous
         (yfms->xpl.true_psi                        = XPLMFindDataRef("sim/flightmodel/position/true_psi"                            )) == NULL ||
         (yfms->xpl.latitude                        = XPLMFindDataRef("sim/flightmodel/position/latitude"                            )) == NULL ||
         (yfms->xpl.longitude                       = XPLMFindDataRef("sim/flightmodel/position/longitude"                           )) == NULL ||
         (yfms->xpl.groundspeed                     = XPLMFindDataRef("sim/flightmodel/position/groundspeed"                         )) == NULL ||
         (yfms->xpl.elevation_agl                   = XPLMFindDataRef("sim/flightmodel/position/y_agl"                               )) == NULL ||
         (yfms->xpl.elevation_msl                   = XPLMFindDataRef("sim/flightmodel/position/elevation"                           )) == NULL ||
-        (yfms->xpl.tropopause                      = XPLMFindDataRef("sim/weather/tropo_alt_mtr"                                    )) == NULL ||
+        (yfms->xpl.tropopause                      = XPLMFindDataRef("sim/weather/tropo_alt_mtr"                                    )) == NULL || // autopilot
         (yfms->xpl.machno                          = XPLMFindDataRef("sim/flightmodel/misc/machno"                                  )) == NULL ||
         (yfms->xpl.vvi_fpm_pilot                   = XPLMFindDataRef("sim/cockpit2/gauges/indicators/vvi_fpm_pilot"                 )) == NULL ||
         (yfms->xpl.airspeed_is_mach                = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_is_mach"                      )) == NULL ||
@@ -1236,7 +1237,7 @@ void* yfs_main_init(void)
         (yfms->xpl.airspeed_dial_kts_mach          = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_dial_kts_mach"                )) == NULL ||
         (yfms->xpl.altitude_dial_mcp_feet          = XPLMFindDataRef("sim/cockpit2/autopilot/altitude_vnav_ft"                      )) == NULL ||
         (yfms->xpl.knots_mach_toggle               = XPLMFindCommand("sim/autopilot/knots_mach_toggle"                              )) == NULL ||
-        (yfms->xpl.override_fms                    = XPLMFindDataRef("sim/operation/override/override_fms_advance"                  )) == NULL)
+        (yfms->xpl.contact_atc                     = XPLMFindCommand("sim/operation/contact_atc"                                    )) == NULL)
     {
         ndt_log("YFMS [error]: could not load aircraft-related datarefs and commands\n");
         goto fail;

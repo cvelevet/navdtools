@@ -26,6 +26,7 @@
 
 #include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMDataAccess.h"
+#include "XPLM/XPLMPlugin.h"
 #include "XPLM/XPLMProcessing.h"
 
 #include "assert/includes.h"
@@ -74,6 +75,9 @@ void yfs_menu_resetall(yfms_context *yfms)
     {
         XPLMRegisterFlightLoopCallback(yfms->xpl.fl_callback = &yfs_flight_loop_cback, -1, yfms);
     }
+
+    /* check whether plugins we potentially interact with are loaded */
+    yfms->xpl.plugin_id_pe = XPLMFindPluginBySignature("com.pilotedge.plugin.xplane");
 
     /* always reset aircraft type (and associated automatic features) */
     yfms->xpl.has_custom_nav_radios = yfms->xpl.has_custom_navigation = 0;
