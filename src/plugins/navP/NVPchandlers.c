@@ -4708,17 +4708,18 @@ static int first_fcall_do(chandler_context *ctx)
         {
             if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
             {
+                // REP: 3.4+: custom engine model, use "simcoders/" rpm datarefs
                 if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "BE33") ||
                     !STRN_CASECMP_AUTO(ctx->info->icaoid, "BE35"))
                 {
-                    ctx->ground.idle.r_idle   = 0.06666f;
-                    ctx->ground.idle.r_taxi   = 0.16666f;
+                    ctx->ground.idle.r_idle   = 0.06845f; // REP: 1,100rpm @ NTD
+                    ctx->ground.idle.r_taxi   = 0.15525f; // REP: 1,400rpm @ NTD
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "BE58"))
                 {
-                    ctx->ground.idle.r_idle   = 0.08333f;
-                    ctx->ground.idle.r_taxi   = 0.16666f;
+                    ctx->ground.idle.r_idle   = 0.08725f; // REP: 1,000rpm @ NTD
+                    ctx->ground.idle.r_taxi   = 0.20375f; // REP: 1,400rpm @ NTD
                     ctx->ground.idle.minimums = 2; break;
                 }
                 break;
