@@ -4018,10 +4018,11 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,    0, "757Avionics/options/ND/adfPointers");           // avionics: ADF Pointers          (N/A)
             _DO(1, XPLMSetDatai,    0, "757Avionics/options/PFD/RisingRwy");            // avionics: Rising Runway         (N/A)
             _DO(1, XPLMSetDatai,    0, "757Avionics/options/ND/hdgUpMap");              // avionics: Heading Up Map        (N/A)
+            _DO(1, XPLMSetDatai,    0, "757Avionics/options/PFD/FdType");               // avionics: Integrated Cue FD     (off)
             _DO(1, XPLMSetDatai,    1, "757Avionics/options/FMS/isGPS");                // avionics: GPS EQUIPPED          (yes)
             _DO(1, XPLMSetDatai,    1, "757Avionics/fms/type");                         // avionics: PIP FMC               (yes)
 //          _DO(1, XPLMSetDatai,    1, "757Avionics/engine");                           // needs setting non-dataref variable(s)
-            _DO(1, XPLMSetDatai,    0, "WINGLETS/WINGLETS");                            // airplane: winglets              (off)
+            _DO(1, XPLMSetDatai,    1, "WINGLETS/WINGLETS");                            // airplane: winglets              (yes)
             if (ctx->info->ac_type == ACF_TYP_B757_FF)
             {
                 if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
@@ -4034,7 +4035,6 @@ static int first_fcall_do(chandler_context *ctx)
                 _DO(1, XPLMSetDatai, 2, "1-sim/ndpanel/2/hsiRangeRotary");              // ND r. sel. (f/o. side) ( 40)
                 _DO(1, XPLMSetDatai, 2, "1-sim/ndpanel/1/hsiModeRotary");               // ND m. sel. (cap. side) (map)
                 _DO(1, XPLMSetDatai, 1, "1-sim/ndpanel/1/hsiRangeRotary");              // ND r. sel. (cap. side) ( 20)
-                _DO(1, XPLMSetDatai, 0, "757Avionics/options/PFD/FdType");              // avionics: Integrated Cue FD     (off)
                 _DO(1, XPLMSetDatai, 1, "757Avionics/options/ND/advEfisPanel");         // avionics: Modern EFIS Panel     (yes) required for EGPWS, Terrain
                 _DO(1, XPLMSetDatai, 0, "757Avionics/options/PFD/SpdTrendVector");      // avionics: Trend Vector          (off) requires speedtape, FMA/Top
                 _DO(1, XPLMSetDatai, 0, "757Avionics/options/PFD/speedTape");           // avionics: Airspeed Tape         (off) always linked to fma on top
@@ -4067,7 +4067,6 @@ static int first_fcall_do(chandler_context *ctx)
                 _DO(1, XPLMSetDatai, 2, "1-sim/ndpanel/2/hsiRangeRotary");              // ND r. sel. (f/o. side) ( 40)
                 _DO(1, XPLMSetDatai, 4, "1-sim/ndpanel/1/hsiModeRotary");               // ND m. sel. (cap. side) (map)
                 _DO(1, XPLMSetDatai, 1, "1-sim/ndpanel/1/hsiRangeRotary");              // ND r. sel. (cap. side) ( 20)
-                _DO(1, XPLMSetDatai, 1, "757Avionics/options/PFD/FdType");              // avionics: Integrated Cue FD     (yes)
                 _DO(1, XPLMSetDatai, 0, "757Avionics/options/ND/advEfisPanel");         // avionics: Modern EFIS Panel     (off) required for EGPWS, Terrain
                 _DO(1, XPLMSetDatai, 1, "757Avionics/options/PFD/SpdTrendVector");      // avionics: Trend Vector          (yes) requires speedtape, FMA/Top
                 _DO(1, XPLMSetDatai, 1, "757Avionics/options/PFD/speedTape");           // avionics: Airspeed Tape         (yes) always linked to fma on top
