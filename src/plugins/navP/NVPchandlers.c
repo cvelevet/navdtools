@@ -3122,11 +3122,14 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             {
                                 cdu->i_disabled = 0; break; // Aerobask SkyView
                             }
-                            if (((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup"))  &&
-                                 (cdu->command[1] = XPLMFindCommand("sim/GPS/g430n2_popup"))) ||
-                                ((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup"))))
+                            if ((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup")) &&
+                                (cdu->command[0] = XPLMFindCommand("sim/GPS/g430n2_popup")))
                             {
-                                cdu->i_disabled = 0; break; // X-Plane GPS
+                                cdu->i_disabled = 0; break; // X-Plane GPS x2
+                            }
+                            if ((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup")))
+                            {
+                                cdu->i_disabled = 0; break; // X-Plane GPS x1
                             }
                             cdu->i_disabled = 1; break; // check for YFMS presence
                         }
@@ -3189,11 +3192,14 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             {
                                 cdu->i_disabled = 1; return 0; // Carenado G1000
                             }
-                            if (((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup"))  &&
-                                 (cdu->command[1] = XPLMFindCommand("sim/GPS/g430n2_popup"))) ||
-                                ((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup"))))
+                            if ((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup")) &&
+                                (cdu->command[0] = XPLMFindCommand("sim/GPS/g430n2_popup")))
                             {
-                                cdu->i_disabled = 0; break; // X-Plane GPS
+                                cdu->i_disabled = 0; break; // X-Plane GPS x2
+                            }
+                            if ((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup")))
+                            {
+                                cdu->i_disabled = 0; break; // X-Plane GPS x1
                             }
                             cdu->i_disabled = 1; break; // check for YFMS presence
                         }
@@ -3205,11 +3211,14 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             }
                             cdu->i_disabled = 0; break;
                         }
-                        if (((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup"))  &&
-                             (cdu->command[1] = XPLMFindCommand("sim/GPS/g430n2_popup"))) ||
-                            ((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup"))))
+                        if ((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup")) &&
+                            (cdu->command[0] = XPLMFindCommand("sim/GPS/g430n2_popup")))
                         {
-                            cdu->i_disabled = 0; break; // X-Plane GPS
+                            cdu->i_disabled = 0; break; // X-Plane GPS x2
+                        }
+                        if ((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup")))
+                        {
+                            cdu->i_disabled = 0; break; // X-Plane GPS x1
                         }
                     }
                     if (sfmc != XPLM_NO_PLUGIN_ID)
