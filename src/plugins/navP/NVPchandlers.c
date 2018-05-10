@@ -4711,15 +4711,19 @@ static int first_fcall_do(chandler_context *ctx)
                 if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "BE33") ||
                     !STRN_CASECMP_AUTO(ctx->info->icaoid, "BE35"))
                 {
-                    ctx->ground.idle.r_idle   = 0.06845f; // REP: 1,100rpm @ NTD
-                    ctx->ground.idle.r_taxi   = 0.15525f; // REP: 1,400rpm @ NTD
+                    ctx->ground.idle.r_idle   = 0.06845f; // prop 1,100rpm @ NTD
+                    ctx->ground.idle.r_taxi   = 0.15525f; // prop 1,400rpm @ NTD
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "BE58"))
                 {
-                    ctx->ground.idle.r_idle   = 0.08725f; // REP: 1,000rpm @ NTD
-                    ctx->ground.idle.r_taxi   = 0.20375f; // REP: 1,400rpm @ NTD
+                    ctx->ground.idle.r_idle   = 0.08725f; // prop 1,000rpm @ NTD
+                    ctx->ground.idle.r_taxi   = 0.20375f; // prop 1,400rpm @ NTD
                     ctx->ground.idle.minimums = 2; break;
+                }
+                if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "T210"))
+                {
+                    ctx->ground.idle.minimums = 0; break;
                 }
                 break;
             }
@@ -4728,14 +4732,14 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Lancair Legacy FG"))
                 {
-                    ctx->ground.idle.r_idle   = 0.02000f;
-                    ctx->ground.idle.r_taxi   = 0.06666f;
+                    ctx->ground.idle.r_idle   = 0.03010f; // prop 1,100rpm @ NTD
+                    ctx->ground.idle.r_taxi   = 0.09650f; // prop 1,400rpm @ NTD
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Pipistrel Panthera"))
                 {
-                    ctx->ground.idle.r_idle   = 0.04166f;
-                    ctx->ground.idle.r_taxi   = 0.11111f;
+                    ctx->ground.idle.r_idle   = 0.05585f; // prop 1,100rpm @ NTD
+                    ctx->ground.idle.r_taxi   = 0.13650f; // prop 1,400rpm @ NTD
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Epic Victory"))
@@ -4753,26 +4757,15 @@ static int first_fcall_do(chandler_context *ctx)
             if (!STRN_CASECMP_AUTO(ctx->info->author, "Alabeo") ||
                 !STRN_CASECMP_AUTO(ctx->info->author, "Carenado"))
             {
-                if (!STRN_CASECMP_AUTO(ctx->info->descrp, "CT206H Stationair"))
-                {
-                    ctx->ground.idle.r_idle   = 0.06666f;
-                    ctx->ground.idle.r_taxi   = 0.13333f;
-                    ctx->ground.idle.minimums = 2; break;
-                }
-                if (!STRN_CASECMP_AUTO(ctx->info->descrp, "C207 Skywagon"))
-                {
-                    ctx->ground.idle.r_idle   = 0.03333f;
-                    ctx->ground.idle.r_taxi   = 0.13333f;
-                    ctx->ground.idle.minimums = 2; break;
-                }
                 if (!STRN_CASECMP_AUTO(ctx->info->descrp, "T210M Centurion II"))
                 {
-                    ctx->ground.idle.r_taxi   = 0.13333f;
-                    ctx->ground.idle.minimums = 1; break;
+                    ctx->ground.idle.r_idle   = 0.09945f; // prop 1,100rpm @ NTD
+                    ctx->ground.idle.r_taxi   = 0.16543f; // prop 1,400rpm @ NTD
+                    ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Pilatus PC12"))
                 {
-                    ctx->ground.idle.r_taxi   = 0.33333f;
+                    ctx->ground.idle.r_taxi   = 0.33333f; // set approach thrust
                     ctx->ground.idle.minimums = 1; break;
                 }
                 break;
