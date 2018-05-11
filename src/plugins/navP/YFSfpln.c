@@ -88,7 +88,10 @@ static XPLMNavRef xplm_find_navaid(ndt_waypoint *wpt)
         navRefpt = XPLMFindNavAid(NULL, inIDFrag, inLatit, inLongi, NULL, navTypes);
         if (XPLM_NAV_NOT_FOUND == navRefpt && navTypes == xplm_Nav_Airport && inIDFrag_len == 4)
         {
-            // try our luck converting the 4-letter ICAO code to an FAA LID code
+            // note: we'll never be able to replicate the XP10 GNS430 behavior
+            // XPLMGetFMSEntryInfo n the destination airport returns a "bogus"
+            // navaid w/type xplm_Nav_Airport but outRef == XPLM_NAV_NOT_FOUND
+            // instead we try converting the ICAO to the corresponding FAA LID
             inIDFrag = (char*)(wpt->info.idnt + 1); inIDFrag_len = strlen(inIDFrag);
             navRefpt = XPLMFindNavAid(NULL, inIDFrag, inLatit, inLongi, NULL, navTypes);
         }
