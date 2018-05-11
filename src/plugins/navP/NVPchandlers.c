@@ -187,6 +187,16 @@ typedef struct
 
 typedef struct
 {
+    chandler_callback aft;
+    chandler_callback bef;
+    XPLMCommandRef at_cmd;
+    XPLMDataRef    at_ref;
+    XPLMDataRef    fd_ref;
+    int            at_val;
+} refcon_apd;
+
+typedef struct
+{
     int        initialized;
     int        first_fcall;
     int        kill_daniel;
@@ -196,6 +206,7 @@ typedef struct
     refcon_ground   ground;
     refcon_thrust    throt;
     refcon_gear       gear;
+    refcon_apd         apd;
 
     struct
     {
@@ -554,6 +565,8 @@ static int chandler_32atd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_31isc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_apbef(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_apaft(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_flap_func (                                        float, float, int, void*);
 static float gnd_stab_hdlr (                                        float, float, int, void*);
 static int   first_fcall_do(                                           chandler_context *ctx);
@@ -918,6 +931,20 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->gear.landing_gear_toggle, chandler_ghndl, 1 /* before X-Plane */, &ctx->gear);
     }
 
+    /* Default commands' handlers: autopilot disconnect */
+    ctx->apd.aft.command = ctx->apd.bef.command = XPLMFindCommand("sim/autopilot/fdir_servos_down_one");
+    ctx->apd.fd_ref = XPLMFindDataRef("sim/cockpit2/autopilot/flight_director_mode");
+    ctx->apd.at_ref = XPLMFindDataRef("sim/cockpit2/autopilot/autothrottle_enabled");
+    ctx->apd.at_cmd = XPLMFindCommand("sim/autopilot/autothrottle_on");
+    if (!ctx->apd.aft.command ||
+        !ctx->apd.bef.command ||
+        !ctx->apd.at_cmd      ||
+        !ctx->apd.at_ref      ||
+        !ctx->apd.fd_ref)
+    {
+        goto fail;
+    }
+
     /* Custom command: pop-up Control Display Unit */
     ctx->mcdu.cb.command = XPLMCreateCommand("navP/switches/cdu_toggle", "CDU pop-up/down");
     if (!ctx->mcdu.cb.command)
@@ -1027,6 +1054,8 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->ground.      idle.preset);
     UNREGSTR_CHANDLER(ctx->callouts.       cb_flapu);
     UNREGSTR_CHANDLER(ctx->callouts.       cb_flapd);
+    UNREGSTR_CHANDLER(ctx->apd.                 aft);
+    UNREGSTR_CHANDLER(ctx->apd.                 bef);
     UNREGSTR_CHANDLER(ctx->mcdu.                 cb);
 
     /* …and all datarefs */
@@ -1123,10 +1152,9 @@ int nvp_chandlers_reset(void *inContext)
     }
 
     /* Unregister aircraft-specific command handlers */
-    if (ctx->acfspec.qpac.mwcb.handler)
-    {
-        UNREGSTR_CHANDLER(ctx->acfspec.qpac.mwcb);
-    }
+    UNREGSTR_CHANDLER(ctx->acfspec.qpac.mwcb);
+    UNREGSTR_CHANDLER(ctx->apd.          aft);
+    UNREGSTR_CHANDLER(ctx->apd.          bef);
 
     /* Re-enable Gizmo64 if present */
     XPLMPluginID g64 = XPLMFindPluginBySignature("gizmo.x-plugins.com");
@@ -3497,6 +3525,31 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
+static int chandler_apbef(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandBegin)
+    {
+        refcon_apd *apd = inRefcon;
+        apd->at_val = !!XPLMGetDatai(apd->at_ref);
+    }
+    return 1;
+}
+
+static int chandler_apaft(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        refcon_apd *apd = inRefcon;
+        if (apd->at_val)
+        {
+            if (XPLMGetDatai(apd->fd_ref) >= 1) // XP A/T won't work without F/D
+            {
+                XPLMCommandOnce(apd->at_cmd);
+            }
+        }
+    }
+    return 1;
+}
 static float flc_flap_func(float inElapsedSinceLastCall,
                            float inElapsedTimeSinceLastFlightLoop,
                            int   inCounter,
@@ -3613,7 +3666,7 @@ static int first_fcall_do(chandler_context *ctx)
         {
             return 0; // try again later
         }
-        ndt_log("navP [error]: first_fcall_do: acf_type_info_acf_ctx_init() failed");
+        ndt_log("navP [error]: first_fcall_do: acf_type_info_acf_ctx_init() failed\n");
         XPLMSpeakString("nav P first call failed");
         return (ctx->first_fcall = 0) - 1;
     }
@@ -4599,6 +4652,17 @@ static int first_fcall_do(chandler_context *ctx)
     if (ctx->gear.has_retractable_gear == -1)
     {
         ctx->gear.has_retractable_gear = !!XPLMGetDatai(ctx->gear.acf_gear_retract);
+    }
+
+    /* Register custom autopilot disconnect handlers when applicable */
+    if (ctx->athr.toga.cc.xpcr && ctx->otto.disc.cc.xpcr)
+    {
+        if ((ctx->athr.toga.cc.xpcr == ctx->apd.at_cmd) &&
+            (ctx->otto.disc.cc.xpcr == ctx->apd.bef.command))
+        {
+            REGISTER_CHANDLER(ctx->apd.bef, chandler_apbef, 1, &ctx->apd);
+            REGISTER_CHANDLER(ctx->apd.aft, chandler_apaft, 0, &ctx->apd);
+        }
     }
 
     /*
