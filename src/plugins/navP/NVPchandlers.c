@@ -197,6 +197,17 @@ typedef struct
 
 typedef struct
 {
+    chandler_callback dn;
+    chandler_callback up;
+    chandler_callback pd;
+    chandler_callback pu;
+    XPLMCommandRef vs_dn;
+    XPLMCommandRef vs_up;
+    XPLMDataRef ot_vs_on;
+} refcon_vvi;
+
+typedef struct
+{
     int        initialized;
     int        first_fcall;
     int        kill_daniel;
@@ -207,6 +218,7 @@ typedef struct
     refcon_thrust    throt;
     refcon_gear       gear;
     refcon_apd         apd;
+    refcon_vvi         vvi;
 
     struct
     {
@@ -567,6 +579,7 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_apbef(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_apaft(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_p2vvi(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_flap_func (                                        float, float, int, void*);
 static float gnd_stab_hdlr (                                        float, float, int, void*);
 static int   first_fcall_do(                                           chandler_context *ctx);
@@ -945,6 +958,21 @@ void* nvp_chandlers_init(void)
         goto fail;
     }
 
+    /* Default commands' handlers: pitch hold up/down */
+    ctx->vvi.up.command = XPLMFindCommand("sim/autopilot/nose_up");
+    ctx->vvi.dn.command = XPLMFindCommand("sim/autopilot/nose_down");
+    ctx->vvi.pu.command = XPLMFindCommand("sim/autopilot/nose_up_pitch_mode");
+    ctx->vvi.pd.command = XPLMFindCommand("sim/autopilot/nose_down_pitch_mode");
+    ctx->vvi.ot_vs_on   = XPLMFindDataRef("sim/cockpit2/autopilot/vvi_status");
+    ctx->vvi.vs_dn      = XPLMFindCommand("sim/autopilot/vertical_speed_down");
+    ctx->vvi.vs_up      = XPLMFindCommand("sim/autopilot/vertical_speed_up");
+    if (!ctx->vvi.dn.command || !ctx->vvi.up.command ||
+        !ctx->vvi.pu.command || !ctx->vvi.pd.command || !ctx->vvi.ot_vs_on ||
+        !ctx->vvi.vs_dn      || !ctx->vvi.vs_up)
+    {
+        goto fail;
+    }
+
     /* Custom command: pop-up Control Display Unit */
     ctx->mcdu.cb.command = XPLMCreateCommand("navP/switches/cdu_toggle", "CDU pop-up/down");
     if (!ctx->mcdu.cb.command)
@@ -1056,6 +1084,10 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->callouts.       cb_flapd);
     UNREGSTR_CHANDLER(ctx->apd.                 aft);
     UNREGSTR_CHANDLER(ctx->apd.                 bef);
+    UNREGSTR_CHANDLER(ctx->vvi.                  dn);
+    UNREGSTR_CHANDLER(ctx->vvi.                  up);
+    UNREGSTR_CHANDLER(ctx->vvi.                  pd);
+    UNREGSTR_CHANDLER(ctx->vvi.                  pu);
     UNREGSTR_CHANDLER(ctx->mcdu.                 cb);
 
     /* …and all datarefs */
@@ -1155,6 +1187,10 @@ int nvp_chandlers_reset(void *inContext)
     UNREGSTR_CHANDLER(ctx->acfspec.qpac.mwcb);
     UNREGSTR_CHANDLER(ctx->apd.          aft);
     UNREGSTR_CHANDLER(ctx->apd.          bef);
+    UNREGSTR_CHANDLER(ctx->vvi.           dn);
+    UNREGSTR_CHANDLER(ctx->vvi.           up);
+    UNREGSTR_CHANDLER(ctx->vvi.           pd);
+    UNREGSTR_CHANDLER(ctx->vvi.           pu);
 
     /* Re-enable Gizmo64 if present */
     XPLMPluginID g64 = XPLMFindPluginBySignature("gizmo.x-plugins.com");
@@ -3550,6 +3586,32 @@ static int chandler_apaft(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     }
     return 1;
 }
+
+static int chandler_p2vvi(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandBegin)
+    {
+        refcon_vvi *vvi = inRefcon;
+        if (XPLMGetDatai(vvi->ot_vs_on) >= 1)
+        {
+            if (inCommand == vvi->dn.command ||
+                inCommand == vvi->pd.command)
+            {
+                XPLMCommandOnce(vvi->vs_dn);
+                return 0;
+            }
+            if (inCommand == vvi->up.command ||
+                inCommand == vvi->pu.command)
+            {
+                XPLMCommandOnce(vvi->vs_up);
+                return 0;
+            }
+        }
+        return 1; // pass through
+    }
+    return 0;
+}
+
 static float flc_flap_func(float inElapsedSinceLastCall,
                            float inElapsedTimeSinceLastFlightLoop,
                            int   inCounter,
@@ -4663,6 +4725,15 @@ static int first_fcall_do(chandler_context *ctx)
             REGISTER_CHANDLER(ctx->apd.bef, chandler_apbef, 1, &ctx->apd);
             REGISTER_CHANDLER(ctx->apd.aft, chandler_apaft, 0, &ctx->apd);
         }
+    }
+
+    /* Register custom autopilot pitch hold handlers when applicable */
+    if (ctx->info->ac_type == ACF_TYP_GENERIC)
+    {
+        REGISTER_CHANDLER(ctx->vvi.dn, chandler_p2vvi, 1, &ctx->vvi);
+        REGISTER_CHANDLER(ctx->vvi.up, chandler_p2vvi, 1, &ctx->vvi);
+        REGISTER_CHANDLER(ctx->vvi.pd, chandler_p2vvi, 1, &ctx->vvi);
+        REGISTER_CHANDLER(ctx->vvi.pu, chandler_p2vvi, 1, &ctx->vvi);
     }
 
     /*
