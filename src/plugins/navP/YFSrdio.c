@@ -1139,6 +1139,21 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
 
 static void yfs_rad2_pageupdt(yfms_context *yfms)
 {
+    /* check if we must restore the HSI course */
+    if (yfms->data.rdio.hsi_obs_deg_mag_rest > 1)
+    {
+        yfms->data.rdio.hsi_obs_deg_mag_rest = 1;
+    }
+    else
+    {
+        if (yfms->data.rdio.hsi_obs_deg_mag_rest == 1)
+        {
+            XPLMSetDataf(yfms->xpl.  hsi_obs_deg_mag_pilot, yfms->data.rdio.hsi_obs_deg_mag_left);
+            XPLMSetDataf(yfms->xpl.hsi_obs_deg_mag_copilot, yfms->data.rdio.hsi_obs_deg_mag_rigt);
+        }
+        yfms->data.rdio.hsi_obs_deg_mag_rest = 0;
+    }
+
     /* reset lines before drawing */
     for (int i = 0; i < YFS_DISPLAY_NUMR - 1; i++)
     {
@@ -1740,8 +1755,17 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (key[0] == 0)
         {
-            XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_pilot,   (float)crs);
+            // X-Plane may overwrite the HSI course even if the OBS we've
+            // updated isn't the current HSI source, we simply restore it
+            if ((XPLMGetDatai(yfms->xpl.autopilot_source) == 0 && XPLMGetDatai(yfms->xpl.  HSI_source_select_pilot) != 0) ||
+                (XPLMGetDatai(yfms->xpl.autopilot_source) == 1 && XPLMGetDatai(yfms->xpl.HSI_source_select_copilot) != 0))
+            {
+                yfms->data.rdio.hsi_obs_deg_mag_rigt = XPLMGetDataf(yfms->xpl.hsi_obs_deg_mag_copilot);
+                yfms->data.rdio.hsi_obs_deg_mag_left = XPLMGetDataf(yfms->xpl.hsi_obs_deg_mag_pilot);
+                yfms->data.rdio.hsi_obs_deg_mag_rest = 2;
+            }
             XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_copilot, (float)crs);
+            XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_pilot, (float)crs);
         }
         else if (yfms->xpl.atyp == YFS_ATYP_FB76)
         {
@@ -1749,10 +1773,19 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
         }
         else
         {
-            XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot,   (float)crs);
+            // X-Plane may overwrite the HSI course even if the OBS we've
+            // updated isn't the current HSI source, we simply restore it
+            if ((XPLMGetDatai(yfms->xpl.autopilot_source) == 0 && XPLMGetDatai(yfms->xpl.  HSI_source_select_pilot) != 1) ||
+                (XPLMGetDatai(yfms->xpl.autopilot_source) == 1 && XPLMGetDatai(yfms->xpl.HSI_source_select_copilot) != 1))
+            {
+                yfms->data.rdio.hsi_obs_deg_mag_rigt = XPLMGetDataf(yfms->xpl.hsi_obs_deg_mag_copilot);
+                yfms->data.rdio.hsi_obs_deg_mag_left = XPLMGetDataf(yfms->xpl.hsi_obs_deg_mag_pilot);
+                yfms->data.rdio.hsi_obs_deg_mag_rest = 2;
+            }
             XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_copilot, (float)crs);
+            XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot, (float)crs);
         }
-        yfs_spad_clear(yfms); yfs_rad2_pageupdt(yfms); return;
+        yfs_spad_clear(yfms); return yfs_rad2_pageupdt(yfms);
     }
     if (key[0] == 0 && key[1] == 2) // ILS 1 frequency get/set
     {
@@ -1818,12 +1851,21 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (yfms->xpl.atyp != YFS_ATYP_FB76)
         {
+            // X-Plane may overwrite the HSI course even if the OBS we've
+            // updated isn't the current HSI source, we simply restore it
+            if ((XPLMGetDatai(yfms->xpl.autopilot_source) == 0 && XPLMGetDatai(yfms->xpl.  HSI_source_select_pilot) == 2) ||
+                (XPLMGetDatai(yfms->xpl.autopilot_source) == 1 && XPLMGetDatai(yfms->xpl.HSI_source_select_copilot) == 2))
+            {
+                yfms->data.rdio.hsi_obs_deg_mag_rigt = XPLMGetDataf(yfms->xpl.hsi_obs_deg_mag_copilot);
+                yfms->data.rdio.hsi_obs_deg_mag_left = XPLMGetDataf(yfms->xpl.hsi_obs_deg_mag_pilot);
+                yfms->data.rdio.hsi_obs_deg_mag_rest = 2;
+            }
             XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_copilot, (float)crs);
             XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_pilot, (float)crs);
         }
         XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_copilot, (float)crs);
         XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot, (float)crs);
-        yfs_spad_clear(yfms); yfs_rad2_pageupdt(yfms); return;
+        yfs_spad_clear(yfms); return yfs_rad2_pageupdt(yfms);
     }
     if (key[1] == 4) // ADF 1/2 frequency get/set
     {

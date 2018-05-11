@@ -373,6 +373,9 @@ typedef struct
             int32_t asrt_delayed_baro_u;
             int32_t asrt_delayed_baro_v;
             int32_t asrt_delayed_redraw;
+            float  hsi_obs_deg_mag_left;
+            float  hsi_obs_deg_mag_rigt;
+            int    hsi_obs_deg_mag_rest;
         }
         rdio;
     }
@@ -437,6 +440,8 @@ typedef struct
         XPLMDataRef nav2_obs_deg_mag_pilot;
         XPLMDataRef nav1_obs_deg_mag_copilot;
         XPLMDataRef nav2_obs_deg_mag_copilot;
+        XPLMDataRef hsi_obs_deg_mag_pilot;
+        XPLMDataRef hsi_obs_deg_mag_copilot;
         XPLMDataRef HSI_source_select_pilot;
         XPLMDataRef HSI_source_select_copilot;
         // PAGE_FPLN

@@ -1217,9 +1217,11 @@ void* yfs_main_init(void)
         (yfms->xpl.nav1_obs_deg_mag_pilot          = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav1_obs_deg_mag_pilot"         )) == NULL ||
         (yfms->xpl.nav2_obs_deg_mag_pilot          = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav2_obs_deg_mag_pilot"         )) == NULL ||
         (yfms->xpl.nav1_obs_deg_mag_copilot        = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav1_obs_deg_mag_copilot"       )) == NULL ||
+        (yfms->xpl.nav2_obs_deg_mag_copilot        = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav2_obs_deg_mag_copilot"       )) == NULL ||
+        (yfms->xpl.hsi_obs_deg_mag_pilot           = XPLMFindDataRef("sim/cockpit2/radios/actuators/hsi_obs_deg_mag_pilot"          )) == NULL ||
+        (yfms->xpl.hsi_obs_deg_mag_copilot         = XPLMFindDataRef("sim/cockpit2/radios/actuators/hsi_obs_deg_mag_copilot"        )) == NULL ||
         (yfms->xpl.HSI_source_select_pilot         = XPLMFindDataRef("sim/cockpit2/radios/actuators/HSI_source_select_pilot"        )) == NULL ||
         (yfms->xpl.HSI_source_select_copilot       = XPLMFindDataRef("sim/cockpit2/radios/actuators/HSI_source_select_copilot"      )) == NULL ||
-        (yfms->xpl.nav2_obs_deg_mag_copilot        = XPLMFindDataRef("sim/cockpit2/radios/actuators/nav2_obs_deg_mag_copilot"       )) == NULL ||
         (yfms->xpl.override_fms                    = XPLMFindDataRef("sim/operation/override/override_fms_advance"                  )) == NULL || // PAGE_FPLN
         (yfms->xpl.acf_vs0                         = XPLMFindDataRef("sim/aircraft/view/acf_Vso"                                    )) == NULL || // miscellaneous
         (yfms->xpl.true_psi                        = XPLMFindDataRef("sim/flightmodel/position/true_psi"                            )) == NULL ||
