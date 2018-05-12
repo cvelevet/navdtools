@@ -4867,6 +4867,8 @@ static int first_fcall_do(chandler_context *ctx)
                 }
                 if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "T210"))
                 {
+                    ctx->ground.idle.r_idle   = 0.06150f; // prop 1,100rpm @ NTD
+                    ctx->ground.idle.r_taxi   = 0.11025f; // prop 1,400rpm @ NTD
                     ctx->ground.idle.minimums = 0; break;
                 }
                 break;
