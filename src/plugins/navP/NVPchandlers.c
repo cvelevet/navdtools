@@ -80,15 +80,6 @@ typedef struct
 
 typedef struct
 {
-    chandler_callback dn;
-    chandler_callback up;
-    XPLMCommandRef thrdn;
-    XPLMCommandRef thrup;
-    XPLMDataRef    thall;
-} refcon_thrust;
-
-typedef struct
-{
     int              ready;
     chandler_callback mwcb;
     XPLMCommandRef   iscst;
@@ -144,12 +135,23 @@ typedef struct
     } idle;
     struct
     {
+        float show_thr_all;
+        float check_4icing;
         int   ice_detected;
-        int        counter;
         XPWidgetID  wid[3];
         XPLMDataRef ice[4]; // ice ratio (pitot, inlet, prop, wing)
     } ovly;
 } refcon_ground;
+
+typedef struct
+{
+    chandler_callback dn;
+    chandler_callback up;
+    XPLMCommandRef thrdn;
+    XPLMCommandRef thrup;
+    XPLMDataRef    thall;
+    float    *show_thall;
+} refcon_thrust;
 
 typedef struct
 {
@@ -807,22 +809,6 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->revrs.rev.cb, chandler_r_rev, 0, ctx);
     }
 
-    /* Custom commands: thrust control */
-    ctx->throt.dn.command = XPLMCreateCommand("navP/thrust/dn_once", "throttle down once");
-    ctx->throt.up.command = XPLMCreateCommand("navP/thrust/up_once", "throttle up once");
-    ctx->throt.     thrdn = XPLMFindCommand  ("sim/engines/throttle_down");
-    ctx->throt.     thrup = XPLMFindCommand  ("sim/engines/throttle_up");
-    if (!ctx->throt.dn.command || !ctx->throt.thrdn ||
-        !ctx->throt.up.command || !ctx->throt.thrup)
-    {
-        goto fail;
-    }
-    else
-    {
-        REGISTER_CHANDLER(ctx->throt.dn, chandler_thrdn, 0, &ctx->throt);
-        REGISTER_CHANDLER(ctx->throt.up, chandler_thrup, 0, &ctx->throt);
-    }
-
     /* Custom commands: quick look views */
     ctx->views.cbs[0].command = XPLMFindCommand("sim/view/quick_look_0");
     ctx->views.cbs[1].command = XPLMFindCommand("sim/view/quick_look_1");
@@ -1019,13 +1005,31 @@ void* nvp_chandlers_init(void)
     {
         goto fail;
     }
-    if (!(ctx->ground.ovly.wid[2] = XPCreateWidget(0, 0, 0, 0, 0, "ICE", 1, NULL, xpWidgetClass_Caption)))
+    if (!(ctx->ground.ovly.wid[2] = XPCreateWidget(0, 0, 0, 0, 0, "", 1, NULL, xpWidgetClass_Caption)))
     {
         goto fail;
     }
     XPSetWidgetProperty(ctx->ground.ovly.wid[0], xpProperty_SubWindowType, xpSubWindowStyle_Screen);
     XPSetWidgetProperty(ctx->ground.ovly.wid[1], xpProperty_CaptionLit, 1);
     XPSetWidgetProperty(ctx->ground.ovly.wid[2], xpProperty_CaptionLit, 1);
+    XPSetWidgetGeometry(ctx->ground.ovly.wid[2], 32, 52, 52, 32);
+
+    /* Custom commands: thrust control */
+    ctx->throt.dn.command = XPLMCreateCommand("navP/thrust/dn_once", "throttle down once");
+    ctx->throt.up.command = XPLMCreateCommand("navP/thrust/up_once", "throttle up once");
+    ctx->throt.     thrdn = XPLMFindCommand  ("sim/engines/throttle_down");
+    ctx->throt.     thrup = XPLMFindCommand  ("sim/engines/throttle_up");
+    if (!ctx->throt.dn.command || !ctx->throt.thrdn ||
+        !ctx->throt.up.command || !ctx->throt.thrup)
+    {
+        goto fail;
+    }
+    else
+    {
+        REGISTER_CHANDLER(ctx->throt.dn, chandler_thrdn, 0, &ctx->throt);
+        REGISTER_CHANDLER(ctx->throt.up, chandler_thrup, 0, &ctx->throt);
+        ctx->throt.show_thall = &ctx->ground.ovly.show_thr_all;
+    }
 
     /* all good */
     return ctx;
@@ -2589,9 +2593,11 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             float next = XPLMGetDataf(t->thall) - 0.0500f; // 20 steps is plenty
             if (next < 0.0f) next = 0.0f;
             XPLMSetDataf(t->thall, next);
+            *t->show_thall = 2.0f;
             return 0;
         }
         XPLMCommandOnce(t->thrdn);
+        *t->show_thall = 2.0f;
         return 0;
     }
     return 0;
@@ -2607,9 +2613,11 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             float next = XPLMGetDataf(t->thall) + 0.0500f; // 20 steps is plenty
             if (next > 1.0f) next = 1.0f;
             XPLMSetDataf(t->thall, next);
+            *t->show_thall = 2.0f;
             return 0;
         }
         XPLMCommandOnce(t->thrup);
+        *t->show_thall = 2.0f;
         return 0;
     }
     return 0;
@@ -3548,12 +3556,15 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 if (grndp->idle.thrott_array)
                 {
                     XPLMSetDatavf(grndp->idle.thrott_array, grndp->idle.r_t, 0, 2);
+                    grndp->ovly.show_thr_all = 2.0f;
                     return 0;
                 }
                 XPLMSetDataf(grndp->idle.throttle_all, grndp->idle.r_taxi);
+                grndp->ovly.show_thr_all = 2.0f;
                 return 0;
             }
             XPLMSetDataf(grndp->idle.throttle_all, 0.2f);
+            grndp->ovly.show_thr_all = 2.0f;
             return 0;
         }
         return 0;
@@ -3642,11 +3653,12 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 {
     if (inRefcon)
     {
-        refcon_ground *grndp = inRefcon;
+        refcon_ground *grndp = inRefcon; int show_throttle_all_did_change = 00;
         float ground_spd_kts = XPLMGetDataf(grndp->ground_spd) * 3.6f / 1.852f;
-        float thrott_cmd_all = XPLMGetDataf(grndp->idle.throttle_all) + T_ZERO;
+        float thrott_cmd_all = XPLMGetDataf(grndp->idle.throttle_all) + T_ZERO;//fixme dataref for FFa320, TOa319 etc.
 
-        if (++grndp->ovly.counter >= 8) // every other second
+        // TODO: ground speed readout (via other widget wid[1]!)
+        if ((grndp->ovly.check_4icing += inElapsedSinceLastCall) >= 2.0f) // every other second
         {
             if (XPLMGetDataf(grndp->ovly.ice[0]) > 0.0125f ||
                 XPLMGetDataf(grndp->ovly.ice[1]) > 0.0125f ||
@@ -3655,13 +3667,8 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             {
                 if (grndp->ovly.ice_detected == 0)
                 {
+                    XPSetWidgetDescriptor(grndp->ovly.wid[2], "ICE");
                     XPLMSpeakString("ice detected");
-                }
-                if (XPIsWidgetVisible(grndp->ovly.wid[2]) == 0)
-                {
-                    int xx, xx1, yy, yy1; xx = 32; xx1 = 52; yy = 32; yy1 = 52;
-                    XPSetWidgetGeometry(grndp->ovly.wid[2], xx, yy1, xx1, yy);
-                    XPShowWidget(grndp->ovly.wid[2]);
                 }
                 grndp->ovly.ice_detected = 1;
             }
@@ -3670,14 +3677,33 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                      XPLMGetDataf(grndp->ovly.ice[2]) < 0.0025f &&
                      XPLMGetDataf(grndp->ovly.ice[3]) < 0.0025f)
             {
-                if (XPIsWidgetVisible(grndp->ovly.wid[2]))
-                {
-                    XPHideWidget(grndp->ovly.wid[2]);
-                }
                 grndp->ovly.ice_detected = 0;
             }
-            // TODO: ground speed readout
-            grndp->ovly.counter = 0;
+            grndp->ovly.check_4icing = 0.0f;
+        }
+        if (grndp->ovly.ice_detected == 0)
+        {
+            if (grndp->ovly.show_thr_all > 0.0f)
+            {
+                char thrt_all[5]; show_throttle_all_did_change = 1;
+                snprintf(thrt_all,5,"%4.2f",thrott_cmd_all-T_ZERO);
+                XPSetWidgetDescriptor(grndp->ovly.wid[2],thrt_all);
+                grndp->ovly.show_thr_all -= inElapsedSinceLastCall;
+            }
+        }
+        if (grndp->ovly.ice_detected || show_throttle_all_did_change)
+        {
+            if (XPIsWidgetVisible(grndp->ovly.wid[2]) == 0)
+            {
+                XPShowWidget(grndp->ovly.wid[2]);
+            }
+        }
+        else
+        {
+            if (XPIsWidgetVisible(grndp->ovly.wid[2]) != 0)
+            {
+                XPHideWidget(grndp->ovly.wid[2]);
+            }
         }
 
 #if 0
@@ -4923,7 +4949,9 @@ static int first_fcall_do(chandler_context *ctx)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
     }
-    ctx->ground.ovly.ice_detected = ctx->ground.ovly.counter = 0;
+    ctx->ground.ovly.ice_detected = 0;
+    ctx->ground.ovly.check_4icing = 0.0f;
+    ctx->ground.ovly.show_thr_all = 0.0f;
     XPLMRegisterFlightLoopCallback((ctx->ground.flc_g = &gnd_stab_hdlr), 1, &ctx->ground);
 
 #define TIM_ONLY
