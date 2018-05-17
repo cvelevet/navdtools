@@ -3541,11 +3541,15 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMGetDataf(a320->dat.engine_lever_rt) < 0.31f) // idle thrust
             {
                 XPLMCommandOnce(a320->dat.throttles_up);
+                grndp->ovly.show_thr_all = 2.0f;
+                return 0;
             }
             if (XPLMGetDataf(a320->dat.engine_lever_lt) > 0.37f ||
                 XPLMGetDataf(a320->dat.engine_lever_rt) > 0.37f) // > ~26.0% N1
             {
                 XPLMCommandOnce(a320->dat.throttles_dn);
+                grndp->ovly.show_thr_all = 2.0f;
+                return 0;
             }
             return 0;
         }
