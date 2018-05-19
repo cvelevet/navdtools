@@ -1225,16 +1225,17 @@ void nvp_chandlers_onload(void *inContext)
     XPLMDataRef dref_temporary = NULL;
     char s[261] = ""; XPLMPluginID gi;
     // auto-disable Gizmo64 before other aircrafts get to load their own plugins
+    // only disable for FF-A320: allow Gizmo to update our license for IXEG B733
     if (XPLM_NO_PLUGIN_ID != (gi = XPLMFindPluginBySignature("gizmo.x-plugins.com")))
     {
         if (XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("SilverLiningV2.Clouds") &&
             XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("SilverLiningV3.Clouds") &&
             XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("SilverLiningV4.Clouds"))
         {
-            if ((dref_temporary = XPLMFindDataRef("sim/aircraft/view/acf_author")))
+            if ((dref_temporary = XPLMFindDataRef("sim/aircraft/view/acf_descrip")))
             {
                 uf_dref_string_read(dref_temporary, s, sizeof(s));
-                if (STRN_CASECMP_AUTO(s, "IXEG") != 0)
+                if (!STRN_CASECMP_AUTO(s, "FlightFactor Airbus"))
                 {
                     if (XPLMIsPluginEnabled(gi))
                     {
