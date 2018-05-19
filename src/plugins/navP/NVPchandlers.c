@@ -144,8 +144,11 @@ typedef struct
     } idle;
     struct
     {
+        float show_thr_all;
+        float last_thr_all;
+        float check_4icing;
         int   ice_detected;
-        int        counter;
+        int   thrt_changed;
         XPWidgetID  wid[3];
         XPLMDataRef ice[4]; // ice ratio (pitot, inlet, prop, wing)
     } ovly;
@@ -1019,13 +1022,14 @@ void* nvp_chandlers_init(void)
     {
         goto fail;
     }
-    if (!(ctx->ground.ovly.wid[2] = XPCreateWidget(0, 0, 0, 0, 0, "ICE", 1, NULL, xpWidgetClass_Caption)))
+    if (!(ctx->ground.ovly.wid[2] = XPCreateWidget(0, 0, 0, 0, 0, "", 1, NULL, xpWidgetClass_Caption)))
     {
         goto fail;
     }
     XPSetWidgetProperty(ctx->ground.ovly.wid[0], xpProperty_SubWindowType, xpSubWindowStyle_Screen);
     XPSetWidgetProperty(ctx->ground.ovly.wid[1], xpProperty_CaptionLit, 1);
     XPSetWidgetProperty(ctx->ground.ovly.wid[2], xpProperty_CaptionLit, 1);
+    XPSetWidgetGeometry(ctx->ground.ovly.wid[2], 32, 52, 52, 32);
 
     /* all good */
     return ctx;
@@ -3513,6 +3517,7 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 1; // let X-Plane actually move the handle
 }
 
+#define T_ZERO (.0001f)
 static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandEnd)
@@ -3521,6 +3526,7 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         assert_context *a320 = grndp->assert;
         if (a320)
         {
+            // TODO: check reverse for other aircrafts
             if (XPLMGetDataf(a320->dat.engine_reverse1) > 0.5f ||
                 XPLMGetDataf(a320->dat.engine_reverse2) > 0.5f)
             {
@@ -3529,15 +3535,19 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             // there isn't a way to set throttle to a given position yet
             // instead, allow adjustments using XPLMCommandOnce but only
             // towards our "ideal" position - we may need multiple calls
-            if (XPLMGetDataf(a320->dat.engine_lever_lt) < 0.31f &&
-                XPLMGetDataf(a320->dat.engine_lever_rt) < 0.31f) // idle thrust
+            float engine_lever_lt = XPLMGetDataf(a320->dat.engine_lever_lt);
+            float engine_lever_rt = XPLMGetDataf(a320->dat.engine_lever_rt);
+            if (((engine_lever_lt < (grndp->idle.r_idle + T_ZERO))) &&
+                ((engine_lever_rt < (grndp->idle.r_idle + T_ZERO))))
             {
                 XPLMCommandOnce(a320->dat.throttles_up);
+                return 0;
             }
-            if (XPLMGetDataf(a320->dat.engine_lever_lt) > 0.37f ||
-                XPLMGetDataf(a320->dat.engine_lever_rt) > 0.37f) // > ~26.0% N1
+            if (((engine_lever_lt > (grndp->idle.r_taxi + T_ZERO))) ||
+                ((engine_lever_rt > (grndp->idle.r_taxi + T_ZERO))))
             {
                 XPLMCommandOnce(a320->dat.throttles_dn);
+                return 0;
             }
             return 0;
         }
@@ -3621,7 +3631,6 @@ static float flc_flap_func(float inElapsedSinceLastCall,
     return 0;
 }
 
-#define T_ZERO                (.0001f)
 #define GS_KT_MIN             (2.500f)
 #define GS_KT_MID             (26.25f)
 #define GS_KT_MAX             (50.00f)
@@ -3642,11 +3651,23 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 {
     if (inRefcon)
     {
-        refcon_ground *grndp = inRefcon;
+        refcon_ground *grndp = inRefcon; assert_context *assrt = grndp->assert;
         float ground_spd_kts = XPLMGetDataf(grndp->ground_spd) * 3.6f / 1.852f;
-        float thrott_cmd_all = XPLMGetDataf(grndp->idle.throttle_all) + T_ZERO;
+        float thrott_cmd_all = XPLMGetDataf(grndp->idle.throttle_all), thra[2];
+        if (grndp->idle.thrott_array)
+        {
+            XPLMGetDatavf(grndp->idle.thrott_array, thra, 0, 2);
+            thrott_cmd_all = (((((thra[0] + thra[1]) / 2.0f))));
+        }
+        else if (assrt)
+        {
+            thra[0] = XPLMGetDataf(assrt->dat.engine_lever_lt) - grndp->idle.r_idle;
+            thra[1] = XPLMGetDataf(assrt->dat.engine_lever_rt) - grndp->idle.r_idle;
+            thrott_cmd_all = ((thra[0] + thra[1]) / 2.0f) / (1 - grndp->idle.r_idle);
+        }
 
-        if (++grndp->ovly.counter >= 8) // every other second
+        // TODO: ground speed readout (via other widget wid[1]!)
+        if ((grndp->ovly.check_4icing += inElapsedSinceLastCall) >= 2.0f) // every other second
         {
             if (XPLMGetDataf(grndp->ovly.ice[0]) > 0.0125f ||
                 XPLMGetDataf(grndp->ovly.ice[1]) > 0.0125f ||
@@ -3655,30 +3676,55 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             {
                 if (grndp->ovly.ice_detected == 0)
                 {
+                    XPSetWidgetDescriptor(grndp->ovly.wid[2], "ICE");
                     XPLMSpeakString("ice detected");
                 }
-                if (XPIsWidgetVisible(grndp->ovly.wid[2]) == 0)
-                {
-                    int xx, xx1, yy, yy1; xx = 32; xx1 = 52; yy = 32; yy1 = 52;
-                    XPSetWidgetGeometry(grndp->ovly.wid[2], xx, yy1, xx1, yy);
-                    XPShowWidget(grndp->ovly.wid[2]);
-                }
                 grndp->ovly.ice_detected = 1;
+                grndp->ovly.thrt_changed = 0;
             }
             else if (XPLMGetDataf(grndp->ovly.ice[0]) < 0.0025f &&
                      XPLMGetDataf(grndp->ovly.ice[1]) < 0.0025f &&
                      XPLMGetDataf(grndp->ovly.ice[2]) < 0.0025f &&
                      XPLMGetDataf(grndp->ovly.ice[3]) < 0.0025f)
             {
-                if (XPIsWidgetVisible(grndp->ovly.wid[2]))
-                {
-                    XPHideWidget(grndp->ovly.wid[2]);
-                }
                 grndp->ovly.ice_detected = 0;
             }
-            // TODO: ground speed readout
-            grndp->ovly.counter = 0;
+            grndp->ovly.check_4icing = 0.0f;
         }
+        if (grndp->ovly.ice_detected == 0)
+        {
+            if (fabsf(grndp->ovly.last_thr_all - thrott_cmd_all) > .01f) // 1.0%
+            {
+                char buf[6];
+                grndp->ovly.thrt_changed = 1;
+                grndp->ovly.show_thr_all = 2.0f;
+                snprintf(buf, 6, "%5.3f", thrott_cmd_all);
+                XPSetWidgetDescriptor(grndp->ovly.wid[2], buf);
+            }
+        }
+        if (grndp->ovly.show_thr_all > T_ZERO)
+        {
+            grndp->ovly.show_thr_all -= inElapsedSinceLastCall;
+        }
+        else
+        {
+            grndp->ovly.thrt_changed = 0;
+        }
+        if (grndp->ovly.ice_detected || grndp->ovly.thrt_changed)
+        {
+            if (XPIsWidgetVisible(grndp->ovly.wid[2]) == 0)
+            {
+                XPShowWidget(grndp->ovly.wid[2]);
+            }
+        }
+        else
+        {
+            if (XPIsWidgetVisible(grndp->ovly.wid[2]) != 0)
+            {
+                XPHideWidget(grndp->ovly.wid[2]);
+            }
+        }
+        grndp->ovly.last_thr_all = thrott_cmd_all;
 
 #if 0
         float gstest[] =
@@ -3700,7 +3746,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         // first, raise our throttles to a minimum idle if required
         if (grndp->idle.minimums >= 2)
         {
-            if (thrott_cmd_all < grndp->idle.r_idle)
+            if (thrott_cmd_all < (grndp->idle.r_idle - T_ZERO))
             {
                 XPLMSetDataf(grndp->idle.throttle_all, grndp->idle.r_idle);
             }
@@ -4750,6 +4796,11 @@ static int first_fcall_do(chandler_context *ctx)
      */
     switch (ctx->info->ac_type)
     {
+        case ACF_TYP_A320_FF:
+            ctx->ground.idle.r_idle   = .307692f; // idle thrust
+            ctx->ground.idle.r_taxi   = .369231f; // > ~26.0% N1
+            ctx->ground.idle.minimums = 0; break;
+
         case ACF_TYP_A319_TL:
             ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
             ctx->ground.idle.r_t[0]   = 0.10800f; // IAE/CFM: N1: ~26.1/26.4% @ NTD
@@ -4923,7 +4974,10 @@ static int first_fcall_do(chandler_context *ctx)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
     }
-    ctx->ground.ovly.ice_detected = ctx->ground.ovly.counter = 0;
+    ctx->ground.ovly.ice_detected = 0;
+    ctx->ground.ovly.check_4icing = 0.0f;
+    ctx->ground.ovly.show_thr_all = 0.0f;
+    ctx->ground.ovly.last_thr_all = 0.0f;
     XPLMRegisterFlightLoopCallback((ctx->ground.flc_g = &gnd_stab_hdlr), 1, &ctx->ground);
 
 #define TIM_ONLY
