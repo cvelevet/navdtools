@@ -3657,7 +3657,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         if (grndp->idle.thrott_array)
         {
             XPLMGetDatavf(grndp->idle.thrott_array, thra, 0, 2);
-            thrott_cmd_all = ((thra[0] + thra[1]) / 2.0f);
+            thrott_cmd_all = (((((thra[0] + thra[1]) / 2.0f))));
         }
         else if (assrt)
         {
