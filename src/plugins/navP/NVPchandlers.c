@@ -3702,7 +3702,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                 XPSetWidgetDescriptor(grndp->ovly.wid[2], buf);
             }
         }
-        if (grndp->ovly.show_thr_all > 0.0f)
+        if (grndp->ovly.show_thr_all > T_ZERO)
         {
             grndp->ovly.show_thr_all -= inElapsedSinceLastCall;
         }
