@@ -80,6 +80,15 @@ typedef struct
 
 typedef struct
 {
+    chandler_callback dn;
+    chandler_callback up;
+    XPLMCommandRef thrdn;
+    XPLMCommandRef thrup;
+    XPLMDataRef    thall;
+} refcon_thrust;
+
+typedef struct
+{
     int              ready;
     chandler_callback mwcb;
     XPLMCommandRef   iscst;
@@ -144,15 +153,6 @@ typedef struct
         XPLMDataRef ice[4]; // ice ratio (pitot, inlet, prop, wing)
     } ovly;
 } refcon_ground;
-
-typedef struct
-{
-    chandler_callback dn;
-    chandler_callback up;
-    XPLMCommandRef thrdn;
-    XPLMCommandRef thrup;
-    XPLMDataRef    thall;
-} refcon_thrust;
 
 typedef struct
 {
@@ -810,6 +810,22 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->revrs.rev.cb, chandler_r_rev, 0, ctx);
     }
 
+    /* Custom commands: thrust control */
+    ctx->throt.dn.command = XPLMCreateCommand("navP/thrust/dn_once", "throttle down once");
+    ctx->throt.up.command = XPLMCreateCommand("navP/thrust/up_once", "throttle up once");
+    ctx->throt.     thrdn = XPLMFindCommand  ("sim/engines/throttle_down");
+    ctx->throt.     thrup = XPLMFindCommand  ("sim/engines/throttle_up");
+    if (!ctx->throt.dn.command || !ctx->throt.thrdn ||
+        !ctx->throt.up.command || !ctx->throt.thrup)
+    {
+        goto fail;
+    }
+    else
+    {
+        REGISTER_CHANDLER(ctx->throt.dn, chandler_thrdn, 0, &ctx->throt);
+        REGISTER_CHANDLER(ctx->throt.up, chandler_thrup, 0, &ctx->throt);
+    }
+
     /* Custom commands: quick look views */
     ctx->views.cbs[0].command = XPLMFindCommand("sim/view/quick_look_0");
     ctx->views.cbs[1].command = XPLMFindCommand("sim/view/quick_look_1");
@@ -1014,22 +1030,6 @@ void* nvp_chandlers_init(void)
     XPSetWidgetProperty(ctx->ground.ovly.wid[1], xpProperty_CaptionLit, 1);
     XPSetWidgetProperty(ctx->ground.ovly.wid[2], xpProperty_CaptionLit, 1);
     XPSetWidgetGeometry(ctx->ground.ovly.wid[2], 32, 52, 52, 32);
-
-    /* Custom commands: thrust control */
-    ctx->throt.dn.command = XPLMCreateCommand("navP/thrust/dn_once", "throttle down once");
-    ctx->throt.up.command = XPLMCreateCommand("navP/thrust/up_once", "throttle up once");
-    ctx->throt.     thrdn = XPLMFindCommand  ("sim/engines/throttle_down");
-    ctx->throt.     thrup = XPLMFindCommand  ("sim/engines/throttle_up");
-    if (!ctx->throt.dn.command || !ctx->throt.thrdn ||
-        !ctx->throt.up.command || !ctx->throt.thrup)
-    {
-        goto fail;
-    }
-    else
-    {
-        REGISTER_CHANDLER(ctx->throt.dn, chandler_thrdn, 0, &ctx->throt);
-        REGISTER_CHANDLER(ctx->throt.up, chandler_thrup, 0, &ctx->throt);
-    }
 
     /* all good */
     return ctx;
