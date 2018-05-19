@@ -3825,9 +3825,12 @@ static int first_fcall_do(chandler_context *ctx)
             }
             if ((d_ref = XPLMFindDataRef("AirbusFBW/OHPLightSwitches")))
             {
-                int AOHPLightSwitches[1] = { 1, };
+                int AOHPLightSwitches[1] = { 1 };
+                if (ctx->info->ac_type == ACF_TYP_A320_QP) // noisy on A319
+                {
+                    XPLMSetDatavi(d_ref, &AOHPLightSwitches[0], 10, 1);             // emerg. lights: arm
+                }
                 XPLMSetDatavi(d_ref, &AOHPLightSwitches[0],  7, 1);                 // strobes: automatic
-                XPLMSetDatavi(d_ref, &AOHPLightSwitches[0], 10, 1);                 // emerg. lights: arm
                 _DO(1, XPLMSetDataf, 0.5f, "AirbusFBW/WXAlphaND1");                 // ND1 weather to 50%
                 _DO(1, XPLMSetDataf, 0.5f, "AirbusFBW/WXAlphaND2");                 // ND2 weather to 50%
             }
