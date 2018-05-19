@@ -3663,7 +3663,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         {
             thra[0] = XPLMGetDataf(assrt->dat.engine_lever_lt) - grndp->idle.r_idle;
             thra[1] = XPLMGetDataf(assrt->dat.engine_lever_rt) - grndp->idle.r_idle;
-            thrott_cmd_all = ((thra[0] + thra[1]) / 2.0f);
+            thrott_cmd_all = ((thra[0] + thra[1]) / 2.0f) / (1 - grndp->idle.r_idle);
         }
 
         // TODO: ground speed readout (via other widget wid[1]!)
