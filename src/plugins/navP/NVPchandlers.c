@@ -3529,6 +3529,7 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         assert_context *a320 = grndp->assert;
         if (a320)
         {
+            // TODO: check reverse for other aircrafts
             if (XPLMGetDataf(a320->dat.engine_reverse1) > 0.5f ||
                 XPLMGetDataf(a320->dat.engine_reverse2) > 0.5f)
             {
@@ -3537,15 +3538,15 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             // there isn't a way to set throttle to a given position yet
             // instead, allow adjustments using XPLMCommandOnce but only
             // towards our "ideal" position - we may need multiple calls
-            if (XPLMGetDataf(a320->dat.engine_lever_lt) < 0.31f &&
-                XPLMGetDataf(a320->dat.engine_lever_rt) < 0.31f) // idle thrust
+            if (XPLMGetDataf(a320->dat.engine_lever_lt) < grndp->idle.r_idle &&
+                XPLMGetDataf(a320->dat.engine_lever_rt) < grndp->idle.r_idle)
             {
                 XPLMCommandOnce(a320->dat.throttles_up);
                 grndp->ovly.show_thr_all = 2.0f;
                 return 0;
             }
-            if (XPLMGetDataf(a320->dat.engine_lever_lt) > 0.37f ||
-                XPLMGetDataf(a320->dat.engine_lever_rt) > 0.37f) // > ~26.0% N1
+            if (XPLMGetDataf(a320->dat.engine_lever_lt) > grndp->idle.r_taxi ||
+                XPLMGetDataf(a320->dat.engine_lever_rt) > grndp->idle.r_taxi)
             {
                 XPLMCommandOnce(a320->dat.throttles_dn);
                 grndp->ovly.show_thr_all = 2.0f;
@@ -3657,9 +3658,21 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 {
     if (inRefcon)
     {
-        refcon_ground *grndp = inRefcon; int show_throttle_all_did_change = 00;
+        int show_throttle_all_did_change = 0;
+        refcon_ground *grndp = inRefcon; assert_context *assrt = grndp->assert;
         float ground_spd_kts = XPLMGetDataf(grndp->ground_spd) * 3.6f / 1.852f;
-        float thrott_cmd_all = XPLMGetDataf(grndp->idle.throttle_all) + T_ZERO;//fixme dataref for FFa320, TOa319 etc.
+        float thrott_cmd_all = XPLMGetDataf(grndp->idle.throttle_all) + T_ZERO;
+        if (grndp->idle.thrott_array)
+        {
+            float t[2];
+            XPLMGetDatavf(grndp->idle.thrott_array, t, 0, 2);
+            thrott_cmd_all = ((t[0] + t[1]) / 2.0f) + T_ZERO;
+        }
+        else if (assrt)
+        {
+            thrott_cmd_all = ((XPLMGetDataf(assrt->dat.engine_lever_lt) +//fixme convert
+                               XPLMGetDataf(assrt->dat.engine_lever_rt)) / 2.0f) + T_ZERO;
+        }
 
         // TODO: ground speed readout (via other widget wid[1]!)
         if ((grndp->ovly.check_4icing += inElapsedSinceLastCall) >= 2.0f) // every other second
@@ -3687,10 +3700,10 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         }
         if (grndp->ovly.ice_detected == 0)
         {
-            if (grndp->ovly.show_thr_all > 0.0f)
+            if (grndp->ovly.show_thr_all > 0.0f)//fixme automatic detection
             {
-                char thrt_all[5]; show_throttle_all_did_change = 1;
-                snprintf(thrt_all,5,"%4.2f",thrott_cmd_all-T_ZERO);
+                char thrt_all[6]; show_throttle_all_did_change = 1;
+                snprintf(thrt_all,6,"%5.3f",thrott_cmd_all-T_ZERO);
                 XPSetWidgetDescriptor(grndp->ovly.wid[2],thrt_all);
                 grndp->ovly.show_thr_all -= inElapsedSinceLastCall;
             }
@@ -4780,6 +4793,11 @@ static int first_fcall_do(chandler_context *ctx)
      */
     switch (ctx->info->ac_type)
     {
+        case ACF_TYP_A320_FF:
+            ctx->ground.idle.r_idle   = 0.31000f; // idle thrust
+            ctx->ground.idle.r_taxi   = 0.37000f; // > ~26.0% N1
+            ctx->ground.idle.minimums = 0; break;
+
         case ACF_TYP_A319_TL:
             ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
             ctx->ground.idle.r_t[0]   = 0.10800f; // IAE/CFM: N1: ~26.1/26.4% @ NTD
