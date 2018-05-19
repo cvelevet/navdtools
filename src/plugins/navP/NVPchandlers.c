@@ -3517,6 +3517,7 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 1; // let X-Plane actually move the handle
 }
 
+#define T_ZERO (.0001f)
 static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandEnd)
@@ -3534,14 +3535,16 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             // there isn't a way to set throttle to a given position yet
             // instead, allow adjustments using XPLMCommandOnce but only
             // towards our "ideal" position - we may need multiple calls
-            if (XPLMGetDataf(a320->dat.engine_lever_lt) < grndp->idle.r_idle &&
-                XPLMGetDataf(a320->dat.engine_lever_rt) < grndp->idle.r_idle)
+            float engine_lever_lt = XPLMGetDataf(a320->dat.engine_lever_lt);
+            float engine_lever_rt = XPLMGetDataf(a320->dat.engine_lever_rt);
+            if (((engine_lever_lt < (grndp->idle.r_idle + T_ZERO))) &&
+                ((engine_lever_rt < (grndp->idle.r_idle + T_ZERO))))
             {
                 XPLMCommandOnce(a320->dat.throttles_up);
                 return 0;
             }
-            if (XPLMGetDataf(a320->dat.engine_lever_lt) > grndp->idle.r_taxi ||
-                XPLMGetDataf(a320->dat.engine_lever_rt) > grndp->idle.r_taxi)
+            if (((engine_lever_lt > (grndp->idle.r_taxi + T_ZERO))) ||
+                ((engine_lever_rt > (grndp->idle.r_taxi + T_ZERO))))
             {
                 XPLMCommandOnce(a320->dat.throttles_dn);
                 return 0;
@@ -3628,7 +3631,6 @@ static float flc_flap_func(float inElapsedSinceLastCall,
     return 0;
 }
 
-#define T_ZERO                (.0001f)
 #define GS_KT_MIN             (2.500f)
 #define GS_KT_MID             (26.25f)
 #define GS_KT_MAX             (50.00f)
@@ -3651,7 +3653,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
     {
         refcon_ground *grndp = inRefcon; assert_context *assrt = grndp->assert;
         float ground_spd_kts = XPLMGetDataf(grndp->ground_spd) * 3.6f / 1.852f;
-        float thra[2], thrott_cmd_all = XPLMGetDataf(grndp->idle.throttle_all);
+        float thrott_cmd_all = XPLMGetDataf(grndp->idle.throttle_all), thra[2];
         if (grndp->idle.thrott_array)
         {
             XPLMGetDatavf(grndp->idle.thrott_array, thra, 0, 2);
@@ -3659,8 +3661,9 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         }
         else if (assrt)
         {
-            thrott_cmd_all = ((XPLMGetDataf(assrt->dat.engine_lever_lt) +//fixme convert
-                               XPLMGetDataf(assrt->dat.engine_lever_rt)) / 2.0f);
+            thra[0] = XPLMGetDataf(assrt->dat.engine_lever_lt) - grndp->idle.r_idle;
+            thra[1] = XPLMGetDataf(assrt->dat.engine_lever_rt) - grndp->idle.r_idle;
+            thrott_cmd_all = ((thra[0] + thra[1]) / 2.0f);
         }
 
         // TODO: ground speed readout (via other widget wid[1]!)
@@ -4794,8 +4797,8 @@ static int first_fcall_do(chandler_context *ctx)
     switch (ctx->info->ac_type)
     {
         case ACF_TYP_A320_FF:
-            ctx->ground.idle.r_idle   = 0.31000f; // idle thrust
-            ctx->ground.idle.r_taxi   = 0.37000f; // > ~26.0% N1
+            ctx->ground.idle.r_idle   = .307692f; // idle thrust
+            ctx->ground.idle.r_taxi   = .369231f; // > ~26.0% N1
             ctx->ground.idle.minimums = 0; break;
 
         case ACF_TYP_A319_TL:
