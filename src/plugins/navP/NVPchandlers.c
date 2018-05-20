@@ -149,8 +149,10 @@ typedef struct
         float check_4icing;
         int   ice_detected;
         int   thrt_changed;
+        char        buf[9];
         XPWidgetID  wid[3];
         XPLMDataRef ice[4]; // ice ratio (pitot, inlet, prop, wing)
+        XPLMDataRef ground;
     } ovly;
 } refcon_ground;
 
@@ -1005,29 +1007,33 @@ void* nvp_chandlers_init(void)
         ctx->bking.rc_brk.g_speed = ctx->ground.ground_spd;
     }
     /* and icing cheat warning overlay data */
+    ctx->ground.ovly.ground = XPLMFindDataRef("sim/flightmodel/failures/onground_any");
     ctx->ground.ovly.ice[0] = XPLMFindDataRef("sim/flightmodel/failures/pitot_ice");
     ctx->ground.ovly.ice[1] = XPLMFindDataRef("sim/flightmodel/failures/inlet_ice");
     ctx->ground.ovly.ice[2] = XPLMFindDataRef("sim/flightmodel/failures/prop_ice");
     ctx->ground.ovly.ice[3] = XPLMFindDataRef("sim/flightmodel/failures/frm_ice");
-    if (!ctx->ground.ovly.ice[0] || !ctx->ground.ovly.ice[1] ||
-        !ctx->ground.ovly.ice[2] || !ctx->ground.ovly.ice[3])
+    if (!ctx->ground.ovly.ground ||
+        !ctx->ground.ovly.ice[0] ||
+        !ctx->ground.ovly.ice[1] ||
+        !ctx->ground.ovly.ice[2] ||
+        !ctx->ground.ovly.ice[3])
     {
         goto fail;
     }
-    if (!(ctx->ground.ovly.wid[0] = XPCreateWidget(0, 0, 0, 0, 0, "", 1, NULL, xpWidgetClass_SubWindow)))
-    {
-        goto fail;
-    }
-    if (!(ctx->ground.ovly.wid[1] = XPCreateWidget(0, 0, 0, 0, 0, "", 0, ctx->ground.ovly.wid[0], xpWidgetClass_Caption)))
-    {
-        goto fail;
-    }
+//    if (!(ctx->ground.ovly.wid[0] = XPCreateWidget(0, 0, 0, 0, 0, "", 1, NULL, xpWidgetClass_SubWindow)))
+//    {
+//        goto fail;
+//    }
+//    if (!(ctx->ground.ovly.wid[1] = XPCreateWidget(0, 0, 0, 0, 0, "", 0, ctx->ground.ovly.wid[0], xpWidgetClass_Caption)))
+//    {
+//        goto fail;
+//    }
     if (!(ctx->ground.ovly.wid[2] = XPCreateWidget(0, 0, 0, 0, 0, "", 1, NULL, xpWidgetClass_Caption)))
     {
         goto fail;
     }
-    XPSetWidgetProperty(ctx->ground.ovly.wid[0], xpProperty_SubWindowType, xpSubWindowStyle_Screen);
-    XPSetWidgetProperty(ctx->ground.ovly.wid[1], xpProperty_CaptionLit, 1);
+//    XPSetWidgetProperty(ctx->ground.ovly.wid[0], xpProperty_SubWindowType, xpSubWindowStyle_Screen);
+//    XPSetWidgetProperty(ctx->ground.ovly.wid[1], xpProperty_CaptionLit, 1);
     XPSetWidgetProperty(ctx->ground.ovly.wid[2], xpProperty_CaptionLit, 1);
     XPSetWidgetGeometry(ctx->ground.ovly.wid[2], 32, 52, 52, 32);
 
@@ -3696,11 +3702,9 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         {
             if (fabsf(grndp->ovly.last_thr_all - thrott_cmd_all) > .01f) // 1.0%
             {
-                char buf[6];
-                grndp->ovly.thrt_changed = 1;
-                grndp->ovly.show_thr_all = 2.0f;
-                snprintf(buf, 6, "%5.3f", thrott_cmd_all);
-                XPSetWidgetDescriptor(grndp->ovly.wid[2], buf);
+                snprintf(grndp->ovly.buf, 9, "%5.3f", thrott_cmd_all);
+                XPSetWidgetDescriptor(grndp->ovly.wid[2], grndp->ovly.buf);
+                grndp->ovly.thrt_changed = 1; grndp->ovly.show_thr_all = 2.5f;
             }
         }
         if (grndp->ovly.show_thr_all > T_ZERO)
@@ -3713,6 +3717,17 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         }
         if (grndp->ovly.ice_detected || grndp->ovly.thrt_changed)
         {
+            if (XPIsWidgetVisible(grndp->ovly.wid[2]) == 0)
+            {
+                XPShowWidget(grndp->ovly.wid[2]);
+            }
+        }
+        else if (ground_spd_kts > GS_KT_MIN &&
+                 ground_spd_kts < GS_KT_MAX &&
+                 XPLMGetDatai(grndp->ovly.ground))
+        {
+            snprintf(grndp->ovly.buf, 9, "%2.0f kts", ground_spd_kts);
+            XPSetWidgetDescriptor(grndp->ovly.wid[2], grndp->ovly.buf);
             if (XPIsWidgetVisible(grndp->ovly.wid[2]) == 0)
             {
                 XPShowWidget(grndp->ovly.wid[2]);
