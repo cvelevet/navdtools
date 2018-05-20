@@ -3810,13 +3810,12 @@ static int first_fcall_do(chandler_context *ctx)
                 {
                     chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc); // XXX: remap hotkeys
                 }
-                uint32_t defaults_u32[6] = { 0, 3, 2, 1, 2, 1, };
+                uint32_t defaults_u32[5] = { 0, 3, 2, 1, 2, };
                 rca->api.ValueSet(rca->dat.id_u32_fcu_tgt_alt_step, &defaults_u32[0]); // FCU alt. sel. incre. (100ft)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &defaults_u32[1]); // ND m. sel. (cap. side) (arc)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_rgt, &defaults_u32[2]); // ND m. sel. (f/o. side) (nav)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_lft, &defaults_u32[3]); // ND r. sel. (cap. side) ( 20)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_rgt, &defaults_u32[4]); // ND r. sel. (f/o. side) ( 40)
-                rca->api.ValueSet(rca->dat.id_u32_emer_lights_mode, &defaults_u32[5]); // arm em. exit lts
             }
             break;
 
@@ -3842,10 +3841,6 @@ static int first_fcall_do(chandler_context *ctx)
             if ((d_ref = XPLMFindDataRef("AirbusFBW/OHPLightSwitches")))
             {
                 int AOHPLightSwitches[1] = { 1 };
-                if (ctx->info->ac_type == ACF_TYP_A320_QP) // noisy on A319
-                {
-                    XPLMSetDatavi(d_ref, &AOHPLightSwitches[0], 10, 1);             // emerg. lights: arm
-                }
                 XPLMSetDatavi(d_ref, &AOHPLightSwitches[0],  7, 1);                 // strobes: automatic
                 _DO(1, XPLMSetDataf, 0.5f, "AirbusFBW/WXAlphaND1");                 // ND1 weather to 50%
                 _DO(1, XPLMSetDataf, 0.5f, "AirbusFBW/WXAlphaND2");                 // ND2 weather to 50%
@@ -3881,7 +3876,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 2, "AirbusFBW/NDrangeFO");                         // ND r. sel. (f/o. side) ( 40)
             _DO(1, XPLMSetDataf,.8f,"A330/LIGHTS/INTEG_LT");                        // ins. label light
             _DO(1, XPLMSetDatai, 1, "A330/lighting/DOME_LIGHT");                    // ambi. dome light
-            _DO(1, XPLMSetDatai, 1, "A330/OVERHEAD/EMEREXITLT_SWITCH");             // arm em. exit lts
+//          _DO(1, XPLMSetDatai, 1, "A330/OVERHEAD/EMEREXITLT_SWITCH");             // arm em. exit lts
             _DO(1, XPLMSetDatai, 1, "A330/ELECTRICAL/APU_BAT");                     // self-explanatory
             _DO(1, XPLMSetDatai, 1, "A330/ELECTRICAL/APU_GEN");                     // self-explanatory
             _DO(1, XPLMSetDatai, 1, "A330/ELECTRICAL/BUS_TIE");                     // self-explanatory
@@ -3946,7 +3941,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,      1, "1-sim/1/switch");                         // Evac. panel: selector  (capt&purs)
             _DO(1, XPLMSetDatai,      1, "1-sim/2/switch");                         // Ext. lighting: strobe  (auto)
             _DO(1, XPLMSetDatai,      1, "1-sim/5/switch");                         // Ext. lighting: logo    (auto)
-            _DO(1, XPLMSetDatai,      1, "1-sim/20/switch");                        // Ext. lighting: emerg.  (auto)
+//          _DO(1, XPLMSetDatai,      1, "1-sim/20/switch");                        // Ext. lighting: emerg.  (auto)
             _DO(1, XPLMSetDatai,      1, "1-sim/37/switch");                        // Braking: anti-skid sw. (on)
             _DO(1, XPLMSetDataf,   1.0f, "1-sim/15/button");                        // Cabin panel: wireless  (auto)
             _DO(1, XPLMSetDataf,   1.0f, "1-sim/16/button");                        // Cabin panel: pas. data (auto)
