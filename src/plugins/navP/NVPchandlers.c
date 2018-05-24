@@ -3606,10 +3606,10 @@ static int chandler_apaft(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_p2vvi(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    if (inPhase == xplm_CommandBegin)
+    refcon_vvi *vvi = inRefcon;
+    if (XPLMGetDatai(vvi->ot_vs_on) >= 1)
     {
-        refcon_vvi *vvi = inRefcon;
-        if (XPLMGetDatai(vvi->ot_vs_on) >= 1)
+        if (inPhase == xplm_CommandBegin)
         {
             if (inCommand == vvi->dn.command ||
                 inCommand == vvi->pd.command)
@@ -3624,9 +3624,9 @@ static int chandler_p2vvi(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 return 0;
             }
         }
-        return 1; // pass through
+        return 0;
     }
-    return 0;
+    return 1; // pass through
 }
 
 static float flc_flap_func(float inElapsedSinceLastCall,
