@@ -4811,43 +4811,55 @@ static int first_fcall_do(chandler_context *ctx)
     switch (ctx->info->ac_type)
     {
         case ACF_TYP_A320_FF:
-            ctx->ground.idle.r_idle   = .307692f; // idle thrust
-            ctx->ground.idle.r_taxi   = .369231f; // > ~26.0% N1
+//          ctx->ground.idle.r_idle   = .307692f; // idle thrust
+            ctx->ground.idle.r_idle   = .369231f; // fwd pos. #1
+//          ctx->ground.idle.r_taxi   = .369231f; // fwd pos. #1
+            ctx->ground.idle.r_taxi   = .400000f; // fwd pos. #2
             ctx->ground.idle.minimums = 0; break;
 
         case ACF_TYP_A319_TL:
             ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
-            ctx->ground.idle.r_t[0]   = 0.10800f; // IAE/CFM: N1: ~26.1/26.4% @ NTD
-            ctx->ground.idle.r_t[1]   = 0.10800f; // IAE/CFM: N1: ~26.1/26.4% @ NTD
+//          ctx->ground.idle.r_t[0]   = 0.10800f; // IAE/CFM: N1: ~26.1/26.4% @ NTD
+//          ctx->ground.idle.r_t[1]   = 0.10800f; // IAE/CFM: N1: ~26.1/26.4% @ NTD
+            ctx->ground.idle.r_t[0]   = 0.15000f;
+            ctx->ground.idle.r_t[1]   = 0.15000f;
             ctx->ground.idle.minimums = 1; break;
 
         case ACF_TYP_A320_QP:
             ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
-            ctx->ground.idle.r_t[0]   = 0.10875f; // ~26.1% N1 @ NTD
-            ctx->ground.idle.r_t[1]   = 0.10875f; // ~26.1% N1 @ NTD
+//          ctx->ground.idle.r_t[0]   = 0.10875f; // ~26.1% N1 @ NTD
+//          ctx->ground.idle.r_t[1]   = 0.10875f; // ~26.1% N1 @ NTD
+            ctx->ground.idle.r_t[0]   = 0.15000f;
+            ctx->ground.idle.r_t[1]   = 0.15000f;
             ctx->ground.idle.minimums = 1; break;
 
         case ACF_TYP_A330_RW:
             ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
-            ctx->ground.idle.r_t[0]   = 0.10625f; // ~30.1% N1 @ NTD (CF6 engine)
-            ctx->ground.idle.r_t[1]   = 0.10625f; // ~30.1% N1 @ NTD (CF6 engine)
+//          ctx->ground.idle.r_t[0]   = 0.10625f; // ~30.1% N1 @ NTD (CF6 engine)
+//          ctx->ground.idle.r_t[1]   = 0.10625f; // ~30.1% N1 @ NTD (CF6 engine)
+            ctx->ground.idle.r_t[0]   = 0.15000f;
+            ctx->ground.idle.r_t[1]   = 0.15000f;
             ctx->ground.idle.minimums = 1; break;
 
         case ACF_TYP_A350_FF:
             ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
-            ctx->ground.idle.r_t[0]   = 0.10000f; // ~25.3% N1 @ NTD
-            ctx->ground.idle.r_t[1]   = 0.10000f; // ~25.3% N1 @ NTD
+//          ctx->ground.idle.r_t[0]   = 0.10000f; // ~25.3% N1 @ NTD
+//          ctx->ground.idle.r_t[1]   = 0.10000f; // ~25.3% N1 @ NTD
+            ctx->ground.idle.r_t[0]   = 0.15000f;
+            ctx->ground.idle.r_t[1]   = 0.15000f;
             ctx->ground.idle.minimums = 1; break;
 
         // will only work so long as you don't touch any hardware throttles
         // in this particular aircraft during any given X-Plane session :-(
         // also the QPAC-equivalent dataref isn't writable in this aircraft
         case ACF_TYP_A380_PH:
-            ctx->ground.idle.r_taxi   = 0.17500f; // ~29.7% N1 @ NTD
+//          ctx->ground.idle.r_taxi   = 0.17500f; // ~29.7% N1 @ NTD
+            ctx->ground.idle.r_taxi   = 0.20000f;
             ctx->ground.idle.minimums = 1; break;
 
         case ACF_TYP_B737_XG:
-            ctx->ground.idle.r_taxi   = 0.13333f; // ~33.3% N1 @ NTD
+//          ctx->ground.idle.r_taxi   = 0.13333f; // ~33.3% N1 @ NTD
+            ctx->ground.idle.r_taxi   = 0.15000f;
             ctx->ground.idle.minimums = 1; break;
 
         case ACF_TYP_B757_FF:
@@ -4856,10 +4868,12 @@ static int first_fcall_do(chandler_context *ctx)
                 switch (XPLMGetDatai(d_ref))
                 {
                     case 0: // Pratt & Whitney
-                        ctx->ground.idle.r_taxi   = 0.09000f; // ~26.1% N1 @ NTD
+//                      ctx->ground.idle.r_taxi   = 0.09000f; // ~26.1% N1 @ NTD
+                        ctx->ground.idle.r_taxi   = 0.10000f;
                         ctx->ground.idle.minimums = 1; break;
                     case 1: // Rolls-Royce
-                        ctx->ground.idle.r_taxi   = 0.15555f; // ~26.1% N1 @ NTD
+//                      ctx->ground.idle.r_taxi   = 0.15555f; // ~26.1% N1 @ NTD
+                        ctx->ground.idle.r_taxi   = 0.20000f;
                         ctx->ground.idle.minimums = 1; break;
                     default:
                         ndt_log("navP [warning]: couldn't determine engine type for FF757\n");
@@ -4876,7 +4890,8 @@ static int first_fcall_do(chandler_context *ctx)
                 switch (XPLMGetDatai(d_ref))
                 {
                     case 0: // Pratt & Whitney
-                        ctx->ground.idle.r_taxi   = 0.16666f; // ~26.1% N1 @ NTD
+//                      ctx->ground.idle.r_taxi   = 0.16666f; // ~26.1% N1 @ NTD
+                        ctx->ground.idle.r_taxi   = 0.20000f;
                         ctx->ground.idle.minimums = 1; break;
                     default:
                         ndt_log("navP [warning]: couldn't determine engine type for FF767\n");
@@ -4893,7 +4908,8 @@ static int first_fcall_do(chandler_context *ctx)
                 switch (XPLMGetDatai(d_ref))
                 {
                     case 1: // General Electric
-                        ctx->ground.idle.r_taxi   = 0.09765f; // ~28.1% N1 @ NTD
+//                      ctx->ground.idle.r_taxi   = 0.09765f; // ~28.1% N1 @ NTD
+                        ctx->ground.idle.r_taxi   = 0.10000f;
                         ctx->ground.idle.minimums = 1; break;
                     default:
                         ndt_log("navP [warning]: couldn't determine engine type for FF777\n");
@@ -4905,11 +4921,13 @@ static int first_fcall_do(chandler_context *ctx)
             break;
 
         case ACF_TYP_EMBE_XC:
-            ctx->ground.idle.r_taxi   = 0.09100f; // ~33.3% N1 @ NTD
+//          ctx->ground.idle.r_taxi   = 0.09100f; // ~33.3% N1 @ NTD
+            ctx->ground.idle.r_taxi   = 0.10000f;
             ctx->ground.idle.minimums = 1; break;
 
         case ACF_TYP_HA4T_RW:
-            ctx->ground.idle.r_taxi   = 0.16666f; // ~35.7% N1 @ NTD
+//          ctx->ground.idle.r_taxi   = 0.16666f; // ~35.7% N1 @ NTD
+            ctx->ground.idle.r_taxi   = 0.20000f;
             ctx->ground.idle.minimums = 1; break;
 
         default:
@@ -4921,19 +4939,22 @@ static int first_fcall_do(chandler_context *ctx)
                     !STRN_CASECMP_AUTO(ctx->info->icaoid, "BE35"))
                 {
                     ctx->ground.idle.r_idle   = 0.06845f; // prop 1,100rpm @ NTD
-                    ctx->ground.idle.r_taxi   = 0.15525f; // prop 1,400rpm @ NTD
+//                  ctx->ground.idle.r_taxi   = 0.15525f; // prop 1,400rpm @ NTD
+                    ctx->ground.idle.r_taxi   = 0.20000f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "BE58"))
                 {
                     ctx->ground.idle.r_idle   = 0.08725f; // prop 1,000rpm @ NTD
-                    ctx->ground.idle.r_taxi   = 0.20375f; // prop 1,400rpm @ NTD
+//                  ctx->ground.idle.r_taxi   = 0.20375f; // prop 1,400rpm @ NTD
+                    ctx->ground.idle.r_taxi   = 0.20000f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "T210"))
                 {
                     ctx->ground.idle.r_idle   = 0.06150f; // prop 1,100rpm @ NTD
-                    ctx->ground.idle.r_taxi   = 0.11025f; // prop 1,400rpm @ NTD
+//                  ctx->ground.idle.r_taxi   = 0.11025f; // prop 1,400rpm @ NTD
+                    ctx->ground.idle.r_taxi   = 0.15000f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 break;
@@ -4944,23 +4965,27 @@ static int first_fcall_do(chandler_context *ctx)
                 if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Lancair Legacy FG"))
                 {
                     ctx->ground.idle.r_idle   = 0.03010f; // prop 1,100rpm @ NTD
-                    ctx->ground.idle.r_taxi   = 0.09650f; // prop 1,400rpm @ NTD
+//                  ctx->ground.idle.r_taxi   = 0.09650f; // prop 1,400rpm @ NTD
+                    ctx->ground.idle.r_taxi   = 0.10000f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Pipistrel Panthera"))
                 {
                     ctx->ground.idle.r_idle   = 0.05585f; // prop 1,100rpm @ NTD
-                    ctx->ground.idle.r_taxi   = 0.13650f; // prop 1,400rpm @ NTD
+//                  ctx->ground.idle.r_taxi   = 0.13650f; // prop 1,400rpm @ NTD
+                    ctx->ground.idle.r_taxi   = 0.15000f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Epic Victory"))
                 {
-                    ctx->ground.idle.r_taxi   = 0.16666f; // ~45.0% N1 @ NTD
+//                  ctx->ground.idle.r_taxi   = 0.16666f; // ~45.0% N1 @ NTD
+                    ctx->ground.idle.r_taxi   = 0.20000f;
                     ctx->ground.idle.minimums = 1; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->info->descrp, "The Eclipse 550"))
                 {
-                    ctx->ground.idle.r_taxi   = 0.23875f; // ~50.0% N1 @ NTD
+//                  ctx->ground.idle.r_taxi   = 0.23875f; // ~50.0% N1 @ NTD
+                    ctx->ground.idle.r_taxi   = 0.25000f;
                     ctx->ground.idle.minimums = 1; break;
                 }
                 break;
@@ -4971,12 +4996,14 @@ static int first_fcall_do(chandler_context *ctx)
                 if (!STRN_CASECMP_AUTO(ctx->info->descrp, "T210M Centurion II"))
                 {
                     ctx->ground.idle.r_idle   = 0.09945f; // prop 1,100rpm @ NTD
-                    ctx->ground.idle.r_taxi   = 0.16543f; // prop 1,400rpm @ NTD
+//                  ctx->ground.idle.r_taxi   = 0.16543f; // prop 1,400rpm @ NTD
+                    ctx->ground.idle.r_taxi   = 0.20000f;
                     ctx->ground.idle.minimums = 2; break;
                 }
                 if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Pilatus PC12"))
                 {
-                    ctx->ground.idle.r_taxi   = 0.33333f; // set approach thrust
+//                  ctx->ground.idle.r_taxi   = 0.33333f; // set approach thrust
+                    ctx->ground.idle.r_taxi   = 0.35000f;
                     ctx->ground.idle.minimums = 1; break;
                 }
                 break;
