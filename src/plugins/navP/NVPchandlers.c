@@ -2598,7 +2598,7 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (t->thall)
         {
             float next = XPLMGetDataf(t->thall) - 0.0500f; // 20 steps is plenty
-            if (next < 0.0f) next = 0.0f;
+            if (next < 0.0f) next = 0.0f; next = roundf(next * 20.0f) / 20.0f;
             XPLMSetDataf(t->thall, next);
             return 0;
         }
@@ -2616,7 +2616,7 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (t->thall)
         {
             float next = XPLMGetDataf(t->thall) + 0.0500f; // 20 steps is plenty
-            if (next > 1.0f) next = 1.0f;
+            if (next > 1.0f) next = 1.0f; next = roundf(next * 20.0f) / 20.0f;
             XPLMSetDataf(t->thall, next);
             return 0;
         }
