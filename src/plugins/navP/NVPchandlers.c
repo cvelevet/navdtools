@@ -150,7 +150,7 @@ typedef struct
         int   ice_detected;
         int   thrt_changed;
         char        buf[9];
-        XPWidgetID  wid[3];
+        XPWidgetID  wid[2];
         XPLMDataRef ice[4]; // ice ratio (pitot, inlet, prop, wing)
         XPLMDataRef ground;
     } ovly;
@@ -1020,22 +1020,21 @@ void* nvp_chandlers_init(void)
     {
         goto fail;
     }
-//    if (!(ctx->ground.ovly.wid[0] = XPCreateWidget(0, 0, 0, 0, 0, "", 1, NULL, xpWidgetClass_SubWindow)))
-//    {
-//        goto fail;
-//    }
-//    if (!(ctx->ground.ovly.wid[1] = XPCreateWidget(0, 0, 0, 0, 0, "", 0, ctx->ground.ovly.wid[0], xpWidgetClass_Caption)))
-//    {
-//        goto fail;
-//    }
-    if (!(ctx->ground.ovly.wid[2] = XPCreateWidget(0, 0, 0, 0, 0, "", 1, NULL, xpWidgetClass_Caption)))
+    if (!(ctx->ground.ovly.wid[0] = XPCreateWidget(0, 0, 0, 0, 0, "", 1, NULL,
+                                                   xpWidgetClass_MainWindow)))
     {
         goto fail;
     }
-//    XPSetWidgetProperty(ctx->ground.ovly.wid[0], xpProperty_SubWindowType, xpSubWindowStyle_Screen);
-//    XPSetWidgetProperty(ctx->ground.ovly.wid[1], xpProperty_CaptionLit, 1);
-    XPSetWidgetProperty(ctx->ground.ovly.wid[2], xpProperty_CaptionLit, 1);
-    XPSetWidgetGeometry(ctx->ground.ovly.wid[2], 32, 52, 52, 32);
+    if (!(ctx->ground.ovly.wid[1] = XPCreateWidget(0, 0, 0, 0, 0, "", 0,
+                                                   ctx->ground.ovly.wid[0],
+                                                   xpWidgetClass_Caption)))
+    {
+        goto fail;
+    }
+    XPSetWidgetProperty(ctx->ground.ovly.wid[0], xpProperty_MainWindowType, xpMainWindowStyle_Translucent);
+    XPSetWidgetProperty(ctx->ground.ovly.wid[1], xpProperty_CaptionLit, 1);
+    XPSetWidgetGeometry(ctx->ground.ovly.wid[0], 00, 56, 64, 00);
+    XPSetWidgetGeometry(ctx->ground.ovly.wid[1], 12, 46, 56, 10);
 
     /* all good */
     return ctx;
@@ -3683,7 +3682,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             {
                 if (grndp->ovly.ice_detected == 0)
                 {
-                    XPSetWidgetDescriptor(grndp->ovly.wid[2], "ICE");
+                    XPSetWidgetDescriptor(grndp->ovly.wid[1], "ICE");
                     XPLMSpeakString("ice detected");
                 }
                 grndp->ovly.ice_detected = 1;
@@ -3703,7 +3702,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             if (fabsf(grndp->ovly.last_thr_all - thrott_cmd_all) > .01f) // 1.0%
             {
                 snprintf(grndp->ovly.buf, 9, "%5.3f", thrott_cmd_all);
-                XPSetWidgetDescriptor(grndp->ovly.wid[2], grndp->ovly.buf);
+                XPSetWidgetDescriptor(grndp->ovly.wid[1], grndp->ovly.buf);
                 grndp->ovly.thrt_changed = 1; grndp->ovly.show_thr_all = 2.5f;
             }
         }
@@ -3717,9 +3716,10 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         }
         if (grndp->ovly.ice_detected || grndp->ovly.thrt_changed)
         {
-            if (XPIsWidgetVisible(grndp->ovly.wid[2]) == 0)
+            if (XPIsWidgetVisible(grndp->ovly.wid[1]) == 0)
             {
-                XPShowWidget(grndp->ovly.wid[2]);
+                XPShowWidget(grndp->ovly.wid[0]);
+                XPShowWidget(grndp->ovly.wid[1]);
             }
         }
         else if (ground_spd_kts > GS_KT_MIN &&
@@ -3727,17 +3727,19 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                  XPLMGetDatai(grndp->ovly.ground))
         {
             snprintf(grndp->ovly.buf, 9, "%2.0f kts", ground_spd_kts);
-            XPSetWidgetDescriptor(grndp->ovly.wid[2], grndp->ovly.buf);
-            if (XPIsWidgetVisible(grndp->ovly.wid[2]) == 0)
+            XPSetWidgetDescriptor(grndp->ovly.wid[1], grndp->ovly.buf);
+            if (XPIsWidgetVisible(grndp->ovly.wid[1]) == 0)
             {
-                XPShowWidget(grndp->ovly.wid[2]);
+                XPShowWidget(grndp->ovly.wid[0]);
+                XPShowWidget(grndp->ovly.wid[1]);
             }
         }
         else
         {
-            if (XPIsWidgetVisible(grndp->ovly.wid[2]) != 0)
+            if (XPIsWidgetVisible(grndp->ovly.wid[1]) != 0)
             {
-                XPHideWidget(grndp->ovly.wid[2]);
+                XPHideWidget(grndp->ovly.wid[0]);
+                XPHideWidget(grndp->ovly.wid[1]);
             }
         }
         grndp->ovly.last_thr_all = thrott_cmd_all;
