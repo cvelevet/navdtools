@@ -3699,7 +3699,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         }
         if (grndp->ovly.ice_detected == 0)
         {
-            if (fabsf(grndp->ovly.last_thr_all - thrott_cmd_all) > .01f) // 1.0%
+            if (fabsf(grndp->ovly.last_thr_all - thrott_cmd_all) > .02f) // 2.0%
             {
                 snprintf(grndp->ovly.buf, 9, "%5.3f", thrott_cmd_all);
                 XPSetWidgetDescriptor(grndp->ovly.wid[1], grndp->ovly.buf);
