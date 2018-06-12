@@ -3842,8 +3842,6 @@ static int first_fcall_do(chandler_context *ctx)
             }
             if ((d_ref = XPLMFindDataRef("AirbusFBW/OHPLightSwitches")))
             {
-                int AOHPLightSwitches[1] = { 1 };
-                XPLMSetDatavi(d_ref, &AOHPLightSwitches[0],  7, 1);                 // strobes: automatic
                 _DO(1, XPLMSetDataf, 0.5f, "AirbusFBW/WXAlphaND1");                 // ND1 weather to 50%
                 _DO(1, XPLMSetDataf, 0.5f, "AirbusFBW/WXAlphaND2");                 // ND2 weather to 50%
             }
@@ -3941,9 +3939,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,      1, "1-sim/radio/push/1/11");                  // RMP1: p. announcements (on)
             _DO(1, XPLMSetDataf, 270.0f, "1-sim/radio/1/11/rotary");                // RMP1: p. announcements (volume)
             _DO(1, XPLMSetDatai,      1, "1-sim/1/switch");                         // Evac. panel: selector  (capt&purs)
-            _DO(1, XPLMSetDatai,      1, "1-sim/2/switch");                         // Ext. lighting: strobe  (auto)
-            _DO(1, XPLMSetDatai,      1, "1-sim/5/switch");                         // Ext. lighting: logo    (auto)
-//          _DO(1, XPLMSetDatai,      1, "1-sim/20/switch");                        // Ext. lighting: emerg.  (auto)
             _DO(1, XPLMSetDatai,      1, "1-sim/37/switch");                        // Braking: anti-skid sw. (on)
             _DO(1, XPLMSetDataf,   1.0f, "1-sim/15/button");                        // Cabin panel: wireless  (auto)
             _DO(1, XPLMSetDataf,   1.0f, "1-sim/16/button");                        // Cabin panel: pas. data (auto)
