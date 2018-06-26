@@ -821,6 +821,8 @@ static void toggle_main_window(yfms_context *yfms)
             yfms->xpl.qpac.XPDR[3]                = XPLMFindDataRef("AirbusFBW/XPDR1"                           );
             yfms->xpl.qpac.XPDRPower              = XPLMFindDataRef("AirbusFBW/XPDRPower"                       );
             yfms->xpl.qpac.XPDRAltitude           = XPLMFindDataRef("AirbusFBW/XPDRAltitude"                    );
+            yfms->xpl.qpac.XPDRTCASMode           = XPLMFindDataRef("AirbusFBW/XPDRTCASMode"                    );
+            yfms->xpl.qpac.XPDRTCASAltSelect      = XPLMFindDataRef("AirbusFBW/XPDRTCASAltSelect"               );
             yfms->xpl.qpac.BaroUnitCapt           = XPLMFindDataRef("AirbusFBW/BaroUnitCapt"                    );
             yfms->xpl.qpac.BaroStdCapt            = XPLMFindDataRef("AirbusFBW/BaroStdCapt"                     );
             yfms->xpl.qpac.BaroUnitFO             = XPLMFindDataRef("AirbusFBW/BaroUnitFO"                      );
@@ -950,6 +952,23 @@ static void toggle_main_window(yfms_context *yfms)
             {
                 yfms->xpl.has_custom_navigation = 1;
                 yfms->xpl.atyp = YFS_ATYP_IXEG; break;
+            }
+            if (yfms->xpl.qpac.XPDR[0]         && yfms->xpl.qpac.XPDR[1]           &&
+                yfms->xpl.qpac.XPDR[2]         && yfms->xpl.qpac.XPDR[3]           &&
+                yfms->xpl.qpac.XPDRPower       && yfms->xpl.qpac.XPDRAltitude      &&
+                yfms->xpl.qpac.XPDRTCASMode    && yfms->xpl.qpac.XPDRTCASAltSelect &&
+                yfms->xpl.qpac.BaroUnitCapt    && yfms->xpl.qpac.BaroStdCapt       &&
+                yfms->xpl.qpac.BaroUnitFO      && yfms->xpl.qpac.BaroStdFO         &&
+                yfms->xpl.qpac.RMPSwapCapt     && yfms->xpl.qpac.RMPSwapCo         &&
+                yfms->xpl.qpac.VHF1Capt        && yfms->xpl.qpac.VHF2Co            &&
+                yfms->xpl.qpac.RMP1FreqUpLrg   && yfms->xpl.qpac.RMP1FreqUpSml     &&
+                yfms->xpl.qpac.RMP1FreqDownLrg && yfms->xpl.qpac.RMP1FreqDownSml   &&
+                yfms->xpl.qpac.RMP2FreqUpLrg   && yfms->xpl.qpac.RMP2FreqUpSml     &&
+                yfms->xpl.qpac.RMP2FreqDownLrg && yfms->xpl.qpac.RMP2FreqDownSml)
+            {
+                yfms->xpl.has_custom_nav_radios = 1;
+                yfms->xpl.has_custom_navigation = 1;
+                yfms->xpl.atyp = YFS_ATYP_TOLI; break;
             }
             if (yfms->xpl.qpac.XPDR[0]         && yfms->xpl.qpac.XPDR[1]         &&
                 yfms->xpl.qpac.XPDR[2]         && yfms->xpl.qpac.XPDR[3]         &&

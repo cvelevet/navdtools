@@ -300,7 +300,7 @@ void yfs_rad1_pageopen(yfms_context *yfms)
     {
         return;
     }
-    if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+    if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
     {
         XPLMCommandOnce(yfms->xpl.qpac.VHF1Capt);
         XPLMCommandOnce(yfms->xpl.qpac.VHF2Co);
@@ -381,6 +381,10 @@ static void get_altimeter(yfms_context *yfms, int out[3])
             out[0] = roundf(XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot) * 100.0f);
             break;
     }
+    if (yfms->xpl.atyp == YFS_ATYP_TOLI) // aircraft has dedicated STD mode
+    {
+        out[2] = XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt    ) ? BARO_STD : BARO_SET; return;
+    }
     if (yfms->xpl.atyp == YFS_ATYP_QPAC) // aircraft has dedicated STD mode
     {
         out[2] = XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt    ) ? BARO_STD : BARO_SET; return;
@@ -454,7 +458,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
                             inhg_converted = ((float)in[0] / 100.0f);
                             break;
                     }
-                    if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+                    if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
                     {
                         XPLMSetDatai(yfms->xpl.qpac.BaroUnitCapt,   !!yfms->ndt.alt.unit);
                         XPLMSetDatai(yfms->xpl.qpac.BaroUnitFO,     !!yfms->ndt.alt.unit);
@@ -485,7 +489,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
                     lunit = !lunit; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &lunit);
                     return          yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &lunit);
                 }
-                if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+                if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
                 {
                     XPLMSetDatai(yfms->xpl.qpac.BaroUnitCapt,   !yfms->ndt.alt.unit);
                     XPLMSetDatai(yfms->xpl.qpac.BaroUnitFO,     !yfms->ndt.alt.unit);
@@ -609,7 +613,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
         XPLMSetDataf(yfms->xpl.fb76.baroRotary_right, baro_rotary_value);
         return;
     }
-    if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+    if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
     {
         if (in[0] == -1) // dedicated STD pressure mode toggle
         {
@@ -760,6 +764,22 @@ static int get_transponder_mode(yfms_context *yfms)
                 return XPDR_ALT;
         }
     }
+    if (yfms->xpl.atyp == YFS_ATYP_TOLI)
+    {
+        switch (XPLMGetDatai(yfms->xpl.qpac.XPDRPower))
+        {
+            case 4:
+                return XPDR_TAR;
+            case 3:
+                return XPDR_TAO;
+            case 1:
+                return XPDR_GND;
+            case 0:
+                return XPDR_SBY;
+            default:
+                return XPDR_ALT;
+        }
+    }
     if (yfms->xpl.atyp == YFS_ATYP_QPAC)
     {
         switch (XPLMGetDatai(yfms->xpl.qpac.XPDRPower))
@@ -887,9 +907,40 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
         XPLMSetDataf(yfms->xpl.ixeg.xpdr_stby_act, sact);
         return;
     }
+    if (yfms->xpl.atyp == YFS_ATYP_TOLI)
+    {
+        switch (mode)
+        {
+            case XPDR_OFF:
+            case XPDR_SBY:
+            case XPDR_AUT:
+                XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 0); // STBY
+                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
+                break;
+            case XPDR_TAO:
+                XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 3); // TA ONLY
+                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
+                break;
+            case XPDR_TAR:
+                XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 4); // TA/RA
+                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 2); // BLW
+                break;
+            case XPDR_GND:
+                XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 1); // ALT RPTG OFF
+                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
+                break;
+            case XPDR_ALT:
+            default:
+                XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 2); // XPDR
+                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
+                break;
+        }
+        XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 0);
+        XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 0);
+        return;
+    }
     if (yfms->xpl.atyp == YFS_ATYP_QPAC)
     {
-        int alt, pwr;
         switch (mode)
         {
             case XPDR_OFF:
@@ -992,7 +1043,7 @@ static void set_transponder_code(yfms_context *yfms, int code)
     {
         uint32_t u32_code = code; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_code, &u32_code); return;
     }
-    if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+    if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
     {
         int xpdr[4];
         xpdr[0] = (code / 1000); code = (code % 1000);
@@ -1330,7 +1381,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     {
         return; // callback not applicable to current page
     }
-    if (key[1] == 0 && yfms->xpl.atyp == YFS_ATYP_QPAC)
+    if (key[1] == 0 && (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC))
     {
         switch (key[0])
         {
@@ -1391,7 +1442,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (key[0] == 0)
         {
-            if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+            if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
             {
                 XPLMCommandOnce(yfms->xpl.qpac.VHF1Capt);
                 XPLMCommandOnce(yfms->xpl.qpac.RMPSwapCapt);
@@ -1405,7 +1456,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (key[0] == 1)
         {
-            if (yfms->xpl.atyp == YFS_ATYP_QPAC)
+            if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
             {
                 XPLMCommandOnce(yfms->xpl.qpac.VHF2Co);
                 XPLMCommandOnce(yfms->xpl.qpac.RMPSwapCo);

@@ -474,6 +474,7 @@ typedef struct
         {
             YFS_ATYP_NSET =  0,
             YFS_ATYP_XPLN =  1,
+            YFS_ATYP_TOLI = 31,
             YFS_ATYP_QPAC = 32,
             YFS_ATYP_Q350 = 35,
             YFS_ATYP_Q380 = 38,
@@ -500,6 +501,8 @@ typedef struct
             XPLMDataRef XPDR[4];
             XPLMDataRef XPDRPower;
             XPLMDataRef XPDRAltitude;
+            XPLMDataRef XPDRTCASMode;
+            XPLMDataRef XPDRTCASAltSelect;
             XPLMDataRef BaroUnitCapt;
             XPLMDataRef BaroStdCapt;
             XPLMDataRef BaroUnitFO;
