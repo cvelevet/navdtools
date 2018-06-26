@@ -126,6 +126,8 @@ typedef struct
         int id_f32_acft_fuel_center;
         int id_s32_light_autopilot1;
         int id_s32_light_autopilot2;
+        int id_f32_p_engines_lever1;
+        int id_f32_p_engines_lever2;
         int id_f32_p_spoilers_lever;
         int id_s32_click_ss_tkovr_l;
         int id_s32_click_thr_disc_l;

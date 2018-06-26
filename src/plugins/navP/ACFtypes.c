@@ -640,6 +640,8 @@ int acf_type_info_acf_ctx_init()
         global_info->assert.dat.id_f32_acft_fuel_center = global_info->assert.api.ValueIdByName("Aircraft.FuelCenter"                              );
         global_info->assert.dat.id_s32_light_autopilot1 = global_info->assert.api.ValueIdByName("Aircraft.FMGS.FCU1.AutoPilotLight1"               );
         global_info->assert.dat.id_s32_light_autopilot2 = global_info->assert.api.ValueIdByName("Aircraft.FMGS.FCU1.AutoPilotLight2"               );
+        global_info->assert.dat.id_f32_p_engines_lever1 = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineLever1"           );
+        global_info->assert.dat.id_f32_p_engines_lever2 = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineLever2"           );
         global_info->assert.dat.id_f32_p_spoilers_lever = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Pedestal.SpoilersLever"          );
         global_info->assert.dat.id_u32_efis_nav_mod_lft = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeL.Target"      );
         global_info->assert.dat.id_u32_efis_nav_mod_rgt = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavModeR.Target"      );
@@ -666,6 +668,8 @@ int acf_type_info_acf_ctx_init()
             global_info->assert.dat.id_f32_acft_fuel_center <= 0 ||
             global_info->assert.dat.id_s32_light_autopilot1 <= 0 ||
             global_info->assert.dat.id_s32_light_autopilot2 <= 0 ||
+            global_info->assert.dat.id_f32_p_engines_lever1 <= 0 ||
+            global_info->assert.dat.id_f32_p_engines_lever2 <= 0 ||
             global_info->assert.dat.id_f32_p_spoilers_lever <= 0 ||
             global_info->assert.dat.id_u32_efis_nav_mod_lft <= 0 ||
             global_info->assert.dat.id_u32_efis_nav_mod_rgt <= 0 ||
