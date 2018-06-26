@@ -3586,11 +3586,11 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             // there isn't a way to set throttle to a given position yet
             // instead, allow adjustments using XPLMCommandOnce but only
             // towards our "ideal" position - we may need multiple calls
-            // Aircraft.Cockpit.Pedestal.EngineLever1: 20.0/100 (idle/toga)
+            // Aircraft.Cockpit.Pedestal.EngineLever1: 20-65 (idle -> toga)
             float engine_lever_lt = XPLMGetDataf(a320->dat.engine_lever_lt);
             float engine_lever_rt = XPLMGetDataf(a320->dat.engine_lever_rt);
-            if (((engine_lever_lt < (grndp->idle.r_idle + T_ZERO))) &&
-                ((engine_lever_rt < (grndp->idle.r_idle + T_ZERO))))
+            if (((engine_lever_lt < (grndp->idle.r_taxi - T_ZERO))) &&
+                ((engine_lever_rt < (grndp->idle.r_taxi - T_ZERO))))
             {
                 XPLMCommandOnce(a320->dat.throttles_up);
                 return 0;
@@ -3713,10 +3713,13 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         }
         else if (assrt)
         {
-            // Aircraft.Cockpit.Pedestal.EngineLever1: 20.0/100 (idle/toga)
-            thra[0] = XPLMGetDataf(assrt->dat.engine_lever_lt) - 0.307692f;
-            thra[1] = XPLMGetDataf(assrt->dat.engine_lever_rt) - 0.307692f;
-            thrott_cmd_all = ((thra[0] + thra[1]) / 2.0f) / (1 - 0.307692f);
+            // Aircraft.Cockpit.Pedestal.EngineLever1: 0-20-65 (rev-idle-max)
+            assrt->api.ValueGet(assrt->dat.id_f32_p_engines_lever1, &thra[0]);
+            assrt->api.ValueGet(assrt->dat.id_f32_p_engines_lever1, &thra[1]);
+            if ((thrott_cmd_all = (((thra[0] + thra[1]) / 2.0f) - 20.0f) / 45.0f) < 0.0f)
+            {
+                (thrott_cmd_all = (((thra[0] + thra[1]) / 2.0f) - 20.0f) / 20.0f);
+            }
         }
 
         // TODO: ground speed readout (via other widget wid[1]!)
@@ -4880,9 +4883,6 @@ static int first_fcall_do(chandler_context *ctx)
     {
         case ACF_TYP_A320_FF:
             // Pedestal.EngineLever1: 20.0/24/26 (idle/fwd1/fwd2)
-//          ctx->ground.idle.r_idle   = .307692f; // idle thrust
-            ctx->ground.idle.r_idle   = .369231f; // fwd pos. #1
-//          ctx->ground.idle.r_taxi   = .369231f; // fwd pos. #1
             ctx->ground.idle.r_taxi   = .400000f; // fwd pos. #2
             ctx->ground.idle.minimums = 0; break;
 
