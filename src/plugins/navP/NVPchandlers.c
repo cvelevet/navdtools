@@ -131,6 +131,9 @@ typedef struct
     float   nominal_roll_c;
     XPLMDataRef acf_roll_c;
     XPLMDataRef ground_spd;
+    XPLMDataRef auto_p_sts;
+    XPLMDataRef auto_t_sts;
+    XPLMDataRef elev_m_agl;
     XPLMFlightLoop_f flc_g;
     struct
     {
@@ -1014,10 +1017,16 @@ void* nvp_chandlers_init(void)
     /* Custom ground stabilization system (via flight loop callback) */
     ctx->ground.acf_roll_c          = XPLMFindDataRef  ("sim/aircraft/overflow/acf_roll_co");
     ctx->ground.ground_spd          = XPLMFindDataRef  ("sim/flightmodel/position/groundspeed");
+    ctx->ground.auto_t_sts          = XPLMFindDataRef  ("sim/cockpit2/autopilot/autothrottle_enabled");
+    ctx->ground.auto_p_sts          = XPLMFindDataRef  ("sim/cockpit2/autopilot/servos_on");
+    ctx->ground.elev_m_agl          = XPLMFindDataRef  ("sim/flightmodel/position/y_agl");
     ctx->ground.idle.throttle_all   = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/throttle_ratio_all");
     ctx->ground.idle.preset.command = XPLMCreateCommand("navP/thrust/idle_boost", "apply just a bit of throttle");
     if (!ctx->ground.acf_roll_c        ||
         !ctx->ground.ground_spd        ||
+        !ctx->ground.auto_t_sts        ||
+        !ctx->ground.auto_p_sts        ||
+        !ctx->ground.elev_m_agl        ||
         !ctx->ground.idle.throttle_all ||
         !ctx->ground.idle.preset.command)
     {
@@ -3799,6 +3808,16 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         }
 #endif
 
+        // without A/P on (otherwise auto-landing),
+        // disable A/T and command idle at 50ft AGL
+        if (XPLMGetDatai(grndp->auto_t_sts) >= 1 &&
+            XPLMGetDatai(grndp->auto_p_sts) <= 0 &&
+            XPLMGetDataf(grndp->elev_m_agl) <= 15.24f)
+        {
+            XPLMSetDatai(grndp->auto_t_sts, 0);
+            XPLMSetDataf(grndp->idle.throttle_all, (thrott_cmd_all = 0.0f));
+        }
+
         // first, raise our throttles to a minimum idle if required
         if (grndp->idle.minimums >= 2)
         {
@@ -3812,7 +3831,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         if (ground_spd_kts > GS_KT_MIN && ground_spd_kts < GS_KT_MAX)
         {
             float arc; ACF_ROLL_SET(arc, ground_spd_kts, grndp->nominal_roll_c);
-            XPLMSetDataf(grndp->acf_roll_c, arc); return -4; // should be smooth
+            XPLMSetDataf(grndp->acf_roll_c, arc); return -1; // should be smooth
         }
         XPLMSetDataf(grndp->acf_roll_c, grndp->nominal_roll_c); return 0.25f;
     }
