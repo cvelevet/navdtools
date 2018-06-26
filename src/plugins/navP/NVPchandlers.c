@@ -1231,16 +1231,16 @@ void nvp_chandlers_onload(void *inContext)
     char s[261] = ""; XPLMPluginID gi;
     // auto-disable Gizmo64 before other aircrafts get to load their own plugins
     // only disable for FF-A320: allow Gizmo to update our license for IXEG B733
-    if (XPLM_NO_PLUGIN_ID != (gi = XPLMFindPluginBySignature("gizmo.x-plugins.com")))
+    if ((dref_temporary = XPLMFindDataRef("sim/aircraft/view/acf_descrip")))
     {
-        if (XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("SilverLiningV2.Clouds") &&
-            XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("SilverLiningV3.Clouds") &&
-            XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("SilverLiningV4.Clouds"))
+        uf_dref_string_read(dref_temporary, s, sizeof(s));
+        if (!STRN_CASECMP_AUTO(s, "FlightFactor Airbus"))
         {
-            if ((dref_temporary = XPLMFindDataRef("sim/aircraft/view/acf_descrip")))
+            if (XPLM_NO_PLUGIN_ID != (gi = XPLMFindPluginBySignature("gizmo.x-plugins.com")))
             {
-                uf_dref_string_read(dref_temporary, s, sizeof(s));
-                if (!STRN_CASECMP_AUTO(s, "FlightFactor Airbus"))
+                if (XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("SilverLiningV2.Clouds") &&
+                    XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("SilverLiningV3.Clouds") &&
+                    XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("SilverLiningV4.Clouds"))
                 {
                     if (XPLMIsPluginEnabled(gi))
                     {
@@ -1248,6 +1248,7 @@ void nvp_chandlers_onload(void *inContext)
                     }
                 }
             }
+            XPLMSetDataf(ctx->volumes.gvr, 0.0f); // mute (until A320 on tarmac)
         }
     }
 }
