@@ -646,9 +646,13 @@ int acf_type_info_acf_ctx_init()
         global_info->assert.dat.id_u32_efis_nav_rng_lft = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavRangeL.Target"     );
         global_info->assert.dat.id_u32_efis_nav_rng_rgt = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Panel.EFIS_NavRangeR.Target"     );
         global_info->assert.dat.id_u32_fcu_tgt_alt_step = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Panel.FCU_AltitudeStep.Target"   );
-        global_info->assert.dat.id_u32_emer_lights_mode = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Overhead.LightEmerMode.Target"   );
+        global_info->assert.dat.id_u32_light_mode_belts = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Overhead.LightBelts.Target"      );
+        global_info->assert.dat.id_u32_light_mode_emerg = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Overhead.LightEmerMode.Target"   );
+        global_info->assert.dat.id_u32_light_mode_smoke = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Overhead.LightSmoke.Target"      );
+        global_info->assert.dat.id_u32_light_mode_strob = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Overhead.LightStrobe.Target"     );
         global_info->assert.dat.id_s32_click_ss_tkovr_l = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Panel.SidestickTakeoverL.Click"  );
         global_info->assert.dat.id_s32_click_thr_disc_l = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.Pedestal.EngineDisconnect1.Click");
+        global_info->assert.dat.id_u32_overhead_rmp3pow = global_info->assert.api.ValueIdByName("Aircraft.Cockpit.RMP3.Power.Target"               );
         if (global_info->assert.dat.id_s32_acft_request_chk <= 0 ||
             global_info->assert.dat.id_s32_acft_request_gpu <= 0 ||
             global_info->assert.dat.id_f32_acft_dryweightkg <= 0 ||
@@ -668,9 +672,13 @@ int acf_type_info_acf_ctx_init()
             global_info->assert.dat.id_u32_efis_nav_rng_lft <= 0 ||
             global_info->assert.dat.id_u32_efis_nav_rng_rgt <= 0 ||
             global_info->assert.dat.id_u32_fcu_tgt_alt_step <= 0 ||
-            global_info->assert.dat.id_u32_emer_lights_mode <= 0 ||
+            global_info->assert.dat.id_u32_light_mode_belts <= 0 ||
+            global_info->assert.dat.id_u32_light_mode_emerg <= 0 ||
+            global_info->assert.dat.id_u32_light_mode_smoke <= 0 ||
+            global_info->assert.dat.id_u32_light_mode_strob <= 0 ||
             global_info->assert.dat.id_s32_click_ss_tkovr_l <= 0 ||
             global_info->assert.dat.id_s32_click_thr_disc_l <= 0 ||
+            global_info->assert.dat.id_u32_overhead_rmp3pow <= 0 ||
             global_info->assert.dat.ldg_gears_lever      == NULL ||
             global_info->assert.dat.engine_lever_lt      == NULL ||
             global_info->assert.dat.engine_reverse1      == NULL ||
