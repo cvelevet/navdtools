@@ -129,7 +129,11 @@ typedef struct
         int id_f32_p_spoilers_lever;
         int id_s32_click_ss_tkovr_l;
         int id_s32_click_thr_disc_l;
-        int id_u32_emer_lights_mode;
+        int id_u32_light_mode_belts;
+        int id_u32_light_mode_emerg;
+        int id_u32_light_mode_smoke;
+        int id_u32_light_mode_strob;
+        int id_u32_overhead_rmp3pow;
         int id_u32_efis_nav_rng_lft;
         int id_u32_efis_nav_rng_rgt;
         int id_u32_efis_nav_mod_lft;

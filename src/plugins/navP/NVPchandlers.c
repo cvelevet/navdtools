@@ -3814,12 +3814,18 @@ static int first_fcall_do(chandler_context *ctx)
                 {
                     chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc); // XXX: remap hotkeys
                 }
-                uint32_t defaults_u32[5] = { 0, 3, 2, 1, 2, };
+                uint32_t defaults_u32[10] = { 0, 3, 2, 1, 2, 0, 0, 0, 0, 0, };
                 rca->api.ValueSet(rca->dat.id_u32_fcu_tgt_alt_step, &defaults_u32[0]); // FCU alt. sel. incre. (100ft)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_lft, &defaults_u32[1]); // ND m. sel. (cap. side) (arc)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_mod_rgt, &defaults_u32[2]); // ND m. sel. (f/o. side) (nav)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_lft, &defaults_u32[3]); // ND r. sel. (cap. side) ( 20)
                 rca->api.ValueSet(rca->dat.id_u32_efis_nav_rng_rgt, &defaults_u32[4]); // ND r. sel. (f/o. side) ( 40)
+                rca->api.ValueSet(rca->dat.id_u32_light_mode_belts, &defaults_u32[5]); // overhead (pas. signs: belts)
+                rca->api.ValueSet(rca->dat.id_u32_light_mode_emerg, &defaults_u32[6]); // overhead (emer. exit lights)
+                rca->api.ValueSet(rca->dat.id_u32_light_mode_smoke, &defaults_u32[7]); // overhead (pas. signs: smoke)
+                rca->api.ValueSet(rca->dat.id_u32_light_mode_strob, &defaults_u32[8]); // overhead (strobe light mode)
+                rca->api.ValueSet(rca->dat.id_u32_overhead_rmp3pow, &defaults_u32[9]); // overhead (RMP #3: power off)
+                XPLMCommandOnce(rca->dat.throttles_dn); // workaround bug in A320's default "cold & dark" saved state
             }
             break;
 
