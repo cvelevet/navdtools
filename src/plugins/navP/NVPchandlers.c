@@ -3787,6 +3787,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 static int first_fcall_do(chandler_context *ctx)
 {
     XPLMDataRef d_ref;
+    XPLMPluginID p_id;
     XPLMCommandRef cr;
     int skview = 0, r;
     if ((r = acf_type_info_acf_ctx_init()))
@@ -3814,6 +3815,13 @@ static int first_fcall_do(chandler_context *ctx)
                 if (ctx->mcdu.rc.i_disabled == -1)
                 {
                     chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc); // XXX: remap hotkeys
+                }
+                if (XPLM_NO_PLUGIN_ID != (p_id = XPLMFindPluginBySignature("skiselkov.xraas2_ff_a320")))
+                {
+                    if (XPLMIsPluginEnabled(p_id))
+                    {
+                        XPLMDisablePlugin(p_id);
+                    }
                 }
                 uint32_t defaults_u32[10] = { 0, 3, 2, 1, 2, 0, 0, 0, 0, 0, };
                 rca->api.ValueSet(rca->dat.id_u32_fcu_tgt_alt_step, &defaults_u32[0]); // FCU alt. sel. incre. (100ft)
