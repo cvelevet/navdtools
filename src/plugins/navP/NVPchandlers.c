@@ -202,6 +202,13 @@ typedef struct
 
 typedef struct
 {
+    XPLMDataRef ap_pmod;
+    XPLMDataRef ap_pclb;
+    XPLMDataRef to_pclb;
+} refcon_app;
+
+typedef struct
+{
     chandler_callback dn;
     chandler_callback up;
     chandler_callback pd;
@@ -415,6 +422,13 @@ typedef struct
             chandler_callback cb;
             chandler_command  cc;
         } disc;
+
+        struct
+        {
+            chandler_callback cb;
+            chandler_command  cc;
+            refcon_app        rc;
+        } clmb;
     } otto;
 
     struct
@@ -558,6 +572,7 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_apclb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_pt_up(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -879,22 +894,28 @@ void* nvp_chandlers_init(void)
     }
 
     /* Custom commands: autopilot and autothrottle */
-    ctx->asrt.ap_conn.command = XPLMCreateCommand("private/ff320/ap_conn", "NOT TO BE USED");
-    ctx->asrt.ap_disc.command = XPLMCreateCommand("private/ff320/ap_disc", "NOT TO BE USED");
-    ctx->asrt.at_disc.command = XPLMCreateCommand("private/ff320/at_disc", "NOT TO BE USED");
-    ctx->otto.ffst.cb.command = XPLMCreateCommand("private/ffsts/ap_cmdl", "NOT TO BE USED");
-    ctx->otto.conn.cb.command = XPLMCreateCommand("navP/switches/ap_conn", "A/P engagement");
-    ctx->otto.disc.cb.command = XPLMCreateCommand("navP/switches/ap_disc", "A/P disconnect");
-    ctx->athr.disc.cb.command = XPLMCreateCommand("navP/switches/at_disc", "A/T disconnect");
-    ctx->athr.toga.cb.command = XPLMCreateCommand("navP/switches/at_toga", "A/T takeoff/GA");
+    ctx->asrt.ap_conn.command = XPLMCreateCommand( "private/ff320/ap_conn", "NOT TO BE USED");
+    ctx->asrt.ap_disc.command = XPLMCreateCommand( "private/ff320/ap_disc", "NOT TO BE USED");
+    ctx->asrt.at_disc.command = XPLMCreateCommand( "private/ff320/at_disc", "NOT TO BE USED");
+    ctx->otto.ffst.cb.command = XPLMCreateCommand( "private/ffsts/ap_cmdl", "NOT TO BE USED");
+    ctx->otto.clmb.cb.command = XPLMCreateCommand( "navP/switches/ap_clmb", "A/P pitch: CLB");
+    ctx->otto.conn.cb.command = XPLMCreateCommand( "navP/switches/ap_conn", "A/P engagement");
+    ctx->otto.disc.cb.command = XPLMCreateCommand( "navP/switches/ap_disc", "A/P disconnect");
+    ctx->athr.disc.cb.command = XPLMCreateCommand( "navP/switches/at_disc", "A/T disconnect");
+    ctx->athr.toga.cb.command = XPLMCreateCommand( "navP/switches/at_toga", "A/T takeoff/GA");
+    ctx->otto.clmb.rc.ap_pclb = XPLMFindDataRef("sim/cockpit2/autopilot/sync_hold_pitch_deg");
+    ctx->otto.clmb.rc.to_pclb = XPLMFindDataRef(     "sim/cockpit2/autopilot/TOGA_pitch_deg");
+    ctx->otto.clmb.rc.ap_pmod = XPLMFindDataRef(       "sim/cockpit2/autopilot/pitch_status");
     if (!ctx->asrt.ap_conn.command ||
         !ctx->asrt.ap_disc.command ||
         !ctx->asrt.at_disc.command ||
         !ctx->otto.ffst.cb.command ||
+        !ctx->otto.clmb.cb.command ||
         !ctx->otto.conn.cb.command ||
         !ctx->otto.disc.cb.command ||
         !ctx->athr.disc.cb.command ||
-        !ctx->athr.toga.cb.command)
+        !ctx->athr.toga.cb.command ||
+        !ctx->otto.clmb.rc.ap_pmod || !ctx->otto.clmb.rc.ap_pclb  || !ctx->otto.clmb.rc.to_pclb)
     {
         goto fail;
     }
@@ -904,6 +925,7 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->asrt.ap_disc, chandler_32apd, 0, &ctx->info->assert);
         REGISTER_CHANDLER(ctx->asrt.at_disc, chandler_32atd, 0, &ctx->info->assert);
         REGISTER_CHANDLER(ctx->otto.ffst.cb, chandler_ffap1, 0, &ctx->otto.ffst.dr);
+        REGISTER_CHANDLER(ctx->otto.clmb.cb, chandler_apclb, 0, &ctx->otto.clmb.rc);
         REGISTER_CHANDLER(ctx->otto.conn.cb, chandler_swtch, 0, &ctx->otto.conn.cc);
         REGISTER_CHANDLER(ctx->otto.disc.cb, chandler_swtch, 0, &ctx->otto.disc.cc);
         REGISTER_CHANDLER(ctx->athr.disc.cb, chandler_swtch, 0, &ctx->athr.disc.cc);
@@ -2622,6 +2644,19 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         XPLMCommandOnce(t->thrup);
         return 0;
+    }
+    return 0;
+}
+
+static int chandler_apclb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        if (XPLMGetDatai(((refcon_app*)inRefcon)->ap_pmod) > 0)
+        {
+            XPLMSetDataf(((refcon_app*)inRefcon)->ap_pclb, XPLMGetDataf(((refcon_app*)inRefcon)->to_pclb));
+            return 0;
+        }
     }
     return 0;
 }
