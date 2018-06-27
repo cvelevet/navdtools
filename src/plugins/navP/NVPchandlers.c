@@ -121,7 +121,7 @@ typedef struct
     int                  atyp;
     int            i_disabled;
     int            i_value[2];
-    XPLMDataRef    dataref[3];
+    XPLMDataRef    dataref[4];
     XPLMCommandRef command[4];
 } refcon_cdu_pop;
 
@@ -3192,6 +3192,17 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     cdu->i_disabled = 0; break;
 
                 case ACF_TYP_A319_TL:
+                    if (NULL == (cdu->command[0] = XPLMFindCommand("AirbusFBW/UndockMCDU1"     )) ||
+                        NULL == (cdu->command[1] = XPLMFindCommand("AirbusFBW/UndockMCDU2"     )) ||
+                        NULL == (cdu->dataref[0] = XPLMFindDataRef("AirbusFBW/PopUpHeightArray")) ||
+                        NULL == (cdu->dataref[1] = XPLMFindDataRef("AirbusFBW/PopUpScale"      )) ||
+                        NULL == (cdu->dataref[2] = XPLMFindDataRef("AirbusFBW/PopUpXCoordArray")) ||
+                        NULL == (cdu->dataref[3] = XPLMFindDataRef("AirbusFBW/PopUpYCoordArray")))
+                    {
+                        cdu->i_disabled = 1; break; // check for YFMS presence
+                    }
+                    cdu->i_disabled = 0; break;
+
                 case ACF_TYP_A320_QP:
                 case ACF_TYP_A330_RW:
                     if (NULL == (cdu->command[0] = XPLMFindCommand("AirbusFBW/UndockMCDU1")) ||
@@ -3396,6 +3407,32 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMSetDatavi(cdu->dataref[1], &ione, 14, 1); // hide yoke left
                 XPLMSetDatavi(cdu->dataref[1], &ione, 15, 1); // hide yoke right
                 XPLMSetDatavi(cdu->dataref[1], &ione, 20, 1); // show toggle buttons
+                return 0;
+            }
+
+            case ACF_TYP_A319_TL:
+            {
+                int PopUpHeightArray[2]; XPLMGetDatavi(cdu->dataref[0], PopUpHeightArray, 0, 2);
+                if (PopUpHeightArray[0] <= 0 && PopUpHeightArray[1] <= 0) // both popups hidden
+                {
+                    // reset relevant datarefs to preferred size/location and show both MCDUs
+                    //                    { CDU1, CDU2, PFD1, PFD2, ND#1, ND#2, ECAM, ECAM, };
+                    float PopUpScale[8] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, }; XPLMSetDatavf(cdu->dataref[1], PopUpScale, 0, 8);
+                    int   PopUpXArry[8] = {    0,  448,    0, 1500,  500, 1500, 1000, 1000, }; XPLMSetDatavi(cdu->dataref[2], PopUpXArry, 0, 8);
+                    int   PopUpYArry[8] = {    0,    0,  708,  708,  708,  208,  708,  208, }; XPLMSetDatavi(cdu->dataref[3], PopUpYArry, 0, 8);
+                    XPLMCommandOnce(cdu->command[0]);
+                    XPLMCommandOnce(cdu->command[1]);
+                    return 0;
+                }
+                // else either/both MCDU popups visible, let's hide them instead
+                if (PopUpHeightArray[0] >= 1)
+                {
+                    XPLMCommandOnce(cdu->command[0]);
+                }
+                if (PopUpHeightArray[1] >= 1)
+                {
+                    XPLMCommandOnce(cdu->command[1]);
+                }
                 return 0;
             }
 
