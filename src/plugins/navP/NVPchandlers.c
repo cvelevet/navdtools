@@ -3419,7 +3419,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     //                    { CDU1, CDU2, PFD1, PFD2, ND#1, ND#2, ECAM, ECAM, };
                     float PopUpScale[8] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, }; XPLMSetDatavf(cdu->dataref[1], PopUpScale, 0, 8);
                     int   PopUpXArry[8] = {    0,  448,    0, 1500,  500, 1500, 1000, 1000, }; XPLMSetDatavi(cdu->dataref[2], PopUpXArry, 0, 8);
-                    int   PopUpYArry[8] = {    0,    0,  708,  708,  708,  208,  708,  208, }; XPLMSetDatavi(cdu->dataref[3], PopUpYArry, 0, 8);
+                    int   PopUpYArry[8] = {    0,    0,  940,  940,  940,  440,  940,  440, }; XPLMSetDatavi(cdu->dataref[3], PopUpYArry, 0, 8);
                     XPLMCommandOnce(cdu->command[0]);
                     XPLMCommandOnce(cdu->command[1]);
                     return 0;
@@ -4927,32 +4927,32 @@ static int first_fcall_do(chandler_context *ctx)
             ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
 //          ctx->ground.idle.r_t[0]   = 0.10800f; // IAE/CFM: N1: ~26.1/26.4% @ NTD
 //          ctx->ground.idle.r_t[1]   = 0.10800f; // IAE/CFM: N1: ~26.1/26.4% @ NTD
-            ctx->ground.idle.r_t[0]   = 0.15000f;
-            ctx->ground.idle.r_t[1]   = 0.15000f;
+            ctx->ground.idle.r_t[0]   = 0.12000f; // custom thr. up/down step 0.04f
+            ctx->ground.idle.r_t[1]   = 0.12000f; // custom thr. up/down step 0.04f
             ctx->ground.idle.minimums = 1; break;
 
         case ACF_TYP_A320_QP:
             ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
 //          ctx->ground.idle.r_t[0]   = 0.10875f; // ~26.1% N1 @ NTD
 //          ctx->ground.idle.r_t[1]   = 0.10875f; // ~26.1% N1 @ NTD
-            ctx->ground.idle.r_t[0]   = 0.15000f;
-            ctx->ground.idle.r_t[1]   = 0.15000f;
+            ctx->ground.idle.r_t[0]   = 0.12000f; // thr. step 0.04f
+            ctx->ground.idle.r_t[1]   = 0.12000f; // thr. step 0.04f
             ctx->ground.idle.minimums = 1; break;
 
         case ACF_TYP_A330_RW:
             ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
 //          ctx->ground.idle.r_t[0]   = 0.10625f; // ~30.1% N1 @ NTD (CF6 engine)
 //          ctx->ground.idle.r_t[1]   = 0.10625f; // ~30.1% N1 @ NTD (CF6 engine)
-            ctx->ground.idle.r_t[0]   = 0.15000f;
-            ctx->ground.idle.r_t[1]   = 0.15000f;
+            ctx->ground.idle.r_t[0]   = 0.12000f; // thr. step 0.04f
+            ctx->ground.idle.r_t[1]   = 0.12000f; // thr. step 0.04f
             ctx->ground.idle.minimums = 1; break;
 
         case ACF_TYP_A350_FF:
             ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
 //          ctx->ground.idle.r_t[0]   = 0.10000f; // ~25.3% N1 @ NTD
 //          ctx->ground.idle.r_t[1]   = 0.10000f; // ~25.3% N1 @ NTD
-            ctx->ground.idle.r_t[0]   = 0.15000f;
-            ctx->ground.idle.r_t[1]   = 0.15000f;
+            ctx->ground.idle.r_t[0]   = 0.12000f; // thr. step 0.04f
+            ctx->ground.idle.r_t[1]   = 0.12000f; // thr. step 0.04f
             ctx->ground.idle.minimums = 1; break;
 
         // will only work so long as you don't touch any hardware throttles
