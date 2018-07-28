@@ -369,9 +369,9 @@ int yfs_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
             case XPLM_VK_DIVIDE:
                 yfs_spad_apndc(yfms, '/', -1);
                 return 0;
-            case XPLM_VK_SPACE:
-                yfs_spad_apndc(yfms, '_', -1); // cf. YFSmain.c, draw_display()
-                return 0;
+//          case XPLM_VK_SPACE: // not actually ever used, may conflict with braking in some setups
+//              yfs_spad_apndc(yfms, '_', -1); // cf. YFSmain.c, draw_display()
+//              return 0;
             case XPLM_VK_UP:
                 if (yfms->spcs.cback_lnup)
                 {
