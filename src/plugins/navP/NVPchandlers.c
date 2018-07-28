@@ -5018,8 +5018,9 @@ static int first_fcall_do(chandler_context *ctx)
                 switch (XPLMGetDatai(d_ref))
                 {
                     case 0: // Pratt & Whitney
+                        ctx->ground.idle.r_taxi   = 0.16666f; // .15 can't hold speed
 //                      ctx->ground.idle.r_taxi   = 0.16666f; // ~26.1% N1 @ NTD
-                        ctx->ground.idle.r_taxi   = 0.20000f;
+//                      ctx->ground.idle.r_taxi   = 0.20000f;
                         ctx->ground.idle.minimums = 1; break;
                     default:
                         ndt_log("navP [warning]: couldn't determine engine type for FF767\n");
