@@ -381,6 +381,7 @@ typedef struct
         XPLMDataRef prop_mode;
         XPLMCommandRef propdn;
         XPLMCommandRef propup;
+        XPLMCommandRef propto;
     } revrs;
 
     struct
@@ -819,8 +820,9 @@ void* nvp_chandlers_init(void)
     ctx->revrs.fwd.cb.command = XPLMCreateCommand("navP/thrust/forward", "stow thrust reversers");
     ctx->revrs.rev.cb.command = XPLMCreateCommand("navP/thrust/reverse", "deploy thrust reversers");
     ctx->revrs.prop_mode      = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/prop_mode");
+    ctx->revrs.propto         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle");
     if (!ctx->revrs.fwd.cb.command || !ctx->revrs.rev.cb.command ||
-        !ctx->revrs.prop_mode)
+        !ctx->revrs.prop_mode      || !ctx->revrs.propto)
     {
         goto fail;
     }
@@ -2569,6 +2571,16 @@ static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             return 0;
         }
+        if (ctx->info->ac_type == ACF_TYP_A319_TL)
+        {
+            int propmode; XPLMGetDatavi(ctx->revrs.prop_mode, &propmode, 0, 1);
+            if (propmode == 3)
+            {
+                XPLMCommandOnce(ctx->revrs.propto);
+                return 0;
+            }
+            return 0;
+        }
         if (ctx->revrs.n_engines >= 1)
         {
             XPLMSetDatavi(ctx->revrs.prop_mode, propmode_fwd_get(), 0, ctx->revrs.n_engines);
@@ -2608,6 +2620,16 @@ static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             if (XPLMGetDataf(a32->dat.engine_reverse2) < 0.5f)
             {
                 XPLMCommandOnce(a32->dat.toggle_r_ng2);
+            }
+            return 0;
+        }
+        if (ctx->info->ac_type == ACF_TYP_A319_TL)
+        {
+            int propmode; XPLMGetDatavi(ctx->revrs.prop_mode, &propmode, 0, 1);
+            if (propmode == 1)
+            {
+                XPLMCommandOnce(ctx->revrs.propto);
+                return 0;
             }
             return 0;
         }
