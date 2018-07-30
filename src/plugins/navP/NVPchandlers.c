@@ -163,6 +163,11 @@ typedef struct
 {
     XPLMPluginID pe;
     XPLMDataRef pe1;
+    XPLMDataRef rx1;
+    XPLMDataRef rx2;
+    XPLMDataRef txx;
+    XPLMDataRef vx1;
+    XPLMDataRef vx2;
     XPLMDataRef atc;
     XPLMDataRef cvr;
     XPLMDataRef evr;
@@ -690,16 +695,21 @@ void* nvp_chandlers_init(void)
     }
 
     /* Volume-related datarefs */
-    if ((ctx->volumes.wxr = XPLMFindDataRef("sim/operation/sound/weather_volume_ratio")) == NULL ||
-        (ctx->volumes.wvr = XPLMFindDataRef("sim/operation/sound/warning_volume_ratio")) == NULL ||
-        (ctx->volumes.evr = XPLMFindDataRef( "sim/operation/sound/engine_volume_ratio")) == NULL ||
-        (ctx->volumes.gvr = XPLMFindDataRef( "sim/operation/sound/ground_volume_ratio")) == NULL ||
-        (ctx->volumes.atc = XPLMFindDataRef(  "sim/operation/sound/radio_volume_ratio")) == NULL ||
-        (ctx->volumes.pvr = XPLMFindDataRef(   "sim/operation/sound/prop_volume_ratio")) == NULL ||
-        (ctx->volumes.fvr = XPLMFindDataRef(    "sim/operation/sound/fan_volume_ratio")) == NULL ||
-        (ctx->volumes.spc = XPLMFindDataRef(           "sim/operation/sound/speech_on")) == NULL ||
-        (ctx->volumes.snd = XPLMFindDataRef(            "sim/operation/sound/sound_on")) == NULL ||
-        (ctx->volumes.txt = XPLMFindDataRef(            "sim/operation/prefs/text_out")) == NULL)
+    if ((ctx->volumes.rx1 = XPLMFindDataRef("sim/cockpit2/radios/actuators/audio_selection_com1")) == NULL ||
+        (ctx->volumes.rx2 = XPLMFindDataRef("sim/cockpit2/radios/actuators/audio_selection_com2")) == NULL ||
+        (ctx->volumes.txx = XPLMFindDataRef( "sim/cockpit2/radios/actuators/audio_com_selection")) == NULL ||
+        (ctx->volumes.vx1 = XPLMFindDataRef(   "sim/cockpit2/radios/actuators/audio_volume_com1")) == NULL ||
+        (ctx->volumes.vx2 = XPLMFindDataRef(   "sim/cockpit2/radios/actuators/audio_volume_com2")) == NULL ||
+        (ctx->volumes.wxr = XPLMFindDataRef(          "sim/operation/sound/weather_volume_ratio")) == NULL ||
+        (ctx->volumes.wvr = XPLMFindDataRef(          "sim/operation/sound/warning_volume_ratio")) == NULL ||
+        (ctx->volumes.evr = XPLMFindDataRef(           "sim/operation/sound/engine_volume_ratio")) == NULL ||
+        (ctx->volumes.gvr = XPLMFindDataRef(           "sim/operation/sound/ground_volume_ratio")) == NULL ||
+        (ctx->volumes.atc = XPLMFindDataRef(            "sim/operation/sound/radio_volume_ratio")) == NULL ||
+        (ctx->volumes.pvr = XPLMFindDataRef(             "sim/operation/sound/prop_volume_ratio")) == NULL ||
+        (ctx->volumes.fvr = XPLMFindDataRef(              "sim/operation/sound/fan_volume_ratio")) == NULL ||
+        (ctx->volumes.spc = XPLMFindDataRef(                     "sim/operation/sound/speech_on")) == NULL ||
+        (ctx->volumes.snd = XPLMFindDataRef(                      "sim/operation/sound/sound_on")) == NULL ||
+        (ctx->volumes.txt = XPLMFindDataRef(                      "sim/operation/prefs/text_out")) == NULL)
     {
         goto fail;
     }
@@ -1650,6 +1660,30 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
             }
         }
+        if (XPLM_NO_PLUGIN_ID != ctx->volumes.pe && ctx->volumes.pe1)
+        {
+            if (ctx->first_fcall)
+            {
+                XPLMSetDatai(ctx->volumes.snd,    1);
+                XPLMSetDatai(ctx->volumes.rx1,    1);
+                XPLMSetDatai(ctx->volumes.rx2,    0);
+                XPLMSetDatai(ctx->volumes.txx,    6);
+            }
+            if (XPLMGetDatai(ctx->volumes.pe1) == 1 ||
+                XPLMGetDataf(ctx->volumes.atc) > 0.1f)
+            {
+                XPLMSetDatai(ctx->volumes.snd,    1);
+                XPLMSetDataf(ctx->volumes.atc, 0.9f);
+                XPLMSetDataf(ctx->volumes.vx1, 0.9f);
+                XPLMSetDataf(ctx->volumes.vx2, 0.9f);
+            }
+            else
+            {
+                XPLMSetDataf(ctx->volumes.atc, 0.0f);
+                XPLMSetDataf(ctx->volumes.vx1, 0.0f);
+                XPLMSetDataf(ctx->volumes.vx2, 0.0f);
+            }
+        }
     }
     return 0;
 }
@@ -1686,14 +1720,6 @@ static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 if (speak > 0) XPLMSpeakString("park brake set");
             }
             return 0;
-        }
-        if (ctx->volumes.pe != XPLM_NO_PLUGIN_ID && ctx->volumes.pe1)
-        {
-            if (XPLMGetDatai(ctx->volumes.pe1) == 1)
-            {
-                XPLMSetDataf(ctx->volumes.atc, 1.0f);
-                XPLMSetDatai(ctx->volumes.snd,    1);
-            }
         }
         if (rcb->ro.name)
         {
