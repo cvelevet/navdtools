@@ -656,9 +656,10 @@ static int create_main_window(yfms_context *yfms)
                 *byt++ = 255; // A (opaque)
             }
         }
-        XPSetWidgetProperty(yfms->mwindow.screen.bgrd_id, xpProperty_Refcon, (intptr_t)yfms->mwindow.screen.bgra_pix_buf);
+//      XPSetWidgetProperty(yfms->mwindow.screen.bgrd_id, xpProperty_Refcon, (intptr_t)yfms->mwindow.screen.bgra_pix_buf);
+        XPSetWidgetProperty(yfms->mwindow.screen.bgrd_id, xpProperty_SubWindowType, xpSubWindowStyle_Screen);
         XPSetWidgetProperty(yfms->mwindow.screen.subw_id, xpProperty_Refcon, (intptr_t)yfms);
-        XPAddWidgetCallback(yfms->mwindow.screen.bgrd_id, &yfs_mcdubgrh);
+//      XPAddWidgetCallback(yfms->mwindow.screen.bgrd_id, &yfs_mcdubgrh);
         XPAddWidgetCallback(yfms->mwindow.screen.subw_id, &yfs_mcdudish);
     }
     else
