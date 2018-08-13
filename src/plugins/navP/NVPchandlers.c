@@ -39,6 +39,7 @@
 #include "common/common.h"
 
 #include "ACFtypes.h"
+#include "ACFvolumes.h"
 #include "NVPchandlers.h"
 #include "NVPmenu.h"
 
@@ -161,29 +162,6 @@ typedef struct
 
 typedef struct
 {
-    XPLMPluginID pe;
-    XPLMDataRef pe1;
-    XPLMDataRef rx1;
-    XPLMDataRef rx2;
-    XPLMDataRef txx;
-    XPLMDataRef vx1;
-    XPLMDataRef vx2;
-    XPLMDataRef atc;
-    XPLMDataRef cvr;
-    XPLMDataRef evr;
-    XPLMDataRef fvr;
-    XPLMDataRef gvr;
-    XPLMDataRef pvr;
-    XPLMDataRef wvr;
-    XPLMDataRef wxr;
-    XPLMDataRef tmp;
-    XPLMDataRef spc;
-    XPLMDataRef snd;
-    XPLMDataRef txt;
-} refcon_volumes;
-
-typedef struct
-{
     chandler_callback landing_gear_toggle;
     chandler_callback   landing_gear_down;
     chandler_callback     landing_gear_up;
@@ -233,7 +211,6 @@ typedef struct
     int        kill_daniel;
     void     *menu_context;
     acf_info_context *info;
-    refcon_volumes volumes;
     refcon_ground   ground;
     refcon_thrust    throt;
     refcon_gear       gear;
@@ -694,27 +671,7 @@ void* nvp_chandlers_init(void)
         goto fail;
     }
 
-    /* Volume-related datarefs */
-    if ((ctx->volumes.rx1 = XPLMFindDataRef("sim/cockpit2/radios/actuators/audio_selection_com1")) == NULL ||
-        (ctx->volumes.rx2 = XPLMFindDataRef("sim/cockpit2/radios/actuators/audio_selection_com2")) == NULL ||
-        (ctx->volumes.txx = XPLMFindDataRef( "sim/cockpit2/radios/actuators/audio_com_selection")) == NULL ||
-        (ctx->volumes.vx1 = XPLMFindDataRef(   "sim/cockpit2/radios/actuators/audio_volume_com1")) == NULL ||
-        (ctx->volumes.vx2 = XPLMFindDataRef(   "sim/cockpit2/radios/actuators/audio_volume_com2")) == NULL ||
-        (ctx->volumes.wxr = XPLMFindDataRef(          "sim/operation/sound/weather_volume_ratio")) == NULL ||
-        (ctx->volumes.wvr = XPLMFindDataRef(          "sim/operation/sound/warning_volume_ratio")) == NULL ||
-        (ctx->volumes.evr = XPLMFindDataRef(           "sim/operation/sound/engine_volume_ratio")) == NULL ||
-        (ctx->volumes.gvr = XPLMFindDataRef(           "sim/operation/sound/ground_volume_ratio")) == NULL ||
-        (ctx->volumes.atc = XPLMFindDataRef(            "sim/operation/sound/radio_volume_ratio")) == NULL ||
-        (ctx->volumes.pvr = XPLMFindDataRef(             "sim/operation/sound/prop_volume_ratio")) == NULL ||
-        (ctx->volumes.fvr = XPLMFindDataRef(              "sim/operation/sound/fan_volume_ratio")) == NULL ||
-        (ctx->volumes.spc = XPLMFindDataRef(                     "sim/operation/sound/speech_on")) == NULL ||
-        (ctx->volumes.snd = XPLMFindDataRef(                      "sim/operation/sound/sound_on")) == NULL ||
-        (ctx->volumes.txt = XPLMFindDataRef(                      "sim/operation/prefs/text_out")) == NULL)
-    {
-        goto fail;
-    }
-
-     /* Field of view save/restore */
+    /* Field of view save/restore */
     if ((ctx->fov.nonp = XPLMFindDataRef("sim/graphics/settings/non_proportional_vertical_FOV")) == NULL ||
         (ctx->fov.data = XPLMFindDataRef(                "sim/graphics/view/field_of_view_deg")) == NULL)
     {
@@ -1291,7 +1248,10 @@ void nvp_chandlers_onload(void *inContext)
                     }
                 }
             }
-            XPLMSetDataf(ctx->volumes.gvr, 0.0f); // mute (until A320 on tarmac)
+            if ((dref_temporary = XPLMFindDataRef("sim/operation/sound/ground_volume_ratio")))
+            {
+                XPLMSetDataf(dref_temporary, 0.0f); // mute (until A320 gets safely on tarmac)
+            }
         }
     }
 }
@@ -1556,12 +1516,6 @@ int nvp_chandlers_update(void *inContext)
     /* for the reverse thrust commands */
      ctx->revrs.n_engines = ctx->info->engine_count;
 
-    /* detect presence of PilotEdge */
-    if (XPLM_NO_PLUGIN_ID != (ctx->volumes.pe = XPLMFindPluginBySignature("com.pilotedge.plugin.xplane")))
-    {
-        ctx->volumes.pe1 = XPLMFindDataRef("pilotedge/status/connected");
-    }
-
     /* Custom ground stabilization system (via flight loop callback) */
     ctx->ground.nominal_roll_c = XPLMGetDataf(ctx->ground.acf_roll_c);
 
@@ -1660,30 +1614,6 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
             }
         }
-        if (XPLM_NO_PLUGIN_ID != ctx->volumes.pe && ctx->volumes.pe1)
-        {
-            if (ctx->first_fcall)
-            {
-                XPLMSetDatai(ctx->volumes.snd,    1);
-                XPLMSetDatai(ctx->volumes.rx1,    1);
-                XPLMSetDatai(ctx->volumes.rx2,    0);
-                XPLMSetDatai(ctx->volumes.txx,    6);
-            }
-            if (XPLMGetDatai(ctx->volumes.pe1) == 1 ||
-                XPLMGetDataf(ctx->volumes.atc) > 0.1f)
-            {
-                XPLMSetDatai(ctx->volumes.snd,    1);
-                XPLMSetDataf(ctx->volumes.atc, 0.9f);
-                XPLMSetDataf(ctx->volumes.vx1, 0.9f);
-                XPLMSetDataf(ctx->volumes.vx2, 0.9f);
-            }
-            else
-            {
-                XPLMSetDataf(ctx->volumes.atc, 0.0f);
-                XPLMSetDataf(ctx->volumes.vx1, 0.0f);
-                XPLMSetDataf(ctx->volumes.vx2, 0.0f);
-            }
-        }
     }
     return 0;
 }
@@ -1772,13 +1702,6 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 if (speak > 0) XPLMSpeakString("park brake released");
             }
             return 0;
-        }
-        if (ctx->volumes.pe != XPLM_NO_PLUGIN_ID && ctx->volumes.pe1)
-        {
-            if (XPLMGetDatai(ctx->volumes.pe1) == 1)
-            {
-                XPLMSetDataf(ctx->volumes.atc, 1.0f);
-            }
         }
         if (rcb->ro.name)
         {
@@ -5188,91 +5111,15 @@ static int first_fcall_do(chandler_context *ctx)
     _DO(1, XPLMSetDataf, 1.0f, "sim/private/controls/perf/kill_atc");
 
     /*
-     * Sound and related datarefs.
-     *
-     * NOTE: NVPmenu.c, menu_handler() has code covering the same functionality,
-     * we must always remember to update said code too when making changes here
-     *
-     * Default to 25% volume for all planes.
+     * Sound: default to 25% volume for all addons.
      */
-    if (ctx->info->ac_type == ACF_TYP_B737_XG)
+    acf_volume_context *volume_context = acf_volume_ctx_get();
+    if (volume_context == NULL)
     {
-        XPLMSetDataf(ctx->volumes.atc, 0.50f);
+        XPLMSpeakString("default volume error");
+        return -1;
     }
-    else
-    {
-        if ((ctx->volumes.tmp = XPLMFindDataRef("aerobask/eclipse/custom_volume_ratio")) &&
-            (!STRN_CASECMP_AUTO(ctx->info->descrp, "The Eclipse 550")))
-        {
-            XPLMSetDataf(ctx->volumes.evr, 0.10f); // engines are a bit loud in this plane :(
-            XPLMSetDataf(ctx->volumes.tmp, 0.25f); // all other custom sounds (excl. engines)
-        }
-        else
-        {
-            if ((ctx->volumes.tmp = XPLMFindDataRef("volume/engines")))
-            {
-                XPLMSetDataf(ctx->volumes.tmp, 0.25f); // FF Boeing T7 sounds slider
-            }
-            if ((ctx->volumes.tmp = XPLMFindDataRef("volume/ambient")))
-            {
-                XPLMSetDataf(ctx->volumes.tmp, 0.25f); // FF Boeing T7 sounds slider
-            }
-            if ((ctx->volumes.tmp = XPLMFindDataRef("volume/callouts")))
-            {
-                XPLMSetDataf(ctx->volumes.tmp, 0.40f); // FF Boeing T7 sounds slider
-            }
-            if ((ctx->volumes.tmp = XPLMFindDataRef("volumeX")))
-            {
-                XPLMSetDataf(ctx->volumes.tmp, 0.10f); // FlightFactor master slider
-            }
-            if ((ctx->volumes.tmp = XPLMFindDataRef("1-sim/options/Volume")))
-            {
-                XPLMSetDataf(ctx->volumes.tmp, 0.25f); // Airbus350XWB master slider
-            }
-            if ((ctx->volumes.tmp = XPLMFindDataRef("com/dkmp/mastervolknob")))
-            {
-                XPLMSetDataf(ctx->volumes.tmp, 0.25f); // Carenado 3.0 master slider
-            }
-            if ((ctx->volumes.tmp = XPLMFindDataRef("toliss_airbus/master_volume")))
-            {
-                XPLMSetDataf(ctx->volumes.tmp, 0.25f); // ToLiSS-A319: master slider
-            }
-            if ((ctx->info->ac_type == ACF_TYP_A320_FF) == 1)
-            {
-                XPLMSetDataf(ctx->volumes.evr, 0.20f);
-            }
-            else if ((ctx->info->ac_type != ACF_TYP_A319_TL))
-            {
-                XPLMSetDataf(ctx->volumes.evr, 0.25f);
-            }
-        }
-        switch (ctx->info->ac_type)
-        {
-            case ACF_TYP_B737_XG:
-                break;
-            case ACF_TYP_A319_TL:
-                XPLMSetDataf(ctx->volumes.pvr, 0.25f);
-                break;
-            case ACF_TYP_A320_FF:
-                XPLMSetDataf(ctx->volumes.fvr, 0.20f);
-                XPLMSetDataf(ctx->volumes.gvr, 0.20f);
-                XPLMSetDataf(ctx->volumes.pvr, 0.20f);
-                XPLMSetDataf(ctx->volumes.wvr, 0.20f);
-                XPLMSetDataf(ctx->volumes.wxr, 0.20f);
-                break;
-            default:
-                XPLMSetDataf(ctx->volumes.fvr, 0.25f);
-                XPLMSetDataf(ctx->volumes.gvr, 0.25f);
-                XPLMSetDataf(ctx->volumes.pvr, 0.25f);
-                XPLMSetDataf(ctx->volumes.wvr, 0.25f);
-                XPLMSetDataf(ctx->volumes.wxr, 0.25f);
-                break;
-        }
-        XPLMSetDataf(ctx->volumes.atc, 0.50f);
-    }
-    XPLMSetDatai(ctx->volumes.snd, 1); // ALL sounds
-    XPLMSetDatai(ctx->volumes.txt, 1); // "text" ATC
-    XPLMSetDatai(ctx->volumes.spc, 0); // verbal ATC
+    acf_volume_set(volume_context, ctx->info->ac_type, 0.25f);
 
     /* Boost frame rates by disabling cloud drawing altogether */
     if (ctx->menu_context)

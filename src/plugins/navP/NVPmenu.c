@@ -39,6 +39,7 @@
 #include "common/common.h"
 
 #include "ACFtypes.h"
+#include "ACFvolumes.h"
 #include "NVPmenu.h"
 
 #define REFUEL_DIALG_CAPW ( 80)
@@ -236,18 +237,6 @@ typedef struct
             XPLMDataRef dr_disrcam; // sim/private/controls/perf/disable_reflection_cam
             float       df_disrcam;
         } speedbooster;
-
-        struct
-        {
-            XPLMDataRef dr_all_snd;
-            XPLMDataRef dr_vol_eng;
-            XPLMDataRef dr_vol_prs;
-            XPLMDataRef dr_vol_grt;
-            XPLMDataRef dr_vol_wer;
-            XPLMDataRef dr_vol_was;
-            XPLMDataRef dr_vol_atc;
-            XPLMDataRef dr_vol_avs;
-        } volume_prsts;
 
         struct
         {
@@ -460,17 +449,6 @@ void* nvp_menu_init(void)
         {
             goto fail;
         }
-    }
-    if (get_dataref(&ctx->data.volume_prsts.dr_vol_eng, "sim/operation/sound/engine_volume_ratio" ) ||
-        get_dataref(&ctx->data.volume_prsts.dr_vol_prs, "sim/operation/sound/prop_volume_ratio"   ) ||
-        get_dataref(&ctx->data.volume_prsts.dr_vol_grt, "sim/operation/sound/ground_volume_ratio" ) ||
-        get_dataref(&ctx->data.volume_prsts.dr_vol_wer, "sim/operation/sound/weather_volume_ratio") ||
-        get_dataref(&ctx->data.volume_prsts.dr_vol_was, "sim/operation/sound/warning_volume_ratio") ||
-        get_dataref(&ctx->data.volume_prsts.dr_vol_atc, "sim/operation/sound/radio_volume_ratio"  ) ||
-        get_dataref(&ctx->data.volume_prsts.dr_vol_avs, "sim/operation/sound/fan_volume_ratio"    ) ||
-        get_dataref(&ctx->data.volume_prsts.dr_all_snd, "sim/operation/sound/sound_on"            ))
-    {
-        goto fail;
     }
 
     /* field of view sub-menu & its items */
@@ -1312,121 +1290,48 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
     if (itx->mivalue >= MENUITEM_VOLUME_PRST0 &&
         itx->mivalue <= MENUITEM_VOLUME_PRST5)
     {
-        /*
-         * NOTE: NVPchandlers.c, first_fcall_do() has code covering the same
-         * functionality, don't forget to update it when making changes here
-         */
-        acf_info_context *ic;
-        XPLMDataRef tp, cust;
-        float vr, ve, volume;
+        acf_info_context *ic = acf_type_info_update();
+        acf_volume_context *vc = acf_volume_ctx_get();
+        if (ic == NULL)
+        {
+            XPLMSpeakString("Volume error 1");
+            return;
+        }
+        if (vc == NULL)
+        {
+            XPLMSpeakString("Volume error 2");
+            return;
+        }
         switch (itx->mivalue)
         {
             case MENUITEM_VOLUME_PRST0:
-                volume = ve = vr = 0.00f;
-                break;
+                acf_volume_set(vc, ic->ac_type, 0.00f);
+                XPLMSpeakString("Volume muted");
+                return;
             case MENUITEM_VOLUME_PRST1:
-                volume = 0.10f; ve = 0.125f; vr = sqrtf(volume);
-                break;
+                acf_volume_set(vc, ic->ac_type, 0.10f);
+                XPLMSpeakString("Volume 10");
+                return;
             case MENUITEM_VOLUME_PRST2:
-                volume = 0.25f; ve = volume; vr = sqrtf(volume);
-                break;
+                acf_volume_set(vc, ic->ac_type, 0.25f);
+                XPLMSpeakString("Volume 25");
+                return;
             case MENUITEM_VOLUME_PRST3:
-                volume = 0.50f; ve = volume; vr = sqrtf(volume);
-                break;
+                acf_volume_set(vc, ic->ac_type, 0.50f);
+                XPLMSpeakString("Volume 50");
+                return;
             case MENUITEM_VOLUME_PRST4:
-                volume = 0.75f; ve = volume; vr = sqrtf(volume);
-                break;
+                acf_volume_set(vc, ic->ac_type, 0.75f);
+                XPLMSpeakString("Volume 75");
+                return;
             case MENUITEM_VOLUME_PRST5:
-                volume = 1.00f; ve = volume; vr = sqrtf(volume);
-                break;
+                acf_volume_set(vc, ic->ac_type, 1.00f);
+                XPLMSpeakString("Volume 100");
+                return;
             default:
+                XPLMSpeakString("Volume error 3");
                 return;
         }
-        if ((ic = acf_type_info_update()) == NULL)
-        {
-            XPLMSpeakString("Volume error");
-            return;
-        }
-        if ((tp = XPLMFindDataRef("aerobask/eclipse/m_trk")) && (XPLMGetDataf(tp)))
-        {
-            if ((cust = XPLMFindDataRef("aerobask/eclipse/custom_volume_ratio")))
-            {
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, ve / 2.5f);
-                XPLMSetDataf(cust, ve);
-            }
-            else
-            {
-                XPLMSpeakString("Volume error");
-                return;
-            }
-        }
-        else
-        {
-            // FlightFactor Boeing 777-200LR Worldliner
-            if ((cust = XPLMFindDataRef("volume/ambient")))
-            {
-                XPLMSetDataf(cust, volume);
-            }
-            if ((cust = XPLMFindDataRef("volume/engines")))
-            {
-                XPLMSetDataf(cust, ve * 1.0f);
-            }
-            if ((cust = XPLMFindDataRef("volume/callouts")))
-            {
-                XPLMSetDataf(cust, ve * 1.6f); // values > 0 allowed
-            }
-            // FlightFactor-STS Boeing 757v2/767
-            if ((cust = XPLMFindDataRef("volumeX")))
-            {
-                XPLMSetDataf(cust, ve / 2.5f);
-            }
-            // FlightFactor/QPAC/ToLiSS Airbus A350 "Advanced"
-            if ((cust = XPLMFindDataRef("1-sim/options/Volume")))
-            {
-                XPLMSetDataf(cust, ve);
-            }
-            // some older Carenado aircraft
-            if ((cust = XPLMFindDataRef("com/dkmp/mastervolknob")))
-            {
-                XPLMSetDataf(cust, ve);
-            }
-            // ToLiSS Airbus A319
-            if ((cust = XPLMFindDataRef("toliss_airbus/master_volume")))
-            {
-                XPLMSetDataf(cust, ve);
-            }
-            // all aircraft: engine volume ratio
-            if ((ic->ac_type != ACF_TYP_A319_TL))
-            {
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, ve);
-            }
-        }
-        switch (ic->ac_type)
-        {
-            case ACF_TYP_B737_XG:
-                break;
-            case ACF_TYP_A319_TL:
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, ve);
-                break;
-            case ACF_TYP_A320_FF:
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume / 1.25f);
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume / 1.25f);
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume / 1.25f);
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume / 1.25f);
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume / 1.25f);
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_eng, ((ve)) / 1.25f);
-                break;
-            default:
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_avs, volume);
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_grt, volume);
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_prs, volume);
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_was, volume);
-                XPLMSetDataf(ctx->data.volume_prsts.dr_vol_wer, volume);
-                break;
-        }
-        XPLMSetDataf(ctx->data.volume_prsts.dr_vol_atc, vr);
-        XPLMSetDatai(ctx->data.volume_prsts.dr_all_snd, 1);
-        XPLMSpeakString("Volume set");
         return;
     }
 
