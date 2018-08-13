@@ -1600,6 +1600,9 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
 
 static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
 {
+    //fixme assign some zone to increase/descrease ATC volume
+    //fixme feedback via scratchpad reset with the new volume
+    //fixme adjust up and down by .05f per scroll wheel notch
     if (rx >= yfms->mouse_regions[4][0].xmin && rx <= yfms->mouse_regions[4][0].xmax &&
         ry >= yfms->mouse_regions[4][0].ymin && ry <= yfms->mouse_regions[4][0].ymax)
     {
