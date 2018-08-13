@@ -23,6 +23,10 @@
 
 #include <string.h>
 
+#include "XPLM/XPLMUtilities.h"
+
+#include "assert/includes.h"
+
 // some addons' datarefs have a trailing space for no reason :-(
 #define STRN_CASECMP_AUTO(s1, s2) strncasecmp(s1, s2, strlen(s2))
 
