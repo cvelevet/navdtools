@@ -3834,6 +3834,11 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         {
             if (thrott_cmd_all < (grndp->idle.r_idle - T_ZERO))
             {
+                if (grndp->ovly.thrt_changed)
+                {
+                    snprintf(grndp->ovly.buf, 9, "%5.3f", grndp->idle.r_idle);
+                    XPSetWidgetDescriptor(grndp->ovly.wid[1], grndp->ovly.buf);
+                }
                 XPLMSetDataf(grndp->idle.throttle_all, grndp->idle.r_idle);
             }
         }
