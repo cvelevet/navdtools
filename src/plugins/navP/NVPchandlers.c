@@ -4732,7 +4732,7 @@ static int first_fcall_do(chandler_context *ctx)
                     {
                         skview = 1;
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
-                        _DO(0, XPLMSetDataf, 160.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+                        _DO(0, XPLMSetDataf, 150.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/EFIS/EFIS_weather_on");
@@ -4743,7 +4743,7 @@ static int first_fcall_do(chandler_context *ctx)
                     {
                         skview = 1;
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
-                        _DO(0, XPLMSetDataf, 160.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+                        _DO(0, XPLMSetDataf, 150.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
                     }
                 }
