@@ -3755,14 +3755,21 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             }
             grndp->ovly.check_4icing = 0.0f;
         }
-        if (grndp->ovly.ice_detected == 0)
+        if (grndp->ovly.ice_detected)
         {
-            if (fabsf(grndp->ovly.last_thr_all - thrott_cmd_all) > .02f) // 2.0%
+            if (fabsf(grndp->ovly.last_thr_all - thrott_cmd_all) > 0.02f) //2.0%
             {
-                snprintf(grndp->ovly.buf, 9, "%5.3f", thrott_cmd_all);
-                XPSetWidgetDescriptor(grndp->ovly.wid[1], grndp->ovly.buf);
-                grndp->ovly.thrt_changed = 1; grndp->ovly.show_thr_all = 2.5f;
+                grndp->ovly.last_thr_all = thrott_cmd_all;
             }
+        }
+        else if (fabsf(grndp->ovly.last_thr_all - thrott_cmd_all) > .02f) //2.0%
+        {
+            grndp->ovly.thrt_changed = 1;
+            grndp->ovly.show_thr_all = 2.5f;
+            grndp->ovly.last_thr_all = thrott_cmd_all;
+            snprintf(grndp->ovly.buf, 9, "%5.3f", thrott_cmd_all);
+            XPSetWidgetDescriptor(grndp->ovly.wid[1], grndp->ovly.buf);
+            // TODO: check whether auto-throttle is enabled and don't show
         }
         if (grndp->ovly.show_thr_all > T_ZERO)
         {
@@ -3800,7 +3807,6 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                 XPHideWidget(grndp->ovly.wid[1]);
             }
         }
-        grndp->ovly.last_thr_all = thrott_cmd_all;
 
 #if 0
         float gstest[] =
@@ -3849,7 +3855,8 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             float arc; ACF_ROLL_SET(arc, ground_spd_kts, grndp->nominal_roll_c);
             XPLMSetDataf(grndp->acf_roll_c, arc); return -1; // should be smooth
         }
-        XPLMSetDataf(grndp->acf_roll_c, grndp->nominal_roll_c); return 0.25f;
+        XPLMSetDataf(grndp->acf_roll_c, grndp->nominal_roll_c);
+        grndp->ovly.last_thr_all = thrott_cmd_all; return 0.25f;
     }
     return 0;
 }
