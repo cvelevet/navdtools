@@ -3730,8 +3730,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             }
         }
 
-        // TODO: ground speed readout (via other widget wid[1]!)
-        if ((grndp->ovly.check_4icing += inElapsedSinceLastCall) >= 2.0f) // every other second
+        if ((grndp->ovly.check_4icing += inElapsedSinceLastCall) >= 10.0f) // every ten seconds
         {
             if (XPLMGetDataf(grndp->ovly.ice[0]) > 0.0125f ||
                 XPLMGetDataf(grndp->ovly.ice[1]) > 0.0125f ||
