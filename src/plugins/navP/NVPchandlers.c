@@ -3760,19 +3760,16 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             grndp->ovly.show_thr_all = 2.5f;
             grndp->ovly.last_thr_all = thrott_cmd_all;
         }
-        if (XPLMGetDatai(grndp->auto_t_sts) >= 1 ||
+        if (grndp->ovly.show_thr_all < T_ZERO ||
+            XPLMGetDatai(grndp->auto_t_sts)   ||
             grndp->ovly.ice_detected)
         {
             grndp->ovly.thrt_changed = 0;
             grndp->ovly.show_thr_all = 0.0f;
         }
-        if (grndp->ovly.show_thr_all >= T_ZERO)
-        {
-            grndp->ovly.show_thr_all -= inElapsedSinceLastCall;
-        }
         else
         {
-            grndp->ovly.thrt_changed = 0;
+            grndp->ovly.show_thr_all -= inElapsedSinceLastCall;
         }
         if (grndp->ovly.ice_detected || grndp->ovly.thrt_changed)
         {
