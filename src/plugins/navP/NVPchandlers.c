@@ -2592,6 +2592,7 @@ static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
+#define T_ZERO (.0001f)
 static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandEnd)
@@ -2599,8 +2600,20 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         refcon_thrust *t = inRefcon;
         if (t->thall)
         {
-            float next = XPLMGetDataf(t->thall) - 0.0500f; // 20 steps is plenty
-            if (next < 0.0f) next = 0.0f; next = roundf(next * 20.0f) / 20.0f;
+            float next, curr = XPLMGetDataf(t->thall);
+            if (0.0f >= curr)
+            {
+                return 0;
+            }
+            else
+            {
+                next = roundf(curr * 20.0f) * 0.05f;
+            }
+            if ((0.00f - T_ZERO) < (next - curr))
+            {
+                next -= 0.05f;
+            }
+            if (next < 0.0f) next = 0.0f;
             XPLMSetDataf(t->thall, next);
             return 0;
         }
@@ -2617,8 +2630,20 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         refcon_thrust *t = inRefcon;
         if (t->thall)
         {
-            float next = XPLMGetDataf(t->thall) + 0.0500f; // 20 steps is plenty
-            if (next > 1.0f) next = 1.0f; next = roundf(next * 20.0f) / 20.0f;
+            float next, curr = XPLMGetDataf(t->thall);
+            if (1.0f <= curr)
+            {
+                return 0;
+            }
+            else
+            {
+                next = roundf(curr * 20.0f) * 0.05f;
+            }
+            if ((0.00f + T_ZERO) > (next - curr))
+            {
+                next += 0.05f;
+            }
+            if (next > 1.0f) next = 1.0f;
             XPLMSetDataf(t->thall, next);
             return 0;
         }
@@ -3576,7 +3601,6 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 1; // let X-Plane actually move the handle
 }
 
-#define T_ZERO (.0001f)
 static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandEnd)
