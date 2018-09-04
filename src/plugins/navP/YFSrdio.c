@@ -36,8 +36,6 @@
 #include "YFSrdio.h"
 #include "YFSspad.h"
 
-// 1013 / 33.86389 + HPABAROOFFSET ~= 2991.51 ~= 2992
-#define HPABAROOFFSET (29.9151f - (1013.0f / 33.86389f))
 #define FB76_BARO_MIN (26.966629f) // rotary at 0.0f
 #define FB76_BARO_MAX (32.873302f) // rotary at 1.0f
 /*
@@ -451,8 +449,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
                     switch ((yfms->ndt.alt.unit = in[1]))
                     {
                         case BARO_HPA: // hectoPascals
-                            inhg_converted = ((float)in[0] / 33.86389f) + HPABAROOFFSET;
-                            inhg_converted = (roundf(inhg_converted * 100.0f) / 100.0f);
+                            inhg_converted = ((float)in[0] / 33.86389f);
                             break;
                         default: // inches of mercury
                             inhg_converted = ((float)in[0] / 100.0f);
@@ -555,6 +552,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
             XPLMSetDatai(yfms->xpl.q350.pressLeftButton,  0);
             XPLMSetDatai(yfms->xpl.q350.pressRightButton, 0);
         }
+//      inhg_converted = roundf(inhg_converted * 100.0f) / 100.0f;
         float offset = roundf(100.0f * (inhg_converted - 29.92f));
         XPLMSetDataf(yfms->xpl.q350.pressLeftRotary,      offset);
         XPLMSetDataf(yfms->xpl.q350.pressRightRotary,     offset);
@@ -622,6 +620,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
             XPLMSetDatai    (yfms->xpl.qpac.BaroStdFO,   !std);
             return;
         }
+//      inhg_converted = roundf(inhg_converted * 100.0f) / 100.0f;
         XPLMSetDatai(yfms->xpl.qpac.BaroStdCapt, 0); // disable STD mode
         XPLMSetDatai(yfms->xpl.qpac.BaroStdFO,   0); // disable STD mode
     }
@@ -634,6 +633,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
             XPLMSetDatai    (yfms->xpl.q380.BaroStdFO,   !std);
             return;
         }
+//      inhg_converted = roundf(inhg_converted * 100.0f) / 100.0f;
         XPLMSetDatai(yfms->xpl.q380.BaroStdCapt, 0); // disable STD mode
         XPLMSetDatai(yfms->xpl.q380.BaroStdFO,   0); // disable STD mode
     }
