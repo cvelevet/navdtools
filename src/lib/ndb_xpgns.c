@@ -439,7 +439,7 @@ static int parse_airways(char *src, ndt_navdatabase *ndb)
              * - identifier
              * - waypoint count
              */
-            if (sscanf(line, "%*c,%5[^,],%d", awy->info.idnt, &count_in) != 2)
+            if (sscanf(line, "%*c,%6[^,],%d", awy->info.idnt, &count_in) != 2)
             {
                 ret = EINVAL;
                 goto end;
