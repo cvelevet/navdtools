@@ -2610,8 +2610,9 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (t->thall)
         {
             float next, curr = XPLMGetDataf(t->thall);
-            if (0.0f >= curr)
+            if (0.0f >= curr || 1.0f <= curr)
             {
+                XPLMCommandOnce(t->thrdn);
                 return 0;
             }
             else
@@ -2640,8 +2641,9 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (t->thall)
         {
             float next, curr = XPLMGetDataf(t->thall);
-            if (1.0f <= curr)
+            if (0.0f >= curr || 1.0f <= curr)
             {
+                XPLMCommandOnce(t->thrup);
                 return 0;
             }
             else
