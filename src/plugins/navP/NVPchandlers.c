@@ -3864,6 +3864,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             XPLMSetDatai(grndp->auto_t_sts, 0);
             XPLMSetDataf(grndp->idle.throttle_all, (thrott_cmd_all = 0.0f));
         }
+        // TODO: FlightFactor 757???
 
         // first, raise our throttles to a minimum idle if required
         if (grndp->idle.minimums >= 2)
