@@ -117,6 +117,8 @@ typedef struct
         XPLMDataRef engine_lever_rt;
         XPLMDataRef engine_reverse1;
         XPLMDataRef engine_reverse2;
+        XPLMDataRef acf_brake_force;
+        float acf_brake_force_nomin;
         int id_s32_acft_request_chk;
         int id_s32_acft_request_gpu;
         int id_f32_acft_dryweightkg;
