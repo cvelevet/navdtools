@@ -4123,25 +4123,28 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,      1, "1-sim/options/Time");                     // preferred default settings
             _DO(1, XPLMSetDatai,      0, "1-sim/options/XFMC");                     // preferred default settings
             _DO(1, XPLMSetDatai,      0, "1-sim/options/side");                     // preferred default settings
-            _DO(1, XPLMSetDatai,      1, "1-sim/ext/fuel_truck");                   // minimal ground config
-            _DO(1, XPLMSetDatai,      1, "1-sim/ext/stairs");                       // minimal ground config
-            _DO(1, XPLMSetDatai,      0, "1-sim/ext/clean");                        // minimal ground config
-            _DO(1, XPLMSetDatai,      0, "1-sim/ext/train");                        // minimal ground config
-            _DO(1, XPLMSetDatai,      0, "1-sim/ext/gate");                         // minimal ground config
-            _DO(1, XPLMSetDatai,      1, "1-sim/ext/gpu1");                         // minimal ground config
-            _DO(1, XPLMSetDatai,      1, "1-sim/ext/gpu2");                         // minimal ground config
-            _DO(1, XPLMSetDatai,      1, "1-sim/ext/stop");                         // minimal ground config
-            _DO(1, XPLMSetDatai,      0, "1-sim/ext/acu");                          // minimal ground config
-            _DO(1, XPLMSetDatai,      1, "1-sim/ext/bus");                          // minimal ground config
-            _DO(1, XPLMSetDatai,      0, "1-sim/ext/gau");                          // minimal ground config
-            _DO(1, XPLMSetDatai,      1, "1-sim/ext/LSU");                          // minimal ground config
-            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
+            if (acf_type_is_engine_running() == 0) // cold & dark
             {
-                int door_open[1] = { 1, };
-                XPLMSetDatavi(d_ref, &door_open[0], 0, 1); // passeng. 1L
-                XPLMSetDatavi(d_ref, &door_open[0], 2, 1); // passeng. 2L
-                XPLMSetDatavi(d_ref, &door_open[0], 8, 1); // luggage FWD
-                XPLMSetDatavi(d_ref, &door_open[0], 9, 1); // luggage AFT
+                _DO(1, XPLMSetDatai,  1, "1-sim/ext/fuel_truck");                   // minimal ground config
+                _DO(1, XPLMSetDatai,  1, "1-sim/ext/stairs");                       // minimal ground config
+                _DO(1, XPLMSetDatai,  0, "1-sim/ext/clean");                        // minimal ground config
+                _DO(1, XPLMSetDatai,  0, "1-sim/ext/train");                        // minimal ground config
+                _DO(1, XPLMSetDatai,  0, "1-sim/ext/gate");                         // minimal ground config
+                _DO(1, XPLMSetDatai,  1, "1-sim/ext/gpu1");                         // minimal ground config
+                _DO(1, XPLMSetDatai,  1, "1-sim/ext/gpu2");                         // minimal ground config
+                _DO(1, XPLMSetDatai,  1, "1-sim/ext/stop");                         // minimal ground config
+                _DO(1, XPLMSetDatai,  0, "1-sim/ext/acu");                          // minimal ground config
+                _DO(1, XPLMSetDatai,  1, "1-sim/ext/bus");                          // minimal ground config
+                _DO(1, XPLMSetDatai,  0, "1-sim/ext/gau");                          // minimal ground config
+                _DO(1, XPLMSetDatai,  1, "1-sim/ext/LSU");                          // minimal ground config
+                if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
+                {
+                    int door_open[1] = { 1, };
+                    XPLMSetDatavi(d_ref, &door_open[0], 0, 1);                      // passeng. 1L
+                    XPLMSetDatavi(d_ref, &door_open[0], 2, 1);                      // passeng. 2L
+                    XPLMSetDatavi(d_ref, &door_open[0], 8, 1);                      // luggage FWD
+                    XPLMSetDatavi(d_ref, &door_open[0], 9, 1);                      // luggage AFT
+                }
             }
             break;
 
@@ -4305,18 +4308,21 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,    1, "params/wxrType");                           // real weather radar ON
             _DO(1, XPLMSetDatai,    1, "params/metric");                            // metric measurement ON
             _DO(1, XPLMSetDatai,    1, "params/wheel");                             // scr. wheel support ON
-            _DO(1, XPLMSetDatai,    0, "params/ground_start_unit");                 // minimal ground config
-            _DO(1, XPLMSetDatai,    1, "params/fuel_truck");                        // minimal ground config
-            _DO(1, XPLMSetDatai,    1, "params/stairs");                            // minimal ground config
-            _DO(1, XPLMSetDatai,    1, "params/stop");                              // minimal ground config
-            _DO(1, XPLMSetDatai,    1, "params/bus");                               // minimal ground config
-            _DO(1, XPLMSetDatai,    1, "params/gpu");                               // minimal ground config
-            _DO(1, XPLMSetDatai,    0, "params/ACU");                               // minimal ground config
-            _DO(1, XPLMSetDatai,    0, "params/LSU");                               // minimal ground config
-            _DO(1, XPLMSetDatai,    0, "params/gate");                              // minimal ground config
-            _DO(1, XPLMSetDatai,    0, "params/cover");                             // minimal ground config
-            _DO(1, XPLMSetDatai,    0, "params/deice");                             // minimal ground config
             _DO(0, XPLMSetDatai,    1, "params/Khz833");                            // 8.33kHz radios (B757)
+            if (acf_type_is_engine_running() == 0) // cold & dark
+            {
+                _DO(1,XPLMSetDatai, 0, "params/ground_start_unit");                 // minimal ground config
+                _DO(1,XPLMSetDatai, 1, "params/fuel_truck");                        // minimal ground config
+                _DO(1,XPLMSetDatai, 1, "params/stairs");                            // minimal ground config
+                _DO(1,XPLMSetDatai, 1, "params/stop");                              // minimal ground config
+                _DO(1,XPLMSetDatai, 1, "params/bus");                               // minimal ground config
+                _DO(1,XPLMSetDatai, 1, "params/gpu");                               // minimal ground config
+                _DO(1,XPLMSetDatai, 0, "params/ACU");                               // minimal ground config
+                _DO(1,XPLMSetDatai, 0, "params/LSU");                               // minimal ground config
+                _DO(1,XPLMSetDatai, 0, "params/gate");                              // minimal ground config
+                _DO(1,XPLMSetDatai, 0, "params/cover");                             // minimal ground config
+                _DO(1,XPLMSetDatai, 0, "params/deice");                             // minimal ground config
+            }
             _DO(1, XPLMSetDatai,    1, "757Avionics/options/AP/attHldAtApEngagement");  // avionics: ATT on CMD engage     (yes)
             _DO(1, XPLMSetDatai,    0, "757Avionics/options/AP/gsCaptBeforeLocCapt");   // avionics: GS before LOC         (N/A)
             _DO(1, XPLMSetDatai,    1, "757Avionics/options/AP/manualCmdSelForApp");    // avionics: CMD manual arm        (yes)
@@ -4333,7 +4339,8 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,    1, "WINGLETS/WINGLETS");                            // airplane: winglets              (yes)
             if (ctx->info->ac_type == ACF_TYP_B757_FF)
             {
-                if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
+                if ((acf_type_is_engine_running() == 0) && // cold & dark
+                    (d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
                 {
                     int door_open[1] = { 1, };
                     XPLMSetDatavi(d_ref, &door_open[0], 0, 1); // LF
@@ -4363,7 +4370,8 @@ static int first_fcall_do(chandler_context *ctx)
             }
             else // ACF_TYP_B767_FF
             {
-                if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
+                if ((acf_type_is_engine_running() == 0) && // cold & dark
+                    (d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
                 {
                     int door_open[1] = { 1, };
                     XPLMSetDatavi(d_ref, &door_open[0], 0, 1); // LF
