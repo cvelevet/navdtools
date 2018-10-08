@@ -36,8 +36,9 @@
 #include "YFSrdio.h"
 #include "YFSspad.h"
 
-#define FB76_BARO_MIN (26.966629f) // rotary at 0.0f
-#define FB76_BARO_MAX (32.873302f) // rotary at 1.0f
+#define BARO_INHG2HPA (33.8638816) // 1 inHg in hPa
+#define FB76_BARO_MIN (2696.6629f) // rotary at 0.0f
+#define FB76_BARO_MAX (3287.3302f) // rotary at 1.0f
 /*
  * Theoretically, the float representation of an integer may be inexact, for
  * example, 118 could be stored as 118.999999 or 119.000001. This is no issue
@@ -277,11 +278,11 @@ static int get_baro_pressure(const char *string, int out[2])
     {
         out[0] = round(press * 100.); out[1] = 0; return 0;
     }
-    if (press >= (40. * 33.86389) && press <= (4000.)) // InHg, no separator
+    if (press >= (40. * BARO_INHG2HPA) && press <= (4000.)) // InHg, no separator
     {
         out[0] = round(press); out[1] = 0; return 0;
     }
-    if (press >= (40.) && press <= (40. * 33.86389)) // hectoPascals
+    if (press >= (40.) && press <= (40. * BARO_INHG2HPA)) // hectoPascals
     {
         out[0] = round(press); out[1] = 1; return 0;
     }
@@ -373,7 +374,7 @@ static void get_altimeter(yfms_context *yfms, int out[3])
     switch ((out[1] = yfms->ndt.alt.unit)) // our internal unit (X-Plane always uses InHg)
     {
         case BARO_HPA: // hectoPascals
-            out[0] = roundf(XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot) * 33.86389f);
+            out[0] = roundf(XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot) * (float)BARO_INHG2HPA);
             break;
         default: // inches of mercury
             out[0] = roundf(XPLMGetDataf(yfms->xpl.barometer_setting_in_hg_pilot) * 100.0f);
@@ -431,7 +432,7 @@ static inline int standard_pressure(yfms_context *yfms)
 
 static void set_altimeter(yfms_context *yfms, int in[2])
 {
-    float inhg_converted;
+    float hundred_inhg;
     {
         if (in[0] != -1) // setting a specific barometric pressure
         {
@@ -446,13 +447,15 @@ static void set_altimeter(yfms_context *yfms, int in[2])
                         yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &unit);
                         break;
                     }
+                    // X-Plane may round or even truncate the corresponding
+                    // datarefs; our highest possible precision is .01 inHg
                     switch ((yfms->ndt.alt.unit = in[1]))
                     {
                         case BARO_HPA: // hectoPascals
-                            inhg_converted = ((float)in[0] / 33.86389f);
+                            hundred_inhg = roundf((float)(in[0] * 100) / (float)BARO_INHG2HPA);
                             break;
                         default: // inches of mercury
-                            inhg_converted = ((float)in[0] / 100.0f);
+                            hundred_inhg = (float)in[0];
                             break;
                     }
                     if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
@@ -510,7 +513,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
         }
         else // standard barometric pressure requested
         {
-            inhg_converted = 29.92f;
+            hundred_inhg = 2992.0f;
         }
     }
     if (yfms->xpl.atyp == YFS_ATYP_ASRT)
@@ -552,10 +555,9 @@ static void set_altimeter(yfms_context *yfms, int in[2])
             XPLMSetDatai(yfms->xpl.q350.pressLeftButton,  0);
             XPLMSetDatai(yfms->xpl.q350.pressRightButton, 0);
         }
-//      inhg_converted = roundf(inhg_converted * 100.0f) / 100.0f;
-        float offset = roundf(100.0f * (inhg_converted - 29.92f));
-        XPLMSetDataf(yfms->xpl.q350.pressLeftRotary,      offset);
-        XPLMSetDataf(yfms->xpl.q350.pressRightRotary,     offset);
+        float offset    =    roundf(hundred_inhg  -  2992.0f);
+        XPLMSetDataf(yfms->xpl.q350.pressLeftRotary,  offset);
+        XPLMSetDataf(yfms->xpl.q350.pressRightRotary, offset);
         return;
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB77)
@@ -586,7 +588,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
         }
         float rotary;
         {
-            ((rotary = inhg_converted - 29.92f + 0.5f));
+            ((rotary = (hundred_inhg / 100.0f) - 29.92f + 0.5f));
         }
         if (rotary < 0.0f)
         {
@@ -601,10 +603,10 @@ static void set_altimeter(yfms_context *yfms, int in[2])
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB76)
     {
-        if (inhg_converted < FB76_BARO_MIN) inhg_converted = FB76_BARO_MIN;
-        if (inhg_converted > FB76_BARO_MAX) inhg_converted = FB76_BARO_MAX;
-        float rotary_baro_range =           inhg_converted - FB76_BARO_MIN;
-        float rotary_full_range =            FB76_BARO_MAX - FB76_BARO_MIN;
+        if (hundred_inhg < FB76_BARO_MIN) hundred_inhg = FB76_BARO_MIN;
+        if (hundred_inhg > FB76_BARO_MAX) hundred_inhg = FB76_BARO_MAX;
+        float rotary_baro_range =         hundred_inhg - FB76_BARO_MIN;
+        float rotary_full_range =        FB76_BARO_MAX - FB76_BARO_MIN;
         float baro_rotary_value = rotary_baro_range / rotary_full_range;
         XPLMSetDataf(yfms->xpl.fb76.baroRotary_stby,  baro_rotary_value);
         XPLMSetDataf(yfms->xpl.fb76.baroRotary_left,  baro_rotary_value);
@@ -620,7 +622,6 @@ static void set_altimeter(yfms_context *yfms, int in[2])
             XPLMSetDatai    (yfms->xpl.qpac.BaroStdFO,   !std);
             return;
         }
-//      inhg_converted = roundf(inhg_converted * 100.0f) / 100.0f;
         XPLMSetDatai(yfms->xpl.qpac.BaroStdCapt, 0); // disable STD mode
         XPLMSetDatai(yfms->xpl.qpac.BaroStdFO,   0); // disable STD mode
     }
@@ -633,16 +634,15 @@ static void set_altimeter(yfms_context *yfms, int in[2])
             XPLMSetDatai    (yfms->xpl.q380.BaroStdFO,   !std);
             return;
         }
-//      inhg_converted = roundf(inhg_converted * 100.0f) / 100.0f;
         XPLMSetDatai(yfms->xpl.q380.BaroStdCapt, 0); // disable STD mode
         XPLMSetDatai(yfms->xpl.q380.BaroStdFO,   0); // disable STD mode
     }
     if (yfms->xpl.atyp == YFS_ATYP_IXEG)
     {
-        XPLMSetDataf(yfms->xpl.ixeg.baro_inhg_sby_0001_ind, inhg_converted);
+        XPLMSetDataf(yfms->xpl.ixeg.baro_inhg_sby_0001_ind, hundred_inhg / 100.0f);
     }
-    XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_copilot, inhg_converted);
-    XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_pilot,   inhg_converted);
+    XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_copilot, hundred_inhg / 100.0f);
+    XPLMSetDataf(yfms->xpl.barometer_setting_in_hg_pilot,   hundred_inhg / 100.0f);
     return;
 }
 
