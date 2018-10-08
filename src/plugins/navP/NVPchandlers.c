@@ -1431,15 +1431,21 @@ int nvp_chandlers_update(void *inContext)
     /* plane-specific braking ratios */
     if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
     {
-        ctx->bking.rc_brk.rtio[0] = 0.5f;
-        ctx->bking.rc_brk.rtio[1] = .75f;
-        ctx->bking.rc_brk.rtio[2] = 1.0f;
+        ctx->bking.rc_brk.rtio[0] = 1.50f / 3.10f;
+        ctx->bking.rc_brk.rtio[1] = 2.25f / 3.10f;
+        ctx->bking.rc_brk.rtio[2] = 3.00f / 3.10f;
+    }
+    else if (ctx->info->ac_type == ACF_TYP_A320_FF)
+    {
+        ctx->bking.rc_brk.rtio[0] = 2.00f / 3.10f;
+        ctx->bking.rc_brk.rtio[1] = 2.50f / 3.10f;
+        ctx->bking.rc_brk.rtio[2] = 3.00f / 3.10f;
     }
     else // default values
     {
-        ctx->bking.rc_brk.rtio[0] = 1.0f / 3.0f;
-        ctx->bking.rc_brk.rtio[1] = 2.0f / 3.0f;
-        ctx->bking.rc_brk.rtio[2] = 1.0f / 1.0f;
+        ctx->bking.rc_brk.rtio[0] = 1.00f / 3.10f;
+        ctx->bking.rc_brk.rtio[1] = 2.00f / 3.10f;
+        ctx->bking.rc_brk.rtio[2] = 3.00f / 3.10f;
     }
 
     /*
@@ -1741,19 +1747,22 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     acf_type_info_acf_ctx_init();
     chandler_context *ctx = inRefcon;
     refcon_braking *rcb = &ctx->bking.rc_brk;
-    assert_context *rca = rcb->assert; float p_ratio = 1.0f;
     float g_speed = XPLMGetDataf(rcb->g_speed) * 3.6f / 1.852f;
+    assert_context *rca = rcb->assert;
     if (rca)
     {
         if (rca->initialized) switch (inPhase)
         {
             case xplm_CommandBegin:
+                XPLMSetDataf(rca->dat.acf_brake_force, rca->dat.acf_brake_force_nomin);
                 XPLMCommandBegin(rca->dat.h_brk_mximum);
                 return 0;
             case xplm_CommandContinue:
+                XPLMSetDataf(rca->dat.acf_brake_force, rca->dat.acf_brake_force_nomin);
                 return 0;
             default:
                 XPLMCommandEnd(rca->dat.h_brk_mximum);
+                XPLMSetDataf(rca->dat.acf_brake_force, rca->dat.acf_brake_force_nomin);
                 return 0;
         }
         return 0;
@@ -1775,14 +1784,14 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     if (ctx->acfspec.qpac.tolb[2])
                     {
                         XPLMSetDatai(ctx->acfspec.qpac.tolb[2], 1);
-                        XPLMSetDataf(ctx->acfspec.qpac.tolb[1], p_ratio);
-                        XPLMSetDataf(ctx->acfspec.qpac.tolb[0], p_ratio);
+                        XPLMSetDataf(ctx->acfspec.qpac.tolb[1], 1.0f);
+                        XPLMSetDataf(ctx->acfspec.qpac.tolb[0], 1.0f);
                         return 0;
                     }
                     if (rcb->use_pkb == 0)
                     {
-                        XPLMSetDataf(rcb->l_b_rat, p_ratio);
-                        XPLMSetDataf(rcb->r_b_rat, p_ratio);
+                        XPLMSetDataf(rcb->l_b_rat, 1.0f);
+                        XPLMSetDataf(rcb->r_b_rat, 1.0f);
                         return 0;
                     }
                     if (ctx->acfspec.qpac.h_b_max)
@@ -1826,8 +1835,8 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     }
                     if (rcb->use_pkb == 0)
                     {
-                        XPLMSetDataf(rcb->l_b_rat, p_ratio);
-                        XPLMSetDataf(rcb->r_b_rat, p_ratio);
+                        XPLMSetDataf(rcb->l_b_rat, 1.0f);
+                        XPLMSetDataf(rcb->r_b_rat, 1.0f);
                     }
                     return 0;
             }
@@ -1863,11 +1872,11 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             if (rcb->use_pkb)
             {
-                XPLMSetDataf(rcb->p_b_rat, p_ratio);
+                XPLMSetDataf(rcb->p_b_rat, 1.0f);
                 return 0;
             }
-            XPLMSetDataf(rcb->l_b_rat, p_ratio);
-            XPLMSetDataf(rcb->r_b_rat, p_ratio);
+            XPLMSetDataf(rcb->l_b_rat, 1.0f);
+            XPLMSetDataf(rcb->r_b_rat, 1.0f);
             XPLMSetDataf(rcb->p_b_rat, 0.0f);
             return 0;
         case xplm_CommandContinue:
@@ -1877,11 +1886,11 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             if (rcb->use_pkb)
             {
-                XPLMSetDataf(rcb->p_b_rat, p_ratio);
+                XPLMSetDataf(rcb->p_b_rat, 1.0f);
                 return 0;
             }
-            XPLMSetDataf(rcb->l_b_rat, p_ratio);
-            XPLMSetDataf(rcb->r_b_rat, p_ratio);
+            XPLMSetDataf(rcb->l_b_rat, 1.0f);
+            XPLMSetDataf(rcb->r_b_rat, 1.0f);
             return 0;
         default: // xplm_CommandEnd
             if (rcb->mx.xpcr)
@@ -1913,17 +1922,15 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (rca->initialized) switch (inPhase)
         {
             case xplm_CommandBegin:
-                if (g_speed < 40.0f && g_speed > 20.0f) // we must be taxiing
-                {
-                    XPLMCommandBegin((rcb->pcmd = rca->dat.h_brk_regulr));
-                    return 0;
-                }
+                XPLMSetDataf(rca->dat.acf_brake_force, rca->dat.acf_brake_force_nomin * p_ratio);
                 XPLMCommandBegin((rcb->pcmd = rca->dat.h_brk_mximum));
                 return 0;
             case xplm_CommandContinue:
+                XPLMSetDataf(rca->dat.acf_brake_force, rca->dat.acf_brake_force_nomin * p_ratio);
                 return 0;
             default:
                 XPLMCommandEnd(rcb->pcmd);
+                XPLMSetDataf(rca->dat.acf_brake_force, rca->dat.acf_brake_force_nomin);
                 return 0;
         }
         return 0;

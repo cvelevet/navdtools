@@ -619,6 +619,7 @@ int acf_type_info_acf_ctx_init()
         global_info->assert.dat.engine_lever_rt         = XPLMFindDataRef                      ("model/controls/engine_lever2"                     );
         global_info->assert.dat.engine_reverse1         = XPLMFindDataRef                      ("model/controls/engine_reverse1"                   );
         global_info->assert.dat.engine_reverse2         = XPLMFindDataRef                      ("model/controls/engine_reverse2"                   );
+        global_info->assert.dat.acf_brake_force         = XPLMFindDataRef                      ("sim/aircraft/overflow/acf_brake_co"               );
         global_info->assert.dat.throttles_up            = XPLMFindCommand                      ("sim/engines/throttle_up"                          );
         global_info->assert.dat.throttles_dn            = XPLMFindCommand                      ("sim/engines/throttle_down"                        );
         global_info->assert.dat.h_brk_mximum            = XPLMFindCommand                      ("sim/flight_controls/brakes_max"                   );
@@ -687,6 +688,7 @@ int acf_type_info_acf_ctx_init()
             global_info->assert.dat.engine_lever_lt      == NULL ||
             global_info->assert.dat.engine_reverse1      == NULL ||
             global_info->assert.dat.engine_reverse2      == NULL ||
+            global_info->assert.dat.acf_brake_force      == NULL ||
             global_info->assert.dat.throttles_up         == NULL ||
             global_info->assert.dat.throttles_dn         == NULL ||
             global_info->assert.dat.h_brk_mximum         == NULL ||
@@ -699,6 +701,7 @@ int acf_type_info_acf_ctx_init()
             ndt_log("acf_type [debug]: info_init_contexts: can't find required data for ACF_TYP_A320_FF\n");
             return EINVAL;
         }
+        global_info->assert.dat.acf_brake_force_nomin = XPLMGetDataf(global_info->assert.dat.acf_brake_force);
         global_info->assert.initialized = 1; return 0;
     }
     return 0;
