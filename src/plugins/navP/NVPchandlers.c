@@ -1911,7 +1911,7 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (rca->initialized) switch (inPhase)
         {
             case xplm_CommandBegin:
-                if (g_speed < 40.0f && g_speed > 14.0f) // we must be taxiing
+                if (g_speed < 40.0f && g_speed > 20.0f) // we must be taxiing
                 {
                     XPLMCommandBegin((rcb->pcmd = rca->dat.h_brk_regulr));
                     return 0;
