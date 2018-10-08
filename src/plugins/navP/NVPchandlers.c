@@ -141,6 +141,7 @@ typedef struct
         chandler_callback preset;
         XPLMDataRef throttle_all;
         XPLMDataRef thrott_array;
+        XPLMDataRef onground_any;
         float r_t[2];
         float r_taxi;
         float r_idle;
@@ -989,6 +990,7 @@ void* nvp_chandlers_init(void)
     ctx->ground.auto_t_sts          = XPLMFindDataRef  ("sim/cockpit2/autopilot/autothrottle_enabled");
     ctx->ground.auto_p_sts          = XPLMFindDataRef  ("sim/cockpit2/autopilot/servos_on");
     ctx->ground.elev_m_agl          = XPLMFindDataRef  ("sim/flightmodel/position/y_agl");
+    ctx->ground.idle.onground_any   = XPLMFindDataRef  ("sim/flightmodel/failures/onground_any");
     ctx->ground.idle.throttle_all   = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/throttle_ratio_all");
     ctx->ground.idle.preset.command = XPLMCreateCommand("navP/thrust/idle_boost", "apply just a bit of throttle");
     if (!ctx->ground.acf_roll_c        ||
@@ -3635,21 +3637,21 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             return 0;
         }
-        if (XPLMGetDataf(grndp->idle.throttle_all) < 0.5f)
+        if (XPLMGetDatai(grndp->idle.onground_any) != 1)
         {
-            if (grndp->idle.minimums > 0)
-            {
-                if (grndp->idle.thrott_array)
-                {
-                    XPLMSetDatavf(grndp->idle.thrott_array, grndp->idle.r_t, 0, 2);
-                    return 0;
-                }
-                XPLMSetDataf(grndp->idle.throttle_all, grndp->idle.r_taxi);
-                return 0;
-            }
-            XPLMSetDataf(grndp->idle.throttle_all, 0.2f);
             return 0;
         }
+        if (grndp->idle.minimums > 0)
+        {
+            if (grndp->idle.thrott_array)
+            {
+                XPLMSetDatavf(grndp->idle.thrott_array, grndp->idle.r_t, 0, 2);
+                return 0;
+            }
+            XPLMSetDataf(grndp->idle.throttle_all, grndp->idle.r_taxi);
+            return 0;
+        }
+        XPLMSetDataf(grndp->idle.throttle_all, 0.2f);
         return 0;
     }
     return 0;
