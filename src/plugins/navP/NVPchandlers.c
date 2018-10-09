@@ -3867,6 +3867,8 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             XPLMSetDataf(grndp->idle.throttle_all, (thrott_cmd_all = 0.0f));
         }
         // TODO: FlightFactor 757???
+        // its A/T never seems to auto-disconnect (unlike e.g. IXEG's 737), and will
+        // command thrust to maintain speed even after touchdown unless auto-landing
 
         // first, raise our throttles to a minimum idle if required
         if (grndp->idle.minimums >= 2)
