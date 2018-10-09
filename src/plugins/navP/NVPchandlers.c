@@ -2610,9 +2610,9 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (t->thall)
         {
             float next, curr = XPLMGetDataf(t->thall);
-            if (0.0f >= curr || 1.0f <= curr)
+            if (0.0f >= curr)
             {
-                XPLMCommandOnce(t->thrdn);
+                XPLMSetDataf(t->thall, 0.0f);
                 return 0;
             }
             else
@@ -2624,6 +2624,7 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 next -= 0.05f;
             }
             if (next < 0.0f) next = 0.0f;
+            if (next > 1.0f) next = 1.0f;
             XPLMSetDataf(t->thall, next);
             return 0;
         }
@@ -2641,9 +2642,9 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (t->thall)
         {
             float next, curr = XPLMGetDataf(t->thall);
-            if (0.0f >= curr || 1.0f <= curr)
+            if (1.0f <= curr)
             {
-                XPLMCommandOnce(t->thrup);
+                XPLMSetDataf(t->thall, 1.0f);
                 return 0;
             }
             else
@@ -2654,6 +2655,7 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 next += 0.05f;
             }
+            if (next < 0.0f) next = 0.0f;
             if (next > 1.0f) next = 1.0f;
             XPLMSetDataf(t->thall, next);
             return 0;
