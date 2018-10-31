@@ -141,7 +141,7 @@ static int execute_task    (void);
 static int parse_options   (int argc, char **argv);
 static int validate_options(void);
 static int print_airportnfo(void);
-static int print_airac     (ndt_navdatabase  *ndb);
+static int print_airac     (ndt_navdatabase  *ndb, FILE *stream);
 static int print_help      (void);
 static int print_examples  (void);
 static int print_version   (void);
@@ -193,7 +193,7 @@ static int print_airportnfo(void)
     {
         return EINVAL;
     }
-    return ndt_fmt_icaor_print_airportnfo(navdata, info_aptidt, rwu);
+    return print_airac(navdata, stdout) || ndt_fmt_icaor_print_airportnfo(navdata, info_aptidt, rwu);
 }
 
 static int sidstar_procedure(ndt_navdatabase *ndb, int type,
@@ -581,7 +581,7 @@ static int execute_task(void)
 
     if (fprintairac)
     {
-        print_airac(navdata);
+        print_airac(navdata, stderr);
     }
 
     if (!(fltplan = ndt_flightplan_init(navdata)))
@@ -1329,9 +1329,9 @@ end:
     return ret;
 }
 
-static int print_airac(ndt_navdatabase *ndb)
+static int print_airac(ndt_navdatabase *ndb, FILE *stream)
 {
-    fprintf(stderr, "Navdata -> %s\n\n", ndb->info.desc);
+    fprintf(stream, "Navdata -> %s\n\n", ndb->info.desc);
     return 0;
 }
 
