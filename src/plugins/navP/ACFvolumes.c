@@ -210,13 +210,23 @@ void acf_volume_set(acf_volume_context *ctx, acf_type type, float volume)
         switch (type)
         {
             case ACF_TYP_A319_TL:
-//              XPLMSetDataf(ctx->sound. xp10.   eng,   0.0f);
-                XPLMSetDataf(ctx->sound. xp10.   prp,   0.0f);
-//              XPLMSetDataf(ctx->sound. xp10.   wxr,   0.0f);
-//              XPLMSetDataf(ctx->sound. xp10.   wrn,   0.0f);
-//              XPLMSetDataf(ctx->sound. xp10.   grd,   0.0f);
-//              XPLMSetDataf(ctx->sound. xp10.   fan,   0.0f);
-                XPLMSetDataf(ctx->custom.tlss.master, volume);
+                // ToLiSS A319's defaults:
+                // - engine volume     25%
+                // - system volume     25%
+                // - cockpit sounds    75%
+                // - environmental     25%
+                // - ground contact    25%
+                // - aural alert       25%
+                // - external ratio    50%
+                // we calibrate the A329's master volume so its external
+                // volume matches "volume" at our default setting of 25%
+//              XPLMSetDataf(ctx->sound. xp10.   eng,          0.0f);
+                XPLMSetDataf(ctx->sound. xp10.   prp,          0.0f);
+//              XPLMSetDataf(ctx->sound. xp10.   wxr,          0.0f);
+//              XPLMSetDataf(ctx->sound. xp10.   wrn,          0.0f);
+//              XPLMSetDataf(ctx->sound. xp10.   grd,          0.0f);
+//              XPLMSetDataf(ctx->sound. xp10.   fan,          0.0f);
+                XPLMSetDataf(ctx->custom.tlss.master, sqrtf(volume));
                 break;
             case ACF_TYP_A320_FF:
                 XPLMSetDataf(ctx->sound.xp10.eng, volume / 1.25f);
