@@ -1858,18 +1858,88 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
             }
             if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A319_TL)
             {
+                if (XPIsWidgetVisible(inWidget))
+                {
+                    XPHideWidget(inWidget);
+                }
+                if (ctx->data.refuel_dialg.adjust_load == NVP_MENU_DONE ||
+                    ctx->data.refuel_dialg.adjust_fuel == NVP_MENU_DONE)
+                {
+                     // always adjust the ToLiSS custom loading manager
+                    (ctx->data.refuel_dialg.adjust_load = NVP_MENU_INCR);
+                    (ctx->data.refuel_dialg.adjust_fuel = NVP_MENU_INCR);
+                }
+                if (ctx->data.refuel_dialg.adjust_load != NVP_MENU_DONE)
+                {
+                    XPLMDataRef toliss; int pax; // each ToLiSS passenger w/bags weighs 100kg
+                    pax = (int)roundf((ctx->data.refuel_dialg.load_target_kg + 50.0f) / 100.0f);
+                    ndt_log("navP [info]: load adjusted: %.0f -> %.0f (%d pax)\n",
+                            (ctx->data.refuel_dialg.load_target_kg),
+                            (ctx->data.refuel_dialg.load_target_kg = (100.0f * (float)pax)));
+                    if ((toliss = XPLMFindDataRef("AirbusFBW/NoPax")))
+                    {
+                        XPLMSetDatai(toliss, pax);
+                    }
+                    else
+                    {
+                        ndt_log("navP [error]: missing dataref \"%s\"\n", "AirbusFBW/NoPax");
+                        XPLMSpeakString("boarding failed");
+                        return 1;
+                    }
+                    if ((toliss = XPLMFindDataRef("AirbusFBW/PaxDistrib")))
+                    {
+                        XPLMSetDataf(toliss, 0.5f);
+                    }
+                    else
+                    {
+                        ndt_log("navP [error]: missing dataref \"%s\"\n", "AirbusFBW/PaxDistrib");
+                        XPLMSpeakString("boarding failed");
+                        return 1;
+                    }
+                    if ((toliss = XPLMFindDataRef("AirbusFBW/FwdCargo")))
+                    {
+                        XPLMSetDataf(toliss, 0.0f);
+                    }
+                    else
+                    {
+                        ndt_log("navP [error]: missing dataref \"%s\"\n", "AirbusFBW/FwdCargo");
+                        XPLMSpeakString("boarding failed");
+                        return 1;
+                    }
+                    if ((toliss = XPLMFindDataRef("AirbusFBW/AftCargo")))
+                    {
+                        XPLMSetDataf(toliss, 0.0f);
+                    }
+                    else
+                    {
+                        ndt_log("navP [error]: missing dataref \"%s\"\n", "AirbusFBW/AftCargo");
+                        XPLMSpeakString("boarding failed");
+                        return 1;
+                    }
+                    if (acf_type_load_set(ctx->data.refuel_dialg.ic, &ctx->data.refuel_dialg.load_target_kg))
+                    {
+                        ndt_log("navP [error]: failed to set load\n");
+                        XPLMSpeakString("boarding failed");
+                        return 1;
+                    }
+                    else
+                    {
+                        // future: adjust CG (0.00f ~= 28.6% MAC, 0.78f ~= 47.2% MAC)
+                        XPLMSetDataf(ctx->data.refuel_dialg.ic->weight.gwcgz_m, 0.0f);
+                    }
+                    ndt_log("navP [info]: set load (%.0f)\n", ctx->data.refuel_dialg.load_target_kg);
+                }
                 if (ctx->data.refuel_dialg.adjust_fuel != NVP_MENU_DONE)
                 {
                     if (acf_type_fuel_set(ctx->data.refuel_dialg.ic, &ctx->data.refuel_dialg.fuel_target_kg))
                     {
                         ndt_log("navP [error]: failed to set fuel\n");
-                        XPLMSpeakString("re-fueling failed");
+                        XPLMSpeakString("fueling failed");
                         return 1;
                     }
-                    ndt_log("navP [info]: set fuel load (%.0f)\n", ctx->data.refuel_dialg.fuel_target_kg);
-                    XPLMSpeakString("re-fueling done");
-                    return 1;
+                    ndt_log("navP [info]: set fuel (%.0f)\n", ctx->data.refuel_dialg.fuel_target_kg);
                 }
+                XPLMSpeakString("fuel and load set");
                 return 1;
             }
             if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A320_FF)
@@ -1931,7 +2001,7 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
                     XPLMSpeakString("re-fueling failed");
                     return 1;
                 }
-                ndt_log("navP [info]: set fuel load (%.0f)\n", ctx->data.refuel_dialg.fuel_target_kg);
+                ndt_log("navP [info]: set fuel (%.0f)\n", ctx->data.refuel_dialg.fuel_target_kg);
                 XPLMSpeakString("re-fueling done");
                 return 1;
             }
