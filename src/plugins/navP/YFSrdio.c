@@ -842,7 +842,7 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 xpdr = 0; // STBY
                 break;
             case XPDR_AUT:
-                tmod = 3; // BLW
+                tmod = 0; // THRT
                 tcas = 2; // TA/RA
                 altr = 1; // ON
                 xpdr = 1; // AUTO
@@ -854,7 +854,7 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 xpdr = 2; // ON
                 break;
             case XPDR_TAR:
-                tmod = 3; // BLW
+                tmod = 0; // THRT
                 tcas = 2; // TA/RA
                 altr = 1; // ON
                 xpdr = 2; // ON
@@ -923,7 +923,7 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 break;
             case XPDR_TAR:
                 XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 4); // TA/RA
-                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 2); // BLW
+                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
                 break;
             case XPDR_GND:
                 XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 1); // ALT RPTG OFF
