@@ -3989,6 +3989,8 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/audio_selection_com1"); // C1:TX/RX
             _DO(0, XPLMSetDatai, 6, "sim/cockpit2/radios/actuators/audio_com_selection");  // C1:TX/RX
+            _DO(1, XPLMSetDataf, 1, "params/wheel"); _DO(1, XPLMSetDataf, 0.0f, "params/screenReflLevel"); _DO(1, XPLMSetDataf, 0.0f, "params/windowReflLevel");
+            _DO(1, XPLMSetDatai, 1, "AirbusFBW/EngineType"); _DO(1, XPLMSetDatai, 1, "AirbusFBW/WingtipDeviceType"); // IAE-2524-A5 w/sharklets
             break;
 
         case ACF_TYP_A330_RW:
