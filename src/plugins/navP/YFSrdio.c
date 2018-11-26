@@ -915,28 +915,32 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
             case XPDR_SBY:
             case XPDR_AUT:
                 XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 0); // STBY
+                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 0); // AUTO
                 XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
                 break;
             case XPDR_TAO:
                 XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 3); // TA ONLY
+                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 1); // ON
                 XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
                 break;
             case XPDR_TAR:
                 XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 4); // TA/RA
+                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 1); // ON
                 XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
                 break;
             case XPDR_GND:
                 XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 1); // ALT RPTG OFF
+                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 0); // AUTO
                 XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
                 break;
             case XPDR_ALT:
             default:
                 XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 2); // XPDR
+                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 0); // AUTO
                 XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
                 break;
         }
         XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 0);
-        XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 0);
         return;
     }
     if (yfms->xpl.atyp == YFS_ATYP_QPAC)
