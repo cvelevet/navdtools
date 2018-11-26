@@ -310,10 +310,12 @@ acf_info_context* acf_type_info_update()
             global_info->assert.initialized = 0;
             break;
         }
-        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(      "QPAC.airbus.fbw") ||
-            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature( "QPAC.A380.airbus.fbw") ||
-            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(  "ToLiss.A319.systems") ||
-            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("ToLiSs.Airbus.systems"))
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(         "QPAC.airbus.fbw") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(    "QPAC.A380.airbus.fbw") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(   "ToLiSs.Airbus.systems") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(     "ToLiss.A319.systems") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("XP10.ToLiss.A319.systems") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("XP11.ToLiss.A319.systems"))
         {
             if (!STRN_CASECMP_AUTO(global_info->descrp, "A319") &&
                 !STRN_CASECMP_AUTO(global_info->icaoid, "A319"))
