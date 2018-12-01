@@ -43,6 +43,8 @@
 #include "NVPchandlers.h"
 #include "NVPmenu.h"
 
+#define TIM_ONLY
+
 typedef struct
 {
     int                    before;
@@ -102,9 +104,9 @@ typedef struct
 
 typedef struct
 {
-    int kc_is_registered;
-    XPLMDataRef datar[9];
-    XPLMCommandRef c[99];
+    int    kc_is_registered;
+    XPLMDataRef    datar[5];
+    XPLMCommandRef c[3][47];
 } refcon_a319kbc;
 
 typedef struct
@@ -1579,8 +1581,247 @@ static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
     int di0 = ((m[0] > x[0]) && (m[0] < (x[0] + w[0])) && (m[1] > y[0]) && (m[1] < (y[0] + h[0])));
     int di1 = ((m[0] > x[1]) && (m[0] < (x[1] + w[1])) && (m[1] > y[1]) && (m[1] < (y[1] + h[1])));
     int di2 = ((m[0] > x[2]) && (m[0] < (x[2] + w[2])) && (m[1] > y[2]) && (m[1] < (y[2] + h[2])));
-    if (invk == XPLM_VK_ESCAPE)//fixme2
+    if (invk == XPLM_VK_ESCAPE)
     {
+        XPLMCommandOnce(tkb.c[2][0]);
+        return 0; // consume
+    }
+    if (!extern_cam && (di0 || di1))
+    {
+        switch (invk)
+        {
+#ifdef TIM_ONLY//fixme
+            case XPLM_VK_TAB:
+                return 0; // consume
+            case XPLM_VK_SPACE:
+                return 0; // consume
+            case XPLM_VK_ENTER:
+                return 0; // consume
+            case XPLM_VK_NUMPAD_ENT:
+                return 0; // consume
+            case XPLM_VK_PRIOR:
+            case XPLM_VK_NEXT:
+            case XPLM_VK_END:
+            case XPLM_VK_HOME:
+            case XPLM_VK_CLEAR:
+                return 0; // consume
+#endif
+            case XPLM_VK_UP:
+                if (di0) { XPLMCommandOnce(tkb.c[0][1]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][1]); }
+                return 1;
+            case XPLM_VK_DOWN:
+                if (di0) { XPLMCommandOnce(tkb.c[0][0]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][0]); }
+                return 1;
+            case XPLM_VK_LEFT:
+                if (di0) { XPLMCommandOnce(tkb.c[0][2]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][2]); }
+                return 1;
+            case XPLM_VK_RIGHT:
+                if (di0) { XPLMCommandOnce(tkb.c[0][3]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][3]); }
+                return 1;
+            case XPLM_VK_BACK:
+            case XPLM_VK_DELETE:
+                if (di0) { XPLMCommandOnce(tkb.c[0][7]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][7]); }
+                return 1;
+            default:
+                break;
+        }
+        switch (inChar)
+        {
+            case '/':
+                if (di0) { XPLMCommandOnce(tkb.c[0][4]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][4]); }
+                return 1;
+            case ' ':
+                if (di0) { XPLMCommandOnce(tkb.c[0][5]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][5]); }
+                return 1;
+            case '.':
+                if (di0) { XPLMCommandOnce(tkb.c[0][8]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][8]); }
+                return 1;
+            case '+':
+            case '-':
+                if (di0) { XPLMCommandOnce(tkb.c[0][9]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][9]); }
+                return 1;
+            case '1':
+                if (di0) { XPLMCommandOnce(tkb.c[0][11]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][11]); }
+                return 1;
+            case '2':
+                if (di0) { XPLMCommandOnce(tkb.c[0][12]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][12]); }
+                return 1;
+            case '3':
+                if (di0) { XPLMCommandOnce(tkb.c[0][13]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][13]); }
+                return 1;
+            case '4':
+                if (di0) { XPLMCommandOnce(tkb.c[0][14]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][14]); }
+                return 1;
+            case '5':
+                if (di0) { XPLMCommandOnce(tkb.c[0][15]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][15]); }
+                return 1;
+            case '6':
+                if (di0) { XPLMCommandOnce(tkb.c[0][16]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][16]); }
+                return 1;
+            case '7':
+                if (di0) { XPLMCommandOnce(tkb.c[0][17]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][17]); }
+                return 1;
+            case '8':
+                if (di0) { XPLMCommandOnce(tkb.c[0][18]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][18]); }
+                return 1;
+            case '9':
+                if (di0) { XPLMCommandOnce(tkb.c[0][19]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][19]); }
+                return 1;
+            case '0':
+                if (di0) { XPLMCommandOnce(tkb.c[0][20]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][20]); }
+                return 1;
+            case 'A':
+            case 'a':
+                if (di0) { XPLMCommandOnce(tkb.c[0][21]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][21]); }
+                return 1;
+            case 'B':
+            case 'b':
+                if (di0) { XPLMCommandOnce(tkb.c[0][22]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][22]); }
+                return 1;
+            case 'C':
+            case 'c':
+                if (di0) { XPLMCommandOnce(tkb.c[0][23]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][23]); }
+                return 1;
+            case 'D':
+            case 'd':
+                if (di0) { XPLMCommandOnce(tkb.c[0][24]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][24]); }
+                return 1;
+            case 'E':
+            case 'e':
+                if (di0) { XPLMCommandOnce(tkb.c[0][25]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][25]); }
+                return 1;
+            case 'F':
+            case 'f':
+                if (di0) { XPLMCommandOnce(tkb.c[0][26]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][26]); }
+                return 1;
+            case 'G':
+            case 'g':
+                if (di0) { XPLMCommandOnce(tkb.c[0][27]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][27]); }
+                return 1;
+            case 'H':
+            case 'h':
+                if (di0) { XPLMCommandOnce(tkb.c[0][28]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][28]); }
+                return 1;
+            case 'I':
+            case 'i':
+                if (di0) { XPLMCommandOnce(tkb.c[0][29]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][29]); }
+                return 1;
+            case 'J':
+            case 'j':
+                if (di0) { XPLMCommandOnce(tkb.c[0][30]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][30]); }
+                return 1;
+            case 'K':
+            case 'k':
+                if (di0) { XPLMCommandOnce(tkb.c[0][31]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][31]); }
+                return 1;
+            case 'L':
+            case 'l':
+                if (di0) { XPLMCommandOnce(tkb.c[0][32]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][32]); }
+                return 1;
+            case 'M':
+            case 'm':
+                if (di0) { XPLMCommandOnce(tkb.c[0][33]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][33]); }
+                return 1;
+            case 'N':
+            case 'n':
+                if (di0) { XPLMCommandOnce(tkb.c[0][34]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][34]); }
+                return 1;
+            case 'O':
+            case 'o':
+                if (di0) { XPLMCommandOnce(tkb.c[0][35]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][35]); }
+                return 1;
+            case 'P':
+            case 'p':
+                if (di0) { XPLMCommandOnce(tkb.c[0][36]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][36]); }
+                return 1;
+            case 'Q':
+            case 'q':
+                if (di0) { XPLMCommandOnce(tkb.c[0][37]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][37]); }
+                return 1;
+            case 'R':
+            case 'r':
+                if (di0) { XPLMCommandOnce(tkb.c[0][38]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][38]); }
+                return 1;
+            case 'S':
+            case 's':
+                if (di0) { XPLMCommandOnce(tkb.c[0][39]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][39]); }
+                return 1;
+            case 'T':
+            case 't':
+                if (di0) { XPLMCommandOnce(tkb.c[0][40]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][40]); }
+                return 1;
+            case 'U':
+            case 'u':
+                if (di0) { XPLMCommandOnce(tkb.c[0][41]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][41]); }
+                return 1;
+            case 'V':
+            case 'v':
+                if (di0) { XPLMCommandOnce(tkb.c[0][42]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][42]); }
+                return 1;
+            case 'W':
+            case 'w':
+                if (di0) { XPLMCommandOnce(tkb.c[0][43]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][43]); }
+                return 1;
+            case 'X':
+            case 'x':
+                if (di0) { XPLMCommandOnce(tkb.c[0][44]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][44]); }
+                return 1;
+            case 'Y':
+            case 'y':
+                if (di0) { XPLMCommandOnce(tkb.c[0][45]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][45]); }
+                return 1;
+            case 'Z':
+            case 'z':
+                if (di0) { XPLMCommandOnce(tkb.c[0][46]); }
+                if (di1) { XPLMCommandOnce(tkb.c[1][46]); }
+                return 1;
+            default:
+                return 0; // consume
+        }
         return 0; // consume
     }
     return 1; // pass through
@@ -4057,9 +4298,109 @@ static int first_fcall_do(chandler_context *ctx)
                     NULL == (ctx->a319kc.datar[1] = XPLMFindDataRef("AirbusFBW/PopUpHeightArray"        )) ||
                     NULL == (ctx->a319kc.datar[2] = XPLMFindDataRef("AirbusFBW/PopUpXCoordArray"        )) ||
                     NULL == (ctx->a319kc.datar[3] = XPLMFindDataRef("AirbusFBW/PopUpYCoordArray"        )) ||
-                    NULL == (ctx->a319kc.datar[4] = XPLMFindDataRef("sim/graphics/view/view_is_external")))//fixme commands too
+                    NULL == (ctx->a319kc.datar[4] = XPLMFindDataRef("sim/graphics/view/view_is_external")))
                 {
-                    ndt_log("navP [warning]: failed to determine AirbusFBW datarefs and commands for key sniffer\n");
+                    ndt_log("navP [warning]: failed to find AirbusFBW datarefs for key sniffer\n");
+                    break;
+                }
+                if (NULL == (ctx->a319kc.c[2][ 0] = XPLMFindCommand("toliss_airbus/iscs_open"  )) ||
+#ifdef TIM_ONLY
+                    //fixme
+#endif
+                    NULL == (ctx->a319kc.c[0][ 0] = XPLMFindCommand("AirbusFBW/MCDU1SlewDown"  )) ||
+                    NULL == (ctx->a319kc.c[1][ 0] = XPLMFindCommand("AirbusFBW/MCDU2SlewDown"  )) ||
+                    NULL == (ctx->a319kc.c[0][ 1] = XPLMFindCommand("AirbusFBW/MCDU1SlewUp"    )) ||
+                    NULL == (ctx->a319kc.c[1][ 1] = XPLMFindCommand("AirbusFBW/MCDU2SlewUp"    )) ||
+                    NULL == (ctx->a319kc.c[0][ 2] = XPLMFindCommand("AirbusFBW/MCDU1SlewLeft"  )) ||
+                    NULL == (ctx->a319kc.c[1][ 2] = XPLMFindCommand("AirbusFBW/MCDU2SlewLeft"  )) ||
+                    NULL == (ctx->a319kc.c[0][ 3] = XPLMFindCommand("AirbusFBW/MCDU1SlewRight" )) ||
+                    NULL == (ctx->a319kc.c[1][ 3] = XPLMFindCommand("AirbusFBW/MCDU2SlewRight" )) ||
+                    NULL == (ctx->a319kc.c[0][ 4] = XPLMFindCommand("AirbusFBW/MCDU1KeySlash"  )) ||
+                    NULL == (ctx->a319kc.c[1][ 4] = XPLMFindCommand("AirbusFBW/MCDU2KeySlash"  )) ||
+                    NULL == (ctx->a319kc.c[0][ 5] = XPLMFindCommand("AirbusFBW/MCDU1KeySpace"  )) ||
+                    NULL == (ctx->a319kc.c[1][ 5] = XPLMFindCommand("AirbusFBW/MCDU2KeySpace"  )) ||
+                    NULL == (ctx->a319kc.c[0][ 6] = XPLMFindCommand("AirbusFBW/MCDU1KeyOverfly")) ||
+                    NULL == (ctx->a319kc.c[1][ 6] = XPLMFindCommand("AirbusFBW/MCDU2KeyOverfly")) ||
+                    NULL == (ctx->a319kc.c[0][ 7] = XPLMFindCommand("AirbusFBW/MCDU1KeyClear"  )) ||
+                    NULL == (ctx->a319kc.c[1][ 7] = XPLMFindCommand("AirbusFBW/MCDU2KeyClear"  )) ||
+                    NULL == (ctx->a319kc.c[0][ 8] = XPLMFindCommand("AirbusFBW/MCDU1KeyDecimal")) ||
+                    NULL == (ctx->a319kc.c[1][ 8] = XPLMFindCommand("AirbusFBW/MCDU2KeyDecimal")) ||
+                    NULL == (ctx->a319kc.c[0][ 9] = XPLMFindCommand("AirbusFBW/MCDU1KeyPM"     )) ||
+                    NULL == (ctx->a319kc.c[1][ 9] = XPLMFindCommand("AirbusFBW/MCDU2KeyPM"     )) ||
+                    NULL == (ctx->a319kc.c[0][11] = XPLMFindCommand("AirbusFBW/MCDU1Key1"      )) ||
+                    NULL == (ctx->a319kc.c[1][11] = XPLMFindCommand("AirbusFBW/MCDU2Key1"      )) ||
+                    NULL == (ctx->a319kc.c[0][12] = XPLMFindCommand("AirbusFBW/MCDU1Key2"      )) ||
+                    NULL == (ctx->a319kc.c[1][12] = XPLMFindCommand("AirbusFBW/MCDU2Key2"      )) ||
+                    NULL == (ctx->a319kc.c[0][13] = XPLMFindCommand("AirbusFBW/MCDU1Key3"      )) ||
+                    NULL == (ctx->a319kc.c[1][13] = XPLMFindCommand("AirbusFBW/MCDU2Key3"      )) ||
+                    NULL == (ctx->a319kc.c[0][14] = XPLMFindCommand("AirbusFBW/MCDU1Key4"      )) ||
+                    NULL == (ctx->a319kc.c[1][14] = XPLMFindCommand("AirbusFBW/MCDU2Key4"      )) ||
+                    NULL == (ctx->a319kc.c[0][15] = XPLMFindCommand("AirbusFBW/MCDU1Key5"      )) ||
+                    NULL == (ctx->a319kc.c[1][15] = XPLMFindCommand("AirbusFBW/MCDU2Key5"      )) ||
+                    NULL == (ctx->a319kc.c[0][16] = XPLMFindCommand("AirbusFBW/MCDU1Key6"      )) ||
+                    NULL == (ctx->a319kc.c[1][16] = XPLMFindCommand("AirbusFBW/MCDU2Key6"      )) ||
+                    NULL == (ctx->a319kc.c[0][17] = XPLMFindCommand("AirbusFBW/MCDU1Key7"      )) ||
+                    NULL == (ctx->a319kc.c[1][17] = XPLMFindCommand("AirbusFBW/MCDU2Key7"      )) ||
+                    NULL == (ctx->a319kc.c[0][18] = XPLMFindCommand("AirbusFBW/MCDU1Key8"      )) ||
+                    NULL == (ctx->a319kc.c[1][18] = XPLMFindCommand("AirbusFBW/MCDU2Key8"      )) ||
+                    NULL == (ctx->a319kc.c[0][19] = XPLMFindCommand("AirbusFBW/MCDU1Key9"      )) ||
+                    NULL == (ctx->a319kc.c[1][19] = XPLMFindCommand("AirbusFBW/MCDU2Key9"      )) ||
+                    NULL == (ctx->a319kc.c[0][20] = XPLMFindCommand("AirbusFBW/MCDU1Key0"      )) ||
+                    NULL == (ctx->a319kc.c[1][20] = XPLMFindCommand("AirbusFBW/MCDU2Key0"      )) ||
+                    NULL == (ctx->a319kc.c[0][21] = XPLMFindCommand("AirbusFBW/MCDU1KeyA"      )) ||
+                    NULL == (ctx->a319kc.c[1][21] = XPLMFindCommand("AirbusFBW/MCDU2KeyA"      )) ||
+                    NULL == (ctx->a319kc.c[0][22] = XPLMFindCommand("AirbusFBW/MCDU1KeyB"      )) ||
+                    NULL == (ctx->a319kc.c[1][22] = XPLMFindCommand("AirbusFBW/MCDU2KeyB"      )) ||
+                    NULL == (ctx->a319kc.c[0][23] = XPLMFindCommand("AirbusFBW/MCDU1KeyC"      )) ||
+                    NULL == (ctx->a319kc.c[1][23] = XPLMFindCommand("AirbusFBW/MCDU2KeyC"      )) ||
+                    NULL == (ctx->a319kc.c[0][24] = XPLMFindCommand("AirbusFBW/MCDU1KeyD"      )) ||
+                    NULL == (ctx->a319kc.c[1][24] = XPLMFindCommand("AirbusFBW/MCDU2KeyD"      )) ||
+                    NULL == (ctx->a319kc.c[0][25] = XPLMFindCommand("AirbusFBW/MCDU1KeyE"      )) ||
+                    NULL == (ctx->a319kc.c[1][25] = XPLMFindCommand("AirbusFBW/MCDU2KeyE"      )) ||
+                    NULL == (ctx->a319kc.c[0][26] = XPLMFindCommand("AirbusFBW/MCDU1KeyF"      )) ||
+                    NULL == (ctx->a319kc.c[1][26] = XPLMFindCommand("AirbusFBW/MCDU2KeyF"      )) ||
+                    NULL == (ctx->a319kc.c[0][27] = XPLMFindCommand("AirbusFBW/MCDU1KeyG"      )) ||
+                    NULL == (ctx->a319kc.c[1][27] = XPLMFindCommand("AirbusFBW/MCDU2KeyG"      )) ||
+                    NULL == (ctx->a319kc.c[0][28] = XPLMFindCommand("AirbusFBW/MCDU1KeyH"      )) ||
+                    NULL == (ctx->a319kc.c[1][28] = XPLMFindCommand("AirbusFBW/MCDU2KeyH"      )) ||
+                    NULL == (ctx->a319kc.c[0][29] = XPLMFindCommand("AirbusFBW/MCDU1KeyI"      )) ||
+                    NULL == (ctx->a319kc.c[1][29] = XPLMFindCommand("AirbusFBW/MCDU2KeyI"      )) ||
+                    NULL == (ctx->a319kc.c[0][30] = XPLMFindCommand("AirbusFBW/MCDU1KeyJ"      )) ||
+                    NULL == (ctx->a319kc.c[1][30] = XPLMFindCommand("AirbusFBW/MCDU2KeyJ"      )) ||
+                    NULL == (ctx->a319kc.c[0][31] = XPLMFindCommand("AirbusFBW/MCDU1KeyK"      )) ||
+                    NULL == (ctx->a319kc.c[1][31] = XPLMFindCommand("AirbusFBW/MCDU2KeyK"      )) ||
+                    NULL == (ctx->a319kc.c[0][32] = XPLMFindCommand("AirbusFBW/MCDU1KeyL"      )) ||
+                    NULL == (ctx->a319kc.c[1][32] = XPLMFindCommand("AirbusFBW/MCDU2KeyL"      )) ||
+                    NULL == (ctx->a319kc.c[0][33] = XPLMFindCommand("AirbusFBW/MCDU1KeyM"      )) ||
+                    NULL == (ctx->a319kc.c[1][33] = XPLMFindCommand("AirbusFBW/MCDU2KeyM"      )) ||
+                    NULL == (ctx->a319kc.c[0][34] = XPLMFindCommand("AirbusFBW/MCDU1KeyN"      )) ||
+                    NULL == (ctx->a319kc.c[1][34] = XPLMFindCommand("AirbusFBW/MCDU2KeyN"      )) ||
+                    NULL == (ctx->a319kc.c[0][35] = XPLMFindCommand("AirbusFBW/MCDU1KeyO"      )) ||
+                    NULL == (ctx->a319kc.c[1][35] = XPLMFindCommand("AirbusFBW/MCDU2KeyO"      )) ||
+                    NULL == (ctx->a319kc.c[0][36] = XPLMFindCommand("AirbusFBW/MCDU1KeyP"      )) ||
+                    NULL == (ctx->a319kc.c[1][36] = XPLMFindCommand("AirbusFBW/MCDU2KeyP"      )) ||
+                    NULL == (ctx->a319kc.c[0][37] = XPLMFindCommand("AirbusFBW/MCDU1KeyQ"      )) ||
+                    NULL == (ctx->a319kc.c[1][37] = XPLMFindCommand("AirbusFBW/MCDU2KeyQ"      )) ||
+                    NULL == (ctx->a319kc.c[0][38] = XPLMFindCommand("AirbusFBW/MCDU1KeyR"      )) ||
+                    NULL == (ctx->a319kc.c[1][38] = XPLMFindCommand("AirbusFBW/MCDU2KeyR"      )) ||
+                    NULL == (ctx->a319kc.c[0][39] = XPLMFindCommand("AirbusFBW/MCDU1KeyS"      )) ||
+                    NULL == (ctx->a319kc.c[1][39] = XPLMFindCommand("AirbusFBW/MCDU2KeyS"      )) ||
+                    NULL == (ctx->a319kc.c[0][40] = XPLMFindCommand("AirbusFBW/MCDU1KeyT"      )) ||
+                    NULL == (ctx->a319kc.c[1][40] = XPLMFindCommand("AirbusFBW/MCDU2KeyT"      )) ||
+                    NULL == (ctx->a319kc.c[0][41] = XPLMFindCommand("AirbusFBW/MCDU1KeyU"      )) ||
+                    NULL == (ctx->a319kc.c[1][41] = XPLMFindCommand("AirbusFBW/MCDU2KeyU"      )) ||
+                    NULL == (ctx->a319kc.c[0][42] = XPLMFindCommand("AirbusFBW/MCDU1KeyV"      )) ||
+                    NULL == (ctx->a319kc.c[1][42] = XPLMFindCommand("AirbusFBW/MCDU2KeyV"      )) ||
+                    NULL == (ctx->a319kc.c[0][43] = XPLMFindCommand("AirbusFBW/MCDU1KeyW"      )) ||
+                    NULL == (ctx->a319kc.c[1][43] = XPLMFindCommand("AirbusFBW/MCDU2KeyW"      )) ||
+                    NULL == (ctx->a319kc.c[0][44] = XPLMFindCommand("AirbusFBW/MCDU1KeyX"      )) ||
+                    NULL == (ctx->a319kc.c[1][44] = XPLMFindCommand("AirbusFBW/MCDU2KeyX"      )) ||
+                    NULL == (ctx->a319kc.c[0][45] = XPLMFindCommand("AirbusFBW/MCDU1KeyY"      )) ||
+                    NULL == (ctx->a319kc.c[1][45] = XPLMFindCommand("AirbusFBW/MCDU2KeyY"      )) ||
+                    NULL == (ctx->a319kc.c[0][46] = XPLMFindCommand("AirbusFBW/MCDU1KeyZ"      )) ||
+                    NULL == (ctx->a319kc.c[1][46] = XPLMFindCommand("AirbusFBW/MCDU2KeyZ"      )))
+                {
+                    ndt_log("navP [warning]: failed to find AirbusFBW commands for key sniffer\n");
                     break;
                 }
                 if ((ctx->a319kc.kc_is_registered = XPLMRegisterKeySniffer(&tol_keysniffer, 1/*inBeforeWindows*/, &ctx->a319kc)) != 1)
@@ -5242,8 +5583,7 @@ static int first_fcall_do(chandler_context *ctx)
     ctx->ground.ovly.last_thr_all = 0.0f;
     XPLMRegisterFlightLoopCallback((ctx->ground.flc_g = &gnd_stab_hdlr), 1, &ctx->ground);
 
-#define TIM_ONLY
-#ifdef  TIM_ONLY
+#ifdef TIM_ONLY
     /*
      * Kill X-Plane ATC (not needed, may/may not cause crashes in some places).
      * Do it as late as possible (avoid interfering w/init. of X-Plane itself).
