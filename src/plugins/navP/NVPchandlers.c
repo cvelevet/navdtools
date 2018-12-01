@@ -1581,19 +1581,11 @@ static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
     int y[2]; XPLMGetDatavi(tkb.datar[3], &y[0], 0, 2);
     int cdu0 = ((m[0] > x[0]) && (m[0] < (x[0] + w[0])) && (m[1] > y[0]) && (m[1] < (y[0] + h[0])));
     int cdu1 = ((m[0] > x[1]) && (m[0] < (x[1] + w[1])) && (m[1] > y[1]) && (m[1] < (y[1] + h[1])));
-    if (iscw < 1) // ISCS closed
+    if (iscw < 1 && !camera_is_outside && (cdu0 || cdu1)) // forward some keys (over MCDU only)
     {
-        if (invk == XPLM_VK_SPACE) // capture spacebar braking over MCDU only
+        if (invk == XPLM_VK_SPACE) // spacebar braking
         {
             if (tkb.c[2][40] == NULL)
-            {
-                return 1; // pass through
-            }
-            if (camera_is_outside)
-            {
-                return 1; // pass through
-            }
-            if (!cdu0 && !cdu1)
             {
                 return 1; // pass through
             }
@@ -1602,8 +1594,12 @@ static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
                 XPLMCommandBegin(tkb.c[2][40]);
                 return 0; // consume
             }
-            XPLMCommandEnd(tkb.c[2][40]);
-            return 0; // consume
+            if (inFlags & xplm_UpFlag)
+            {
+                XPLMCommandEnd(tkb.c[2][40]);
+                return 0; // consume
+            }
+            return 0; // neither up nor down: continue
         }
         if ((inFlags & (xplm_DownFlag)) == 0)
         {
