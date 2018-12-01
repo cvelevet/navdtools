@@ -100,11 +100,11 @@ typedef struct
     XPLMCommandRef h_b_reg;
 } refcon_qpacfbw;
 
-typedef struct//fixme
+typedef struct
 {
     int kc_is_registered;
-    XPLMDataRef datar[4];
-    XPLMCommandRef c[64];
+    XPLMDataRef datar[9];
+    XPLMCommandRef c[99];
 } refcon_a319kbc;
 
 typedef struct
@@ -1165,6 +1165,19 @@ int nvp_chandlers_reset(void *inContext)
         return -1;
     }
 
+    /* Unregister key sniffer for AirbusFBW */
+    if (ctx->a319kc.kc_is_registered)
+    {
+        if (XPLMUnregisterKeySniffer(&tol_keysniffer, 1/*inBeforeWindows*/, &ctx->a319kc) == 1)
+        {
+            ctx->a319kc.kc_is_registered = 0;
+        }
+        else
+        {
+            ndt_log("navP [warning]: failed to de-register key sniffer for AirbusFBW\n");
+        }
+    }
+
     /* Reset aircraft properties (type, engine count, retractable gear, etc.) */
     ctx->bking.rc_brk.assert = ctx->gear.assert = ctx->ground.assert = ctx->revrs.assert = NULL;
     ctx->gear.has_retractable_gear = -1; ctx->revrs.n_engines = -1; acf_type_info_reset();
@@ -1545,6 +1558,31 @@ int nvp_chandlers_update(void *inContext)
  */
 static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *inRefcon)//fixme
 {
+    if ((inFlags & (xplm_ShiftFlag|xplm_OptionAltFlag|xplm_ControlFlag)) != 0)
+    {
+        return 1; // pass through
+    }
+    if ((inFlags & (xplm_DownFlag)) == 0)
+    {
+        return 1; // pass through
+    }
+    if (inRefcon == NULL)
+    {
+        return 1; // pass through
+    }
+    refcon_a319kbc tkb = *((refcon_a319kbc*)inRefcon); int extern_cam = XPLMGetDatai(tkb.datar[4]);
+    unsigned char invk = (unsigned char)inVirtualKey; int m[2]; XPLMGetMouseLocation(&m[0], &m[1]);
+    int w[3]; XPLMGetDatavi(tkb.datar[0], &w[0], +0, 2); XPLMGetDatavi(tkb.datar[0], &w[2], +9, 1);
+    int h[3]; XPLMGetDatavi(tkb.datar[1], &h[0], +0, 2); XPLMGetDatavi(tkb.datar[1], &h[2], +9, 1);
+    int x[3]; XPLMGetDatavi(tkb.datar[2], &x[0], +0, 2); XPLMGetDatavi(tkb.datar[2], &x[2], +9, 1);
+    int y[3]; XPLMGetDatavi(tkb.datar[3], &y[0], +0, 2); XPLMGetDatavi(tkb.datar[3], &y[2], +9, 1);
+    int di0 = ((m[0] > x[0]) && (m[0] < (x[0] + w[0])) && (m[1] > y[0]) && (m[1] < (y[0] + h[0])));
+    int di1 = ((m[0] > x[1]) && (m[0] < (x[1] + w[1])) && (m[1] > y[1]) && (m[1] < (y[1] + h[1])));
+    int di2 = ((m[0] > x[2]) && (m[0] < (x[2] + w[2])) && (m[1] > y[2]) && (m[1] < (y[2] + h[2])));
+    if (invk == XPLM_VK_ESCAPE)//fixme2
+    {
+        return 0; // consume
+    }
     return 1; // pass through
 }
 
@@ -4010,16 +4048,27 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 1, "AirbusFBW/EngineType"); _DO(1, XPLMSetDatai, 1, "AirbusFBW/WingtipDeviceType"); // IAE-2524-A5 w/sharklets
             if (ctx->info->ac_type == ACF_TYP_A319_TL)
             {
-                if (NULL == (ctx->a319kc.datar[0] = XPLMFindDataRef("AirbusFBW/PopUpHeightArray")) ||
-                    NULL == (ctx->a319kc.datar[1] = XPLMFindDataRef("AirbusFBW/PopUpXCoordArray")) ||
-                    NULL == (ctx->a319kc.datar[2] = XPLMFindDataRef("AirbusFBW/PopUpYCoordArray")))//fixme commands too
+                if (ctx->a319kc.kc_is_registered)
                 {
-                    //fixme
+                    ndt_log("navP [warning]: AirbusFBW key sniffer already registered\n");
+                    break;
                 }
-                if ((ctx->a319kc.kc_is_registered = XPLMRegisterKeySniffer(&tol_keysniffer, 1/*inBeforeWindows*/, &ctx->a319kc)) == 0)
+                if (NULL == (ctx->a319kc.datar[0] = XPLMFindDataRef("AirbusFBW/PopUpWidthArray"         )) ||
+                    NULL == (ctx->a319kc.datar[1] = XPLMFindDataRef("AirbusFBW/PopUpHeightArray"        )) ||
+                    NULL == (ctx->a319kc.datar[2] = XPLMFindDataRef("AirbusFBW/PopUpXCoordArray"        )) ||
+                    NULL == (ctx->a319kc.datar[3] = XPLMFindDataRef("AirbusFBW/PopUpYCoordArray"        )) ||
+                    NULL == (ctx->a319kc.datar[4] = XPLMFindDataRef("sim/graphics/view/view_is_external")))//fixme commands too
                 {
-                    //fixme
+                    ndt_log("navP [warning]: failed to determine AirbusFBW datarefs and commands for key sniffer\n");
+                    break;
                 }
+                if ((ctx->a319kc.kc_is_registered = XPLMRegisterKeySniffer(&tol_keysniffer, 1/*inBeforeWindows*/, &ctx->a319kc)) != 1)
+                {
+                    ndt_log("navP [warning]: failed to register key sniffer for AirbusFBW\n");
+                    break;
+                }
+                ndt_log("navP [info]: AirbusFBW key sniffer registered\n");
+                break;
             }
             break;
 
