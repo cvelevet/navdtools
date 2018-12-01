@@ -1585,18 +1585,18 @@ static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
     {
         if (invk == XPLM_VK_SPACE) // spacebar braking
         {
-            if (tkb.c[2][40] == NULL)
+            if (tkb.c[2][41] == NULL)
             {
                 return 1; // pass through
             }
             if (inFlags & xplm_DownFlag)
             {
-                XPLMCommandBegin(tkb.c[2][40]);
+                XPLMCommandBegin(tkb.c[2][41]);
                 return 0; // consume
             }
             if (inFlags & xplm_UpFlag)
             {
-                XPLMCommandEnd(tkb.c[2][40]);
+                XPLMCommandEnd(tkb.c[2][41]);
                 return 0; // consume
             }
             return 0; // neither up nor down: continue
@@ -1611,25 +1611,22 @@ static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
                 if (tkb.c[2][44]) XPLMCommandOnce(tkb.c[2][44]);
                 return 0;
             case XPLM_VK_END:
-                if (tkb.c[2][41]) XPLMCommandOnce(tkb.c[2][41]);
-                return 0;
-            case XPLM_VK_HOME:
                 if (tkb.c[2][42]) XPLMCommandOnce(tkb.c[2][42]);
                 return 0;
+            case XPLM_VK_HOME:
+                if (tkb.c[2][43]) XPLMCommandOnce(tkb.c[2][43]);
+                return 0;
             case XPLM_VK_NEXT:
-                if (tkb.c[2][45]) XPLMCommandOnce(tkb.c[2][46]);
+                if (tkb.c[2][46]) XPLMCommandOnce(tkb.c[2][46]);
                 return 0;
             case XPLM_VK_PRIOR:
                 if (tkb.c[2][45]) XPLMCommandOnce(tkb.c[2][45]);
-                return 0;
-            case XPLM_VK_CLEAR:
-                if (tkb.c[2][43]) XPLMCommandOnce(tkb.c[2][43]);
                 return 0;
             case XPLM_VK_RETURN:
                 if (tkb.c[2][39]) XPLMCommandOnce(tkb.c[2][39]);
                 return 0;
             case XPLM_VK_NUMPAD_ENT:
-                if (tkb.c[2][38]) XPLMCommandOnce(tkb.c[2][38]);
+                if (tkb.c[2][40]) XPLMCommandOnce(tkb.c[2][40]);
                 return 0;
             default:
                 break;
@@ -4446,8 +4443,8 @@ static int first_fcall_do(chandler_context *ctx)
                 {
                     ctx->a319kc.c[2][44] = NULL; // TODO: support other online plugins
                 }
-                if (NULL == (ctx->a319kc.c[2][38] = XPLMFindCommand("navP/switches/cdu_toggle")) ||
-                    NULL == (ctx->a319kc.c[2][39] = ctx->a319kc.c[2][38]))
+                if (NULL == (ctx->a319kc.c[2][39] = XPLMFindCommand("navP/switches/cdu_toggle")) ||
+                    NULL == (ctx->a319kc.c[2][40] = ctx->a319kc.c[2][39]))
                 {
                     ndt_log("navP [warning]: failed to find MCDU toggle for key sniffer\n");
                 }
@@ -4458,10 +4455,9 @@ static int first_fcall_do(chandler_context *ctx)
                 }
 #endif
 #if TIM_ONLY
-                if (NULL == (ctx->a319kc.c[2][40] = XPLMFindCommand("navP/brakes/regular"           )) ||
-                    NULL == (ctx->a319kc.c[2][41] = XPLMFindCommand("navP/spoilers/extend"          )) ||
-                    NULL == (ctx->a319kc.c[2][42] = XPLMFindCommand("navP/spoilers/retract"         )) ||
-                    NULL == (ctx->a319kc.c[2][43] = XPLMFindCommand("navP/thrust/idle_boost"        )) ||
+                if (NULL == (ctx->a319kc.c[2][41] = XPLMFindCommand("navP/brakes/regular"           )) ||
+                    NULL == (ctx->a319kc.c[2][42] = XPLMFindCommand("navP/spoilers/extend"          )) ||
+                    NULL == (ctx->a319kc.c[2][43] = XPLMFindCommand("navP/spoilers/retract"         )) ||
                     NULL == (ctx->a319kc.c[2][44] = XPLMFindCommand("sim/operation/contact_atc"     )) ||
                     NULL == (ctx->a319kc.c[2][45] = XPLMFindCommand("sim/flight_controls/flaps_up"  )) ||
                     NULL == (ctx->a319kc.c[2][46] = XPLMFindCommand("sim/flight_controls/flaps_down")))
