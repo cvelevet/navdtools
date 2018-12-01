@@ -100,6 +100,13 @@ typedef struct
     XPLMCommandRef h_b_reg;
 } refcon_qpacfbw;
 
+typedef struct//fixme
+{
+    int kc_is_registered;
+    XPLMDataRef datar[4];
+    XPLMCommandRef c[64];
+} refcon_a319kbc;
+
 typedef struct
 {
     int        ready;
@@ -212,6 +219,7 @@ typedef struct
     int        kill_daniel;
     void     *menu_context;
     acf_info_context *info;
+    refcon_a319kbc  a319kc;
     refcon_ground   ground;
     refcon_thrust    throt;
     refcon_gear       gear;
@@ -553,6 +561,7 @@ static int          ref_ql_idx_val(void)
 /* Convenience macro to automatically check and assign a dataref */
 #define _DO(_verbose, _func, _val, _name) { if ((d_ref = XPLMFindDataRef(_name))) _func(d_ref, _val); else if (_verbose) ndt_log("navP [warning]: dataref not found: \"%s\"\n", _name); }
 
+static int tol_keysniffer(char inCh, XPLMKeyFlags inFlags, char inVirtualKey, void *inRefcon);
 static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -1529,6 +1538,14 @@ int nvp_chandlers_update(void *inContext)
 
     /* all good */
     ndt_log("navP [info]: nvp_chandlers_update OK\n"); XPLMSpeakString("nav P configured"); return 0;
+}
+
+/*
+ * Custom key sniffer for ToLiSS A319 v1.2.x or later
+ */
+static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *inRefcon)//fixme
+{
+    return 1; // pass through
 }
 
 /*
@@ -3991,6 +4008,19 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 6, "sim/cockpit2/radios/actuators/audio_com_selection");  // C1:TX/RX
             _DO(1, XPLMSetDatai, 1, "params/wheel"); _DO(1, XPLMSetDataf, 0.0f, "params/screenRefLevel"); _DO(1, XPLMSetDataf, 0.0f, "params/windowRefLevel");
             _DO(1, XPLMSetDatai, 1, "AirbusFBW/EngineType"); _DO(1, XPLMSetDatai, 1, "AirbusFBW/WingtipDeviceType"); // IAE-2524-A5 w/sharklets
+            if (ctx->info->ac_type == ACF_TYP_A319_TL)
+            {
+                if (NULL == (ctx->a319kc.datar[0] = XPLMFindDataRef("AirbusFBW/PopUpHeightArray")) ||
+                    NULL == (ctx->a319kc.datar[1] = XPLMFindDataRef("AirbusFBW/PopUpXCoordArray")) ||
+                    NULL == (ctx->a319kc.datar[2] = XPLMFindDataRef("AirbusFBW/PopUpYCoordArray")))//fixme commands too
+                {
+                    //fixme
+                }
+                if ((ctx->a319kc.kc_is_registered = XPLMRegisterKeySniffer(&tol_keysniffer, 1/*inBeforeWindows*/, &ctx->a319kc)) == 0)
+                {
+                    //fixme
+                }
+            }
             break;
 
         case ACF_TYP_A330_RW:
