@@ -842,7 +842,7 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 xpdr = 0; // STBY
                 break;
             case XPDR_AUT:
-                tmod = 0; // THRT
+                tmod = 1; // ALL
                 tcas = 2; // TA/RA
                 altr = 1; // ON
                 xpdr = 1; // AUTO
@@ -854,7 +854,7 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
                 xpdr = 2; // ON
                 break;
             case XPDR_TAR:
-                tmod = 0; // THRT
+                tmod = 1; // ALL
                 tcas = 2; // TA/RA
                 altr = 1; // ON
                 xpdr = 2; // ON
