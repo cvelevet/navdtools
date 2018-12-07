@@ -207,54 +207,6 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                 cuswpt = ndt_waypoint_pbd(lastpl, bearing, ndstce,
                                           ndt_date_now(), flp->ndb->wmm);
             }
-            else if (flp->dep.apt && ndt_procedure_get(flp->dep.apt->sids, prefix, NULL))
-            {
-                if (flp->dep.sid.proc)
-                {
-                    ndt_log("[fmt_icaor]: warning: ignoring SID '%s'\n", elem);
-                }
-                else
-                {
-                    if ((err = ndt_flightplan_set_departsid(flp, prefix, suffix)))
-                    {
-                        goto end;
-                    }
-                    src = flp->dep.sid.enroute.rsgt ? flp->dep.sid.enroute.rsgt->dst : flp->dep.sid.rsgt->dst;
-                }
-                continue;
-            }
-            else if (flp->dep.apt && ndt_procedure_get(flp->dep.apt->sids, suffix, NULL))
-            {
-                if (flp->dep.sid.proc)
-                {
-                    ndt_log("[fmt_icaor]: warning: ignoring SID '%s'\n", elem);
-                }
-                else
-                {
-                    if ((err = ndt_flightplan_set_departsid(flp, suffix, prefix)))
-                    {
-                        goto end;
-                    }
-                    src = flp->dep.sid.enroute.rsgt ? flp->dep.sid.enroute.rsgt->dst : flp->dep.sid.rsgt->dst;
-                }
-                continue;
-            }
-            else if (flp->arr.apt && ndt_procedure_get(flp->arr.apt->stars, prefix, NULL))
-            {
-                if ((err = ndt_flightplan_set_arrivstar(flp, prefix, suffix)))
-                {
-                    goto end;
-                }
-                continue;
-            }
-            else if (flp->arr.apt && ndt_procedure_get(flp->arr.apt->stars, suffix, NULL))
-            {
-                if ((err = ndt_flightplan_set_arrivstar(flp, suffix, prefix)))
-                {
-                    goto end;
-                }
-                continue;
-            }
             else if (strlen(prefix) == 4 && !strncmp(prefix, "NAT", 3))
             {
                 /*
@@ -435,6 +387,59 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
             else if (ndt_navdata_get_waypoint(flp->ndb, prefix, NULL))
             {
                 dstidt = prefix;
+            }
+            else if (flp->dep.apt && ndt_procedure_get(flp->dep.apt->sids, prefix, NULL))
+            {
+                /*
+                 * dereference procedures last; some airports have departure
+                 * or arrival procedures bearing the same name as an enroute
+                 * fix or navaid (e.g. "DIANA" at SBFZ or "ADN" at EGPD) :-(
+                 */
+                if (flp->dep.sid.proc)
+                {
+                    ndt_log("[fmt_icaor]: warning: ignoring SID '%s'\n", elem);
+                }
+                else
+                {
+                    if ((err = ndt_flightplan_set_departsid(flp, prefix, suffix)))
+                    {
+                        goto end;
+                    }
+                    src = flp->dep.sid.enroute.rsgt ? flp->dep.sid.enroute.rsgt->dst : flp->dep.sid.rsgt->dst;
+                }
+                continue;
+            }
+            else if (flp->dep.apt && ndt_procedure_get(flp->dep.apt->sids, suffix, NULL))
+            {
+                if (flp->dep.sid.proc)
+                {
+                    ndt_log("[fmt_icaor]: warning: ignoring SID '%s'\n", elem);
+                }
+                else
+                {
+                    if ((err = ndt_flightplan_set_departsid(flp, suffix, prefix)))
+                    {
+                        goto end;
+                    }
+                    src = flp->dep.sid.enroute.rsgt ? flp->dep.sid.enroute.rsgt->dst : flp->dep.sid.rsgt->dst;
+                }
+                continue;
+            }
+            else if (flp->arr.apt && ndt_procedure_get(flp->arr.apt->stars, prefix, NULL))
+            {
+                if ((err = ndt_flightplan_set_arrivstar(flp, prefix, suffix)))
+                {
+                    goto end;
+                }
+                continue;
+            }
+            else if (flp->arr.apt && ndt_procedure_get(flp->arr.apt->stars, suffix, NULL))
+            {
+                if ((err = ndt_flightplan_set_arrivstar(flp, suffix, prefix)))
+                {
+                    goto end;
+                }
+                continue;
             }
             else
             {
