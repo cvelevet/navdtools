@@ -2357,6 +2357,7 @@ int ndt_route_leg_restrict(ndt_route_leg *leg, ndt_restriction constraints)
 static int endpoint_intcpt(ndt_list *xpfms,
                            ndt_list *cwlst,
                            void *wmm, ndt_date now,
+                           int curr_type, int next_type,
                            ndt_waypoint *src1, double brg1,
                            ndt_waypoint *src2, double brg2, double intc_crs)
 {
@@ -2412,6 +2413,11 @@ static int endpoint_intcpt(ndt_list *xpfms,
     pbpb = ndt_position_calcpos4pbpb(&posn, src1->position, trb1, src2->position, trb2);
     if (pbpb)
     {
+        if ((next_type == NDT_LEGTYPE_CF) && (curr_type == NDT_LEGTYPE_CI ||
+                                              curr_type == NDT_LEGTYPE_VI))
+        {
+            goto reverse_intercept;
+        }
         goto force_intercept;
     }
     /*
@@ -2433,6 +2439,26 @@ static int endpoint_intcpt(ndt_list *xpfms,
     {
         goto force_intercept; // quite a bit too far, must do something about it
     }
+    goto endpoint;
+
+    /*
+     * Workaround for OFFSHORE1 departure out of KSFO (and more similar cases);
+     * intercept desired course from instead of to WAMMY (and change leg type).
+     */
+reverse_intercept:
+    if ((trb2 = (trb2 + 180.)) > 360.)
+    {
+        (trb2 = (trb2 - 360.));
+    }
+    if ((pbpb = ndt_position_calcpos4pbpb(&posn, src1->position, trb1, src2->position, trb2)))
+    {
+        goto force_intercept; // reversing intercept failed; force it instead
+    }
+    if ((brg2 = (brg2 + 180.)) > 360.)
+    {
+        (brg2 = (brg2 - 360.)); // success, don't forget to update brg2
+    }
+    curr_type = ((curr_type == NDT_LEGTYPE_CI) ? NDT_LEGTYPE_CR : NDT_LEGTYPE_VR);
     goto endpoint;
 
     /*
@@ -2466,10 +2492,14 @@ endpoint:
     {
         return ENOMEM;
     }
-    wpt->type = NDT_WPTYPE_LLC;
-    snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "(INTC-%03.0lf)", round(intc_crs));
     ndt_list_add(xpfms, wpt);
     ndt_list_add(cwlst, wpt);
+    wpt->type = NDT_WPTYPE_LLC;
+    snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "(INTC-%03.0lf)", round(intc_crs));
+    if (curr_type == NDT_LEGTYPE_CR || curr_type == NDT_LEGTYPE_VR)
+    {
+        return EOVERFLOW; // next leg needs modification
+    }
     return 0;
 }
 
@@ -3115,9 +3145,47 @@ intc:
      *         CF,KLO,47.45713889,8.54558333,1,KLO,0.0,0.0,255,4.00,2,4000,0,1,210,0,0,0
      *         // turn left to KLO, but QPAC plugin defaults right (A350 v1.2.1)
      */
-    if ((err = endpoint_intcpt(xpfm, flp->cws, wmm, now,
+    if ((err = endpoint_intcpt(xpfm, flp->cws, wmm,
+                               now, leg->type, nxt->type,
                                src1, brg1, src2, brg2, intc)))
     {
+        /*
+         * Impossible direct CF intercept, but reversed intercept worked.
+         * We sanitize our leg type, and remove the now-invalid next leg.
+         */
+        if (err == EOVERFLOW)
+        {
+            switch (nxt->type)
+            {
+                case NDT_LEGTYPE_CF:
+                    break;
+                default:
+                    goto end;
+            }
+            switch (leg->type)
+            {
+                case NDT_LEGTYPE_CI:
+                    leg->type = NDT_LEGTYPE_CR;
+                    leg->course.navaid = nxt->dst;
+                    leg->course.radial = nxt->course.magnetic;
+                    break;
+                case NDT_LEGTYPE_VI:
+                    leg->type = NDT_LEGTYPE_VR;
+                    leg->course.navaid = nxt->dst;
+                    leg->course.radial = nxt->course.magnetic;
+                    break;
+                default:
+                    goto end;
+            }
+            /*
+             * XXX: we can't remove nxt: turn it to a discontinuity.
+             * TODO: maybe have end users clear the CF leg instead?
+             */
+            nxt->type = NDT_LEGTYPE_ZZ;
+            nxt->src = nxt->dst = NULL;
+            err = 0; // clear non-error
+            goto altitude;
+        }
         /*
          * Aerosoft 1511, DTTA, ILS 01 approach, TUC transition:
          * FC,TUC05,36.77061667,10.20523333,0,TUC,192.9,5.0,238,4.30,2,1900,0,0,0,0,0,0
