@@ -1570,18 +1570,35 @@ static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
     {
         return 1; // pass through
     }
-    int m[2]; XPLMGetMouseLocation(&m[0], &m[1]);
-    unsigned char invk = (unsigned char)inVirtualKey;
     refcon_a319kbc tkb = *((refcon_a319kbc*)inRefcon);
-    int camera_is_outside = XPLMGetDatai(tkb.datar[4]);
-    int iscw; XPLMGetDatavi(tkb.datar[0], &iscw, 9, 1);
-    int w[2]; XPLMGetDatavi(tkb.datar[0], &w[0], 0, 2);
-    int h[2]; XPLMGetDatavi(tkb.datar[1], &h[0], 0, 2);
-    int x[2]; XPLMGetDatavi(tkb.datar[2], &x[0], 0, 2);
-    int y[2]; XPLMGetDatavi(tkb.datar[3], &y[0], 0, 2);
-    int cdu0 = ((m[0] > x[0]) && (m[0] < (x[0] + w[0])) && (m[1] > y[0]) && (m[1] < (y[0] + h[0])));
-    int cdu1 = ((m[0] > x[1]) && (m[0] < (x[1] + w[1])) && (m[1] > y[1]) && (m[1] < (y[1] + h[1])));
-    if (iscw < 1 && !camera_is_outside && (cdu0 || cdu1)) // forward some keys (over MCDU only)
+    unsigned char invk = (unsigned char)inVirtualKey;
+    if (invk == XPLM_VK_ESCAPE)
+    {
+        if ((inFlags & (xplm_DownFlag)) != 0)
+        {
+            XPLMCommandOnce(tkb.c[2][0]);
+        }
+        return 0; // consume
+    }
+    int w[3], cdu0 = 0, cdu1 = 0, ext_v = 1;
+    XPLMGetDatavi(tkb.datar[0], &w[0], 0, 2);
+    if (w[0] > 0 || w[1] > 0)
+    {
+        int h[2], m[2], x[2], y[2];
+        ext_v = XPLMGetDatai(tkb.datar[4]);
+        XPLMGetMouseLocation(&m[0], &m[1]);
+        XPLMGetDatavi(tkb.datar[0], &w[2], 9, 1);
+        XPLMGetDatavi(tkb.datar[1], &h[0], 0, 2);
+        XPLMGetDatavi(tkb.datar[2], &x[0], 0, 2);
+        XPLMGetDatavi(tkb.datar[3], &y[0], 0, 2);
+        if (w[0] > 0) cdu0 = ((m[0] > x[0]) && (m[0] < (x[0] + w[0])) && (m[1] > y[0]) && (m[1] < (y[0] + h[0])));
+        if (w[1] > 0) cdu1 = ((m[0] > x[1]) && (m[0] < (x[1] + w[1])) && (m[1] > y[1]) && (m[1] < (y[1] + h[1])));
+    }
+    if (ext_v || (!cdu0 && !cdu1)) // mouse must be over MCDU with internal view
+    {
+        return 1; // pass through
+    }
+    if (w[2] < 1) // forward some keys (ISCS closed only)
     {
         if (invk == XPLM_VK_SPACE) // spacebar braking
         {
@@ -1636,234 +1653,224 @@ static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
     {
         return 1; // pass through
     }
-    if (invk == XPLM_VK_ESCAPE)
+    switch (invk)
     {
-        XPLMCommandOnce(tkb.c[2][0]);
-        return 0; // consume
+        case XPLM_VK_UP:
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][1]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][1]); return 0; }
+            return 1;
+        case XPLM_VK_DOWN:
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][0]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][0]); return 0; }
+            return 1;
+        case XPLM_VK_LEFT:
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][2]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][2]); return 0; }
+            return 1;
+        case XPLM_VK_RIGHT:
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][3]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][3]); return 0; }
+            return 1;
+        case XPLM_VK_BACK:
+        case XPLM_VK_DELETE:
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][7]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][7]); return 0; }
+            return 1;
+        default:
+            break;
     }
-    if (!camera_is_outside && (cdu0 || cdu1))
+    switch (inChar)
     {
-        switch (invk)
-        {
-            case XPLM_VK_UP:
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][1]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][1]); return 0; }
-                return 1;
-            case XPLM_VK_DOWN:
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][0]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][0]); return 0; }
-                return 1;
-            case XPLM_VK_LEFT:
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][2]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][2]); return 0; }
-                return 1;
-            case XPLM_VK_RIGHT:
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][3]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][3]); return 0; }
-                return 1;
-            case XPLM_VK_BACK:
-            case XPLM_VK_DELETE:
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][7]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][7]); return 0; }
-                return 1;
-            default:
-                break;
-        }
-        switch (inChar)
-        {
-            case '/':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][4]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][4]); return 0; }
-                return 1;
-            case ' ':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][5]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][5]); return 0; }
-                return 1;
-            case '.':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][8]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][8]); return 0; }
-                return 1;
-            case '+':
-            case '-':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][9]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][9]); return 0; }
-                return 1;
-            case '1':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][11]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][11]); return 0; }
-                return 1;
-            case '2':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][12]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][12]); return 0; }
-                return 1;
-            case '3':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][13]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][13]); return 0; }
-                return 1;
-            case '4':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][14]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][14]); return 0; }
-                return 1;
-            case '5':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][15]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][15]); return 0; }
-                return 1;
-            case '6':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][16]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][16]); return 0; }
-                return 1;
-            case '7':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][17]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][17]); return 0; }
-                return 1;
-            case '8':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][18]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][18]); return 0; }
-                return 1;
-            case '9':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][19]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][19]); return 0; }
-                return 1;
-            case '0':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][20]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][20]); return 0; }
-                return 1;
-            case 'A':
-            case 'a':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][21]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][21]); return 0; }
-                return 1;
-            case 'B':
-            case 'b':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][22]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][22]); return 0; }
-                return 1;
-            case 'C':
-            case 'c':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][23]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][23]); return 0; }
-                return 1;
-            case 'D':
-            case 'd':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][24]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][24]); return 0; }
-                return 1;
-            case 'E':
-            case 'e':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][25]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][25]); return 0; }
-                return 1;
-            case 'F':
-            case 'f':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][26]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][26]); return 0; }
-                return 1;
-            case 'G':
-            case 'g':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][27]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][27]); return 0; }
-                return 1;
-            case 'H':
-            case 'h':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][28]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][28]); return 0; }
-                return 1;
-            case 'I':
-            case 'i':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][29]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][29]); return 0; }
-                return 1;
-            case 'J':
-            case 'j':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][30]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][30]); return 0; }
-                return 1;
-            case 'K':
-            case 'k':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][31]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][31]); return 0; }
-                return 1;
-            case 'L':
-            case 'l':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][32]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][32]); return 0; }
-                return 1;
-            case 'M':
-            case 'm':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][33]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][33]); return 0; }
-                return 1;
-            case 'N':
-            case 'n':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][34]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][34]); return 0; }
-                return 1;
-            case 'O':
-            case 'o':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][35]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][35]); return 0; }
-                return 1;
-            case 'P':
-            case 'p':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][36]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][36]); return 0; }
-                return 1;
-            case 'Q':
-            case 'q':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][37]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][37]); return 0; }
-                return 1;
-            case 'R':
-            case 'r':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][38]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][38]); return 0; }
-                return 1;
-            case 'S':
-            case 's':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][39]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][39]); return 0; }
-                return 1;
-            case 'T':
-            case 't':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][40]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][40]); return 0; }
-                return 1;
-            case 'U':
-            case 'u':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][41]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][41]); return 0; }
-                return 1;
-            case 'V':
-            case 'v':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][42]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][42]); return 0; }
-                return 1;
-            case 'W':
-            case 'w':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][43]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][43]); return 0; }
-                return 1;
-            case 'X':
-            case 'x':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][44]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][44]); return 0; }
-                return 1;
-            case 'Y':
-            case 'y':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][45]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][45]); return 0; }
-                return 1;
-            case 'Z':
-            case 'z':
-                if (cdu0) { XPLMCommandOnce(tkb.c[0][46]); return 0; }
-                if (cdu1) { XPLMCommandOnce(tkb.c[1][46]); return 0; }
-                return 1;
-            default:
-                return 0; // consume
-        }
-        return 0; // consume
+        case '/':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][4]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][4]); return 0; }
+            return 1;
+        case ' ':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][5]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][5]); return 0; }
+            return 1;
+        case '.':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][8]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][8]); return 0; }
+            return 1;
+        case '+':
+        case '-':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][9]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][9]); return 0; }
+            return 1;
+        case '1':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][11]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][11]); return 0; }
+            return 1;
+        case '2':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][12]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][12]); return 0; }
+            return 1;
+        case '3':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][13]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][13]); return 0; }
+            return 1;
+        case '4':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][14]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][14]); return 0; }
+            return 1;
+        case '5':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][15]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][15]); return 0; }
+            return 1;
+        case '6':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][16]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][16]); return 0; }
+            return 1;
+        case '7':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][17]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][17]); return 0; }
+            return 1;
+        case '8':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][18]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][18]); return 0; }
+            return 1;
+        case '9':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][19]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][19]); return 0; }
+            return 1;
+        case '0':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][20]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][20]); return 0; }
+            return 1;
+        case 'A':
+        case 'a':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][21]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][21]); return 0; }
+            return 1;
+        case 'B':
+        case 'b':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][22]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][22]); return 0; }
+            return 1;
+        case 'C':
+        case 'c':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][23]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][23]); return 0; }
+            return 1;
+        case 'D':
+        case 'd':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][24]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][24]); return 0; }
+            return 1;
+        case 'E':
+        case 'e':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][25]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][25]); return 0; }
+            return 1;
+        case 'F':
+        case 'f':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][26]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][26]); return 0; }
+            return 1;
+        case 'G':
+        case 'g':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][27]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][27]); return 0; }
+            return 1;
+        case 'H':
+        case 'h':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][28]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][28]); return 0; }
+            return 1;
+        case 'I':
+        case 'i':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][29]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][29]); return 0; }
+            return 1;
+        case 'J':
+        case 'j':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][30]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][30]); return 0; }
+            return 1;
+        case 'K':
+        case 'k':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][31]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][31]); return 0; }
+            return 1;
+        case 'L':
+        case 'l':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][32]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][32]); return 0; }
+            return 1;
+        case 'M':
+        case 'm':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][33]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][33]); return 0; }
+            return 1;
+        case 'N':
+        case 'n':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][34]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][34]); return 0; }
+            return 1;
+        case 'O':
+        case 'o':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][35]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][35]); return 0; }
+            return 1;
+        case 'P':
+        case 'p':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][36]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][36]); return 0; }
+            return 1;
+        case 'Q':
+        case 'q':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][37]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][37]); return 0; }
+            return 1;
+        case 'R':
+        case 'r':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][38]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][38]); return 0; }
+            return 1;
+        case 'S':
+        case 's':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][39]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][39]); return 0; }
+            return 1;
+        case 'T':
+        case 't':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][40]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][40]); return 0; }
+            return 1;
+        case 'U':
+        case 'u':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][41]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][41]); return 0; }
+            return 1;
+        case 'V':
+        case 'v':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][42]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][42]); return 0; }
+            return 1;
+        case 'W':
+        case 'w':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][43]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][43]); return 0; }
+            return 1;
+        case 'X':
+        case 'x':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][44]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][44]); return 0; }
+            return 1;
+        case 'Y':
+        case 'y':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][45]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][45]); return 0; }
+            return 1;
+        case 'Z':
+        case 'z':
+            if (cdu0) { XPLMCommandOnce(tkb.c[0][46]); return 0; }
+            if (cdu1) { XPLMCommandOnce(tkb.c[1][46]); return 0; }
+            return 1;
+        default:
+            return 1;
     }
-    return 1; // pass through
 }
 
 /*
