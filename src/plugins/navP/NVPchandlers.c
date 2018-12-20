@@ -4331,8 +4331,8 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/audio_selection_com1"); // C1:TX/RX
             _DO(0, XPLMSetDatai, 6, "sim/cockpit2/radios/actuators/audio_com_selection");  // C1:TX/RX
+            _DO(1, XPLMSetDatai, 0, "AirbusFBW/StaComObjInhibit"); _DO(1, XPLMSetDatai, 1, "AirbusFBW/EngineType"); _DO(1, XPLMSetDatai, 1, "AirbusFBW/WingtipDeviceType"); // IAE-2524-A5 w/sharklets
             _DO(1, XPLMSetDatai, 1, "params/wheel"); _DO(1, XPLMSetDataf, 0.0f, "params/screenRefLevel"); _DO(1, XPLMSetDataf, 0.0f, "params/windowRefLevel");
-            _DO(1, XPLMSetDatai, 1, "AirbusFBW/EngineType"); _DO(1, XPLMSetDatai, 1, "AirbusFBW/WingtipDeviceType"); // IAE-2524-A5 w/sharklets
             if (ctx->info->ac_type == ACF_TYP_A319_TL)
             {
                 if (ctx->a319kc.kc_is_registered)
