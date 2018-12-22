@@ -34,6 +34,7 @@
 #include FT_FREETYPE_H
 
 #include <acfutils/geom.h>
+#include <acfutils/log.h>
 
 #ifdef	__cplusplus
 extern "C" {
@@ -47,9 +48,15 @@ typedef void (*mt_cairo_render_cb_t)(cairo_t *cr, unsigned w, unsigned h,
     void *userinfo);
 typedef struct mt_cairo_render_s mt_cairo_render_t;
 
-API_EXPORT mt_cairo_render_t *mt_cairo_render_init(unsigned w, unsigned h,
-    double fps, mt_cairo_init_cb_t init_cb, mt_cairo_render_cb_t render_cb,
-    mt_cairo_fini_cb_t fini_cb, void *userinfo);
+#define	mt_cairo_render_init(__w, __h, __fps, __init_cb, __render_cb, \
+    __fini_cb, __userinfo) \
+	mt_cairo_render_init_impl(log_basename(__FILE__), __LINE__, \
+	    (__w), (__h), (__fps), (__init_cb), (__render_cb), \
+	    (__fini_cb), (__userinfo))
+API_EXPORT mt_cairo_render_t *mt_cairo_render_init_impl(const char *filename,
+    int line, unsigned w, unsigned h, double fps, mt_cairo_init_cb_t init_cb,
+    mt_cairo_render_cb_t render_cb, mt_cairo_fini_cb_t fini_cb, void *userinfo);
+
 API_EXPORT void mt_cairo_render_fini(mt_cairo_render_t *mtcr);
 API_EXPORT void mt_cairo_render_set_fps(mt_cairo_render_t *mtcr, double fps);
 API_EXPORT double mt_cairo_render_get_fps(mt_cairo_render_t *mtcr);
@@ -65,6 +72,8 @@ API_EXPORT void mt_cairo_render_draw_subrect_pvm(mt_cairo_render_t *mtcr,
     vect2_t src_pos, vect2_t src_sz, vect2_t pos, vect2_t size,
     const GLfloat *pvm);
 API_EXPORT GLuint mt_cairo_render_get_tex(mt_cairo_render_t *mtcr);
+API_EXPORT unsigned mt_cairo_render_get_width(mt_cairo_render_t *mtcr);
+API_EXPORT unsigned mt_cairo_render_get_height(mt_cairo_render_t *mtcr);
 
 /*
  * Must ONLY be called from the rendering callback.
