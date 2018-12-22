@@ -108,22 +108,27 @@ typedef struct {
 } drag_coeff_t;
 
 typedef struct {
-	double	zfw;
-	double	fuel;
-	double	clb_ias;
-	double	clb_mach;
-	double	crz_ias;
-	double	crz_mach;
-	double	crz_lvl;
-	double	des_ias;
-	double	des_mach;
-	double	to_flap;
-	double	accel_height;
-	double	spd_lim;
-	double	spd_lim_alt;
+	double		zfw;		/* kg */
+	double		fuel;		/* kg */
+	double		clb_ias;	/* knots */
+	double		clb_ias_init;	/* knots */
+	double		clb_mach;	/* fraction */
+	double		crz_ias;	/* knots */
+	double		crz_mach;	/* fraction */
+	double		crz_lvl;	/* flight level */
+	double		des_ias;	/* knots */
+	double		des_mach;	/* fraction */
+	double		to_flap;	/* ratio */
+	double		accel_hgt;	/* feet AGL */
+	double		spd_lim;	/* knots IAS */
+	double		spd_lim_alt;	/* feet AMSL */
 
-	double	thr_derate;
+	double		thr_derate;
+	double		bank_ratio;
+	unsigned	num_eng;
 } flt_perf_t;
+
+typedef struct perf_table_set_s perf_table_set_t;
 
 typedef struct {
 	char		*acft_type;
@@ -134,43 +139,47 @@ typedef struct {
 	double		max_gw;
 
 	char		*eng_type;
+	unsigned	num_eng;
 
 	/* Base max thrust in Newtons @ ISA conditions */
 	double		eng_max_thr;
 	/* Base min thrust in Newtons @ ISA conditions */
 	double		eng_min_thr;
+	/* Specific fuel consumption in kg/(N.s) @ ISA conditions */
+	double		eng_sfc;
 	/*
 	 * eng_max_thr fraction as a function of air density (in kg/m^3).
 	 */
-	bezier_t	*thr_dens_curve;
+	vect2_t	*thr_dens_curve;
 	/*
-	 * eng_max_thr fraction as a function of ISA temperature deviation
-	 * in degrees C.
+	 * eng_max_thr fraction as a function of Mach number.
 	 */
-	bezier_t	*thr_isa_curve;
+	vect2_t	*thr_mach_curve;
 	/*
 	 * Engine specific fuel consumption in kg/hr as a function of
 	 * thrust in Kilonewtons.
 	 */
-	bezier_t	*sfc_thr_curve;
-	/*
-	 * Engine specific fuel consumption modifier (0 - 1) as a function
-	 * of air density (in kg/m^3).
-	 */
-	bezier_t	*sfc_dens_curve;
+	vect2_t	*sfc_thro_curve;
 	/*
 	 * Engine specific fuel consumption modifier (0 - 1) as a function
 	 * of ISA temperature deviation in degrees C.
 	 */
-	bezier_t	*sfc_isa_curve;
+	vect2_t	*sfc_isa_curve;
 
-	bezier_t	*cl_curve;
-	bezier_t	*cl_flap_curve;
-	double		cl_max_aoa;
-	bezier_t	*cd_curve;
-	bezier_t	*cd_flap_curve;
-	double		cl_flap_max_aoa;
-	double		wing_area;
+	vect2_t	*cl_curve;
+	vect2_t	*cl_flap_curve;
+	double	cl_max_aoa;
+	vect2_t	*cd_curve;
+	vect2_t	*cd_flap_curve;
+	double	cl_flap_max_aoa;
+	double	wing_area;
+
+	vect2_t	*half_bank_curve;
+	vect2_t	*full_bank_curve;
+
+	perf_table_set_t	*clb_tables;
+	perf_table_set_t	*crz_tables;
+	perf_table_set_t	*des_tables;
 } acft_perf_t;
 
 /* Type of acceleration-climb */
@@ -191,26 +200,39 @@ double eng_max_thr_avg(const flt_perf_t *flt,
     double qnh, double isadev, double tp_alt);
 
 double accelclb2dist(const flt_perf_t *flt, const acft_perf_t *acft,
-    double isadev, double qnh, double tp_alt, double fuel, vect2_t dir,
+    double isadev, double qnh, double tp_alt, double accel_alt,
+    double fuel, vect2_t dir,
     double alt1, double kcas1, vect2_t wind1,
     double alt2, double kcas2, vect2_t wind2,
-    double flap_ratio, double mach_lim, accelclb_t type, double *burnp);
+    double flap_ratio, double mach_lim, accelclb_t type, double *burnp,
+    double *kcas_out);
 double dist2accelclb(const flt_perf_t *flt, const acft_perf_t *acft,
-    double isadev, double qnh, double tp_alt, double fuel, vect2_t dir,
+    double isadev, double qnh, double tp_alt, double accel_alt,
+    double fuel, vect2_t dir,
     double flap_ratio, double *alt, double *kcas, vect2_t wind,
     double alt_tgt, double kcas_tgt, double mach_lim, double dist_tgt,
     accelclb_t type, double *burnp);
-
-double dist2deceldes(const flt_perf_t *flt, const acft_perf_t *acft,
-    double isadev, double qnh, double tp_alt, double fuel, vect2_t dir,
-    double flap_ratio, double *alt, double *kcas, vect2_t wind,
-    double alt_tgt, double kcas_tgt, double mach_lim, double dist_tgt,
-    accelclb_t type, double *burnp);
+double decel2dist(const flt_perf_t *flt, const acft_perf_t *acft,
+    double isadev, double qnh, double tp_alt, double fuel,
+    double alt, double kcas1, double kcas2, double dist_tgt,
+    double *kcas_out, double *burn_out);
+double perf_crz2burn(double isadev, double tp_alt, double qnh, double alt_ft,
+    double spd, bool_t is_mach, double hdg, vect2_t wind1, vect2_t wind2,
+    double fuel, double dist_nm, const acft_perf_t *acft,
+    const flt_perf_t *flt);
+double perf_des2burn(const flt_perf_t *flt, const acft_perf_t *acft,
+    double isadev, double qnh, double fuel, double hdgt, double dist_m,
+    double mach_lim,
+    double alt1, double kcas1, vect2_t wind1,
+    double alt2, double kcas2, vect2_t wind2);
 
 double perf_TO_spd(const flt_perf_t *flt, const acft_perf_t *acft);
 
-double acft_get_sfc(const acft_perf_t *acft, double thr,
-    double dens, double isadev);
+double acft_get_sfc(const flt_perf_t *flt, const acft_perf_t *acft, double thr,
+    double alt, double ktas, double qnh, double isadev, double tp_alt);
+
+double perf_get_turn_rate(double bank_ratio, double gs_kts,
+    const flt_perf_t *flt, const acft_perf_t *acft);
 
 #define	alt2press	ACFSYM(alt2press)
 API_EXPORT double alt2press(double alt, double qnh);
@@ -233,6 +255,11 @@ API_EXPORT double ktas2kcas(double ktas, double pressure, double oat);
 API_EXPORT double kcas2ktas(double kcas, double pressure, double oat);
 #define	impact_press2kcas	ACFSYM(impact_press2kcas)
 API_EXPORT double impact_press2kcas(double impact_pressure);
+
+#define	kcas2mach		ACFSYM(kcas2mach)
+API_EXPORT double kcas2mach(double kcas, double alt_ft, double qnh, double oat);
+#define	mach2kcas		ACFSYM(mach2kcas)
+API_EXPORT double mach2kcas(double mach, double alt_ft, double qnh, double oat);
 
 #define	mach2keas	ACFSYM(mach2keas)
 API_EXPORT double mach2keas(double mach, double press);

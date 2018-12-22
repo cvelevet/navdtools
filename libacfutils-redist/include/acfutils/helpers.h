@@ -64,6 +64,12 @@ is_valid_lat(double lat)
 }
 
 static inline bool_t
+is_valid_lat_polar(double lat)
+{
+	return (!isnan(lat) && fabs(lat) <= 90);
+}
+
+static inline bool_t
 is_valid_lon(double lon)
 {
 	return (!isnan(lon) && fabs(lon) <= 180.0);
@@ -147,14 +153,14 @@ API_EXPORT void copy_rwy_ID(const char *src, char dst[4]);
 #define	airac_cycle2eff_date	ACFSYM(airac_cycle2eff_date)
 API_EXPORT const char *airac_cycle2eff_date(int cycle);
 #define	airac_cycle2exp_date	ACFSYM(airac_cycle2exp_date)
-API_EXPORT const char *airac_cycle2exp_date(int cycle);
+API_EXPORT bool_t airac_cycle2exp_date(int cycle, char buf[16]);
 #define	airac_time2cycle	ACFSYM(airac_time2cycle)
 API_EXPORT int airac_time2cycle(time_t t);
 
 /* CSV file & string processing helpers */
 #define	parser_get_next_line		ACFSYM(parser_get_next_line)
 API_EXPORT ssize_t parser_get_next_line(FILE *fp, char **linep,
-    size_t *linecap, size_t *linenum);
+    size_t *linecap, unsigned *linenum);
 #define	parser_get_next_quoted_str	ACFSYM(parser_get_next_quoted_str)
 API_EXPORT char *parser_get_next_quoted_str(FILE *fp);
 #define	explode_line			ACFSYM(explode_line)
