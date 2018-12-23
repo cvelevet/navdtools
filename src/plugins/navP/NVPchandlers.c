@@ -4302,11 +4302,20 @@ static int first_fcall_do(chandler_context *ctx)
                 {
                     XPLMCommandOnce(cr);
                 }
-                _DO(1, XPLMSetDatai, 0, "AirbusFBW/ALT100_1000"); // FCU alt. sel. incr. (1000ft) // no scrollwheel
+                _DO(1, XPLMSetDatai,    0, "AirbusFBW/ALT100_1000");            // FCU alt. sel. incr. (1000ft) (no scrollwheel)
             }
             else
             {
-                _DO(1, XPLMSetDatai, 0, "AirbusFBW/ALT100_1000"); // FCU alt. sel. incre. (100ft)
+                _DO(1, XPLMSetDatai,    0, "AirbusFBW/ALT100_1000");            // FCU alt. sel. incre. (100ft)
+                _DO(1, XPLMSetDatai,    1, "AirbusFBW/EngineType");             // IAE-2524-A5 w/sharklets+web
+                _DO(1, XPLMSetDatai,    0, "AirbusFBW/StaComObjInhibit");       // IAE-2524-A5 w/sharklets+web
+                _DO(1, XPLMSetDatai,    1, "AirbusFBW/WingtipDeviceType");      // IAE-2524-A5 w/sharklets+web
+                _DO(1, XPLMSetDatai,    1, "AirbusFBW/EnableExternalPower");    // ensure we have ground power
+                _DO(1, XPLMSetDatai,    1, "AirbusFBW/GroundLPAir");            // lo pressure ground air: yes
+                _DO(1, XPLMSetDatai,    0, "AirbusFBW/GroundHPAir");            // hi pressure ground air: off
+                _DO(1, XPLMSetDatai,    1, "params/wheel");                     // use scrollwheel
+                _DO(1, XPLMSetDataf, 0.0f, "params/screenRefLevel");            // reflections off
+                _DO(1, XPLMSetDataf, 0.0f, "params/windowRefLevel");            // reflections off
             }
             if ((d_ref = XPLMFindDataRef("AirbusFBW/DUBrightness")))
             {
@@ -4315,8 +4324,8 @@ static int first_fcall_do(chandler_context *ctx)
             }
             if ((d_ref = XPLMFindDataRef("AirbusFBW/OHPLightSwitches")))
             {
-                _DO(1, XPLMSetDataf, 0.5f, "AirbusFBW/WXAlphaND1");                 // ND1 weather to 50%
-                _DO(1, XPLMSetDataf, 0.5f, "AirbusFBW/WXAlphaND2");                 // ND2 weather to 50%
+                _DO(1, XPLMSetDataf, 0.8f, "AirbusFBW/WXAlphaND1");                 // ND1 weather to 80%
+                _DO(1, XPLMSetDataf, 0.8f, "AirbusFBW/WXAlphaND2");                 // ND2 weather to 80%
             }
             _DO(1, XPLMSetDatai, 1, "AirbusFBW/RMP1Switch");                        // Radio management pan. 1 (on)
             _DO(1, XPLMSetDatai, 1, "AirbusFBW/RMP2Switch");                        // Radio management pan. 2 (on)
@@ -4331,8 +4340,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/audio_selection_com1"); // C1:TX/RX
             _DO(0, XPLMSetDatai, 6, "sim/cockpit2/radios/actuators/audio_com_selection");  // C1:TX/RX
-            _DO(1, XPLMSetDatai, 0, "AirbusFBW/StaComObjInhibit"); _DO(1, XPLMSetDatai, 1, "AirbusFBW/EngineType"); _DO(1, XPLMSetDatai, 1, "AirbusFBW/WingtipDeviceType"); // IAE-2524-A5 w/sharklets
-            _DO(1, XPLMSetDatai, 1, "params/wheel"); _DO(1, XPLMSetDataf, 0.0f, "params/screenRefLevel"); _DO(1, XPLMSetDataf, 0.0f, "params/windowRefLevel");
             if (ctx->info->ac_type == ACF_TYP_A319_TL)
             {
                 if (ctx->a319kc.kc_is_registered)
@@ -4710,6 +4717,9 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDataf,   0.8f, "ixeg/733/rheostats/light_fmc_cpt_act");           // MCDU: lig. (f/o. side) (daylight)
             _DO(1, XPLMSetDataf,   0.0f, "ixeg/733/rheostats/light_mapbr_pt_act");          // Maps: lig. (cap. side) (off)
             _DO(1, XPLMSetDataf,   0.0f, "ixeg/733/rheostats/light_mapbr_cpt_act");         // Maps: lig. (f/o. side) (off)
+            _DO(1, XPLMSetDataf,   1.5f, "ixeg/733/audio/audio_recv_vhf1_pt_act");          // setup radios for online ATC
+            _DO(1, XPLMSetDataf,   1.0f, "ixeg/733/audio/audio_recp_vhf1_pt_act");          // setup radios for online ATC
+            _DO(1, XPLMSetDataf,   1.0f, "ixeg/733/audio/audio_mic_vhf1_pt_act");           // setup radios for online ATC
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/instrument_brightness_ratio")))
             {
                 float instrument_brightness_ratio[1] = { 0.8f, };
