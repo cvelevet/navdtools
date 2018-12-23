@@ -483,7 +483,7 @@ double ndt_position_calcbearing(ndt_position from, ndt_position to)
     }
 
     /*
-     * http://williams.best.vwh.net/avform.htm#Crs
+     * http://edwilliams.org/avform.htm#Crs
      */
     double lat1 = ndt_position_getlatitude (from, NDT_ANGUNIT_RAD);
     double lon1 = ndt_position_getlongitude(from, NDT_ANGUNIT_RAD) * -1.;
@@ -539,7 +539,7 @@ ndt_distance ndt_position_calcdistance(ndt_position from, ndt_position to)
     }
 
     /*
-     * http://williams.best.vwh.net/avform.htm#Dist
+     * http://edwilliams.org/avform.htm#Dist
      */
     double lat1 = ndt_position_getlatitude (from, NDT_ANGUNIT_RAD);
     double lon1 = ndt_position_getlongitude(from, NDT_ANGUNIT_RAD) * -1.;
@@ -569,7 +569,7 @@ ndt_position ndt_position_calcpos4pbd(ndt_position from, double trub, ndt_distan
     double lon1 = ndt_position_getlongitude(from, NDT_ANGUNIT_RAD) * -1.;
 
     /*
-     * http://williams.best.vwh.net/avform.htm#LL
+     * http://edwilliams.org/avform.htm#LL
      */
     double lat2 = asin (sin(lat1) * cos(dis2) +
                         cos(lat1) * sin(dis2) * cos(cr12));
@@ -590,13 +590,13 @@ int ndt_position_calcpos4pbpb(ndt_position *out, ndt_position pos1, double tru1,
     double lon2 = ndt_position_getlongitude(pos2, NDT_ANGUNIT_RAD) * -1.;
 
     /*
-     * http://williams.best.vwh.net/avform.htm#Dist
+     * http://edwilliams.org/avform.htm#Dist
      */
     double dis2 = 2. * asin(sqrt(pow(sin((lat1 - lat2) / 2.), 2.) +
                                  pow(sin((lon1 - lon2) / 2.), 2.) * cos(lat1) * cos(lat2)));
 
     /*
-     * http://williams.best.vwh.net/avform.htm#Crs
+     * http://edwilliams.org/avform.htm#Crs
      */
     double cr12 = ndt_mod(atan2(sin(lon1 - lon2) * cos(lat2),
                                 cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(lon1 - lon2)),
@@ -606,7 +606,7 @@ int ndt_position_calcpos4pbpb(ndt_position *out, ndt_position pos1, double tru1,
                           2. * M_PI);
 
     /*
-     * http://williams.best.vwh.net/avform.htm#Intersection
+     * http://edwilliams.org/avform.htm#Intersection
      */
     double cr13 = tru1 / 180. * M_PI;
     double cr23 = tru2 / 180. * M_PI;
