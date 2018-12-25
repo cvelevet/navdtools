@@ -830,11 +830,6 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
         switch  (mode)
         {
             case XPDR_OFF:
-                tmod = 0; // THRT
-                tcas = 0; // STBY
-                altr = 0; // OFF
-                xpdr = 0; // STBY
-                break;
             case XPDR_SBY:
                 tmod = 1; // ALL
                 tcas = 0; // STBY
