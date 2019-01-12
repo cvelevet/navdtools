@@ -85,11 +85,19 @@ typedef struct
 
 typedef struct
 {
+    chandler_callback mi;
+    XPLMDataRef mixratio;
+
+    chandler_callback rp;
+    XPLMDataRef rpmratio;
+
     chandler_callback dn;
-    chandler_callback up;
     XPLMCommandRef thrdn;
+
+    chandler_callback up;
     XPLMCommandRef thrup;
-    XPLMDataRef    thall;
+
+    XPLMDataRef throtall;
 } refcon_thrust;
 
 typedef struct
@@ -583,6 +591,8 @@ static int chandler_rt_lt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_rt_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_mixdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_rpmdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_sview(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -813,13 +823,17 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->revrs.rev.cb, chandler_r_rev, 0, ctx);
     }
 
-    /* Custom commands: thrust control */
+    /* Custom commands and handlers: thrust control */
+    ctx->throt.  rpmratio = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/prop_rotation_speed_rad_sec_all");
+    ctx->throt.  mixratio = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/mixture_ratio_all");
     ctx->throt.dn.command = XPLMCreateCommand("navP/thrust/dn_once", "throttle down once");
     ctx->throt.up.command = XPLMCreateCommand("navP/thrust/up_once", "throttle up once");
+    ctx->throt.mi.command = XPLMFindCommand  ("sim/engines/mixture_down");
+    ctx->throt.rp.command = XPLMFindCommand  ("sim/engines/prop_down");
     ctx->throt.     thrdn = XPLMFindCommand  ("sim/engines/throttle_down");
     ctx->throt.     thrup = XPLMFindCommand  ("sim/engines/throttle_up");
-    if (!ctx->throt.dn.command || !ctx->throt.thrdn ||
-        !ctx->throt.up.command || !ctx->throt.thrup)
+    if (!ctx->throt.dn.command || !ctx->throt.thrdn || !ctx->throt.mi.command || !ctx->throt.mixratio ||
+        !ctx->throt.up.command || !ctx->throt.thrup || !ctx->throt.rp.command || !ctx->throt.rpmratio)
     {
         goto fail;
     }
@@ -1084,6 +1098,8 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->trims.rud.rt.cb);
     UNREGSTR_CHANDLER(ctx->revrs.   fwd.cb);
     UNREGSTR_CHANDLER(ctx->revrs.   rev.cb);
+    UNREGSTR_CHANDLER(ctx->throt.       mi);
+    UNREGSTR_CHANDLER(ctx->throt.       rp);
     UNREGSTR_CHANDLER(ctx->throt.       dn);
     UNREGSTR_CHANDLER(ctx->throt.       up);
     UNREGSTR_CHANDLER(ctx->asrt.   ap_conn);
@@ -1193,7 +1209,7 @@ int nvp_chandlers_reset(void *inContext)
     ctx->acfspec.  x738.ready = 0;
     ctx->revrs.        propdn = NULL;
     ctx->revrs.        propup = NULL;
-    ctx->throt.         thall = NULL;
+    ctx->throt.      throtall = NULL;
     ctx->otto.ffst.        dr = NULL;
     ctx->otto.conn.cc.   name = NULL;
     ctx->otto.disc.cc.   name = NULL;
@@ -1228,6 +1244,8 @@ int nvp_chandlers_reset(void *inContext)
     UNREGSTR_CHANDLER(ctx->vvi.           up);
     UNREGSTR_CHANDLER(ctx->vvi.           pd);
     UNREGSTR_CHANDLER(ctx->vvi.           pu);
+    UNREGSTR_CHANDLER(ctx->throt.         mi);
+    UNREGSTR_CHANDLER(ctx->throt.         rp);
 
     /* Re-enable Gizmo64 if present */
     XPLMPluginID g64 = XPLMFindPluginBySignature("gizmo.x-plugins.com");
@@ -1328,7 +1346,7 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
 /*untested*/ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            ctx->throt.thall = ctx->ground.idle.throttle_all;
+            ctx->throt.throtall = ctx->ground.idle.throttle_all;
             break;
 
         case ACF_TYP_A319_TL:
@@ -1355,7 +1373,7 @@ int nvp_chandlers_update(void *inContext)
             ctx->athr.disc.cc.name = "x737/mcp/ATHR_ARM_TOGGLE";
             ctx->athr.toga.cc.name = "x737/mcp/TOGA_TOGGLE";
             ctx->otto.conn.cc.name = "x737/mcp/CMDA_TOGGLE";
-            ctx->throt.thall = ctx->ground.idle.throttle_all;
+            ctx->throt.throtall = ctx->ground.idle.throttle_all;
             break;
 
         case ACF_TYP_B737_XG:
@@ -1363,22 +1381,22 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.disc.cc.name = "ixeg/733/autopilot/AP_disengage";
             ctx->athr.disc.cc.name = "ixeg/733/autopilot/at_disengage";
             ctx->athr.toga.cc.name = "sim/engines/TOGA_power";
-            ctx->throt.thall = ctx->ground.idle.throttle_all;
+            ctx->throt.throtall = ctx->ground.idle.throttle_all;
             ctx->bking.rc_brk.use_pkb = 0;
             break;
 
         case ACF_TYP_B757_FF:
         case ACF_TYP_B767_FF:
+            ctx->throt.throtall = ctx->ground.idle.throttle_all;
             ctx->otto.conn.cc.name = "private/ffsts/ap_cmdl";
             ctx->otto.disc.cc.name = "1-sim/comm/AP/ap_disc";
             ctx->athr.disc.cc.name = "1-sim/comm/AP/at_disc";
             ctx->athr.toga.cc.name = "1-sim/comm/AP/at_toga";
-            ctx->throt.thall = ctx->ground.idle.throttle_all;
             ctx->bking.rc_brk.use_pkb = 0;
             break;
 
         case ACF_TYP_B777_FF:
-            ctx->throt.thall = ctx->ground.idle.throttle_all;
+            ctx->throt.throtall = ctx->ground.idle.throttle_all;
             ctx->otto.disc.cc.name = "777/ap_disc";
             ctx->athr.disc.cc.name = "777/at_disc";
             ctx->athr.toga.cc.name = "777/at_toga";
@@ -1386,7 +1404,7 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case ACF_TYP_EMBE_SS:
-            ctx->throt.thall = ctx->ground.idle.throttle_all;
+            ctx->throt.throtall = ctx->ground.idle.throttle_all;
             ctx->otto.conn.cc.name = "SSG/EJET/MCP/AP_COMM";
             ctx->otto.disc.cc.name = "SSG/EJET/MCP/AP_COMM";
             ctx->athr.disc.cc.name = "SSG/EJET/MCP/AT_COMM";
@@ -1401,7 +1419,7 @@ int nvp_chandlers_update(void *inContext)
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             ctx->athr.toga.cc.name = "sim/autopilot/autothrottle_on";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            ctx->throt.thall = ctx->ground.idle.throttle_all;
+            ctx->throt.throtall = ctx->ground.idle.throttle_all;
             break;
 
         case ACF_TYP_MD80_RO:
@@ -1419,13 +1437,13 @@ int nvp_chandlers_update(void *inContext)
             ctx->athr.disc.cc.name = "Rotate/md80/autopilot/at_disc";
             ctx->otto.disc.cc.name = "Rotate/md80/autopilot/ap_disc";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            ctx->throt.thall = ctx->ground.idle.throttle_all;
+            ctx->throt.throtall = ctx->ground.idle.throttle_all;
             break;
 
         case ACF_TYP_B737_FJ:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            ctx->throt.thall = ctx->ground.idle.throttle_all;
+            ctx->throt.throtall = ctx->ground.idle.throttle_all;
             break;
 
         case ACF_TYP_GENERIC:
@@ -1442,7 +1460,7 @@ int nvp_chandlers_update(void *inContext)
             }
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            ctx->throt.thall = ctx->ground.idle.throttle_all;
+            ctx->throt.throtall = ctx->ground.idle.throttle_all;
             break;
         }
 
@@ -2943,18 +2961,39 @@ static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
+static int chandler_mixdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd && inRefcon)
+    {
+        float mix = roundf(30.0f * XPLMGetDataf(inRefcon)) / 30.0f;
+        XPLMSetDataf(inRefcon, mix - 1.0f / 30.0f);
+    }
+    return 0;
+}
+
+static int chandler_rpmdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd && inRefcon)
+    {
+        // maximum precision: 60rpm == (2 * Pi) ~= 6.283 < 7.0f
+        float rpm = 7.0f * roundf(XPLMGetDataf(inRefcon) / 7.0f);
+        XPLMSetDataf(inRefcon, rpm - 7.0f);
+    }
+    return 0;
+}
+
 #define T_ZERO (.0001f)
 static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandEnd)
     {
         refcon_thrust *t = inRefcon;
-        if (t->thall)
+        if (t->throtall)
         {
-            float next, curr = XPLMGetDataf(t->thall);
+            float next, curr = XPLMGetDataf(t->throtall);
             if (0.0f >= curr)
             {
-                XPLMSetDataf(t->thall, 0.0f);
+                XPLMSetDataf(t->throtall, 0.0f);
                 return 0;
             }
             else
@@ -2967,7 +3006,7 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             if (next < 0.0f) next = 0.0f;
             if (next > 1.0f) next = 1.0f;
-            XPLMSetDataf(t->thall, next);
+            XPLMSetDataf(t->throtall, next);
             return 0;
         }
         XPLMCommandOnce(t->thrdn);
@@ -2981,12 +3020,12 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     if (inPhase == xplm_CommandEnd)
     {
         refcon_thrust *t = inRefcon;
-        if (t->thall)
+        if (t->throtall)
         {
-            float next, curr = XPLMGetDataf(t->thall);
+            float next, curr = XPLMGetDataf(t->throtall);
             if (1.0f <= curr)
             {
-                XPLMSetDataf(t->thall, 1.0f);
+                XPLMSetDataf(t->throtall, 1.0f);
                 return 0;
             }
             else
@@ -2999,7 +3038,7 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             if (next < 0.0f) next = 0.0f;
             if (next > 1.0f) next = 1.0f;
-            XPLMSetDataf(t->thall, next);
+            XPLMSetDataf(t->throtall, next);
             return 0;
         }
         XPLMCommandOnce(t->thrup);
@@ -5663,6 +5702,10 @@ static int first_fcall_do(chandler_context *ctx)
     ctx->ground.ovly.show_thr_all = 0.0f;
     ctx->ground.ovly.last_thr_all = 0.0f;
     XPLMRegisterFlightLoopCallback((ctx->ground.flc_g = &gnd_stab_hdlr), 1, &ctx->ground);
+
+    /* mixture and prop pitch command handlers */
+    REGISTER_CHANDLER(ctx->throt.mi, chandler_mixdn, 1, ctx->throt.mixratio);
+    REGISTER_CHANDLER(ctx->throt.rp, chandler_rpmdn, 1, ctx->throt.rpmratio);
 
 #if TIM_ONLY
     /*
