@@ -5155,7 +5155,9 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "thranda/cockpit/actuators/HideYokeR");         // various aircraft
             if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
             {
-                _DO(0, XPLMSetDatai, 0, "simcoders/rep/staticelements/visible");
+                _DO(0, XPLMSetDatai,    0, "simcoders/rep/staticelements/visible");
+                _DO(0, XPLMSetDataf, 1.0f, "simcoders/rep/engine/cowl/handle_ratio_0");
+                _DO(0, XPLMSetDataf, 1.0f, "simcoders/rep/engine/cowl/handle_ratio_1");
             }
             if ((d_ref = XPLMFindDataRef("com/dkmp/WindowRefl")) &&
                 (xplmType_Int & XPLMGetDataRefTypes(d_ref)))
