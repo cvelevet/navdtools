@@ -4345,16 +4345,17 @@ static int first_fcall_do(chandler_context *ctx)
             }
             else
             {
+                if (acf_type_is_engine_running() == 0) // cold & dark
+                {
+                    _DO(1, XPLMSetDatai,1, "AirbusFBW/EnableExternalPower");    // ensure we have ground power
+                    _DO(1, XPLMSetDatai,1, "AirbusFBW/GroundLPAir");            // lo pressure ground air: yes
+                    _DO(1, XPLMSetDatai,0, "AirbusFBW/GroundHPAir");            // hi pressure ground air: off
+                }
                 _DO(1, XPLMSetDatai,    0, "AirbusFBW/ALT100_1000");            // FCU alt. sel. incre. (100ft)
                 _DO(1, XPLMSetDatai,    1, "AirbusFBW/EngineType");             // IAE-2524-A5 w/sharklets+web
                 _DO(1, XPLMSetDatai,    0, "AirbusFBW/StaComObjInhibit");       // IAE-2524-A5 w/sharklets+web
                 _DO(1, XPLMSetDatai,    1, "AirbusFBW/WingtipDeviceType");      // IAE-2524-A5 w/sharklets+web
-                _DO(1, XPLMSetDatai,    1, "AirbusFBW/EnableExternalPower");    // ensure we have ground power
-                _DO(1, XPLMSetDatai,    1, "AirbusFBW/GroundLPAir");            // lo pressure ground air: yes
-                _DO(1, XPLMSetDatai,    0, "AirbusFBW/GroundHPAir");            // hi pressure ground air: off
                 _DO(1, XPLMSetDatai,    1, "params/wheel");                     // use scrollwheel
-                _DO(1, XPLMSetDataf, 0.0f, "params/screenRefLevel");            // reflections off
-                _DO(1, XPLMSetDataf, 0.0f, "params/windowRefLevel");            // reflections off
             }
             if ((d_ref = XPLMFindDataRef("AirbusFBW/DUBrightness")))
             {
