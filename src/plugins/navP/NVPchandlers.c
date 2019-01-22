@@ -2966,7 +2966,10 @@ static int chandler_mixdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     if (inPhase == xplm_CommandEnd && inRefcon)
     {
         float mix = roundf(30.0f * XPLMGetDataf(inRefcon)) / 30.0f;
-        XPLMSetDataf(inRefcon, mix - 1.0f / 30.0f);
+        if   (mix > (1.00f/31.0f))
+        {
+            XPLMSetDataf(inRefcon, mix - (1.00f / 30.0f));
+        }
     }
     return 0;
 }
@@ -2977,7 +2980,10 @@ static int chandler_rpmdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         // maximum precision: 60rpm == (2 * Pi) ~= 6.283 < 7.0f
         float rpm = 7.0f * roundf(XPLMGetDataf(inRefcon) / 7.0f);
-        XPLMSetDataf(inRefcon, rpm - 7.0f);
+        if   (rpm > 6.0f)
+        {
+            XPLMSetDataf(inRefcon, rpm - 7.0f);
+        }
     }
     return 0;
 }
