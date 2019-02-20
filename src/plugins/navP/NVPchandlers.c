@@ -4156,10 +4156,10 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 
         if ((grndp->ovly.check_4icing += inElapsedSinceLastCall) >= 10.0f) // every ten seconds
         {
-            if (XPLMGetDataf(grndp->ovly.ice[0]) > 0.0125f ||
-                XPLMGetDataf(grndp->ovly.ice[1]) > 0.0125f ||
-                XPLMGetDataf(grndp->ovly.ice[2]) > 0.0125f ||
-                XPLMGetDataf(grndp->ovly.ice[3]) > 0.0125f)
+            if (XPLMGetDataf(grndp->ovly.ice[0]) > 0.04f ||
+                XPLMGetDataf(grndp->ovly.ice[1]) > 0.04f ||
+                XPLMGetDataf(grndp->ovly.ice[2]) > 0.04f ||
+                XPLMGetDataf(grndp->ovly.ice[3]) > 0.04f)
             {
                 if (grndp->ovly.ice_detected == 0)
                 {
@@ -4169,10 +4169,10 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                 grndp->ovly.ice_detected = 1;
                 grndp->ovly.thrt_changed = 0;
             }
-            else if (XPLMGetDataf(grndp->ovly.ice[0]) < 0.0025f &&
-                     XPLMGetDataf(grndp->ovly.ice[1]) < 0.0025f &&
-                     XPLMGetDataf(grndp->ovly.ice[2]) < 0.0025f &&
-                     XPLMGetDataf(grndp->ovly.ice[3]) < 0.0025f)
+            else if (XPLMGetDataf(grndp->ovly.ice[0]) < 0.02f &&
+                     XPLMGetDataf(grndp->ovly.ice[1]) < 0.02f &&
+                     XPLMGetDataf(grndp->ovly.ice[2]) < 0.02f &&
+                     XPLMGetDataf(grndp->ovly.ice[3]) < 0.02f)
             {
                 grndp->ovly.ice_detected = 0;
             }
