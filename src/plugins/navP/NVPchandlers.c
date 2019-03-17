@@ -915,7 +915,9 @@ void* nvp_chandlers_init(void)
         !ctx->otto.disc.cb.command ||
         !ctx->athr.disc.cb.command ||
         !ctx->athr.toga.cb.command ||
-        !ctx->otto.clmb.rc.ap_pmod || !ctx->otto.clmb.rc.ap_pclb  || !ctx->otto.clmb.rc.to_pclb)
+        !ctx->otto.clmb.rc.ap_pclb ||
+        !ctx->otto.clmb.rc.to_pclb ||
+        !ctx->otto.clmb.rc.ap_pmod)
     {
         goto fail;
     }
@@ -5284,6 +5286,18 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
             _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+            switch (ctx->info->engine_type1) // engine-specific takeoff pitch
+            {
+                case 4: case 5: // jet
+                    XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 12.5f);
+                    break;
+                case 2: case 8: // turbine
+                    XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 10.0f);
+                    break;
+                default:
+                    XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 07.5f);
+                    break;
+            }
             if (ctx->info->author[0] && ctx->info->descrp[0])
             {
                 if (!STRN_CASECMP_AUTO(ctx->info->author, "Alabeo") ||
