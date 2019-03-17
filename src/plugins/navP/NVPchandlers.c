@@ -5403,8 +5403,8 @@ static int first_fcall_do(chandler_context *ctx)
                     }
                 }
             }
-            if (XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("com.simcoders.rep") &&
-                0 == acf_type_is_engine_running() && 0 == skview)
+            if (acf_type_is_engine_running() == 0 && skview == 0 &&
+                XPLMFindPluginBySignature("com.simcoders.rep") == XPLM_NO_PLUGIN_ID)
             {
                 float load = 100.0f; acf_type_load_set(ctx->info, &load);
             }
