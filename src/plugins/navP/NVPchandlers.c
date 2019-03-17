@@ -2998,7 +2998,7 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         refcon_thrust *t = inRefcon;
         if (t->throtall)
         {
-            float next, curr = XPLMGetDataf(t->throtall);
+            float next, curr = XPLMGetDataf(t->throtall), fact = 20.0f, step = 0.05f;
             if (0.0f >= curr)
             {
                 XPLMSetDataf(t->throtall, 0.0f);
@@ -3006,11 +3006,16 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             else
             {
-                next = roundf(curr * 20.0f) * 0.05f;
+                if (curr < 0.251f) // increased precision when closer to idle
+                {
+                    fact = 40.00f;
+                    step = 0.025f;
+                }
+                next = roundf(curr / fact) * step;
             }
             if ((0.00f - T_ZERO) < (next - curr))
             {
-                next -= 0.05f;
+                next -= step;
             }
             if (next < 0.0f) next = 0.0f;
             if (next > 1.0f) next = 1.0f;
@@ -5688,7 +5693,7 @@ static int first_fcall_do(chandler_context *ctx)
                 if (!STRN_CASECMP_AUTO(ctx->info->descrp, "The Eclipse 550"))
                 {
 //                  ctx->ground.idle.r_taxi   = 0.23875f; // ~50.0% N1 @ NTD
-                    ctx->ground.idle.r_taxi   = 0.25000f;
+                    ctx->ground.idle.r_taxi   =1.0f/3.0f; // quicker spoolup
                     ctx->ground.idle.minimums = 1; break;
                 }
                 break;
