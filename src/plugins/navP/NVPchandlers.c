@@ -3011,7 +3011,7 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     fact = 40.00f;
                     step = 0.025f;
                 }
-                next = roundf(curr / fact) * step;
+                next = roundf(curr * fact) * step;
             }
             if ((0.00f - T_ZERO) < (next - curr))
             {
