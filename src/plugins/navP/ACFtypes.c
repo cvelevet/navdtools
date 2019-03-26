@@ -566,6 +566,14 @@ acf_info_context* acf_type_info_update()
         snprintf(global_info->icaoid, sizeof(global_info->icaoid), "%s", new_icao);
         uf_dref_string_wrte(global_info->dric, new_icao, sizeof(new_icao));
     }
+    else // personal hack(s)
+    {
+        if (strncmp(global_info->icaoid, "EA51", 4) == 0)
+        {
+            snprintf(global_info->icaoid, 5, "%s", "EA50");
+            uf_dref_string_wrte(global_info->dric, "PRM1", 6);
+        }
+    }
 
     global_info->up_to_date = 1; return global_info;
 }
