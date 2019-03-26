@@ -5365,11 +5365,14 @@ static int first_fcall_do(chandler_context *ctx)
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/EFIS/EFIS_tcas_on");
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/ice/ice_detect_on");
                     }
-                    if (!STRN_CASECMP_AUTO(ctx->info->descrp, "The Eclipse 550"))
+                    if (!strcasecmp(ctx->info->icaoid, "EA50"))
                     {
+                        if (!STRN_CASECMP_AUTO(ctx->info->descrp, "The Eclipse 550"))
+                        {
+                            _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
+                            _DO(0, XPLMSetDataf, 150.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+                        }
                         skview = 1;
-                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
-                        _DO(0, XPLMSetDataf, 150.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
                         _DO(0, XPLMSetDatai,      1, "sim/cockpit2/ice/ice_pitot_heat_on_copilot");
                         _DO(0, XPLMSetDatai,      1, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
