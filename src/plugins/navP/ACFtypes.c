@@ -573,6 +573,11 @@ acf_info_context* acf_type_info_update()
             snprintf(global_info->icaoid, 5, "%s", "EA50");
             uf_dref_string_wrte(global_info->dric, "PRM1", 6);
         }
+        if (strncmp(global_info->icaoid, "EA52", 4) == 0)
+        {
+            snprintf(global_info->icaoid, 5, "%s", "EA50");
+            uf_dref_string_wrte(global_info->dric, "C25M", 6);
+        }
     }
 
     global_info->up_to_date = 1; return global_info;
