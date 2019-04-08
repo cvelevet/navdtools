@@ -105,10 +105,12 @@ static double get_com_frequency(const char *string)
     }
     {
         /*
-         * For com. radios, the "tick" is 8.33 kHz. For frequencies that don't
+         * For com. radios, the "tick" is 25.0 kHz. For frequencies that don't
          * divide cleanly by our tick, always use the next (i.e. higher) tick.
+         *
+         * 8.33 kHz is more complex and will be implemented at a later date.
          */
-        freq = ceil(freq * 120. + YVP_CEIL_DBL) / 120.;
+        freq = ceil(freq * 40. + YVP_CEIL_DBL) / 40.;
     }
     if (freq + YVP_FLOORDBL <= 118.000 || freq + YVP_CEIL_DBL >= 136.999) // valid range 118.* -> 136.* Mhz
     {
