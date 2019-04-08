@@ -3527,16 +3527,11 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             continue;
                         }
                     }
-                    if (NULL == (cdu->command[0] = XPLMFindCommand("xap/panels/tim314/0")) ||
-                        NULL == (cdu->command[1] = XPLMFindCommand("xap/panels/tim314/5")) ||
-                        NULL == (cdu->command[2] = XPLMFindCommand("xap/panels/tim314/6")))
+                    if (NULL == (cdu->command[0] = XPLMFindCommand("xap/panels/0")) ||
+                        NULL == (cdu->command[1] = XPLMFindCommand("xap/panels/5")) ||
+                        NULL == (cdu->command[2] = XPLMFindCommand("xap/panels/6")))
                     {
-                        if (NULL == (cdu->command[0] = XPLMFindCommand("xap/panels/0")) ||
-                            NULL == (cdu->command[1] = XPLMFindCommand("xap/panels/5")) ||
-                            NULL == (cdu->command[2] = XPLMFindCommand("xap/panels/6")))
-                        {
-                            cdu->i_disabled = 1; break; // check for YFMS presence
-                        }
+                        cdu->i_disabled = 1; break; // check for YFMS presence
                     }
                     cdu->i_disabled = 0; return 0; // here first from turnaround
                 }
@@ -5056,30 +5051,27 @@ static int first_fcall_do(chandler_context *ctx)
             }
             _DO(1, XPLMSetDatai, 0, "Hawker4000/hideshow/car");
             _DO(1, XPLMSetDatai, 1, "Hawker4000/yoke/hide_show");
-            _DO(1, XPLMSetDatai, 1, "Hawker4000/bleed/l_bleed_b");
-            _DO(1, XPLMSetDatai, 1, "Hawker4000/bleed/r_bleed_b");
             _DO(1, XPLMSetDatai, 0, "Hawker4000/pref/wingflex_b");
             _DO(1, XPLMSetDatai, 0, "Hawker4000/pref/map_detail_b");
             _DO(1, XPLMSetDatai, 0, "Hawker4000/hideshow/chockscones");
             _DO(1, XPLMSetDatai, 0, "Hawker4000/hideshow/engine_cover");
-            _DO(1, XPLMSetDatai, 1, "Hawker4000/gear/anti_skid_button");
-            _DO(1, XPLMSetDatai, 1, "Hawker4000/pilot/elec/l_gen_button");
-            _DO(1, XPLMSetDatai, 1, "Hawker4000/pilot/elec/r_gen_button");
-//          _DO(1, XPLMSetDatai, 3, "Hawker4000/pilot/pilot_BRG_1_CYCLE");      // unwritable
-//          _DO(1, XPLMSetDatai, 0, "Hawker4000/pilot/pilot_BRG_2_CYCLE");      // unwritable
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/avionics/pilot/EFIS_range");
+            _DO(1, XPLMSetDatai, 0, "Hawker4000/avionics/pilot/EFIS_fix_on");
+            _DO(1, XPLMSetDatai, 2, "Hawker4000/avionics/copilot/EFIS_range");
+            _DO(1, XPLMSetDatai, 0, "Hawker4000/avionics/copilot/EFIS_fix_on");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/avionics/pilot/EFIS_navaid_on");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/avionics/pilot/EFIS_airport_on");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/avionics/copilot/EFIS_navaid_on");
+            _DO(1, XPLMSetDatai, 1, "Hawker4000/avionics/copilot/EFIS_airport_on");
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
-            _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
             if (acf_type_is_engine_running() == 0)
             {
                 float load = 250.0f, fuel = 1587.5f;
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
             }
+            XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 8.25f); // initial CLB pitch
             break;
 
         case ACF_TYP_SSJ1_RZ:
@@ -5630,16 +5622,6 @@ static int first_fcall_do(chandler_context *ctx)
             }
             ndt_log("navP [warning]: couldn't obtain engine type data reference for FF777\n");
             break;
-
-        case ACF_TYP_EMBE_XC:
-//          ctx->ground.idle.r_taxi   = 0.09100f; // ~33.3% N1 @ NTD
-            ctx->ground.idle.r_taxi   = 0.10000f;
-            ctx->ground.idle.minimums = 1; break;
-
-        case ACF_TYP_HA4T_RW:
-//          ctx->ground.idle.r_taxi   = 0.16666f; // ~35.7% N1 @ NTD
-            ctx->ground.idle.r_taxi   = 0.20000f;
-            ctx->ground.idle.minimums = 1; break;
 
         default:
         {
