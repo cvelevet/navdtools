@@ -1037,12 +1037,17 @@ static void toggle_main_window(yfms_context *yfms)
              */
             if (yfms->xpl.tekt.cl3_fms_selector)
             {
-                yfms->xpl.otto.vmax_auto = 1;
-                yfms->xpl.otto.vmax_kias = 295; // Vmo: 320 KIAS
-                yfms->xpl.otto.vmax_mach = 820; // Mmo: .83 MACH
-                yfms->xpl.otto.flt_vmo = 29482.35074f; // FL/Vmo
-                ndt_log("YFMS [info]: vmax_auto enabled (%d, .%03d)\n",
-                        yfms->xpl.otto.vmax_kias, yfms->xpl.otto.vmax_mach);
+//              yfms->xpl.otto.vmax_auto = 1;
+//              yfms->xpl.otto.vmax_kias = 295; // Vmo: 320 KIAS
+//              yfms->xpl.otto.vmax_mach = 820; // Mmo: .83 MACH
+//              yfms->xpl.otto.flt_vmo = 29482.35074f; // FL/Vmo
+//              ndt_log("YFMS [info]: vmax_auto enabled (0.%03d, %d)\n",
+//                      yfms->xpl.otto.vmax_mach, yfms->xpl.otto.vmax_kias);
+                yfms->xpl.otto.vclb_vdes = 1;
+                yfms->xpl.otto.vclb_mach = 720;
+                yfms->xpl.otto.vdes_kias = 280;
+                ndt_log("YFMS [info]: vclb_vdes enabled (0.%03d, %d)\n",
+                        yfms->xpl.otto.vclb_mach, yfms->xpl.otto.vdes_kias);
                 yfms->xpl.atyp = YFS_ATYP_XPLN; break;
             }
             if (yfms->xpl.tekt.CruiseSpeed_Mach &&
@@ -1050,23 +1055,33 @@ static void toggle_main_window(yfms_context *yfms)
             {
                 if (yfms->xpl.tekt.HA4T_shared_KIAS)
                 {
-                    yfms->xpl.otto.vmax_auto = 1;
-                    yfms->xpl.otto.vmax_kias = 325; // Vmo: 350 KIAS
-                    yfms->xpl.otto.vmax_mach = 830; // Mmo: .84 MACH
-                    yfms->xpl.otto.flt_vmo = 25839.22806f; // FL/Vmo
-                    ndt_log("YFMS [info]: vmax_auto enabled (%d, .%03d)\n",
-                            yfms->xpl.otto.vmax_kias, yfms->xpl.otto.vmax_mach);
+//                  yfms->xpl.otto.vmax_auto = 1;
+//                  yfms->xpl.otto.vmax_kias = 325; // Vmo: 350 KIAS
+//                  yfms->xpl.otto.vmax_mach = 830; // Mmo: .84 MACH
+//                  yfms->xpl.otto.flt_vmo = 25839.22806f; // FL/Vmo
+//                  ndt_log("YFMS [info]: vmax_auto enabled (%d, .%03d)\n",
+//                          yfms->xpl.otto.vmax_kias, yfms->xpl.otto.vmax_mach);
+                    yfms->xpl.otto.vclb_vdes = 1;
+                    yfms->xpl.otto.vclb_mach = 700;
+                    yfms->xpl.otto.vdes_kias = 300;
+                    ndt_log("YFMS [info]: vclb_vdes enabled (0.%03d, %d)\n",
+                            yfms->xpl.otto.vclb_mach, yfms->xpl.otto.vdes_kias);
                     yfms->xpl.atyp = YFS_ATYP_XPLN; break;
                 }
                 if (yfms->xpl.tekt.E175_mouse_x_pos ||
                     yfms->xpl.tekt.E195_mouse_x_pos)
                 {
-                    yfms->xpl.otto.vmax_auto = 1;
-                    yfms->xpl.otto.vmax_kias = 295; // Vmo: 320 KIAS
-                    yfms->xpl.otto.vmax_mach = 810; // Mmo: .82 MACH
-                    yfms->xpl.otto.flt_vmo = 28858.06702f; // FL/Vmo
-                    ndt_log("YFMS [info]: vmax_auto enabled (%d, .%03d)\n",
-                            yfms->xpl.otto.vmax_kias, yfms->xpl.otto.vmax_mach);
+//                  yfms->xpl.otto.vmax_auto = 1;
+//                  yfms->xpl.otto.vmax_kias = 295; // Vmo: 320 KIAS
+//                  yfms->xpl.otto.vmax_mach = 810; // Mmo: .82 MACH
+//                  yfms->xpl.otto.flt_vmo = 28858.06702f; // FL/Vmo
+//                  ndt_log("YFMS [info]: vmax_auto enabled (0.%03d, %d)\n",
+//                          yfms->xpl.otto.vmax_mach, yfms->xpl.otto.vmax_kias);
+                    yfms->xpl.otto.vclb_vdes = 1;
+                    yfms->xpl.otto.vclb_mach = 720;
+                    yfms->xpl.otto.vdes_kias = 280;
+                    ndt_log("YFMS [info]: vclb_vdes enabled (0.%03d, %d)\n",
+                            yfms->xpl.otto.vclb_mach, yfms->xpl.otto.vdes_kias);
                     yfms->xpl.atyp = YFS_ATYP_XPLN; break;
                 }
             }

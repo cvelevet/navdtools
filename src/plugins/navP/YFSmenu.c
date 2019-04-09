@@ -81,7 +81,8 @@ void yfs_menu_resetall(yfms_context *yfms)
 
     /* always reset aircraft type (and associated automatic features) */
     yfms->xpl.has_custom_nav_radios = yfms->xpl.has_custom_navigation = 0;
-    yfms->xpl.otto.vmax_auto = yfms->xpl.otto.vmax_flch = 0;
+    yfms->xpl.otto.vclb_vdes = yfms->xpl.otto.vmax_auto = 0;
+    yfms->xpl.otto.vswitched = yfms->xpl.otto.vmax_flch = 0;
     yfms->xpl.atyp = YFS_ATYP_NSET;
 
     /* callbacks for page-specific keys */
@@ -395,7 +396,9 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     yfs_curr_pageupdt(yfms);
 
     /* skip some computations when we're in the "done" flight phase */
-    if (yfms->data.phase <= FMGS_PHASE_END)
+    if (yfms->data.phase <= FMGS_PHASE_END &&
+        yfms->xpl.otto.vclb_vdes == 0 &&
+        yfms->xpl.otto.vmax_auto == 0)
     {
         return DEFAULT_CALLBACK_RATE;
     }
@@ -410,7 +413,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     switch (yfms->data.phase)
     {
         case FMGS_PHASE_END:
-            break;
+            goto vclb_vdes_vmax_auto;
         case FMGS_PHASE_PRE:
             if (crzfeet > 1000)
             {
@@ -495,11 +498,68 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     }
     // TODO: NEW CRZ ALT (may happen during either of CLB/CRZ), re-enter CLB if required
 
+vclb_vdes_vmax_auto:
     /* autopilot-related functions */
+    if (yfms->xpl.otto.vclb_vdes)
+    {
+        if (vvi_fpm < -500)
+        {
+            if (yfms->xpl.otto.vswitched >= 00)
+            {
+                yfms->xpl.otto.vswitched  = -1;
+            }
+            if (yfms->xpl.otto.vswitched == -1) // only switch once per descent
+            {
+                if (XPLMGetDatai(yfms->xpl.airspeed_is_mach) != 0)
+                {
+                    if (XPLMGetDataf(yfms->xpl.airspeed_kts_pilot) >= (float)(yfms->xpl.otto.vdes_kias))
+                    {
+                        // passing DES KIAS descending, switch A/T target to KIAS
+                        yfms->xpl.otto.vswitched = -2; XPLMCommandOnce(yfms->xpl.knots_mach_toggle);
+                        XPLMSetDataf(yfms->xpl.airspeed_dial_kts_mach, (float)yfms->xpl.otto.vdes_kias);
+                    }
+                }
+            }
+            if (yfms->xpl.otto.vswitched >= -2) // 10,000ft limit transition
+            {
+                if (10600 >= mslfeet) // 10,500ft + 1s @ 6,000ft/min descent
+                {
+                    if (XPLMGetDatai(yfms->xpl.airspeed_is_mach) != 0)
+                    {
+                        XPLMCommandOnce(yfms->xpl.knots_mach_toggle);
+                    }
+                    if (XPLMGetDataf(yfms->xpl.airspeed_dial_kts_mach) > 250.0f)
+                    {
+                        XPLMSetDataf(yfms->xpl.airspeed_dial_kts_mach, 250.0f);
+                    }
+                    yfms->xpl.otto.vswitched = -3;
+                }
+            }
+        }
+        if (vvi_fpm > +500)
+        {
+            if (yfms->xpl.otto.vswitched <= 00)
+            {
+                yfms->xpl.otto.vswitched  = +1;
+            }
+            if (yfms->xpl.otto.vswitched == +1) // only switch once per climb
+            {
+                if (XPLMGetDatai(yfms->xpl.airspeed_is_mach) == 0)
+                {
+                    if (XPLMGetDataf(yfms->xpl.machno) >= (float)(yfms->xpl.otto.vclb_mach / 1000.0f))
+                    {
+                        // passing CLB Mach climbing, switch A/T target to Mach
+                        yfms->xpl.otto.vswitched = +2; XPLMCommandOnce(yfms->xpl.knots_mach_toggle);
+                        XPLMSetDataf(yfms->xpl.airspeed_dial_kts_mach, (float)yfms->xpl.otto.vclb_mach / 1000.0f);
+                    }
+                }
+            }
+        }
+    }
     if (yfms->xpl.otto.vmax_auto)
     {
         int airspeed_is_mach = XPLMGetDatai(yfms->xpl.airspeed_is_mach);
-        if (vvi_fpm < -750 && airspeed_is_mach != 0) // Mach Number Descent
+        if (vvi_fpm < -500 && airspeed_is_mach != 0) // Mach Number Descent
         {
             if (yfms->xpl.otto.vmax_flch >= 00)
             {
@@ -509,17 +569,14 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                 yfms->xpl.otto.flt_vmo > (float)mslfeet)
             {
                 // passed FL/Vmo descending, switch A/T target to KIAS
-                {
-                    yfms->xpl.otto.vmax_flch = -2;
-                    XPLMCommandOnce(yfms->xpl.knots_mach_toggle);
-                }
+                yfms->xpl.otto.vmax_flch = -2; XPLMCommandOnce(yfms->xpl.knots_mach_toggle);
                 if (yfms->xpl.otto.vmax_kias <= (int)(XPLMGetDataf(yfms->xpl.airspeed_dial_kts_mach)))
                 {
                     XPLMSetDataf(yfms->xpl.airspeed_dial_kts_mach, (float)yfms->xpl.otto.vmax_kias);
                 }
             }
         }
-        if (vvi_fpm > +750 && airspeed_is_mach == 0) // Indicated KTS Climb
+        if (vvi_fpm > +500 && airspeed_is_mach == 0) // Indicated KTS Climb
         {
             if (yfms->xpl.otto.vmax_flch <= 00)
             {
@@ -529,10 +586,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                 yfms->xpl.otto.flt_vmo < (float)mslfeet)
             {
                 // passed FL/Vmo climbing, switch A/T target to Mach
-                {
-                    yfms->xpl.otto.vmax_flch = +2;
-                    XPLMCommandOnce(yfms->xpl.knots_mach_toggle);
-                }
+                yfms->xpl.otto.vmax_flch = +2; XPLMCommandOnce(yfms->xpl.knots_mach_toggle);
                 if (yfms->xpl.otto.vmax_mach <= (int)(XPLMGetDataf(yfms->xpl.airspeed_dial_kts_mach) * 1000))
                 {
                     XPLMSetDataf(yfms->xpl.airspeed_dial_kts_mach, (float)yfms->xpl.otto.vmax_mach / 1000.0f);

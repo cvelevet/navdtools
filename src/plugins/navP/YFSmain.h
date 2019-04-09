@@ -609,11 +609,15 @@ typedef struct
         asrt;
         struct
         {
+            int vmax_flch; // IAS/Mach switch: crossover altitude
             int vmax_auto;
-            int vmax_flch;
             int vmax_kias;
             int vmax_mach;
             float flt_vmo;
+            int vswitched; // IAS/Mach switch: predefined speeds
+            int vclb_vdes;
+            int vclb_mach;
+            int vdes_kias;
         }
         otto;
         struct
