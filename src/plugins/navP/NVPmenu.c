@@ -1105,8 +1105,8 @@ static void wb_handler(menu_context *ctx)
             XPShowWidget(ctx->data.refuel_dialg.p_txtf_id);
             ctx->data.refuel_dialg.payload_is_zfw = 1;
             break;
-        default: // 50,000 lbs, should filter out even larger bizjets
-            ctx->data.refuel_dialg.payload_is_zfw = (oewt >= 22679.5f);
+        default: // 7,000kg: aircraft *starting* above ICAO category "L" are ZFW
+            ctx->data.refuel_dialg.payload_is_zfw = (7000.0f < oewt);
             XPShowWidget(ctx->data.refuel_dialg.f_txtl_id);
             XPShowWidget(ctx->data.refuel_dialg.f_txtf_id);
             XPShowWidget(ctx->data.refuel_dialg.p_txtl_id);

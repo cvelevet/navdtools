@@ -211,6 +211,7 @@ typedef struct
     XPLMDataRef ap_pmod;
     XPLMDataRef ap_pclb;
     XPLMDataRef to_pclb;
+    XPLMDataRef ap_arry;
 } refcon_app;
 
 typedef struct
@@ -491,7 +492,7 @@ static const char* _flap_names_CSNA[10] = {    "up",    "10",    "20", "full",  
 static const char* _flap_names_DC10[10] = {    "up",     "5",    "15",   "25",   "30",   "35",   "40",   NULL,   NULL,   NULL, };
 static const char* _flap_names_EMB1[10] = {    "up",     "9",    "18",   "22",   "45",   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_EMB2[10] = {    "up",     "1",     "2",    "3",    "4",    "5", "full",   NULL,   NULL,   NULL, };
-static const char* _flap_names_FA7X[10] = {    "up",     "1",     "2", "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_FA7X[10] = {    "up",     "1",     "2",    "3",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_HA4T[10] = {    "up",    "12",    "20",   "35",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_MD80[10] = {    "up",     "0",     "5",   "11",   "15",   "28",   "40",   NULL,   NULL,   NULL, };
 static const char* _flap_names_PC12[10] = {    "up",    "15",    "30",   "40",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
@@ -1220,6 +1221,7 @@ int nvp_chandlers_reset(void *inContext)
     ctx->bking.rc_brk.rg.name = NULL;
     ctx->bking.rc_brk.mx.name = NULL;
     ctx->bking.rc_brk.ro.name = NULL;
+    ctx->otto.clmb.rc.ap_arry = NULL;
 
     /* Reset some datarefs to match X-Plane's defaults at startup */
     _DO(1, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com1_power");
@@ -3066,6 +3068,12 @@ static int chandler_apclb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         if (XPLMGetDatai(((refcon_app*)inRefcon)->ap_pmod) > 0)
         {
+            if (((refcon_app*)inRefcon)->ap_arry)
+            {
+                float  value = XPLMGetDataf(((refcon_app*)inRefcon)->to_pclb);
+                XPLMSetDatavf(((refcon_app*)inRefcon)->ap_arry, &value, 0, 1);
+                return 0;
+            }
             XPLMSetDataf(((refcon_app*)inRefcon)->ap_pclb, XPLMGetDataf(((refcon_app*)inRefcon)->to_pclb));
             return 0;
         }
@@ -3338,7 +3346,8 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     flap_callout_setst(_flap_names_DC10, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
-                if (!strcasecmp(ctx->info->icaoid, "FA7X"))
+                if (!strcasecmp(ctx->info->icaoid, "FA7X") ||
+                    !strcasecmp(ctx->info->icaoid, "FA8X"))
                 {
                     flap_callout_setst(_flap_names_FA7X, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
@@ -5271,18 +5280,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "cl300/fms/alt_rep");
             _DO(0, XPLMSetDatai, 1, "cl300/hide_pilots");
             // datarefs: X-Plane default
-            _DO(0,XPLMSetDataf,0.8f,"sim/cockpit/electrical/instrument_brightness"); // set all at once
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
-            _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+            _DO(0, XPLMSetDataf, 0.8f, "sim/cockpit/electrical/instrument_brightness"); // set all at once
             switch (ctx->info->engine_type1) // engine-specific takeoff pitch
             {
                 case 4: case 5: // jet
@@ -5297,6 +5295,18 @@ static int first_fcall_do(chandler_context *ctx)
             }
             if (ctx->info->author[0] && ctx->info->descrp[0])
             {
+                if (!STRN_CASECMP_AUTO(ctx->info->author, "After"))
+                {
+                    if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "FA7X"))
+                    {
+                        if ((d_ref = XPLMFindDataRef("sim/weapons/targ_h")))
+                        {
+                            float value = ((0.0f + 0.0285f) / 0.5011f);
+                            XPLMSetDatavf((ctx->otto.clmb.rc.ap_arry = d_ref), &value, 0, 1);
+                            XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, ((7.0f + 0.0285f) / 0.5011f));
+                        }
+                    }
+                }
                 if (!STRN_CASECMP_AUTO(ctx->info->author, "Alabeo") ||
                     !STRN_CASECMP_AUTO(ctx->info->author, "Carenado"))
                 {
@@ -5375,6 +5385,17 @@ static int first_fcall_do(chandler_context *ctx)
             }
             if (skview == 0) // don't mess w/Aerobask's WXR radar
             {
+                _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
+                _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
+                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");
+                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");
+                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");
+                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");
+                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
+                _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
+                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
+                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
+                _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
                 _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
             }
             if (ctx->revrs.n_engines == 1) // single-engine: select default fuel tank
