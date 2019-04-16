@@ -535,7 +535,8 @@ acf_info_context* acf_type_info_update()
                 sprintf(new_icao, "%.4s", "EVIC");
                 break;
             }
-            if (!STRN_CASECMP_AUTO(global_info->author, "After") && !strnlen(global_info->descrp, 1))
+            if (!STRN_CASECMP_AUTO(global_info->author, "After") &&
+                !STRN_CASECMP_AUTO(global_info->icaoid, "1945"))
             {
                 sprintf(new_icao, "%.4s", "FA7X");
                 break;
