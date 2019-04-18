@@ -5080,7 +5080,7 @@ static int first_fcall_do(chandler_context *ctx)
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
             }
-            XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 8.25f); // initial CLB pitch
+            XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 8.5f); // initial CLB pitch
             break;
 
         case ACF_TYP_SSJ1_RZ:
@@ -5284,13 +5284,13 @@ static int first_fcall_do(chandler_context *ctx)
             switch (ctx->info->engine_type1) // engine-specific takeoff pitch
             {
                 case 4: case 5: // jet
-                    XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 12.5f);
-                    break;
-                case 2: case 8: // turbine
                     XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 10.0f);
                     break;
+                case 2: case 8: // turbine
+                    XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 8.5f);
+                    break;
                 default:
-                    XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 07.5f);
+                    XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 7.0f);
                     break;
             }
             if (ctx->info->author[0] && ctx->info->descrp[0])
@@ -5441,7 +5441,7 @@ static int first_fcall_do(chandler_context *ctx)
             if (acf_type_is_engine_running() == 0 && skview == 0 &&
                 XPLMFindPluginBySignature("com.simcoders.rep") == XPLM_NO_PLUGIN_ID)
             {
-                float load = 100.0f; acf_type_load_set(ctx->info, &load);
+                float load = 77.0f; acf_type_load_set(ctx->info, &load); //pilot
             }
             break;
 
