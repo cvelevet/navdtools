@@ -68,9 +68,9 @@ typedef struct
     enum
     {
         MENUITEM_NOTHING_TODO,
-        MENUITEM_WEATHR_SM_IC,
-        MENUITEM_WEATHR_REALW,
-        MENUITEM_WEATHR_CAVOK,
+//      MENUITEM_WEATHR_SM_IC,
+//      MENUITEM_WEATHR_REALW,
+//      MENUITEM_WEATHR_CAVOK,
         MENUITEM_VOLUME_SM_IC,
         MENUITEM_VOLUME_PRST0,
         MENUITEM_VOLUME_PRST1,
@@ -108,13 +108,13 @@ typedef struct
 
     struct
     {
-        struct
-        {
-            XPLMMenuID      sm_id;
-            item_context    sm_ic;
-            item_context    realw;
-            item_context    cavok;
-        } weathr;
+//      struct
+//      {
+//          XPLMMenuID      sm_id;
+//          item_context    sm_ic;
+//          item_context    realw;
+//          item_context    cavok;
+//      } weathr;
         struct
         {
             XPLMMenuID      sm_id;
@@ -343,71 +343,71 @@ void* nvp_menu_init(void)
         goto fail;
     }
 
-    /* weather sub-menu & its items */
-    /* TODO: disable when/if any of NOAA, xEnviro or X-Plane 11 is present */
-    if (append_menu_item("Weather", &ctx->items.weathr.sm_ic,
-                         MENUITEM_WEATHR_SM_IC, ctx->id))
-    {
-        goto fail;
-    }
-    else
-    {
-        XPLMAppendMenuSeparator(ctx->id);
-    }
-    if (create_menu("Weather",     ctx,    &ctx->items.weathr.sm_id,
-                    &menu_handler, ctx->id, ctx->items.weathr.sm_ic.id))
-    {
-        goto fail;
-    }
-    struct
-    {
-        const char *name;
-        int item_mivalue;
-        item_context *cx;
-    }
-    weathr_items[] =
-    {
-        { "X-Plane Real Weather", MENUITEM_WEATHR_REALW, &ctx->items.weathr.realw, },
-        { "Custom (CAVOK-ish)"  , MENUITEM_WEATHR_CAVOK, &ctx->items.weathr.cavok, },
-        {                   NULL,                     0,                     NULL, },
-    };
-    for (int i = 0; weathr_items[i].name; i++)
-    {
-        if (append_menu_item(weathr_items[i].name,
-                             weathr_items[i].cx,
-                             weathr_items[i].item_mivalue,
-                             ctx->items.weathr.sm_id))
-        {
-            goto fail;
-        }
-    }
-    if ((ctx->data.weather.weather_rg = XPLMFindCommand("sim/operation/regen_weather"    )) == NULL ||
-        (ctx->data.weather.weather_ld = XPLMFindCommand("sim/operation/load_real_weather")) == NULL)
-    {
-        goto fail;
-    }
-    if (get_dataref(&ctx->data.weather.real_use_bool, "sim/weather/use_real_weather_bool"   ) ||
-        get_dataref(&ctx->data.weather.real_download, "sim/weather/download_real_weather"   ) ||
-        get_dataref(&ctx->data.weather.cloud_type_00, "sim/weather/cloud_type[0]"           ) ||
-        get_dataref(&ctx->data.weather.cloud_type_01, "sim/weather/cloud_type[1]"           ) ||
-        get_dataref(&ctx->data.weather.cloud_type_02, "sim/weather/cloud_type[2]"           ) ||
-        get_dataref(&ctx->data.weather.visibility_me, "sim/weather/visibility_reported_m"   ) ||
-        get_dataref(&ctx->data.weather.precp_percent, "sim/weather/rain_percent"            ) ||
-        get_dataref(&ctx->data.weather.thndr_percent, "sim/weather/thunderstorm_percent"    ) ||
-        get_dataref(&ctx->data.weather.turbl_percent, "sim/weather/wind_turbulence_percent" ) ||
-        get_dataref(&ctx->data.weather.runway_frictn, "sim/weather/runway_friction"         ) ||
-        get_dataref(&ctx->data.weather.turbulence[0], "sim/weather/turbulence[0]"           ) ||
-        get_dataref(&ctx->data.weather.turbulence[1], "sim/weather/turbulence[1]"           ) ||
-        get_dataref(&ctx->data.weather.turbulence[1], "sim/weather/turbulence[2]"           ) ||
-        get_dataref(&ctx->data.weather.windspd[0][0], "sim/weather/wind_speed_kt[0]"        ) ||
-        get_dataref(&ctx->data.weather.windspd[1][0], "sim/weather/wind_speed_kt[1]"        ) ||
-        get_dataref(&ctx->data.weather.windspd[2][0], "sim/weather/wind_speed_kt[2]"        ) ||
-        get_dataref(&ctx->data.weather.windspd[0][1], "sim/weather/shear_speed_kt[0]"       ) ||
-        get_dataref(&ctx->data.weather.windspd[1][1], "sim/weather/shear_speed_kt[1]"       ) ||
-        get_dataref(&ctx->data.weather.windspd[2][1], "sim/weather/shear_speed_kt[2]"       ))
-    {
-        goto fail;
-    }
+//  /* weather sub-menu & its items */
+//  /* TODO: disable when/if any of NOAA, xEnviro or X-Plane 11 is present */
+//  if (append_menu_item("Weather", &ctx->items.weathr.sm_ic,
+//                       MENUITEM_WEATHR_SM_IC, ctx->id))
+//  {
+//      goto fail;
+//  }
+//  else
+//  {
+//      XPLMAppendMenuSeparator(ctx->id);
+//  }
+//  if (create_menu("Weather",     ctx,    &ctx->items.weathr.sm_id,
+//                  &menu_handler, ctx->id, ctx->items.weathr.sm_ic.id))
+//  {
+//      goto fail;
+//  }
+//  struct
+//  {
+//      const char *name;
+//      int item_mivalue;
+//      item_context *cx;
+//  }
+//  weathr_items[] =
+//  {
+//      { "X-Plane Real Weather", MENUITEM_WEATHR_REALW, &ctx->items.weathr.realw, },
+//      { "Custom (CAVOK-ish)"  , MENUITEM_WEATHR_CAVOK, &ctx->items.weathr.cavok, },
+//      {                   NULL,                     0,                     NULL, },
+//  };
+//  for (int i = 0; weathr_items[i].name; i++)
+//  {
+//      if (append_menu_item(weathr_items[i].name,
+//                           weathr_items[i].cx,
+//                           weathr_items[i].item_mivalue,
+//                           ctx->items.weathr.sm_id))
+//      {
+//          goto fail;
+//      }
+//  }
+//  if ((ctx->data.weather.weather_rg = XPLMFindCommand("sim/operation/regen_weather"    )) == NULL ||
+//      (ctx->data.weather.weather_ld = XPLMFindCommand("sim/operation/load_real_weather")) == NULL)
+//  {
+//      goto fail;
+//  }
+//  if (get_dataref(&ctx->data.weather.real_use_bool, "sim/weather/use_real_weather_bool"   ) ||
+//      get_dataref(&ctx->data.weather.real_download, "sim/weather/download_real_weather"   ) ||
+//      get_dataref(&ctx->data.weather.cloud_type_00, "sim/weather/cloud_type[0]"           ) ||
+//      get_dataref(&ctx->data.weather.cloud_type_01, "sim/weather/cloud_type[1]"           ) ||
+//      get_dataref(&ctx->data.weather.cloud_type_02, "sim/weather/cloud_type[2]"           ) ||
+//      get_dataref(&ctx->data.weather.visibility_me, "sim/weather/visibility_reported_m"   ) ||
+//      get_dataref(&ctx->data.weather.precp_percent, "sim/weather/rain_percent"            ) ||
+//      get_dataref(&ctx->data.weather.thndr_percent, "sim/weather/thunderstorm_percent"    ) ||
+//      get_dataref(&ctx->data.weather.turbl_percent, "sim/weather/wind_turbulence_percent" ) ||
+//      get_dataref(&ctx->data.weather.runway_frictn, "sim/weather/runway_friction"         ) ||
+//      get_dataref(&ctx->data.weather.turbulence[0], "sim/weather/turbulence[0]"           ) ||
+//      get_dataref(&ctx->data.weather.turbulence[1], "sim/weather/turbulence[1]"           ) ||
+//      get_dataref(&ctx->data.weather.turbulence[1], "sim/weather/turbulence[2]"           ) ||
+//      get_dataref(&ctx->data.weather.windspd[0][0], "sim/weather/wind_speed_kt[0]"        ) ||
+//      get_dataref(&ctx->data.weather.windspd[1][0], "sim/weather/wind_speed_kt[1]"        ) ||
+//      get_dataref(&ctx->data.weather.windspd[2][0], "sim/weather/wind_speed_kt[2]"        ) ||
+//      get_dataref(&ctx->data.weather.windspd[0][1], "sim/weather/shear_speed_kt[0]"       ) ||
+//      get_dataref(&ctx->data.weather.windspd[1][1], "sim/weather/shear_speed_kt[1]"       ) ||
+//      get_dataref(&ctx->data.weather.windspd[2][1], "sim/weather/shear_speed_kt[2]"       ))
+//  {
+//      goto fail;
+//  }
 
     /* volume sub-menu & its items */
     if (append_menu_item("Volume", &ctx->items.volume.sm_ic,
@@ -1413,45 +1413,45 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         return;
     }
 
-    if (itx->mivalue >= MENUITEM_WEATHR_REALW &&
-        itx->mivalue <= MENUITEM_WEATHR_CAVOK)
-    {
-        switch (itx->mivalue)
-        {
-            case MENUITEM_WEATHR_REALW:
-                XPLMSetDatai   (ctx->data.weather.real_use_bool, 1);
-                XPLMSetDatai   (ctx->data.weather.real_download, 1);
-                XPLMCommandOnce(ctx->data.weather.weather_ld);
-                XPLMSpeakString("Real weather enabled\n");
-                break;
-            case MENUITEM_WEATHR_CAVOK:
-                XPLMSetDatai   (ctx->data.weather.real_use_bool,        0);
-                XPLMSetDatai   (ctx->data.weather.real_download,        0);
-                XPLMSetDatai   (ctx->data.weather.cloud_type_00,        0); // clear
-                XPLMSetDatai   (ctx->data.weather.cloud_type_01,        0); // clear
-                XPLMSetDatai   (ctx->data.weather.cloud_type_02,        0); // clear
-                XPLMSetDataf   (ctx->data.weather.visibility_me, 40000.0f); // 40km
-                XPLMSetDataf   (ctx->data.weather.precp_percent,     0.0f); // none
-                XPLMSetDataf   (ctx->data.weather.thndr_percent,     0.0f); // none
-                XPLMSetDataf   (ctx->data.weather.turbl_percent,     0.0f); // none
-                XPLMSetDataf   (ctx->data.weather.windspd[0][0],     0.0f); // none
-                XPLMSetDataf   (ctx->data.weather.windspd[1][0],     0.0f); // none
-                XPLMSetDataf   (ctx->data.weather.windspd[2][0],     0.0f); // none
-                XPLMSetDataf   (ctx->data.weather.windspd[0][1],     0.0f); // none
-                XPLMSetDataf   (ctx->data.weather.windspd[1][1],     0.0f); // none
-                XPLMSetDataf   (ctx->data.weather.windspd[2][1],     0.0f); // none
-                XPLMSetDataf   (ctx->data.weather.turbulence[0],     0.0f); // none
-                XPLMSetDataf   (ctx->data.weather.turbulence[1],     0.0f); // none
-                XPLMSetDataf   (ctx->data.weather.turbulence[2],     0.0f); // none
-                XPLMSetDataf   (ctx->data.weather.runway_frictn,     0.0f); // dry
-                XPLMCommandOnce(ctx->data.weather.weather_rg);
-                XPLMSpeakString("Real weather disabled\n");
-                break;
-            default:
-                return;
-        }
-        return;
-    }
+//  if (itx->mivalue >= MENUITEM_WEATHR_REALW &&
+//      itx->mivalue <= MENUITEM_WEATHR_CAVOK)
+//  {
+//      switch (itx->mivalue)
+//      {
+//          case MENUITEM_WEATHR_REALW:
+//              XPLMSetDatai   (ctx->data.weather.real_use_bool, 1);
+//              XPLMSetDatai   (ctx->data.weather.real_download, 1);
+//              XPLMCommandOnce(ctx->data.weather.weather_ld);
+//              XPLMSpeakString("Real weather enabled\n");
+//              break;
+//          case MENUITEM_WEATHR_CAVOK:
+//              XPLMSetDatai   (ctx->data.weather.real_use_bool,        0);
+//              XPLMSetDatai   (ctx->data.weather.real_download,        0);
+//              XPLMSetDatai   (ctx->data.weather.cloud_type_00,        0); // clear
+//              XPLMSetDatai   (ctx->data.weather.cloud_type_01,        0); // clear
+//              XPLMSetDatai   (ctx->data.weather.cloud_type_02,        0); // clear
+//              XPLMSetDataf   (ctx->data.weather.visibility_me, 40000.0f); // 40km
+//              XPLMSetDataf   (ctx->data.weather.precp_percent,     0.0f); // none
+//              XPLMSetDataf   (ctx->data.weather.thndr_percent,     0.0f); // none
+//              XPLMSetDataf   (ctx->data.weather.turbl_percent,     0.0f); // none
+//              XPLMSetDataf   (ctx->data.weather.windspd[0][0],     0.0f); // none
+//              XPLMSetDataf   (ctx->data.weather.windspd[1][0],     0.0f); // none
+//              XPLMSetDataf   (ctx->data.weather.windspd[2][0],     0.0f); // none
+//              XPLMSetDataf   (ctx->data.weather.windspd[0][1],     0.0f); // none
+//              XPLMSetDataf   (ctx->data.weather.windspd[1][1],     0.0f); // none
+//              XPLMSetDataf   (ctx->data.weather.windspd[2][1],     0.0f); // none
+//              XPLMSetDataf   (ctx->data.weather.turbulence[0],     0.0f); // none
+//              XPLMSetDataf   (ctx->data.weather.turbulence[1],     0.0f); // none
+//              XPLMSetDataf   (ctx->data.weather.turbulence[2],     0.0f); // none
+//              XPLMSetDataf   (ctx->data.weather.runway_frictn,     0.0f); // dry
+//              XPLMCommandOnce(ctx->data.weather.weather_rg);
+//              XPLMSpeakString("Real weather disabled\n");
+//              break;
+//          default:
+//              return;
+//      }
+//      return;
+//  }
 }
 
 void nvp_menu_ckill(void *_menu_context, int set_state)
