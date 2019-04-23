@@ -5299,11 +5299,13 @@ static int first_fcall_do(chandler_context *ctx)
                 {
                     if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "FA7X"))
                     {
+                        // climb "path" (not pitch); default to 7.5 degrees
+                        // range of values -- min: ~5 (MTOW) max: ~15 (OEW)
                         if ((d_ref = XPLMFindDataRef("sim/weapons/targ_h")))
                         {
                             float value = ((0.0f + 0.0285f) / 0.5011f);
                             XPLMSetDatavf((ctx->otto.clmb.rc.ap_arry = d_ref), &value, 0, 1);
-                            XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, ((7.0f + 0.0285f) / 0.5011f));
+                            XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, ((7.5f + 0.0285f) / 0.5011f));
                         }
                     }
                 }
