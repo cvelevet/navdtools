@@ -98,6 +98,7 @@ typedef struct
     XPLMCommandRef thrup;
 
     XPLMDataRef throtall;
+    int         acf_type;
 } refcon_thrust;
 
 typedef struct
@@ -1212,7 +1213,6 @@ int nvp_chandlers_reset(void *inContext)
     ctx->acfspec.  x738.ready = 0;
     ctx->revrs.        propdn = NULL;
     ctx->revrs.        propup = NULL;
-    ctx->throt.      throtall = NULL;
     ctx->otto.ffst.        dr = NULL;
     ctx->otto.conn.cc.   name = NULL;
     ctx->otto.disc.cc.   name = NULL;
@@ -1222,6 +1222,8 @@ int nvp_chandlers_reset(void *inContext)
     ctx->bking.rc_brk.mx.name = NULL;
     ctx->bking.rc_brk.ro.name = NULL;
     ctx->otto.clmb.rc.ap_arry = NULL;
+    ctx->throt.      throtall = NULL;
+    ctx->throt.      acf_type = ACF_TYP_GENERIC;
 
     /* Reset some datarefs to match X-Plane's defaults at startup */
     _DO(1, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com1_power");
@@ -1333,7 +1335,7 @@ int nvp_chandlers_update(void *inContext)
     print_aircft_info(ctx->info);
 
     /* aircraft-specific custom commands and miscellaneous stuff */
-    switch (ctx->info->ac_type)
+    switch (ctx->throt.acf_type = ctx->info->ac_type)
     {
         case ACF_TYP_A320_FF:
             ctx->otto.conn.cc.name   = "private/ff320/ap_conn";
@@ -1446,6 +1448,15 @@ int nvp_chandlers_update(void *inContext)
 
         case ACF_TYP_B737_FJ:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
+            ctx->throt.throtall = ctx->ground.idle.throttle_all;
+            break;
+
+        case ACF_TYP_CL30_DD:
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+//          ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+//          ctx->athr.toga.cc.name = "sim/autopilot/autothrottle_on";
+            ctx->athr.toga.cc.name = "cl300/mach_hold"; // toggle
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->throt.throtall = ctx->ground.idle.throttle_all;
             break;
@@ -3015,6 +3026,24 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 next = roundf(curr * fact) * step;
             }
+            if (t->acf_type == ACF_TYP_CL30_DD) // custom detents
+            {
+                if (curr > 0.950f) // APR -> TO
+                {
+                    XPLMSetDataf(t->throtall, 2.8f/3.0f);
+                    return 0;
+                }
+                if (curr > 0.900f) // TO -> CLB
+                {
+                    XPLMSetDataf(t->throtall, 2.6f/3.0f);
+                    return 0;
+                }
+                if (curr > 0.850f) // CLB -> CRZ
+                {
+                    XPLMSetDataf(t->throtall, 2.5f/3.0f);
+                    return 0;
+                }
+            }
             if ((0.00f - T_ZERO) < (next - curr))
             {
                 next -= step;
@@ -3046,6 +3075,29 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             else
             {
                 next = roundf(curr * 20.0f) * 0.05f;
+            }
+            if (t->acf_type == ACF_TYP_CL30_DD) // custom detents
+            {
+                if (curr > 0.900f) // TO -> APR
+                {
+                    XPLMSetDataf(t->throtall, 1.0f);
+                    return 0;
+                }
+                if (curr > 0.850f) // CLB -> TO
+                {
+                    XPLMSetDataf(t->throtall, 2.8f/3.0f);
+                    return 0;
+                }
+                if (curr > 0.825f) // CRZ -> CLB
+                {
+                    XPLMSetDataf(t->throtall, 2.6f/3.0f);
+                    return 0;
+                }
+                if (curr > 0.775f) // -> CRZ
+                {
+                    XPLMSetDataf(t->throtall, 2.5f/3.0f);
+                    return 0;
+                }
             }
             if ((0.00f + T_ZERO) > (next - curr))
             {

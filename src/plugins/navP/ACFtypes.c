@@ -461,6 +461,12 @@ acf_info_context* acf_type_info_update()
                 global_info->ac_type = ACF_TYP_HA4T_RW;
                 break;
             }
+            if (!STRN_CASECMP_AUTO(global_info->author, "Denis 'ddenn' Krupin") &&
+                !STRN_CASECMP_AUTO(global_info->descrp, "Bombardier Challenger 300"))
+            {
+                global_info->ac_type = ACF_TYP_CL30_DD;
+                break;
+            }
             // fall through
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("gizmo.x-plugins.com"))
