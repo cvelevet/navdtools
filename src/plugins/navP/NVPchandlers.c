@@ -3040,7 +3040,7 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 if (curr > 0.850f) // CLB -> CRZ
                 {
-                    XPLMSetDataf(t->throtall, 2.5f/3.0f);
+                    XPLMSetDataf(t->throtall, 2.4f/3.0f);
                     return 0;
                 }
             }
