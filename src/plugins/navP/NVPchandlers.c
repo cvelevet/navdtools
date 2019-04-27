@@ -5228,6 +5228,45 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 2, "Rotate/md80/instruments/nav_display_mode");
             break;
 
+        case ACF_TYP_CL30_DD:
+            // datarefs: X-Plane default
+            _DO(0, XPLMSetDataf, 0.8f, "sim/cockpit/electrical/instrument_brightness"); // set all at once
+            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
+            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
+            _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
+            {
+                int door_open[1] = { 1, };
+                XPLMSetDatavi(d_ref, &door_open[0], 6, 1);  // cabin to bathroom
+            }
+            _DO(1, XPLMSetDatai, 0, "cl300/position_saving");
+            _DO(1, XPLMSetDatai, 1, "cl300/prflt_cam_lock");
+            _DO(1, XPLMSetDatai, 1, "cl300/mmenu_athide");
+            _DO(1, XPLMSetDatai, 1, "cl300/fms/alt_rep");
+            _DO(1, XPLMSetDatai, 1, "cl300/hide_pilots");
+            _DO(1, XPLMSetDatai, 1, "cl300/popup_mfd");
+            _DO(1, XPLMSetDatai, 0, "cl300/baro_pref");
+            _DO(1, XPLMSetDatai, 0, "cl300/alt_pref");
+            _DO(1, XPLMSetDatai, 1, "cl300/com_pref");
+            _DO(1, XPLMSetDatai, 0, "cl300/gpu_mode");
+            if (acf_type_is_engine_running() == 0)
+            {
+                float load = 250.0f, fuel = 1587.5f;
+                acf_type_load_set(ctx->info, &load);
+                acf_type_fuel_set(ctx->info, &fuel);
+            }
+            XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 10.0f); // initial CLB pitch
+            break;
+
         case ACF_TYP_GENERIC:
             // note: this path is always non-verbose (never warn for unapplicable datarefs)
             // datarefs: Aerobask
@@ -5328,9 +5367,6 @@ static int first_fcall_do(chandler_context *ctx)
                 _DO(0, XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideL");
                 _DO(0, XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideR");
             }
-            // datarefs: DDenn Challenger 300
-            _DO(0, XPLMSetDatai, 1, "cl300/fms/alt_rep");
-            _DO(0, XPLMSetDatai, 1, "cl300/hide_pilots");
             // datarefs: X-Plane default
             _DO(0, XPLMSetDataf, 0.8f, "sim/cockpit/electrical/instrument_brightness"); // set all at once
             switch (ctx->info->engine_type1) // engine-specific takeoff pitch
