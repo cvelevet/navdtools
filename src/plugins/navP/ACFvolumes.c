@@ -191,6 +191,9 @@ void acf_volume_set(acf_volume_context *ctx, acf_type type, float volume)
         ctx->custom.fft7.engine = XPLMFindDataRef("volume/engines");
         ctx->custom.fft7.volume = XPLMFindDataRef("volume/volumeX");
         ctx->custom.fft7.cllout = XPLMFindDataRef("volume/callouts");
+        ctx->custom.ddnn.volume = XPLMFindDataRef("cl300/sound_vol");
+        ctx->custom.ddnn.volmut = XPLMFindDataRef("cl300/sound_mute");
+        ctx->custom.ddnn.volext = XPLMFindDataRef("cl300/ext_sound_vol");
         ctx->custom.a350.volume = XPLMFindDataRef("1-sim/options/Volume");
         ctx->custom.absk.mtrack = XPLMFindDataRef("aerobask/eclipse/m_trk");
         ctx->custom.tlss.master = XPLMFindDataRef("toliss_airbus/master_volume");
@@ -268,6 +271,17 @@ void acf_volume_set(acf_volume_context *ctx, acf_type type, float volume)
                 XPLMSetDataf(ctx->custom.fft7.cllout, volume * 1.5f);
                 XPLMSetDataf(ctx->custom.fft7.engine, volume * 1.0f);
                 XPLMSetDataf(ctx->custom.fft7.volume, volume * 0.5f);
+                break;
+            case ACF_TYP_CL30_DD:
+                XPLMSetDataf(ctx->sound.xp10.eng,      volume);
+                XPLMSetDataf(ctx->sound.xp10.prp,      volume);
+                XPLMSetDataf(ctx->sound.xp10.wxr,      volume);
+                XPLMSetDataf(ctx->sound.xp10.wrn,      volume);
+                XPLMSetDataf(ctx->sound.xp10.grd,      volume);
+                XPLMSetDataf(ctx->sound.xp10.fan,      volume);
+                XPLMSetDataf(ctx->custom.ddnn.volext, (0.25f));
+                XPLMSetDatai(ctx->custom.ddnn.volmut, (0.01f > volume));
+                XPLMSetDatai(ctx->custom.ddnn.volume, (int)roundf(2200.0f * sqrtf(volume)));
                 break;
             default:
                 XPLMSetDataf(ctx->sound.xp10.eng, volume);
