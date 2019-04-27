@@ -118,6 +118,12 @@ typedef struct
         {
             XPLMDataRef master;
         } tlss;
+        struct
+        {
+            XPLMDataRef volext;
+            XPLMDataRef volmut;
+            XPLMDataRef volume;
+        } ddnn;
     } custom;
 }
 acf_volume_context;
