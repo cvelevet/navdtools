@@ -1043,8 +1043,8 @@ static void toggle_main_window(yfms_context *yfms)
 //              ndt_log("YFMS [info]: vmax_auto enabled (0.%03d, %d)\n",
 //                      yfms->xpl.otto.vmax_mach, yfms->xpl.otto.vmax_kias);
                 yfms->xpl.otto.vclb_vdes = 1;
-                yfms->xpl.otto.vclb_mach = 720;
-                yfms->xpl.otto.vdes_kias = 280;
+                yfms->xpl.otto.vclb_mach = 750; // CLB/250/0.75@35,562feet (MSL)
+                yfms->xpl.otto.vdes_kias = 300; // DES/0.80/300@30,595feet (MSL)
                 ndt_log("YFMS [info]: vclb_vdes enabled (0.%03d, %d)\n",
                         yfms->xpl.otto.vclb_mach, yfms->xpl.otto.vdes_kias);
                 yfms->xpl.atyp = YFS_ATYP_XPLN; break;
