@@ -419,6 +419,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
             {
                 if (gskts >= 90.0f || gskts >= XPLMGetDataf(yfms->xpl.acf_vs0))
                 {
+                    ndt_log("YFMS [debug]: phase change: FMGS_PHASE_TOF (was %d)\n", yfms->data.phase);
                     yfms->data.phase = FMGS_PHASE_TOF;
                     yfs_fpln_trackleg(yfms, -1);
                     break;
@@ -432,6 +433,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                 // TODO: use accel. alt. instead of AGL elevation
                 if (aglfeet > 1000 || (crzfeet - mslfeet) < 1000)
                 {
+                    ndt_log("YFMS [debug]: phase change: FMGS_PHASE_CLB (was %d)\n", yfms->data.phase);
                     yfms->data.phase = FMGS_PHASE_CLB;
                     break;
                 }
@@ -443,6 +445,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
             {
                 if ((crzfeet - mslfeet) < 50)
                 {
+                    ndt_log("YFMS [debug]: phase change: FMGS_PHASE_CRZ (was %d)\n", yfms->data.phase);
                     yfms->data.phase = FMGS_PHASE_CRZ;
                     break;
                 }
@@ -458,6 +461,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                     /// TODO: not descent if distance reaming > 200nm
                     if ((crzfeet - mcpfeet) < 1000)
                     {
+                        ndt_log("YFMS [debug]: phase change: FMGS_PHASE_DES (was %d)\n", yfms->data.phase);
                         yfms->data.phase = FMGS_PHASE_DES;
                         break;
                     }
@@ -492,6 +496,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
             (gskts < 40.0f)) // TODO: wait 30 seconds, ignore groundspeed
         {
             // TODO: delete XPLM plan, reset YFMS, clear scratchpad
+            ndt_log("YFMS [debug]: phase change: FMGS_PHASE_END (was %d)\n", yfms->data.phase);
             yfms->data.phase = FMGS_PHASE_END;
             return DEFAULT_CALLBACK_RATE;
         }

@@ -58,7 +58,8 @@ void yfs_prog_pageupdt(yfms_context *yfms)
 
     /* line 0: main header (green, left, offset 3) */
 //  yfs_printf_lft(yfms,  0,  0, COLR_IDX_GREEN, "%s", "  PREFLIGHT"); // TODO: phase of flight
-    yfs_printf_lft(yfms,  0,  0, COLR_IDX_GREEN, "%s", "  PROGRESS");
+    yfs_printf_lft(yfms,  0,  0, COLR_IDX_GREEN, "%s [%d]", "  PROGRESS", yfms->data.phase); //debug
+//  yfs_printf_lft(yfms,  0,  0, COLR_IDX_GREEN, "%s", "  PROGRESS");
     if (yfms->data.init.flight_id[0])
     {
         yfs_printf_rgt(yfms, 0, 2, COLR_IDX_WHITE, "%s", yfms->data.init.flight_id);
