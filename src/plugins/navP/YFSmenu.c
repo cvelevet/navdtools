@@ -418,11 +418,15 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         case FMGS_PHASE_PRE:
             if (crzfeet > 1000)
             {
-                if (gskts >= 90.0f || gskts >= XPLMGetDataf(yfms->xpl.acf_vs0))
+                if (aglfeet > 1)
                 {
-                    ndt_log("YFMS [debug]: phase change: FMGS_PHASE_TOF (was %d)\n", yfms->data.phase);
-                    yfms->data.phase = FMGS_PHASE_TOF;
-                    yfs_fpln_trackleg(yfms, -1);
+                    if (gskts >= 90.0f || gskts >= XPLMGetDataf(yfms->xpl.acf_vs0))
+                    {
+                        ndt_log("YFMS [debug]: phase change: FMGS_PHASE_TOF (was %d)\n", yfms->data.phase);
+                        yfms->data.phase = FMGS_PHASE_TOF;
+                        yfs_fpln_trackleg(yfms, -1);
+                        break;
+                    }
                     break;
                 }
                 break;
@@ -491,15 +495,18 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
 	default:
             break;
     }
-    if (aglfeet < 50)
+    if (yfms->data.phase >= FMGS_PHASE_TOF) // don't reset before takeoff, duh!
     {
-        if ((gskts < 90.0f && gskts < XPLMGetDataf(yfms->xpl.acf_vs0)) ||
-            (gskts < 40.0f)) // TODO: wait 30 seconds, ignore groundspeed
+        if (aglfeet < 50)
         {
-            // TODO: delete XPLM plan, reset YFMS, clear scratchpad
-            ndt_log("YFMS [debug]: phase change: FMGS_PHASE_END (was %d)\n", yfms->data.phase);
-            yfms->data.phase = FMGS_PHASE_END;
-            return DEFAULT_CALLBACK_RATE;
+            if ((gskts < 90.0f && gskts < XPLMGetDataf(yfms->xpl.acf_vs0)) ||
+                (gskts < 40.0f)) // TODO: wait 30 seconds, ignore groundspeed
+            {
+                // TODO: delete XPLM plan, reset YFMS, clear scratchpad
+                ndt_log("YFMS [debug]: phase change: FMGS_PHASE_END (was %d)\n", yfms->data.phase);
+                yfms->data.phase = FMGS_PHASE_END;
+                return DEFAULT_CALLBACK_RATE;
+            }
         }
     }
     // TODO: NEW CRZ ALT (may happen during either of CLB/CRZ), re-enter CLB if required
