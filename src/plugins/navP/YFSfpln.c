@@ -934,7 +934,8 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
     float trueheading = XPLMGetDataf(yfms->xpl.true_psi);
     float groundspeed = XPLMGetDataf(yfms->xpl.groundspeed);
     char buf[23]; int insert_after = 0; ndt_waypoint *t_p_wpt;
-    ndt_distance dnxt = ndt_distance_init(groundspeed * 3, NDT_ALTUNIT_ME); // compute airc. pos. ~3 seconds from now (GS in m/s)
+    ndt_distance dnxt = ndt_distance_init(5, NDT_ALTUNIT_NM); //fixme: debug: hardcode to 5 nautical miles for testing pourposes
+//  ndt_distance dnxt = ndt_distance_init(groundspeed * 3, NDT_ALTUNIT_ME); // compute airc. pos. ~3 seconds from now (GS in m/s)
     ndt_position ppos = ndt_position_init(XPLMGetDatad(yfms->xpl.latitude), XPLMGetDatad(yfms->xpl.longitude), NDT_DISTANCE_ZERO);
     ndt_position p_tp = ndt_position_calcpos4pbd(ppos, trueheading, dnxt); snprintf(buf, sizeof(buf), "%+010.6lf/%+011.6lf",
                                                                                     ndt_position_getlatitude (p_tp, NDT_ANGUNIT_DEG),
