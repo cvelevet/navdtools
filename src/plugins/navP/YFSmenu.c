@@ -156,6 +156,7 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfms->data.rdio.asrt_delayed_redraw = 0;
 
     /* flight phase */
+    ndt_log("YFMS [debug]: phase change: full FMGS reset\n");
     yfms->data.phase = FMGS_PHASE_END;
 
     /* all good */
