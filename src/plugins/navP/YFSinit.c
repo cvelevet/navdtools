@@ -281,6 +281,8 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
     // departure or arrival changed, reset flight plans, leg lists
     if (yfms->data.init.ialized)
     {
+        ndt_log("YFMS [debug]: phase change: yfs_flightplan_reinit: FMGS_PHASE_END\n");
+        yfms->data.phase = FMGS_PHASE_END;
         yfms->data.init.ialized = 0;
     }
     if (yfms->ndt.flp.arr)
@@ -411,9 +413,11 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
         yfms->data.fpln.dist.ref_leg_id = -1; // XXX: force a full distance re-sync
         yfms->data.fpln.xplm_last       = 99; // XXX: force a full flight plan sync
         yfms->data.fpln.mod.operation   = YFS_FPLN_MOD_INIT; yfs_fpln_fplnupdt(yfms);
+        ndt_log("YFMS [debug]: phase change: yfs_flightplan_reinit: FMGS_PHASE_PRE\n");
     }
     if (yfms->data.init.from == NULL && yfms->data.init.to == NULL) // reset all
     {
+        ndt_log("YFMS [debug]: phase change: yfs_flightplan_reinit: FMGS_PHASE_END\n");
         yfms->data.init.crz_alt       = ndt_distance_init(0, NDT_ALTUNIT_NA);
         yfms->data.phase              = FMGS_PHASE_END;
         yfms->data.init.corte_name[0] = 0;
