@@ -959,6 +959,17 @@ static void refuel(acf_info_context *info, float by)
         }
         dst[i] = 0.00f; // per-tank fuel *added*
     }
+    if (!(global_info->engine_count % 3) && // 3 eng., 3 tanks etc.
+        !(global_info->fuel.tanks.count % global_info->engine_count))
+    {
+        // special case: dumb re-fuel
+        for (int i = 0; i < count; i++)
+        {
+            dst[i] = by * info->fuel.tanks.rat[i];
+            if (dst[i] > max[i]) dst[i] = max[i];
+        }
+        goto do_refuel;
+    }
     while (tank_idx < count && info->fuel.tanks.cpl[tank_idx] > 0)
     {
         if (by <= 0.0f)
@@ -1021,6 +1032,17 @@ static void defuel(acf_info_context *info, float by)
     float fuelqt[9];
     int count = info->fuel.tanks.count, idx = count - 1;
     XPLMGetDatavf(info->fuel.pertank, fuelqt, 0, count);
+    if (!(global_info->engine_count % 3) && // 3 eng., 3 tanks etc.
+        !(global_info->fuel.tanks.count % global_info->engine_count))
+    {
+        // special case: dumb de-fuel
+        for (int i = 0; i < count; i++)
+        {
+            fuelqt[i] -= by * info->fuel.tanks.rat[i];
+            if (fuelqt[i] < 0.0f) fuelqt[i] = 0.0f;
+        }
+        goto do_defuel;
+    }
     while (idx >= 0 && info->fuel.tanks.cpl[idx] <= 0)
     {
         if (by <= 0.0f)
