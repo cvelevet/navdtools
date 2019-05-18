@@ -930,6 +930,15 @@ void yfs_fpln_trackleg(yfms_context *yfms, int index)
 
 void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
 {
+    // TODO: proper direct to "source" coord adjustment
+    // https://en.wikipedia.org/wiki/Standard_rate_turn
+    // sim/flightmodel/position/true_psi                      float  n  degrees     The heading of the aircraft relative to the earth precisely below the aircraft - true degrees north, always
+    // sim/cockpit2/gauges/indicators/ground_track_mag_pilot  float  n  degrees     The ground track of the aircraft in degrees magnetic
+    // sim/flightmodel/position/magnetic_variation            float  n  degrees     The local magnetic variation
+    // sim/cockpit/autopilot/heading_roll_mode                int    y  enum        Bank limit - 0 = auto, 1-6 = 5-30 degrees of bank
+    // sim/cockpit2/autopilot/bank_angle_mode                 int    y  enum        Maximum bank angle mode, 0->6. Higher number is steeper allowable bank.
+    // sim/flightmodel/position/true_airspeed                 float  n  meters/sec  Air speed true - this does not take into account air density at altitude!
+    // sim/flightmodel/position/groundspeed                   float  n  meters/sec  The ground speed of the aircraft
     ndt_route_leg *tmp, *leg, *t_p_leg, *dct_leg;
     float trueheading = XPLMGetDataf(yfms->xpl.true_psi);
     float groundspeed = XPLMGetDataf(yfms->xpl.groundspeed);
