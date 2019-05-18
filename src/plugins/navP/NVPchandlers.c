@@ -5395,6 +5395,21 @@ static int first_fcall_do(chandler_context *ctx)
                             XPLMSetDatavf((ctx->otto.clmb.rc.ap_arry = d_ref), &value, 0, 1);
                             XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, ((7.5f + 0.0285f) / 0.5011f));
                         }
+                        // relocating the aircraft while cold & dark resets many datarefs
+                        if ((d_ref = XPLMFindDataRef("sim/cockpit/electrical/generator_on")))
+                        {
+                            int generator_on[3] = { 1, 1, 1, };
+                            XPLMSetDatavi(d_ref, &generator_on[0], 0, 3);
+                        }
+                        if ((d_ref = XPLMFindDataRef("sim/cockpit2/controls/speedbrake_ratio")))
+                        {
+                            XPLMSetDataf(d_ref, -0.5f);
+                        }
+                        _DO(1, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_pitot_heat_on_copilot");
+                        _DO(1, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
+                        _DO(1, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_AOA_heat_on_copilot");
+                        _DO(1, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_auto_ignite_on");
+                        _DO(1, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_AOA_heat_on");
                     }
                 }
                 if (!STRN_CASECMP_AUTO(ctx->info->author, "Alabeo") ||
