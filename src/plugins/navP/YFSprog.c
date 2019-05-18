@@ -114,6 +114,10 @@ void yfs_prog_pageupdt(yfms_context *yfms)
         ndt_date      now = ndt_date_now();
         void         *wmm = yfms->ndt.ndb->wmm;
         ndt_position from = yfms->data.aircraft_pos;
+        if (yfms->data.init.ialized && !yfms->data.init.aligned && yfms->data.init.from)
+        {
+            from = yfms->data.init.from->coordinates;
+        }
         ndt_position   to = yfms->data.prog.fix->position;
         ndt_distance dist = ndt_position_calcdistance(from, to);
         double       trub = ndt_position_calcbearing (from, to);
