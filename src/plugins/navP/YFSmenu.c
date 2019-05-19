@@ -464,7 +464,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                 if (vvi_fpm < -250) // descending
                 {
                     /// TODO: not descent if distance reaming > 200nm
-                    if ((crzfeet - mcpfeet) < 1000)
+                    if ((crzfeet - mcpfeet) > 1000)
                     {
                         ndt_log("YFMS [debug]: phase change: FMGS_PHASE_DES (was %d)\n", yfms->data.phase);
                         yfms->data.phase = FMGS_PHASE_DES;
