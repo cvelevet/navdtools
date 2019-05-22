@@ -1154,6 +1154,10 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
         case BARO_HPA: // hectoPascals
             yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s", "hPa");
             yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%04.0f", (((float)alt[0])));
+            if (standard_pressure(yfms))
+            {
+                yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%06.1f", 1013.2f);
+            }
             break;
         default: // inches of mercury
             yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%s", "InHg");
@@ -1612,6 +1616,13 @@ static void yfs_msw_callback_rad1(yfms_context *yfms, int rx, int ry, int delta)
             int toggle[2] = { -1, -1, };
             set_altimeter(yfms, toggle);
             yfs_rad1_pageupdt(yfms); return;
+        }
+        if (alt[1] == BARO_HPA && delta < 0 && standard_pressure(yfms))
+        {
+            // alt[0] == 1013 but actual pressure is ~1013.2
+            // make it so we don't skip 1013 when going down
+            int new[2]; new[1] = alt[1]; alt[0] = 1014 + delta;
+            set_altimeter(yfms, new); yfs_rad1_pageupdt(yfms); return;
         }
         int new[2]; new[1] = alt[1]; new[0] = alt[0] + delta;
         set_altimeter(yfms, new); yfs_rad1_pageupdt(yfms); return;
