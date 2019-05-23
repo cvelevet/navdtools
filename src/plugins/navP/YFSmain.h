@@ -24,6 +24,8 @@
 #include <stdarg.h>
 #include <stdint.h>
 
+#include "cairo/cairo.h"
+
 #include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMDataAccess.h"
 #include "XPLM/XPLMMenus.h"
@@ -186,7 +188,6 @@ typedef struct
             int        sw_inLT;
             int        sw_inTP;
             int        sw_inRT;
-            uint8_t    bgra_pix_buf[256][256][4];
             XPWidgetID line_id[YFS_DISPLAY_NUMR];
             int        ln_inBM[YFS_DISPLAY_NUMR];
             int        ln_inLT[YFS_DISPLAY_NUMR];
@@ -208,6 +209,19 @@ typedef struct
             int  spad_reset;
             int  spad_backup;
             char spad_bupbuf[YFS_DISPLAY_NUMC + 1];
+            struct
+            {
+                cairo_scaled_font_t *font;
+                cairo_surface_t     *surf;
+                cairo_t             *cr;
+                struct
+                {
+                    int      wid;
+                    int      hei;
+                    int      str;
+                    uint8_t *buf;
+                } data;
+            } cairo;
         }
         screen;
 

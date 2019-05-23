@@ -37,6 +37,8 @@
 #define GL_BGRA 0x80E1
 #endif
 
+#include "cairo/cairo.h"
+
 #include "Widgets/XPStandardWidgets.h"
 #include "Widgets/XPWidgetDefs.h"
 #include "Widgets/XPWidgets.h"
@@ -74,14 +76,15 @@ static int YFS_SOFT_KEY_1_B =   3;  // 2x  3 pixels of border between each butto
 static int YFS_SOFT_KEY_2_W =  36;  // 2x 15 pixels plus top & bottom borders
 static int YFS_SOFT_KEY_2_H =  21;  // 1x 15 pixels plus top & bottom borders
 static int YFS_SOFT_KEY_2_B =   3;  // 2x  3 pixels of border between each button
-static float COLR_BLACK  [] = { 0.0f, 0.0f, 0.0f, };
-static float COLR_WHITE  [] = { 0.9f, 1.0f, 1.0f, };
-static float COLR_RED    [] = { 1.0f, 0.1f, 0.1f, };
-static float COLR_GREEN  [] = { 0.0f, 1.0f, 0.5f, };
-static float COLR_BLUE   [] = { 0.0f, 1.0f, 1.0f, };
-static float COLR_MAGENTA[] = { 1.0f, .33f, 1.0f, };
-static float COLR_ORANGE [] = { 1.0f, 0.5f, 0.0f, };
-static float COLR_YELLOW [] = { 0.9f, 0.9f, 0.0f, };
+static double COLR_BLACK  [] = { 0.0, 0.0, 0.0, };
+static double COLR_WHITE  [] = { 0.9, 1.0, 1.0, };
+static double COLR_RED    [] = { 1.0, 0.1, 0.1, };
+static double COLR_GREEN  [] = { 0.0, 1.0, 0.5, };
+static double COLR_BLUE   [] = { 0.0, 1.0, 1.0, };
+static double COLR_MAGENTA[] = { 1.0, .33, 1.0, };
+static double COLR_ORANGE [] = { 1.0, 0.5, 0.0, };
+static double COLR_YELLOW [] = { 0.9, 0.9, 0.0, };
+static double COLR_SCREEN [] = { 0.2, 0.2, 0.2, };
 
 static void menu_handler(void *inMenuRef,                void *inItemRef);
 static int  yfs_mwindowh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
@@ -145,6 +148,7 @@ static int row_prepend_button(yfms_buttn_ctx *b, XPWidgetID container_id)
  * note1: we offset numerical keys (cf. real thing) in order to align them
  *        with alphabetical keys, as it creates a more pleasing appearance.
  */
+#define CAIRO4SCRN(FIELD) (yfms->mwindow.screen.cairo.FIELD)
 static int create_main_window(yfms_context *yfms)
 {
     if (!yfms)
@@ -644,19 +648,7 @@ static int create_main_window(yfms_context *yfms)
                         yfms->mwindow.screen.sw_inRT, yfms->mwindow.screen.sw_inBM,
                         1, "", 0, yfms->mwindow.id, xpWidgetClass_SubWindow)))
     {
-        uint8_t *byt = (uint8_t*)yfms->mwindow.screen.bgra_pix_buf;
-        for (int y = 0; y < 256; y++)
-        {
-            for (int x = 0; x < 256; x++)
-            {
-                // dark background
-                *byt++ =  55; // B
-                *byt++ =  55; // G
-                *byt++ =  55; // R
-                *byt++ = 255; // A (opaque)
-            }
-        }
-        XPSetWidgetProperty(yfms->mwindow.screen.bgrd_id, xpProperty_Refcon, (intptr_t)yfms->mwindow.screen.bgra_pix_buf);
+        XPSetWidgetProperty(yfms->mwindow.screen.bgrd_id, xpProperty_Refcon, (intptr_t)yfms);
         XPSetWidgetProperty(yfms->mwindow.screen.subw_id, xpProperty_Refcon, (intptr_t)yfms);
         XPAddWidgetCallback(yfms->mwindow.screen.bgrd_id, &yfs_mcdubgrh);
         XPAddWidgetCallback(yfms->mwindow.screen.subw_id, &yfs_mcdudish);
@@ -704,6 +696,35 @@ static int create_main_window(yfms_context *yfms)
             }
         }
     }
+
+    /* cairo */
+    cairo_status_t cs; cairo_matrix_t cm;
+    CAIRO4SCRN(data.wid) = yfms->mwindow.screen.sw_inRT - yfms->mwindow.screen.sw_inLT + 2;
+    CAIRO4SCRN(data.hei) = yfms->mwindow.screen.sw_inTP - yfms->mwindow.screen.sw_inBM + 2;
+    CAIRO4SCRN(data.str) = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, CAIRO4SCRN(data.wid));
+    if (NULL == (CAIRO4SCRN(data.buf) = malloc(CAIRO4SCRN(data.str) * CAIRO4SCRN(data.hei))))
+    {
+        ndt_log("YFMS [error]: could not allocate buffer for cairo surface\n");
+        return ENOMEM;
+    }
+    CAIRO4SCRN(surf) = cairo_image_surface_create_for_data(CAIRO4SCRN(data.buf), CAIRO_FORMAT_ARGB32, CAIRO4SCRN(data.wid), CAIRO4SCRN(data.hei), CAIRO4SCRN(data.str));
+    if (CAIRO_STATUS_SUCCESS != (cs = cairo_surface_status(CAIRO4SCRN(surf))))
+    {
+        ndt_log("YFMS [error]: cairo surface status '%s'\n", cairo_status_to_string(cs));
+        return -1;
+    }
+    CAIRO4SCRN(cr) = cairo_create(CAIRO4SCRN(surf));
+    if (CAIRO_STATUS_SUCCESS != (cs = cairo_status(CAIRO4SCRN(cr))))
+    {
+        ndt_log("YFMS [error]: cairo status '%s'\n", cairo_status_to_string(cs));
+        return -1;
+    }
+    // TODO: check any available fonts, ideally one where 0 != 0 and I doesn't look like an american-style 1
+    // cairo:monospace seems to be the only way to get a font where x_advance is the same for all characters
+    cairo_select_font_face(CAIRO4SCRN(cr), "cairo:monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_get_font_matrix(CAIRO4SCRN(cr), &cm); cm.xx = YFS_FONT_BASIC_H - 2;
+    cm.yy = -cm.xx; cairo_set_font_matrix(CAIRO4SCRN(cr), &cm);
+    CAIRO4SCRN(font) = cairo_get_scaled_font(CAIRO4SCRN(cr));
 
     /*
      * Predefined regions for mouse wheel and click support,
@@ -1398,6 +1419,11 @@ int yfs_main_close(yfms_context **_yfms)
         XPLMUnregisterFlightLoopCallback(yfms->xpl.fl_callback, yfms);
     }
 
+    /* cairo */
+    if (CAIRO4SCRN(surf))     cairo_surface_destroy(CAIRO4SCRN(surf));
+    if (CAIRO4SCRN(cr))       cairo_destroy(CAIRO4SCRN(cr));
+    if (CAIRO4SCRN(data.buf)) free(CAIRO4SCRN(data.buf));
+
     /* all good */
     free(yfms);
     return 0;
@@ -2017,33 +2043,92 @@ static int yfs_mcdubgrh(XPWidgetMessage inMessage,
 {
     if (inMessage == xpMsg_Draw)
     {
-        if (XPIsWidgetVisible(inWidget))
-        {
-            uint8_t *bgra_pix_buf = (uint8_t*)XPGetWidgetProperty(inWidget, xpProperty_Refcon, NULL);
-            if (bgra_pix_buf == NULL)
-            {
-                ndt_log("YFMS [debug]: no context for MCDU background!\n");
-                return 0;
-            }
-            //fixme make this faster
-            int g[4]; XPGetWidgetGeometry(inWidget, &g[0], &g[1], &g[2], &g[3]);
-            // note: glDrawPixels is not in current version of the OpenGL specification
-            //       but seems to work OK and I am lazy; TODO: let's redo this function
-            // set XPL GFX state to suitable 2D drawing configuration via trial & error
-            XPLMSetGraphicsState(0, 0, 0, 0, 0, 0, 0); glRasterPos4i(g[0] - 1, g[3] - 1, 0, 1);
-            glDrawPixels(g[2] - g[0] + 2, g[1] - g[3] + 2, GL_BGRA, GL_UNSIGNED_BYTE, bgra_pix_buf);
-        }
-        return 1;
+        return 1; // bypass widget's built-in drawing code
     }
     return 0;
 }
 
+#define COLR2CAIRO(context, color) (cairo_set_source_rgb(context, color[0], color[1], color[2]))
 static void draw_display(yfms_context *yfms)
 {
-    char buf[2]; int x, y;
+    char buf[2]; int x0, y0, x1, y1; cairo_text_extents_t te;
+
+    // draw display background
+    cairo_rectangle(CAIRO4SCRN(cr), 0, 0, CAIRO4SCRN(data.wid), CAIRO4SCRN(data.hei));
+    cairo_set_operator(CAIRO4SCRN(cr), CAIRO_OPERATOR_SOURCE);
+    COLR2CAIRO(CAIRO4SCRN(cr), COLR_SCREEN);
+    cairo_fill(CAIRO4SCRN(cr));
+
+    // font properties, options, size etc.
+    cairo_set_scaled_font(CAIRO4SCRN(cr), CAIRO4SCRN(font));
+
+#if 1//debug
+    static int once = 1;
+    if (once)
+    {
+        for (char c = 'A'; c <= 'Z'; c++)
+        {
+            snprintf(buf, sizeof(buf), "%c", c);
+            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
+            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
+        }
+        for (char c = 'a'; c <= 'z'; c++)
+        {
+            snprintf(buf, sizeof(buf), "%c", c);
+            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
+            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
+        }
+        for (char c = '0'; c <= '9'; c++)
+        {
+            snprintf(buf, sizeof(buf), "%c", c);
+            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
+            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
+        }
+        for (char c = '/'; c <= '/'; c++)
+        {
+            snprintf(buf, sizeof(buf), "%c", c);
+            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
+            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
+        }
+        for (char c = '.'; c <= '.'; c++)
+        {
+            snprintf(buf, sizeof(buf), "%c", c);
+            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
+            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
+        }
+        for (char c = '-'; c <= '-'; c++)
+        {
+            snprintf(buf, sizeof(buf), "%c", c);
+            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
+            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
+        }
+        for (char c = '+'; c <= '+'; c++)
+        {
+            snprintf(buf, sizeof(buf), "%c", c);
+            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
+            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
+        }
+        for (char c = '#'; c <= '#'; c++)
+        {
+            snprintf(buf, sizeof(buf), "%c", c);
+            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
+            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
+        }
+        for (char c = ' '; c <= ' '; c++)
+        {
+            snprintf(buf, sizeof(buf), "%c", c);
+            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
+            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
+        }
+        once = 0;
+    }
+#endif
+
+    // actual text rendering
     for (int i = 0; i < YFS_DISPLAY_NUMR; i++)
     {
-        XPGetWidgetGeometry(yfms->mwindow.screen.line_id[i], &x, NULL, NULL, &y);
+        XPGetWidgetGeometry(yfms->mwindow.screen.subw_id,    &x0, NULL, NULL, &y0);
+        XPGetWidgetGeometry(yfms->mwindow.screen.line_id[i], &x1, NULL, NULL, &y1);
         for (int j = strlen(yfms->mwindow.screen.text[i]); j < YFS_DISPLAY_NUMC; j++)
         {
             if (yfms->mwindow.screen.text[i][j] == 0)
@@ -2056,40 +2141,56 @@ static void draw_display(yfms_context *yfms)
             snprintf(buf, sizeof(buf), "%c", yfms->mwindow.screen.text[i][j]);
             if (i == YFS_DISPLAY_NUMR - 1 && *buf == '_')
             {
-                 // scratchpad parser strips trailing spaces, we use underscores instead
+                // scratchpad: parser strips trailing spaces, we use underscores instead
                 *buf = ' '; // display the intended character, not the stored workaround
             }
-            switch  (yfms->mwindow.screen.colr[i][j])//fixme glutBitmapCharacter faster???
+            switch  (yfms->mwindow.screen.colr[i][j])
             {
                 case COLR_IDX_BLACK:
-                    XPLMDrawString(COLR_BLACK,   x, y, buf, NULL, xplmFont_Basic);
+                    COLR2CAIRO(CAIRO4SCRN(cr), COLR_BLACK);
                     break;
                 case COLR_IDX_BLUE:
-                    XPLMDrawString(COLR_BLUE,    x, y, buf, NULL, xplmFont_Basic);
+                    COLR2CAIRO(CAIRO4SCRN(cr), COLR_BLUE);
                     break;
                 case COLR_IDX_MAGENTA:
-                    XPLMDrawString(COLR_MAGENTA, x, y, buf, NULL, xplmFont_Basic);
+                    COLR2CAIRO(CAIRO4SCRN(cr), COLR_MAGENTA);
                     break;
                 case COLR_IDX_ORANGE:
-                    XPLMDrawString(COLR_ORANGE,  x, y, buf, NULL, xplmFont_Basic);
+                    COLR2CAIRO(CAIRO4SCRN(cr), COLR_ORANGE);
                     break;
                 case COLR_IDX_RED:
-                    XPLMDrawString(COLR_RED,     x, y, buf, NULL, xplmFont_Basic);
+                    COLR2CAIRO(CAIRO4SCRN(cr), COLR_RED);
                     break;
                 case COLR_IDX_WHITE:
-                    XPLMDrawString(COLR_WHITE,   x, y, buf, NULL, xplmFont_Basic);
+                    COLR2CAIRO(CAIRO4SCRN(cr), COLR_WHITE);
                     break;
                 case COLR_IDX_YELLOW:
-                    XPLMDrawString(COLR_YELLOW,  x, y, buf, NULL, xplmFont_Basic);
+                    COLR2CAIRO(CAIRO4SCRN(cr), COLR_YELLOW);
                     break;
                 case COLR_IDX_GREEN:
                 default:
-                    XPLMDrawString(COLR_GREEN,   x, y, buf, NULL, xplmFont_Basic);
+                    COLR2CAIRO(CAIRO4SCRN(cr), COLR_GREEN);
                     break;
             }
-            x += YFS_FONT_BASIC_W; // move position for next character
+            double x = x1 - x0, y = y1 - y0;
+            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
+            double xalign = (double)YFS_FONT_BASIC_W / 2.0 - te.width / 2.0 - te.x_bearing; // thanks, toto :-)
+            if (*buf == '1') { xalign -= 1.0; } // XXX: whatever, kind of works
+            cairo_move_to(CAIRO4SCRN(cr), x + xalign, y);
+            if (yfms->mwindow.screen.text[i][j] == '#')
+            {
+                cairo_show_text(CAIRO4SCRN(cr), "□"); // actually works!!!
+            }
+            else
+            {
+                cairo_show_text(CAIRO4SCRN(cr), buf);
+            }
+            x1 += YFS_FONT_BASIC_W;
         }
     }
+
+    /* done */
+    cairo_surface_flush(CAIRO4SCRN(surf));
 }
 
 static int yfs_mcdudish(XPWidgetMessage inMessage,
@@ -2107,7 +2208,13 @@ static int yfs_mcdudish(XPWidgetMessage inMessage,
                 ndt_log("YFMS [debug]: no context for MCDU display!\n");
                 return 0;
             }
-            XPLMSetGraphicsState(0, 0, 0, 0, 0, 0, 0); draw_display(yfms);
+            else
+            {
+                draw_display(yfms); //TODO: only update display when YFMS actually refreshes
+            }
+            int g[4]; XPGetWidgetGeometry(inWidget, &g[0], &g[1], &g[2], &g[3]);
+            XPLMSetGraphicsState(0, 0, 0, 0, 0, 0, 0); glRasterPos4i(g[0] - 1, g[3] - 1, 0, 1);
+            glDrawPixels(CAIRO4SCRN(data.wid), CAIRO4SCRN(data.hei), GL_BGRA, GL_UNSIGNED_BYTE, CAIRO4SCRN(data.buf));
         }
         return 1;
     }
@@ -2135,3 +2242,6 @@ static int chandler_tog(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void
     }
     return 0;
 }
+
+#undef COLR2CAIRO
+#undef CAIRO4SCRN

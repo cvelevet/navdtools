@@ -6,14 +6,14 @@ ND_INCLUDE = -I$(SOURCE_DIR)
 XP_INCLUDE = -I$(SOURCE_SDK)/CHeaders
 XP_LD_LIBS = -F$(SOURCE_SDK)/Libraries/Mac -framework XPLM -framework XPWidgets -framework OpenGL
 XPCPPFLAGS = -DXPLM200 -DXPLM210 -DAPL=1 -DIBM=0 -DLIN=0
-CFLAGS     = -O3 -std=c99 -mmacosx-version-min=10.6
+CFLAGS     = -O3 -std=c99 -mmacosx-version-min=10.9
 TARGETARCH = -arch x86_64
 CC         = clang
 CPPFLAGS   =
 
 LIBACU_DIR = libacfutils-redist
 LIBACU_INC = -I$(LIBACU_DIR)/include -I$(LIBACU_DIR)/mac64/include
-LIBACU_LIB = -L$(LIBACU_DIR)/mac64/lib -lacfutils -lcairo
+LIBACU_LIB = -L$(LIBACU_DIR)/mac64/lib -lacfutils -lcairo -lfreetype -lpixman-1 -lz
 
 NDCCPPFLAGS =
 NDC_SOURCES = $(SOURCE_DIR)/tools/navdconv.c
