@@ -200,7 +200,7 @@ void yfs_menu_pageupdt(yfms_context *yfms)
     yfs_printf_rgt(yfms, 2, 0, COLR_IDX_WHITE, "%s", "RESET>");
 
     /* all good */
-    return;
+    yfms->mwindow.screen.redraw = 1; return;
 }
 
 void yfs_idnt_pageopen(yfms_context *yfms)
@@ -292,7 +292,7 @@ void yfs_idnt_pageupdt(yfms_context *yfms)
     yfs_printf_lft(yfms, 12, 0, COLR_IDX_GREEN, "%s", "+0.0/+0.0");
 
     /* all good */
-    return;
+    yfms->mwindow.screen.redraw = 1; return;
 }
 
 static void yfs_lsk_callback_menu(void *context, int key[2], intptr_t refcon)

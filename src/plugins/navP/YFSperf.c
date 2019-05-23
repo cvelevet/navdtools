@@ -57,7 +57,7 @@ void yfs_perf_pageupdt(yfms_context *yfms)
     yfs_printf_ctr(yfms, 6, COLR_IDX_WHITE, "%s", "PAGE INOP");
 
     /* all good */
-    return;
+    yfms->mwindow.screen.redraw = 1; return;
 }
 
 static void yfs_lsk_callback_perf(yfms_context *yfms, int key[2], intptr_t refcon)

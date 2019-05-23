@@ -2208,9 +2208,9 @@ static int yfs_mcdudish(XPWidgetMessage inMessage,
                 ndt_log("YFMS [debug]: no context for MCDU display!\n");
                 return 0;
             }
-            else
+            if (yfms->mwindow.screen.redraw)
             {
-                draw_display(yfms); //TODO: only update display when YFMS actually refreshes
+                draw_display(yfms); yfms->mwindow.screen.redraw = 0;
             }
             int g[4]; XPGetWidgetGeometry(inWidget, &g[0], &g[1], &g[2], &g[3]);
             XPLMSetGraphicsState(0, 0, 0, 0, 0, 0, 0); glRasterPos4i(g[0] - 1, g[3] - 1, 0, 1);

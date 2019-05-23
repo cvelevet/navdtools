@@ -70,6 +70,7 @@ void yfs_drto_pageupdt(yfms_context *yfms)
     }
     if (yfms->xpl.has_custom_navigation || yfms->xpl.atyp == YFS_ATYP_Q380)
     {
+        yfms->mwindow.screen.redraw = 1;
         /* Peter sets override_fms_advance each loop breaking our DIRTO */
         return yfs_printf_ctr(yfms, 6, COLR_IDX_WHITE, "%s", "PAGE INOP");
     }
@@ -138,7 +139,7 @@ void yfs_drto_pageupdt(yfms_context *yfms)
     }
 
     /* all good */
-    return;
+    yfms->mwindow.screen.redraw = 1; return;
 }
 
 static void yfs_msw_callback_drto(yfms_context *yfms, int rx, int ry, int delta)

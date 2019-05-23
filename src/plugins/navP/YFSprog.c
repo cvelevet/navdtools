@@ -128,7 +128,7 @@ void yfs_prog_pageupdt(yfms_context *yfms)
     }
 
     /* all good */
-    return;
+    yfms->mwindow.screen.redraw = 1; return;
 }
 
 static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refcon)

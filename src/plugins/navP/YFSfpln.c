@@ -404,7 +404,7 @@ static void awys_pageupdt(yfms_context *yfms)
     }
 
     /* all good */
-    return;
+    yfms->mwindow.screen.redraw = 1; return;
 }
 
 static void lrev_pageupdt(yfms_context *yfms)
@@ -462,7 +462,7 @@ static void lrev_pageupdt(yfms_context *yfms)
     yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "<RETURN");
 
     /* all good */
-    return;
+    yfms->mwindow.screen.redraw = 1; return;
 }
 
 void yfs_fpln_pageupdt(yfms_context *yfms)
@@ -474,6 +474,7 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
     }
     if (yfms->xpl.has_custom_navigation)
     {
+        yfms->mwindow.screen.redraw = 1;
         return yfs_printf_ctr(yfms, 6, COLR_IDX_WHITE, "%s", "PAGE INOP");
     }
 
@@ -534,7 +535,7 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
         yfs_printf_lft(yfms,  2, 0, COLR_IDX_WHITE, "%s", "------END OF F-PLN------");
         yfs_printf_lft(yfms, 11, 0, COLR_IDX_WHITE, "%s", " DEST   TIME  DIST  EFOB");
         yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%s", "        ----  ----  ----");
-        return;
+        yfms->mwindow.screen.redraw = 1; return;
     }
 
     /* two lines per leg (header/course/distance, then name/constraints) */
@@ -688,7 +689,7 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
                    (double)ndt_distance_get(distance, NDT_ALTUNIT_ME) / 1852.);
 
     /* all good */
-    return;
+    yfms->mwindow.screen.redraw = 1; return;
 }
 
 void yfs_fpln_fplnsync(yfms_context *yfms)

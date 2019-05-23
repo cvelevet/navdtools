@@ -222,6 +222,7 @@ typedef struct
                     uint8_t *buf;
                 } data;
             } cairo;
+            int redraw;
         }
         screen;
 

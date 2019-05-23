@@ -54,7 +54,7 @@ void yfs_spad_clear(yfms_context *yfms)
             yfms->mwindow.screen.spad_backup == 0) // alternative handled below
         {
             // empty scratchpad, reset to "CLR"
-            yfs_spad_reset(yfms, "CLR", -1); return;
+            yfs_spad_reset(yfms, "CLR", -1); yfms->mwindow.screen.redraw = 1; return;
         }
     }
     for (int i = 0; i < YFS_DISPLAY_NUMC; i++)
@@ -70,7 +70,8 @@ void yfs_spad_clear(yfms_context *yfms)
         sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s",
                 yfms->mwindow.screen.spad_bupbuf);
     }
-    yfms->mwindow.screen.spad_backup = yfms->mwindow.screen.spad_reset = 0; return;
+    yfms->mwindow.screen.spad_backup = yfms->mwindow.screen.spad_reset = 0;
+    yfms->mwindow.screen.redraw = 1; return;
 }
 
 void yfs_spad_remvc(yfms_context *yfms)
@@ -82,14 +83,15 @@ void yfs_spad_remvc(yfms_context *yfms)
     if (yfms->mwindow.screen.spad_reset)
     {
         // not from by user, clear it
-        yfs_spad_clear(yfms); return;
+        yfs_spad_clear(yfms); yfms->mwindow.screen.redraw = 1; return;
     }
     char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); size_t l = strlen(buf);
     if (l <= 1)
     {
         yfs_spad_clear(yfms); return; // one or fewer character left
     }
-    buf[l - 1] = 0; sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s", buf); return;
+    buf[l - 1] = 0; sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s", buf);
+    yfms->mwindow.screen.redraw = 1; return;
 }
 
 void yfs_spad_apndc(yfms_context *yfms, char c, int color)
@@ -110,7 +112,7 @@ void yfs_spad_apndc(yfms_context *yfms, char c, int color)
         {
             buf[l - 1] = buf[l - 1] == '+' ? '-' : '+';
             sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s", buf);
-            return;
+            yfms->mwindow.screen.redraw = 1; return;
         }
     }
     if (l >= YFS_DISPLAY_NUMC)
@@ -118,7 +120,8 @@ void yfs_spad_apndc(yfms_context *yfms, char c, int color)
         return; // scratchpad full
     }
     yfms->mwindow.screen.colr[SPAD_IDX][l] = color >= 0 ? color : SPAD_COL;
-    sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s%c", buf, c); return;
+    sprintf(yfms->mwindow.screen.text[SPAD_IDX], "%s%c", buf, c);
+    yfms->mwindow.screen.redraw = 1; return;
 }
 
 void yfs_spad_reset(yfms_context *yfms, char *s, int color)
@@ -154,5 +157,5 @@ void yfs_spad_reset(yfms_context *yfms, char *s, int color)
     {
         yfms->mwindow.screen.colr[SPAD_IDX][i] = color >= 0 ? color : SPAD_COL;
     }
-    yfms->mwindow.screen.spad_reset = 1; return;
+    yfms->mwindow.screen.spad_reset = 1; yfms->mwindow.screen.redraw = 1; return;
 }

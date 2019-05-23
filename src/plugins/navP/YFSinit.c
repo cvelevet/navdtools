@@ -68,6 +68,7 @@ void yfs_init_pageupdt(yfms_context *yfms)
     }
     if (yfms->xpl.has_custom_navigation)
     {
+        yfms->mwindow.screen.redraw = 1;
         return yfs_printf_ctr(yfms, 6, COLR_IDX_WHITE, "%s", "PAGE INOP");
     }
     yfs_printf_ctr(yfms, 0, COLR_IDX_WHITE, "%s", "INIT");
@@ -166,7 +167,7 @@ void yfs_init_pageupdt(yfms_context *yfms)
     }
 
     /* all good */
-    return;
+    yfms->mwindow.screen.redraw = 1; return;
 }
 
 static int check_subdirectories_recursive(yfms_context *yfms, const char *base, char outPath[512])

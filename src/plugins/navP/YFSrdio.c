@@ -1191,6 +1191,9 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
                 break;
         }
     }
+
+    /* all good */
+    yfms->mwindow.screen.redraw = 1; return;
 }
 
 static void yfs_rad2_pageupdt(yfms_context *yfms)
@@ -1217,6 +1220,7 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     }
     if (yfms->xpl.has_custom_nav_radios)
     {
+        yfms->mwindow.screen.redraw = 1;
         return yfs_printf_ctr(yfms, 6, COLR_IDX_WHITE, "%s", "PAGE INOP");
     }
     yfs_printf_ctr(yfms, 0, COLR_IDX_WHITE, "%s", "RADIO NAV");
@@ -1374,7 +1378,7 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
             yfms->xpl.ils.frequency_changed = 0;
         }
     }
-    return;
+    yfms->mwindow.screen.redraw = 1; return;
 }
 
 static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refcon)
