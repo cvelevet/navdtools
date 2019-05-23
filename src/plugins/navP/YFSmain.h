@@ -463,7 +463,8 @@ typedef struct
         XPLMDataRef override_fms;
         // miscellaneous
         XPLMDataRef acf_vs0;
-        XPLMDataRef true_psi;
+        XPLMDataRef mag_trk;
+        XPLMDataRef mag_var;
         XPLMDataRef latitude;
         XPLMDataRef longitude;
         XPLMDataRef tropopause;

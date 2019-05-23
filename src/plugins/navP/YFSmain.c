@@ -1279,7 +1279,8 @@ void* yfs_main_init(void)
         (yfms->xpl.HSI_source_select_copilot       = XPLMFindDataRef("sim/cockpit2/radios/actuators/HSI_source_select_copilot"      )) == NULL ||
         (yfms->xpl.override_fms                    = XPLMFindDataRef("sim/operation/override/override_fms_advance"                  )) == NULL || // PAGE_FPLN
         (yfms->xpl.acf_vs0                         = XPLMFindDataRef("sim/aircraft/view/acf_Vso"                                    )) == NULL || // miscellaneous
-        (yfms->xpl.true_psi                        = XPLMFindDataRef("sim/flightmodel/position/true_psi"                            )) == NULL ||
+        (yfms->xpl.mag_trk                         = XPLMFindDataRef("sim/cockpit2/gauges/indicators/ground_track_mag_pilot"        )) == NULL ||
+        (yfms->xpl.mag_var                         = XPLMFindDataRef("sim/flightmodel/position/magnetic_variation"                  )) == NULL ||
         (yfms->xpl.latitude                        = XPLMFindDataRef("sim/flightmodel/position/latitude"                            )) == NULL ||
         (yfms->xpl.longitude                       = XPLMFindDataRef("sim/flightmodel/position/longitude"                           )) == NULL ||
         (yfms->xpl.groundspeed                     = XPLMFindDataRef("sim/flightmodel/position/groundspeed"                         )) == NULL ||

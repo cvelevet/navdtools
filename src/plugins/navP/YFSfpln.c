@@ -933,21 +933,18 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
 {
     // TODO: proper direct to "source" coord adjustment
     // https://en.wikipedia.org/wiki/Standard_rate_turn
-    // sim/flightmodel/position/true_psi                      float  n  degrees     The heading of the aircraft relative to the earth precisely below the aircraft - true degrees north, always
-    // sim/cockpit2/gauges/indicators/ground_track_mag_pilot  float  n  degrees     The ground track of the aircraft in degrees magnetic
-    // sim/flightmodel/position/magnetic_variation            float  n  degrees     The local magnetic variation
     // sim/cockpit/autopilot/heading_roll_mode                int    y  enum        Bank limit - 0 = auto, 1-6 = 5-30 degrees of bank
     // sim/cockpit2/autopilot/bank_angle_mode                 int    y  enum        Maximum bank angle mode, 0->6. Higher number is steeper allowable bank.
     // sim/flightmodel/position/true_airspeed                 float  n  meters/sec  Air speed true - this does not take into account air density at altitude!
     // sim/flightmodel/position/groundspeed                   float  n  meters/sec  The ground speed of the aircraft
     ndt_route_leg *tmp, *leg, *t_p_leg, *dct_leg;
-    float trueheading = XPLMGetDataf(yfms->xpl.true_psi);
     float groundspeed = XPLMGetDataf(yfms->xpl.groundspeed);
     char buf[23]; int insert_after = 0; ndt_waypoint *t_p_wpt;
-    ndt_distance dnxt = ndt_distance_init(5, NDT_ALTUNIT_NM); //fixme: debug: hardcode to 5 nautical miles for testing pourposes
+    float grd_trk_tru = XPLMGetDataf(yfms->xpl.mag_trk) - XPLMGetDataf(yfms->xpl.mag_var); // == true_psi on ground (-> no wind)
+    ndt_distance dnxt = ndt_distance_init(2, NDT_ALTUNIT_NM); //fixme: debug: hardcode to 2 nautical miles for testing pourposes
 //  ndt_distance dnxt = ndt_distance_init(groundspeed * 3, NDT_ALTUNIT_ME); // compute airc. pos. ~3 seconds from now (GS in m/s)
     ndt_position ppos = ndt_position_init(XPLMGetDatad(yfms->xpl.latitude), XPLMGetDatad(yfms->xpl.longitude), NDT_DISTANCE_ZERO);
-    ndt_position p_tp = ndt_position_calcpos4pbd(ppos, trueheading, dnxt); snprintf(buf, sizeof(buf), "%+010.6lf/%+011.6lf",
+    ndt_position p_tp = ndt_position_calcpos4pbd(ppos, grd_trk_tru, dnxt); snprintf(buf, sizeof(buf), "%+010.6lf/%+011.6lf",
                                                                                     ndt_position_getlatitude (p_tp, NDT_ANGUNIT_DEG),
                                                                                     ndt_position_getlongitude(p_tp, NDT_ANGUNIT_DEG));
 #if 0
