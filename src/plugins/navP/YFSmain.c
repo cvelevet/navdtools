@@ -2062,7 +2062,7 @@ static void draw_display(yfms_context *yfms)
     // font properties, options, size etc.
     cairo_set_scaled_font(CAIRO4SCRN(cr), CAIRO4SCRN(font));
 
-#if 1//debug
+#if 0
     static int once = 1;
     if (once)
     {
