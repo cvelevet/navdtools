@@ -137,7 +137,13 @@ void yfs_menu_resetall(yfms_context *yfms)
         yfms->data.fpln.usrwpts[i].ref = 0;
     }
 
-    /* user-provided data */
+    /*
+     * NOTE: do NOT use yfs_init_fplreset() function here, see explanation:
+     * this is a full FMGS reset: we *can't* clear the whole XPLMNavigation
+     * plan too; we don't do this for full resets because this allows us to
+     * set up routes for the GPS units but release navigation to said units
+     * which override the XPLMNavigation active leg (unlike FMS aircraft)…
+     */
     yfms->data.init.crz_alt       = ndt_distance_init(0, NDT_ALTUNIT_NA);
     yfms->data.prog.fix           = NULL;
     yfms->data.init.to            = NULL;
@@ -164,7 +170,7 @@ void yfs_menu_resetall(yfms_context *yfms)
     {
         yfs_main_toggl(yfms);
     }
-    yfs_idnt_pageopen (yfms); return;
+    yfs_idnt_pageopen(yfms); return;
 }
 
 void yfs_menu_pageopen(yfms_context *yfms)
@@ -418,7 +424,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         case FMGS_PHASE_PRE:
             if (crzfeet > 1000)
             {
-                if (aglfeet > 1)
+                if (aglfeet > 20)
                 {
                     if (gskts >= 90.0f || gskts >= XPLMGetDataf(yfms->xpl.acf_vs0))
                     {
@@ -496,15 +502,13 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     }
     if (yfms->data.phase >= FMGS_PHASE_TOF) // don't reset before takeoff, duh!
     {
-        if (aglfeet < 50)
+        if (aglfeet < 20)
         {
-            if ((gskts < 90.0f && gskts < XPLMGetDataf(yfms->xpl.acf_vs0)) ||
-                (gskts < 40.0f)) // TODO: wait 30 seconds, ignore groundspeed
+            if (gskts < 10.0f) // TODO: wait 30 seconds, ignore groundspeed
             {
-                // TODO: delete XPLM plan, reset YFMS, clear scratchpad
                 ndt_log("YFMS [debug]: phase change: FMGS_PHASE_END (was %d)\n", yfms->data.phase);
-                yfms->data.phase = FMGS_PHASE_END;
-                return DEFAULT_CALLBACK_RATE;
+                yfs_init_fplreset(yfms); yfms->data.phase = FMGS_PHASE_END;
+                yfs_idnt_pageopen(yfms); return DEFAULT_CALLBACK_RATE;
             }
         }
     }

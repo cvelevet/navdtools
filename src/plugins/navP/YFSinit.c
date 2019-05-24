@@ -426,9 +426,24 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
         yfms->data.init.cost_index    = 0;
         yfms->data.fpln.awys.open     = 0;
         yfms->data.fpln.lrev.open     = 0;
+        /*
+         * this is not a full FMGS reset: we can clear the whole XPLMNavigation
+         * plan too; we don't do this for full resets because this allows us to
+         * set up routes for the GPS units but release navigation to said units
+         * which override the XPLMNavigation active leg (unlike FMS aircraft)…
+         */
+        for (int i = XPLMCountFMSEntries() - 1; i >= 0; i--)
+        {
+            XPLMClearFMSEntry(i);
+        }
     }
     /* all good */
     return;
+}
+
+void yfs_init_fplreset(yfms_context *yfms)
+{
+    yfs_flightplan_reinit(yfms, NULL, NULL, NULL); return;
 }
 
 static ndt_airport* xplm_create_airport(yfms_context *yfms, const char *code)
