@@ -25,6 +25,11 @@
 #include <stdint.h>
 
 #include "cairo/cairo.h"
+#if CAIRO_HAS_FT_FONT
+#include "cairo/cairo-ft.h"
+#include "ft2build.h"
+#include FT_FREETYPE_H
+#endif
 
 #include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMDataAccess.h"
@@ -211,9 +216,21 @@ typedef struct
             char spad_bupbuf[YFS_DISPLAY_NUMC + 1];
             struct
             {
-                cairo_scaled_font_t *font;
+                //TODO: font-specific "°"
+                const char      *fly_over;
+                const char      *whitebox;
+                cairo_scaled_font_t *sfnt;
+                cairo_font_face_t   *font;
                 cairo_surface_t     *surf;
                 cairo_t             *cr;
+#if CAIRO_HAS_FT_FONT
+                struct
+                {
+                    cairo_font_face_t *font;
+                    FT_Library         flib;
+                    FT_Face            face;
+                } ft;
+#endif
                 struct
                 {
                     int      wid;

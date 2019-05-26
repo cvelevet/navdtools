@@ -20,6 +20,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,6 +39,11 @@
 #endif
 
 #include "cairo/cairo.h"
+#if CAIRO_HAS_FT_FONT
+#include "cairo/cairo-ft.h"
+#include "ft2build.h"
+#include FT_FREETYPE_H
+#endif
 
 #include "Widgets/XPStandardWidgets.h"
 #include "Widgets/XPWidgetDefs.h"
@@ -697,8 +703,76 @@ static int create_main_window(yfms_context *yfms)
         }
     }
 
+    /* cairo: setup default font to be used if we cannot load anything better */
+    CAIRO4SCRN(font) = cairo_toy_font_face_create("cairo:monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_status_t status = cairo_font_face_status(CAIRO4SCRN(font));
+    CAIRO4SCRN(whitebox) = "□"; CAIRO4SCRN(fly_over) = "*";
+    if (CAIRO_STATUS_SUCCESS != status)
+    {
+        ndt_log("YFMS [error]: cairo_font_face_status(\"%s\"): '%s'\n", "cairo:monospace", cairo_status_to_string(status));
+        return -1;
+    }
+
+//#define USE_DEFAULT_FONT
+#ifndef USE_DEFAULT_FONT
+#if CAIRO_HAS_FT_FONT
+    /* freetype: load better font if possible */
+    FT_Error err = FT_Init_FreeType(&CAIRO4SCRN(ft.flib));
+    if (0 != err)
+    {
+        ndt_log("YFMS [error]: FT_Init_FreeType: %d\n", err);
+        return -1;
+    }
+    else
+    {
+        char *path = NULL; int ret, len; XPLMGetSystemPath(yfms->ndt.xsystem_pth);
+        struct
+        {
+            int     relative;
+            const char *wbox;
+            const char *ofly;
+            const char *path;
+        }
+        font_paths[] =
+        {
+            { 1, "□", "Δ", "Resources/plugins/YFMS/fonts/AnonymousPro-Bold.ttf", }, // https://fonts.google.com/specimen/Anonymous+Pro
+            { 0, "□", "Δ", "/System/Library/Fonts/Monaco.dfont", },
+            { 0, NULL, NULL, NULL, },
+        };
+        for (int i = 0; font_paths[i].path != NULL; i++)
+        {
+            if (0 == (ret = ndt_file_getpath(font_paths[i].relative ? yfms->ndt.xsystem_pth : NULL, font_paths[i].path, &path, &len)))
+            {
+                if (0 == (err = FT_New_Face(CAIRO4SCRN(ft.flib), path, 0, &CAIRO4SCRN(ft.face))) != 0)
+                {
+                    if (NULL == (CAIRO4SCRN(ft.font) = cairo_ft_font_face_create_for_ft_face(CAIRO4SCRN(ft.face), 0)))
+                    {
+                        ndt_log("YFMS [error]: cairo_ft_font_face_create_for_ft_face(\"%s\"): (NULL)\n", path);
+                        FT_Done_Face(CAIRO4SCRN(ft.face)); CAIRO4SCRN(ft.face) = NULL;
+                        continue;
+                    }
+                    if (CAIRO_STATUS_SUCCESS != (status = cairo_font_face_status(CAIRO4SCRN(ft.font))))
+                    {
+                        ndt_log("YFMS [error]: cairo_font_face_status(\"%s\"): '%s'\n", path, cairo_status_to_string(status));
+                        FT_Done_Face(CAIRO4SCRN(ft.face)); CAIRO4SCRN(ft.face) = NULL;
+                        continue;
+                    }
+                    CAIRO4SCRN(whitebox) = font_paths[i].wbox; CAIRO4SCRN(fly_over) = font_paths[i].ofly;
+                    cairo_font_face_destroy(CAIRO4SCRN(font)); CAIRO4SCRN(font) = CAIRO4SCRN(ft.font);
+                    ndt_log("YFMS [info]: loaded font file: \"%s\"\n", path);
+                    break;
+                }
+            }
+        }
+        if (path)
+        {
+            free(path);
+        }
+    }
+#endif
+#endif
+
     /* cairo */
-    cairo_status_t cs; cairo_matrix_t cm;
     CAIRO4SCRN(data.wid) = yfms->mwindow.screen.sw_inRT - yfms->mwindow.screen.sw_inLT + 2;
     CAIRO4SCRN(data.hei) = yfms->mwindow.screen.sw_inTP - yfms->mwindow.screen.sw_inBM + 2;
     CAIRO4SCRN(data.str) = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, CAIRO4SCRN(data.wid));
@@ -708,23 +782,90 @@ static int create_main_window(yfms_context *yfms)
         return ENOMEM;
     }
     CAIRO4SCRN(surf) = cairo_image_surface_create_for_data(CAIRO4SCRN(data.buf), CAIRO_FORMAT_ARGB32, CAIRO4SCRN(data.wid), CAIRO4SCRN(data.hei), CAIRO4SCRN(data.str));
-    if (CAIRO_STATUS_SUCCESS != (cs = cairo_surface_status(CAIRO4SCRN(surf))))
+    if (CAIRO_STATUS_SUCCESS != (status = cairo_surface_status(CAIRO4SCRN(surf))))
     {
-        ndt_log("YFMS [error]: cairo surface status '%s'\n", cairo_status_to_string(cs));
+        ndt_log("YFMS [error]: cairo_surface_status: '%s'\n", cairo_status_to_string(status));
         return -1;
     }
     CAIRO4SCRN(cr) = cairo_create(CAIRO4SCRN(surf));
-    if (CAIRO_STATUS_SUCCESS != (cs = cairo_status(CAIRO4SCRN(cr))))
+    if (CAIRO_STATUS_SUCCESS != (status = cairo_status(CAIRO4SCRN(cr))))
     {
-        ndt_log("YFMS [error]: cairo status '%s'\n", cairo_status_to_string(cs));
+        ndt_log("YFMS [error]: cairo_status: '%s'\n", cairo_status_to_string(status));
         return -1;
     }
-    // TODO: check any available fonts, ideally one where 0 != 0 and I doesn't look like an american-style 1
-    // cairo:monospace seems to be the only way to get a font where x_advance is the same for all characters
-    cairo_select_font_face(CAIRO4SCRN(cr), "cairo:monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-    cairo_get_font_matrix(CAIRO4SCRN(cr), &cm); cm.xx = YFS_FONT_BASIC_H - 2;
-    cm.yy = -cm.xx; cairo_set_font_matrix(CAIRO4SCRN(cr), &cm);
-    CAIRO4SCRN(font) = cairo_get_scaled_font(CAIRO4SCRN(cr));
+    cairo_set_font_face(CAIRO4SCRN(cr), CAIRO4SCRN(font));
+    if (CAIRO_STATUS_SUCCESS != (status = cairo_status(CAIRO4SCRN(cr))))
+    {
+        ndt_log("YFMS [error]: cairo_status: '%s'\n", cairo_status_to_string(status));
+        return -1;
+    }
+    cairo_matrix_t matrix; cairo_get_font_matrix(CAIRO4SCRN(cr), &matrix); matrix.xx = (double)YFS_FONT_BASIC_W - 1.0;
+    do // XXX: exhaustive but we only run it once
+    {
+        matrix.yy = -matrix.xx; cairo_set_font_matrix(CAIRO4SCRN(cr), &matrix);
+        for (char c = 'A'; c <= 'Z'; c++)
+        {
+            char buf[2];
+            cairo_text_extents_t te;
+            snprintf(buf, sizeof(buf), "%c", c);
+            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
+            if (((double)YFS_FONT_BASIC_W + 0.1) < (te.width))
+            {
+                ndt_log("YFMS [debug]: '%s': size %04.1lf |"
+                        " x_bearing %+04.1lf | w %04.1lf | x_advance %+04.1lf |"
+                        " y_bearing %+04.1lf | h %04.1lf | y_advance %+04.1lf\n",
+                        matrix.xx, buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height, te.y_advance);
+                matrix.xx -= 1.0; matrix.yy = -matrix.xx;
+                goto set_font_size;
+            }
+            if (((double)YFS_FONT_BASIC_H + 0.1) < (te.height))
+            {
+                ndt_log("YFMS [debug]: '%s': size %04.1lf |"
+                        " x_bearing %+04.1lf | w %04.1lf | x_advance %+04.1lf |"
+                        " y_bearing %+04.1lf | h %04.1lf | y_advance %+04.1lf\n",
+                        matrix.xx, buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height, te.y_advance);
+                matrix.xx -= 1.0; matrix.yy = -matrix.xx;
+                goto set_font_size;
+            }
+            if (((double)YFS_FONT_BASIC_W + 0.1) < (te.x_advance + 1.0))
+            {
+                ndt_log("YFMS [debug]: '%s': size %04.1lf |"
+                        " x_bearing %+04.1lf | w %04.1lf | x_advance %+04.1lf |"
+                        " y_bearing %+04.1lf | h %04.1lf | y_advance %+04.1lf\n",
+                        matrix.xx, buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height, te.y_advance);
+                matrix.yy = -matrix.xx; // first font size with x_advance of 8.0
+                goto set_font_size;
+            }
+            if (((double)YFS_FONT_BASIC_H + 0.1) < (te.y_bearing + te.height + 1.0))
+            {
+                ndt_log("YFMS [debug]: '%s': size %04.1lf |"
+                        " x_bearing %+04.1lf | w %04.1lf | x_advance %+04.1lf |"
+                        " y_bearing %+04.1lf | h %04.1lf | y_advance %+04.1lf\n",
+                        matrix.xx, buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height, te.y_advance);
+                matrix.xx -= 1.0; matrix.yy = -matrix.xx;
+                goto set_font_size;
+            }
+        }
+        matrix.xx += 1.0;
+        continue;
+    }
+    while (1);
+
+set_font_size:
+    cairo_set_font_matrix(CAIRO4SCRN(cr), &matrix);
+    CAIRO4SCRN(sfnt) = cairo_get_scaled_font(CAIRO4SCRN(cr));
+    ndt_log("YFMS [info]: computed font size %lf\n", matrix.xx);
+#if 0
+    for (char c = '!'; c <= '~'; c++)
+    {
+        char buf[2]; snprintf(buf, sizeof(buf), "%c", c);
+        cairo_text_extents_t te; cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
+        ndt_log("YFMS [debug]: '%s': size %04.1lf |"
+                " x_bearing %+04.1lf | w %04.1lf | x_advance %+04.1lf |"
+                " y_bearing %+04.1lf | h %04.1lf | y_advance %+04.1lf\n",
+                matrix.xx, buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height, te.y_advance);
+    }
+#endif
 
     /*
      * Predefined regions for mouse wheel and click support,
@@ -1421,9 +1562,18 @@ int yfs_main_close(yfms_context **_yfms)
     }
 
     /* cairo */
+    if (CAIRO4SCRN(font))     cairo_font_face_destroy(CAIRO4SCRN(font));
     if (CAIRO4SCRN(surf))     cairo_surface_destroy(CAIRO4SCRN(surf));
     if (CAIRO4SCRN(cr))       cairo_destroy(CAIRO4SCRN(cr));
     if (CAIRO4SCRN(data.buf)) free(CAIRO4SCRN(data.buf));
+
+#ifndef USE_DEFAULT_FONT
+#if CAIRO_HAS_FT_FONT
+    /* freetype */
+    if (CAIRO4SCRN(ft.face)) FT_Done_Face(CAIRO4SCRN(ft.face));
+    FT_Done_FreeType(CAIRO4SCRN(ft.flib));
+#endif
+#endif
 
     /* all good */
     free(yfms);
@@ -2061,69 +2211,7 @@ static void draw_display(yfms_context *yfms)
     cairo_fill(CAIRO4SCRN(cr));
 
     // font properties, options, size etc.
-    cairo_set_scaled_font(CAIRO4SCRN(cr), CAIRO4SCRN(font));
-
-#if 0
-    static int once = 1;
-    if (once)
-    {
-        for (char c = 'A'; c <= 'Z'; c++)
-        {
-            snprintf(buf, sizeof(buf), "%c", c);
-            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
-            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
-        }
-        for (char c = 'a'; c <= 'z'; c++)
-        {
-            snprintf(buf, sizeof(buf), "%c", c);
-            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
-            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
-        }
-        for (char c = '0'; c <= '9'; c++)
-        {
-            snprintf(buf, sizeof(buf), "%c", c);
-            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
-            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
-        }
-        for (char c = '/'; c <= '/'; c++)
-        {
-            snprintf(buf, sizeof(buf), "%c", c);
-            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
-            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
-        }
-        for (char c = '.'; c <= '.'; c++)
-        {
-            snprintf(buf, sizeof(buf), "%c", c);
-            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
-            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
-        }
-        for (char c = '-'; c <= '-'; c++)
-        {
-            snprintf(buf, sizeof(buf), "%c", c);
-            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
-            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
-        }
-        for (char c = '+'; c <= '+'; c++)
-        {
-            snprintf(buf, sizeof(buf), "%c", c);
-            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
-            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
-        }
-        for (char c = '#'; c <= '#'; c++)
-        {
-            snprintf(buf, sizeof(buf), "%c", c);
-            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
-            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
-        }
-        for (char c = ' '; c <= ' '; c++)
-        {
-            snprintf(buf, sizeof(buf), "%c", c);
-            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
-            ndt_log("YFMS [debug]: '%s' x_bearing %lf width %lf x_advance %lf y_bearing %lf height %lf\n", buf, te.x_bearing, te.width, te.x_advance, te.y_bearing, te.height);
-        }
-        once = 0;
-    }
-#endif
+    cairo_set_scaled_font(CAIRO4SCRN(cr), CAIRO4SCRN(sfnt));
 
     // actual text rendering
     for (int i = 0; i < YFS_DISPLAY_NUMR; i++)

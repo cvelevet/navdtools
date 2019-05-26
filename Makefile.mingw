@@ -13,7 +13,7 @@ TARGETARCH  = -m64
 
 LIBACU_DIR = libacfutils-redist
 LIBACU_LIB = -L$(LIBACU_DIR)/win64/lib -lacfutils
-LIBACU_INC = -I$(LIBACU_DIR)/include -I$(LIBACU_DIR)/win64/include
+LIBACU_INC = -I$(LIBACU_DIR)/include -I$(LIBACU_DIR)/win64/include -I$(LIBACU_DIR)/win64/include/freetype2
 
 navdconv:
 	$(MAKE) -f Makefile                                                                                                                 CC="$(CC)" CPPFLAGS="$(CPPFLAGS)" CFLAGS="$(CFLAGS)" TARGETARCH="$(TARGETARCH)" NDCONV_EXE="$(NDCONV_EXE)" navdconv

@@ -12,8 +12,8 @@ CC         = clang
 CPPFLAGS   =
 
 LIBACU_DIR = libacfutils-redist
-LIBACU_INC = -I$(LIBACU_DIR)/include -I$(LIBACU_DIR)/mac64/include
 LIBACU_LIB = -L$(LIBACU_DIR)/mac64/lib -lacfutils -lcairo -lfreetype -lpixman-1 -lz
+LIBACU_INC = -I$(LIBACU_DIR)/include -I$(LIBACU_DIR)/mac64/include -I$(LIBACU_DIR)/mac64/include/freetype2
 
 NDCCPPFLAGS =
 NDC_SOURCES = $(SOURCE_DIR)/tools/navdconv.c

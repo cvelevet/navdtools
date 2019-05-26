@@ -5,8 +5,8 @@ TARGETARCH = -m64
 CC         = gcc
 
 LIBACU_DIR = libacfutils-redist
-LIBACU_INC = -I$(LIBACU_DIR)/include -I$(LIBACU_DIR)/lin64/include
 LIBACU_LIB = -L$(LIBACU_DIR)/lin64/lib -lacfutils -lcairo -lfreetype -lpixman-1 -lz
+LIBACU_INC = -I$(LIBACU_DIR)/include -I$(LIBACU_DIR)/lin64/include -I$(LIBACU_DIR)/lin64/include/freetype2
 
 all:
 	$(MAKE) -f Makefile CC="$(CC)" CPPFLAGS="$(CPPFLAGS)" CFLAGS="$(CFLAGS)" TARGETARCH="$(TARGETARCH)" LDLIBS="$(LDLIBS)" LIBACU_INC="$(LIBACU_INC)" LIBACU_LIB="$(LIBACU_LIB)" navdconv

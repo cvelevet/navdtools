@@ -106,7 +106,14 @@ void yfs_spad_apndc(yfms_context *yfms, char c, int color)
         yfms->mwindow.screen.spad_backup = 0; yfs_spad_clear(yfms);
     }
     char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf); size_t l = strlen(buf);
-    if (c == '+' || c == '-')
+    if (c == '^')
+    {
+        if (l > 0)
+        {
+            return; // overfly: forbid appending anywhere except first character
+        }
+    }
+    else if (c == '+' || c == '-')
     {
         if (buf[l - 1] == '+' || buf[l - 1] == '-')
         {
