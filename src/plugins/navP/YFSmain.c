@@ -2202,7 +2202,7 @@ static int yfs_mcdubgrh(XPWidgetMessage inMessage,
 #define COLR2CAIRO(context, color) (cairo_set_source_rgb(context, color[0], color[1], color[2]))
 static void draw_display(yfms_context *yfms)
 {
-    char buf[2]; int x0, y0, x1, y1; cairo_text_extents_t te;
+    char buf[5]; int x0, y0, x1, y1;
 
     // draw display background
     cairo_rectangle(CAIRO4SCRN(cr), 0, 0, CAIRO4SCRN(data.wid), CAIRO4SCRN(data.hei));
@@ -2218,22 +2218,9 @@ static void draw_display(yfms_context *yfms)
     {
         XPGetWidgetGeometry(yfms->mwindow.screen.subw_id,    &x0, NULL, NULL, &y0);
         XPGetWidgetGeometry(yfms->mwindow.screen.line_id[i], &x1, NULL, NULL, &y1);
-        for (int j = strlen(yfms->mwindow.screen.text[i]); j < YFS_DISPLAY_NUMC; j++)
-        {
-            if (yfms->mwindow.screen.text[i][j] == 0)
-            {
-                yfms->mwindow.screen.text[i][j] = ' ';
-            }
-        }
         for (int j = 0; j < YFS_DISPLAY_NUMC; j++)
         {
-            snprintf(buf, sizeof(buf), "%c", yfms->mwindow.screen.text[i][j]);
-            if (i == YFS_DISPLAY_NUMR - 1 && *buf == '_')
-            {
-                // scratchpad: parser strips trailing spaces, we use underscores instead
-                *buf = ' '; // display the intended character, not the stored workaround
-            }
-            switch  (yfms->mwindow.screen.colr[i][j])
+            switch (yfms->mwindow.screen.colr[i][j])
             {
                 case COLR_IDX_BLACK:
                     COLR2CAIRO(CAIRO4SCRN(cr), COLR_BLACK);
@@ -2261,20 +2248,36 @@ static void draw_display(yfms_context *yfms)
                     COLR2CAIRO(CAIRO4SCRN(cr), COLR_GREEN);
                     break;
             }
-            double x = x1 - x0, y = y1 - y0;
-            cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
-            double xalign = (double)YFS_FONT_BASIC_W / 2.0 - te.width / 2.0 - te.x_bearing; // thanks, toto :-)
-            if (*buf == '1') { xalign -= 1.0; } // XXX: whatever, kind of works
-            cairo_move_to(CAIRO4SCRN(cr), x + xalign, y);
-            if (yfms->mwindow.screen.text[i][j] == '#')
+            switch (yfms->mwindow.screen.text[i][j])
             {
-                cairo_show_text(CAIRO4SCRN(cr), "□"); // actually works!!!
+                case '#':
+                    snprintf(buf, sizeof(buf), "%s", CAIRO4SCRN(whitebox));
+                    break;
+                case '^':
+                    snprintf(buf, sizeof(buf), "%s", CAIRO4SCRN(fly_over));
+                    break;
+                case '\0':
+                    goto next_character; // no drawing required
+                case '_':
+                    if (i == YFS_DISPLAY_NUMR - 1)
+                    {
+                        // scratchpad: parser strips trailing spaces, we store underscores
+                        // instead; here: restore character initially intended for display
+                        goto next_character; // whitespace doesn't need drawing
+                    }
+                    // fall through
+                default:
+                    snprintf(buf, sizeof(buf), "%c", yfms->mwindow.screen.text[i][j]);
+                    break;
             }
-            else
-            {
-                cairo_show_text(CAIRO4SCRN(cr), buf);
-            }
+            cairo_text_extents_t te; cairo_text_extents(CAIRO4SCRN(cr), buf, &te);
+            double xalign = (double)YFS_FONT_BASIC_W / 2.0 - te.width / 2.0 - te.x_bearing - 1.0;
+            if ((double)YFS_FONT_BASIC_W == te.x_advance) xalign = 0.0; // gives slightly better results with e.g. Monaco
+            cairo_move_to(CAIRO4SCRN(cr), (double)(x1 - x0) + xalign, (double)(y1 - y0));
+            cairo_show_text(CAIRO4SCRN(cr), buf);
+        next_character:
             x1 += YFS_FONT_BASIC_W;
+            continue;
         }
     }
 
