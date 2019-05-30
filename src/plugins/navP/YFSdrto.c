@@ -78,7 +78,8 @@ void yfs_drto_pageupdt(yfms_context *yfms)
     /* is the page meant to be active? */
     if (yfms->data.init.ialized == 0)
     {
-        yfs_printf_ctr(yfms, 2, COLR_IDX_WHITE, "%s", "--------NO F-PLN--------"); return;
+        yfms->mwindow.screen.redraw = 1;
+        return yfs_printf_ctr(yfms, 2, COLR_IDX_WHITE, "%s", "--------NO F-PLN--------");
     }
 
     /* default state: no direct selected yet */
