@@ -135,6 +135,9 @@ void yfs_init_pageupdt(yfms_context *yfms)
     if (yfms->data.init.ialized || yfms->data.init.aligned)
     {
         yfs_printf_lft(yfms,  8, 0, COLR_IDX_BLUE, "%.7s", gps_coodinates_buf);
+    }
+    if (yfms->data.init.ialized)
+    {
         yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%3d", yfms->data.init.cost_index);
     }
 
@@ -156,6 +159,10 @@ void yfs_init_pageupdt(yfms_context *yfms)
     {
         yfs_printf_rgt(yfms, 2, 0, COLR_IDX_BLUE, "%-4s", yfms->data.init.to->info.idnt);
     }
+    if (yfms->data.init.ialized || yfms->data.init.aligned)
+    {
+        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%.8s", gps_coodinates_buf + 8);
+    }
     if (yfms->data.init.ialized)
     {
         if (yfms->data.init.aligned == 0)
@@ -163,7 +170,6 @@ void yfs_init_pageupdt(yfms_context *yfms)
             yfs_printf_rgt(yfms, 6, 0, COLR_IDX_ORANGE, "%s", "ALIGN IRS>");
         }
         yfs_printf_rgt(yfms, 2, 4, COLR_IDX_BLUE, "%s", "/");
-        yfs_printf_rgt(yfms, 8, 0, COLR_IDX_BLUE, "%.8s", gps_coodinates_buf + 8);
     }
 
     /* all good */
