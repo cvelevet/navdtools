@@ -1166,7 +1166,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     }
     if (alt[2] == BARO_STD)
     {
-        yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%-7s", "STD");
+        yfs_printf_lft(yfms, 10, 0, COLR_IDX_BLUE, "%-6s", "STD"); // %-6s: strlen("1013.2")
     }
 
     /* line 12: switches (white) */
