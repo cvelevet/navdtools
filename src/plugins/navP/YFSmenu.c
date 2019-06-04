@@ -415,6 +415,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     float gskts = XPLMGetDataf(yfms->xpl.groundspeed) * 3.6f / 1.852f;
     int aglfeet = XPLMGetDataf(yfms->xpl.elevation_agl) / 0.3048f;
     int mcpfeet = XPLMGetDataf(yfms->xpl.altitude_dial_mcp_feet);
+    float askts = XPLMGetDataf(yfms->xpl.airspeed_kts_pilot);
     int mslfeet = XPLMGetDataf(yfms->xpl.altitude_ft_pilot);
     int vvi_fpm = XPLMGetDataf(yfms->xpl.vvi_fpm_pilot);
     switch (yfms->data.phase)
@@ -424,15 +425,12 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         case FMGS_PHASE_PRE:
             if (crzfeet > 1000)
             {
-                if (aglfeet > 20)
+                if ((gskts >=  50.0f || gskts >= XPLMGetDataf(yfms->xpl.acf_vs0)) &&
+                    (askts >= 100.0f || askts >= XPLMGetDataf(yfms->xpl.acf_vs0)))
                 {
-                    if (gskts >= 90.0f || gskts >= XPLMGetDataf(yfms->xpl.acf_vs0))
-                    {
-                        ndt_log("YFMS [debug]: phase change: FMGS_PHASE_TOF (was %d)\n", yfms->data.phase);
-                        yfms->data.phase = FMGS_PHASE_TOF;
-                        yfs_fpln_trackleg(yfms, -1);
-                        break;
-                    }
+                    ndt_log("YFMS [debug]: phase change: FMGS_PHASE_TOF (was %d)\n", yfms->data.phase);
+                    yfms->data.phase = FMGS_PHASE_TOF;
+                    yfs_fpln_trackleg(yfms, -1);
                     break;
                 }
                 break;
@@ -441,8 +439,8 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         case FMGS_PHASE_TOF:
             if (crzfeet > 1000)
             {
-                // TODO: use accel. alt. instead of AGL elevation
-                if (aglfeet > 1000 || (crzfeet - mslfeet) < 1000)
+                // TODO: use acc. alt. instead of AGL elevation
+                if (aglfeet > 800 || (crzfeet - mslfeet) < 1000)
                 {
                     ndt_log("YFMS [debug]: phase change: FMGS_PHASE_CLB (was %d)\n", yfms->data.phase);
                     yfms->data.phase = FMGS_PHASE_CLB;
@@ -502,9 +500,9 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     }
     if (yfms->data.phase >= FMGS_PHASE_TOF) // don't reset before takeoff, duh!
     {
-        if (aglfeet < 20)
+        if (aglfeet < 40)
         {
-            if (gskts < 10.0f) // TODO: wait 30 seconds, ignore groundspeed
+            if (gskts < 40.0f && askts < 40.0f) // TODO: wait 30 seconds, ignore speeds
             {
                 ndt_log("YFMS [debug]: phase change: FMGS_PHASE_END (was %d)\n", yfms->data.phase);
                 yfs_init_fplreset(yfms); yfms->data.phase = FMGS_PHASE_END;
