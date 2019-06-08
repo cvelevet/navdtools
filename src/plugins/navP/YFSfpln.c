@@ -1037,6 +1037,22 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
     yfms->data.fpln.mod.source    = dct_leg;
     yfms->data.fpln.mod.operation = YFS_FPLN_MOD_DCTO; // compute dct_leg's index
     yfms->data.fpln.mod.opaque    = (void*)dct_leg->xpfms; yfs_fpln_fplnupdt(yfms);
+    /*
+     * Feature: auto-engage NAV like Airbus does,
+     * but only if F/D or A/P is already enabled
+     */
+    if (XPLMGetDatai(yfms->xpl.fdir_mode) >= 1)
+    {
+        if (XPLMGetDatai(yfms->xpl.autopilot_source) == 1)
+        {
+            XPLMCommandOnce(yfms->xpl.gps_select_copilot);
+        }
+        else
+        {
+            XPLMCommandOnce(yfms->xpl.gps_select_captain);
+        }
+        XPLMCommandOnce(yfms->xpl.autopilot_nav);
+    }
     return yfs_fpln_pageopen(yfms); // should be tracking correct entry, update page
 }
 

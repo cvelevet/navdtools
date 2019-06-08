@@ -1427,15 +1427,19 @@ void* yfs_main_init(void)
         (yfms->xpl.groundspeed                     = XPLMFindDataRef("sim/flightmodel/position/groundspeed"                         )) == NULL ||
         (yfms->xpl.elevation_agl                   = XPLMFindDataRef("sim/flightmodel/position/y_agl"                               )) == NULL ||
         (yfms->xpl.elevation_msl                   = XPLMFindDataRef("sim/flightmodel/position/elevation"                           )) == NULL ||
-        (yfms->xpl.tropopause                      = XPLMFindDataRef("sim/weather/tropo_alt_mtr"                                    )) == NULL || // autopilot
+        (yfms->xpl.tropopause                      = XPLMFindDataRef("sim/weather/tropo_alt_mtr"                                    )) == NULL ||
+        (yfms->xpl.gps_select_copilot              = XPLMFindCommand("sim/autopilot/hsi_select_copilot_gps"                         )) == NULL || // autopilot
+        (yfms->xpl.gps_select_captain              = XPLMFindCommand("sim/autopilot/hsi_select_gps"                                 )) == NULL ||
+        (yfms->xpl.knots_mach_toggle               = XPLMFindCommand("sim/autopilot/knots_mach_toggle"                              )) == NULL ||
+        (yfms->xpl.autopilot_nav                   = XPLMFindCommand("sim/autopilot/NAV"                                            )) == NULL ||
         (yfms->xpl.machno                          = XPLMFindDataRef("sim/flightmodel/misc/machno"                                  )) == NULL ||
+        (yfms->xpl.fdir_mode                       = XPLMFindDataRef("sim/cockpit2/autopilot/flight_director_mode"                  )) == NULL ||
         (yfms->xpl.vvi_fpm_pilot                   = XPLMFindDataRef("sim/cockpit2/gauges/indicators/vvi_fpm_pilot"                 )) == NULL ||
         (yfms->xpl.airspeed_is_mach                = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_is_mach"                      )) == NULL ||
         (yfms->xpl.altitude_ft_pilot               = XPLMFindDataRef("sim/cockpit2/gauges/indicators/altitude_ft_pilot"             )) == NULL ||
         (yfms->xpl.airspeed_kts_pilot              = XPLMFindDataRef("sim/cockpit2/gauges/indicators/airspeed_kts_pilot"            )) == NULL ||
         (yfms->xpl.airspeed_dial_kts_mach          = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_dial_kts_mach"                )) == NULL ||
         (yfms->xpl.altitude_dial_mcp_feet          = XPLMFindDataRef("sim/cockpit2/autopilot/altitude_vnav_ft"                      )) == NULL ||
-        (yfms->xpl.knots_mach_toggle               = XPLMFindCommand("sim/autopilot/knots_mach_toggle"                              )) == NULL ||
         (yfms->xpl.contact_atc                     = XPLMFindCommand("sim/operation/contact_atc"                                    )) == NULL)
     {
         ndt_log("YFMS [error]: could not load aircraft-related datarefs and commands\n");
