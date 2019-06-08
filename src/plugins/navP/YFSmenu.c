@@ -470,6 +470,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                     if ((crzfeet - mcpfeet) > 1000) // TODO: don't descend if distance remaining > 200nm
                     {
                         ndt_log("YFMS [debug]: phase change: FMGS_PHASE_DES (was %d)\n", yfms->data.phase);
+                        ndt_log("YFMS [debug]: VVI %d CRZ(ft) %d MCP(ft) %d\n", vvi_fpm, crzfeet, mcpfeet);
                         yfms->data.phase = FMGS_PHASE_DES;
                         break;
                     }
