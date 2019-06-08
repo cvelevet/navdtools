@@ -1432,9 +1432,11 @@ void* yfs_main_init(void)
         (yfms->xpl.gps_select_captain              = XPLMFindCommand("sim/autopilot/hsi_select_gps"                                 )) == NULL ||
         (yfms->xpl.knots_mach_toggle               = XPLMFindCommand("sim/autopilot/knots_mach_toggle"                              )) == NULL ||
         (yfms->xpl.autopilot_nav                   = XPLMFindCommand("sim/autopilot/NAV"                                            )) == NULL ||
+        (yfms->xpl.heading_sync                    = XPLMFindCommand("sim/autopilot/heading_sync"                                   )) == NULL ||
         (yfms->xpl.machno                          = XPLMFindDataRef("sim/flightmodel/misc/machno"                                  )) == NULL ||
         (yfms->xpl.fdir_mode                       = XPLMFindDataRef("sim/cockpit2/autopilot/flight_director_mode"                  )) == NULL ||
         (yfms->xpl.vvi_fpm_pilot                   = XPLMFindDataRef("sim/cockpit2/gauges/indicators/vvi_fpm_pilot"                 )) == NULL ||
+        (yfms->xpl.nav_mode_status                 = XPLMFindDataRef("sim/cockpit2/autopilot/nav_status"                            )) == NULL ||
         (yfms->xpl.airspeed_is_mach                = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_is_mach"                      )) == NULL ||
         (yfms->xpl.altitude_ft_pilot               = XPLMFindDataRef("sim/cockpit2/gauges/indicators/altitude_ft_pilot"             )) == NULL ||
         (yfms->xpl.airspeed_kts_pilot              = XPLMFindDataRef("sim/cockpit2/gauges/indicators/airspeed_kts_pilot"            )) == NULL ||

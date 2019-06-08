@@ -705,6 +705,16 @@ void yfs_fpln_fplnsync(yfms_context *yfms)
                 xplm_fpln_sync(yfms);
             }
         }
+        if (yfms->data.phase >= FMGS_PHASE_TOF)
+        {
+            if (XPLMGetDatai(yfms->xpl.fdir_mode) >= 1)
+            {
+                if (XPLMGetDatai(yfms->xpl.nav_mode_status) == 2) // NAV source captured
+                {
+                    XPLMCommandOnce(yfms->xpl.heading_sync); // heading: continuous sync
+                }
+            }
+        }
     }
 }
 

@@ -492,6 +492,7 @@ typedef struct
         XPLMDataRef machno;
         XPLMDataRef fdir_mode;
         XPLMDataRef vvi_fpm_pilot;
+        XPLMDataRef nav_mode_status;
         XPLMDataRef airspeed_is_mach;
         XPLMDataRef altitude_ft_pilot;
         XPLMDataRef airspeed_kts_pilot;
@@ -501,6 +502,7 @@ typedef struct
         XPLMCommandRef gps_select_captain;
         XPLMCommandRef knots_mach_toggle;
         XPLMCommandRef autopilot_nav;
+        XPLMCommandRef heading_sync;
         // other: miscellaneous data
         XPLMFlightLoop_f fl_callback;
         XPLMCommandRef   contact_atc;
