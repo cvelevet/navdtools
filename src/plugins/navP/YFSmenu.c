@@ -511,6 +511,10 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
             }
         }
     }
+    if (yfms->data.phase >= FMGS_PHASE_TOF)
+    {
+        yfs_fpln_fplnsync(yfms); // continuously sync w/XPLMNavigation to avoid surprises
+    }
     // TODO: NEW CRZ ALT (may happen during either of CLB/CRZ), re-enter CLB if required
 
 vclb_vdes_vmax_auto:
