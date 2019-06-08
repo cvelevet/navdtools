@@ -985,6 +985,20 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
         ndt_waypoint_close(&t_p_wpt);
         return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 C", COLR_IDX_ORANGE);      // PAGE_DRTO
     }
+#if 1//debug
+    XPLMDataRef hdg = XPLMFindDataRef("sim/cockpit2/gauges/indicators/heading_AHARS_deg_mag_pilot");
+    XPLMDataRef trk = XPLMFindDataRef("sim/cockpit2/gauges/indicators/ground_track_mag_pilot");
+    XPLMDataRef var = XPLMFindDataRef("sim/flightmodel/position/magnetic_variation");
+    XPLMDataRef gcm = XPLMFindDataRef("sim/cockpit/radios/gps_course_degtm");
+    XPLMDataRef pst = XPLMFindDataRef("sim/flightmodel/position/true_psi");
+    XPLMDataRef psm = XPLMFindDataRef("sim/flightmodel/position/mag_psi");
+    XPLMDataRef hpa = XPLMFindDataRef("sim/flightmodel/position/hpath");
+    XPLMDataRef gct = XPLMFindDataRef("sim/cockpit/gps/course");
+    ndt_log("YFMS [debug]: heading_AHARS_deg_mag_pilot %.1f ground_track_mag_pilot %.1f magnetic_variation %+.1f grd_trk_tru(dct) %.1f\n"
+            " ............ true_psi %.1f mag_psi %.1f hpath %.1f GPS true %.1f mag %.1f LEG trb %+.1f omb %+.1f (imb %+.1f)\n",
+            XPLMGetDataf(hdg), XPLMGetDataf(trk), XPLMGetDataf(var), XPLMGetDataf(pst), XPLMGetDataf(psm), grd_trk_tru,
+            XPLMGetDataf(hpa), XPLMGetDataf(gct), XPLMGetDataf(gcm), leg->trb, leg->omb, leg->imb);
+#endif
     if (toinsert && leg->dst &&
         toinsert == leg->dst)
     {
