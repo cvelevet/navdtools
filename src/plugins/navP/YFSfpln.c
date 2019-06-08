@@ -701,6 +701,7 @@ void yfs_fpln_fplnsync(yfms_context *yfms)
         {
             if (yfms->data.fpln.xplm_last != XPLMCountFMSEntries() - 1)
             {
+                ndt_log("YFMS [debug]: xplm_fpln_sync: last %d count %d\n", yfms->data.fpln.xplm_last, XPLMCountFMSEntries());
                 xplm_fpln_sync(yfms);
             }
         }
