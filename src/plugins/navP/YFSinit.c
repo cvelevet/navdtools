@@ -411,6 +411,12 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
             XPLMSetDataf(yfms->xpl.q380.PeterVR, 140.0f); // XXX stopgap measure
             XPLMSetDataf(yfms->xpl.q380.PeterV2, 150.0f); // XXX stopgap measure
         }
+        if (yfms->data.init.aligned)
+        {
+            // auto-select GPS (FMS) source when aligned
+            XPLMCommandOnce(yfms->xpl.gps_select_captain);
+            XPLMCommandOnce(yfms->xpl.gps_select_copilot);
+        }
         yfms->data.init.ialized         = 1;
         yfms->data.fpln.lg_idx          = 0;
         yfms->data.fpln.awys.open       = 0;
@@ -611,6 +617,9 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
     {
         if (yfms->data.init.ialized == 1 && yfms->data.init.aligned == 0)
         {
+            // auto-select GPS (FMS) source when aligned
+            XPLMCommandOnce(yfms->xpl.gps_select_captain);
+            XPLMCommandOnce(yfms->xpl.gps_select_copilot);
             yfms->data.init.aligned = 1;
         }
         yfs_init_pageupdt(yfms); return;
