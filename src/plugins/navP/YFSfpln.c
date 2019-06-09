@@ -1075,7 +1075,10 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
         {
             XPLMCommandOnce(yfms->xpl.gps_select_captain);
         }
-        XPLMCommandOnce(yfms->xpl.autopilot_nav);
+        if (XPLMGetDatai(yfms->xpl.nav_mode_status) <= 0) // NAV not armed
+        {
+            XPLMCommandOnce(yfms->xpl.autopilot_nav);
+        }
     }
     return yfs_fpln_pageopen(yfms); // should be tracking correct entry, update page
 }
