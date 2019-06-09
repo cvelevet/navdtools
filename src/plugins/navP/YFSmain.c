@@ -1441,7 +1441,7 @@ void* yfs_main_init(void)
         (yfms->xpl.altitude_ft_pilot               = XPLMFindDataRef("sim/cockpit2/gauges/indicators/altitude_ft_pilot"             )) == NULL ||
         (yfms->xpl.airspeed_kts_pilot              = XPLMFindDataRef("sim/cockpit2/gauges/indicators/airspeed_kts_pilot"            )) == NULL ||
         (yfms->xpl.airspeed_dial_kts_mach          = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_dial_kts_mach"                )) == NULL ||
-        (yfms->xpl.altitude_dial_mcp_feet          = XPLMFindDataRef("sim/cockpit2/autopilot/altitude_vnav_ft"                      )) == NULL ||
+        (yfms->xpl.altitude_dial_mcp_feet          = XPLMFindDataRef("sim/cockpit2/autopilot/altitude_dial_ft"                      )) == NULL ||
         (yfms->xpl.contact_atc                     = XPLMFindCommand("sim/operation/contact_atc"                                    )) == NULL)
     {
         ndt_log("YFMS [error]: could not load aircraft-related datarefs and commands\n");
