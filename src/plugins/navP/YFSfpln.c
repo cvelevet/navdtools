@@ -996,8 +996,9 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
     XPLMDataRef gct = XPLMFindDataRef("sim/cockpit/gps/course");
     ndt_log("YFMS [debug]: heading_AHARS_deg_mag_pilot %.1f ground_track_mag_pilot %.1f magnetic_variation %+.1f grd_trk_tru(dct) %.1f\n"
             " ............ true_psi %.1f mag_psi %.1f hpath %.1f GPS true %.1f mag %.1f LEG trb %+.1f omb %+.1f (imb %+.1f)\n",
-            XPLMGetDataf(hdg), XPLMGetDataf(trk), XPLMGetDataf(var), XPLMGetDataf(pst), XPLMGetDataf(psm), grd_trk_tru,
-            XPLMGetDataf(hpa), XPLMGetDataf(gct), XPLMGetDataf(gcm), leg->trb, leg->omb, leg->imb);
+            XPLMGetDataf(hdg), XPLMGetDataf(trk), XPLMGetDataf(var), grd_trk_tru,
+            XPLMGetDataf(pst), XPLMGetDataf(psm), XPLMGetDataf(hpa),
+            XPLMGetDataf(gct), XPLMGetDataf(gcm), leg->trb, leg->omb, leg->imb);
 #endif
     if (toinsert && leg->dst &&
         toinsert == leg->dst)
