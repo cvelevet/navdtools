@@ -985,7 +985,7 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
         ndt_waypoint_close(&t_p_wpt);
         return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 C", COLR_IDX_ORANGE);      // PAGE_DRTO
     }
-#if 1//debug
+#if 0
     XPLMDataRef hdg = XPLMFindDataRef("sim/cockpit2/gauges/indicators/heading_AHARS_deg_mag_pilot");
     XPLMDataRef trk = XPLMFindDataRef("sim/cockpit2/gauges/indicators/ground_track_mag_pilot");
     XPLMDataRef var = XPLMFindDataRef("sim/flightmodel/position/magnetic_variation");
