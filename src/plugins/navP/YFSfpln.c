@@ -955,7 +955,8 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
     ndt_route_leg *tmp, *leg, *t_p_leg, *dct_leg;
     float groundspeed = XPLMGetDataf(yfms->xpl.groundspeed);
     char buf[23]; int insert_after = 0; ndt_waypoint *t_p_wpt;
-    float grd_trk_tru = XPLMGetDataf(yfms->xpl.mag_trk) - XPLMGetDataf(yfms->xpl.mag_var); // == true_psi on ground (-> no wind)
+    // ground_trk_tru == true_psi on ground (no winds), ground_trk_tru == hpath airborne
+    float grd_trk_tru = XPLMGetDataf(yfms->xpl.mag_trk) - XPLMGetDataf(yfms->xpl.mag_var);
     ndt_distance dnxt = ndt_distance_init(2, NDT_ALTUNIT_NM); //fixme: debug: hardcode to 2 nautical miles for testing pourposes
 //  ndt_distance dnxt = ndt_distance_init(groundspeed * 3, NDT_ALTUNIT_ME); // compute airc. pos. ~3 seconds from now (GS in m/s)
     ndt_position ppos = ndt_position_init(XPLMGetDatad(yfms->xpl.latitude), XPLMGetDatad(yfms->xpl.longitude), NDT_DISTANCE_ZERO);

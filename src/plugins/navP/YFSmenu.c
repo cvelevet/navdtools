@@ -411,15 +411,6 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     }
 
     /* update FMGS phase (inspired by switching conditions, in FMGS P. Guide) */
-    static int debug_counter = 0;//fixme//debug
-    if (debug_counter > 0)
-    {
-        debug_counter--;
-        XPLMDataRef hpath = XPLMFindDataRef("sim/flightmodel/position/hpath");
-        ndt_log("YFMS [debug]: [%2d]: var %+.2f track mag %.2f true %.2f hpath %.2f\n", 10 - debug_counter,
-                XPLMGetDataf(yfms->xpl.mag_var),  XPLMGetDataf(yfms->xpl.mag_trk),
-                XPLMGetDataf(yfms->xpl.mag_trk) - XPLMGetDataf(yfms->xpl.mag_var), XPLMGetDataf(hpath));
-    }
     int crzfeet = ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FT);
     float gskts = XPLMGetDataf(yfms->xpl.groundspeed) * 3.6f / 1.852f;
     int aglfeet = XPLMGetDataf(yfms->xpl.elevation_agl) / 0.3048f;
@@ -465,7 +456,6 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                 {
                     ndt_log("YFMS [debug]: phase change: FMGS_PHASE_CRZ (was %d)\n", yfms->data.phase);
                     yfms->data.phase = FMGS_PHASE_CRZ;
-                    debug_counter = 10;//fixme//debug
                     break;
                 }
                 break;
@@ -480,7 +470,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                     if ((crzfeet - mcpfeet) > 1000) // TODO: don't descend if distance remaining > 200nm
                     {
                         ndt_log("YFMS [debug]: phase change: FMGS_PHASE_DES (was %d)\n", yfms->data.phase);
-                        ndt_log("YFMS [debug]: VVI %d CRZ(ft) %d MCP(ft) %d\n", vvi_fpm, crzfeet, mcpfeet);
+//                      ndt_log("YFMS [debug]: VVI %d CRZ(ft) %d MCP(ft) %d\n", vvi_fpm, crzfeet, mcpfeet);
                         yfms->data.phase = FMGS_PHASE_DES;
                         break;
                     }
