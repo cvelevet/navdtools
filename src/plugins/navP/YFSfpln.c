@@ -1090,7 +1090,7 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
     return yfs_fpln_pageopen(yfms); // should be tracking correct entry, update page
 }
 
-static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
+static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)//fixme pass reference to previous waypoint for position (wptnear2)
 {
     char scrpad[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, scrpad);
     char errbuf[YFS_ROW_BUF_SIZE]; ndt_waypoint *wpt;
@@ -1105,7 +1105,7 @@ static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)
         // yfs_main_usrwp matched but encountered error: abort
         yfs_spad_reset(yfms, errbuf, -1); return NULL;
     }
-    if ((wpt = yfs_main_getwp(yfms, scrpad)))
+    if ((wpt = yfs_main_getwp(yfms, scrpad)))//fixme pass reference to previous waypoint for position (wptnear2)
     {
         return wpt;
     }

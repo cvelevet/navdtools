@@ -1629,11 +1629,11 @@ int yfs_main_newpg(yfms_context *yfms, int new_page)
     yfms->mwindow.current_page = new_page; return 0;
 }
 
-ndt_waypoint* yfs_main_getwp(yfms_context *yfms, const char *name)
+ndt_waypoint* yfs_main_getwp(yfms_context *yfms, const char *name)//fixme pass reference to previous waypoint for position (wptnear2)
 {
     if (yfms && name && *name)
     {
-        ndt_waypoint *wpt = ndt_navdata_get_wptnear2(yfms->ndt.ndb, name, NULL, yfms->data.aircraft_pos);
+        ndt_waypoint *wpt = ndt_navdata_get_wptnear2(yfms->ndt.ndb, name, NULL, yfms->data.aircraft_pos/*fixme use position of waypoint reference if non-NULL*/);
         if (wpt)
         {
             if (yfs_main_is_usrwpt(yfms, wpt))
