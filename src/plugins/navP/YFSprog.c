@@ -162,7 +162,7 @@ static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refco
             }
             yfms->data.prog.fix = NULL; yfs_spad_clear(yfms); yfs_prog_pageupdt(yfms); return;
         }
-        if ((wpt = yfs_main_usrwp(yfms, errbuf, scrpad)))
+        if ((wpt = yfs_main_usrwp(yfms, errbuf, scrpad, NULL)))
         {
             if (yfms->data.prog.usrwpt)
             {
@@ -176,7 +176,7 @@ static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refco
             // yfs_main_usrwp matched but encountered error: abort
             yfs_spad_reset(yfms, errbuf, -1); return;
         }
-        if ((wpt = yfs_main_getwp(yfms, scrpad)))
+        if ((wpt = yfs_main_getwp(yfms, scrpad, NULL)))
         {
             if (yfs_main_is_usrwpt(yfms, yfms->data.prog.fix))
             {

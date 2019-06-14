@@ -1629,11 +1629,11 @@ int yfs_main_newpg(yfms_context *yfms, int new_page)
     yfms->mwindow.current_page = new_page; return 0;
 }
 
-ndt_waypoint* yfs_main_getwp(yfms_context *yfms, const char *name)//fixme pass reference to previous waypoint for position (wptnear2)
+ndt_waypoint* yfs_main_getwp(yfms_context *yfms, const char *name, ndt_waypoint *from)
 {
     if (yfms && name && *name)
     {
-        ndt_waypoint *wpt = ndt_navdata_get_wptnear2(yfms->ndt.ndb, name, NULL, yfms->data.aircraft_pos/*fixme use position of waypoint reference if non-NULL*/);
+        ndt_waypoint *wpt = ndt_navdata_get_wptnear2(yfms->ndt.ndb, name, NULL, from ? from->position : yfms->data.aircraft_pos);
         if (wpt)
         {
             if (yfs_main_is_usrwpt(yfms, wpt))
@@ -1819,7 +1819,7 @@ void yfs_main_usrwp_unr(yfms_context *yfms, ndt_waypoint *wpt)
     }
 }
 
-ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer)
+ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer, ndt_waypoint *from)
 {
     if (yfms && errbuf && buffer && *buffer)
     {
@@ -1843,7 +1843,7 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer)
             {
                 snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
             }
-            if ((place1 = yfs_main_getwp(yfms, plce1)) == NULL)
+            if ((place1 = yfs_main_getwp(yfms, plce1, from)) == NULL)
             {
                 snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "NOT IN DATA BASE"); return NULL;
             }
@@ -1861,8 +1861,8 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer)
             {
                 snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "FORMAT ERROR"); return NULL;
             }
-            if ((place1 = yfs_main_getwp(yfms, plce1)) == NULL ||
-                (place2 = yfs_main_getwp(yfms, plce2)) == NULL)
+            if ((place1 = yfs_main_getwp(yfms, plce1,   from)) == NULL ||
+                (place2 = yfs_main_getwp(yfms, plce2, place1)) == NULL)
             {
                 snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "NOT IN DATA BASE"); return NULL;
             }
@@ -1900,7 +1900,7 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer)
             {
                 distance = ndt_distance_init((int64_t)(dstce * 1852.), NDT_ALTUNIT_ME);
             }
-            if ((place1 = yfs_main_getwp(yfms, plce1)) == NULL)
+            if ((place1 = yfs_main_getwp(yfms, plce1, from)) == NULL)
             {
                 snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "NOT IN DATA BASE"); return NULL;
             }

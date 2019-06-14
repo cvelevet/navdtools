@@ -1092,9 +1092,9 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
 
 static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)//fixme pass reference to previous waypoint for position (wptnear2)
 {
-    char scrpad[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, scrpad);
     char errbuf[YFS_ROW_BUF_SIZE]; ndt_waypoint *wpt;
-    if ((wpt = yfs_main_usrwp(yfms, errbuf, scrpad)))
+    char scrpad[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, scrpad);
+    if ((wpt = yfs_main_usrwp(yfms, errbuf, scrpad, NULL)))//fixme pass reference to previous waypoint for position (wptnear2)
     {
         // we shouldn't get a standalone waypoint here, since the flight plan is
         // initialized, new waypoints should go in an opaque usrwpt list instead
@@ -1105,7 +1105,7 @@ static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)//fixme pas
         // yfs_main_usrwp matched but encountered error: abort
         yfs_spad_reset(yfms, errbuf, -1); return NULL;
     }
-    if ((wpt = yfs_main_getwp(yfms, scrpad)))//fixme pass reference to previous waypoint for position (wptnear2)
+    if ((wpt = yfs_main_getwp(yfms, scrpad, NULL)))//fixme pass reference to previous waypoint for position (wptnear2)
     {
         return wpt;
     }
