@@ -1381,7 +1381,7 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
                 {
                     yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // future
                 }
-                if ((wpt = get_waypoint_from_scratchpad(yfms, NULL)) == NULL)//fixme pass reference to previous waypoint for position (wptnear2)
+                if ((wpt = get_waypoint_from_scratchpad(yfms, leg->dst)) == NULL)
                 {
                     return;
                 }
@@ -1579,7 +1579,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             yfms->data.fpln.mod.index = yfms->data.fpln.lg_idx;
             yfs_spad_clear(yfms); return yfs_fpln_fplnupdt(yfms);
         }
-        if ((wpt = get_waypoint_from_scratchpad(yfms, NULL)) == NULL)//fixme pass reference to previous waypoint for position (wptnear2)
+        if ((wpt = get_waypoint_from_scratchpad(yfms, leg->src)) == NULL)
         {
             return;
         }
