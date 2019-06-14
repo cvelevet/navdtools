@@ -1090,11 +1090,11 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
     return yfs_fpln_pageopen(yfms); // should be tracking correct entry, update page
 }
 
-static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)//fixme pass reference to previous waypoint for position (wptnear2)
+static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms, ndt_waypoint *from)
 {
     char errbuf[YFS_ROW_BUF_SIZE]; ndt_waypoint *wpt;
     char scrpad[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, scrpad);
-    if ((wpt = yfs_main_usrwp(yfms, errbuf, scrpad, NULL)))//fixme pass reference to previous waypoint for position (wptnear2)
+    if ((wpt = yfs_main_usrwp(yfms, errbuf, scrpad, from)))
     {
         // we shouldn't get a standalone waypoint here, since the flight plan is
         // initialized, new waypoints should go in an opaque usrwpt list instead
@@ -1105,7 +1105,7 @@ static ndt_waypoint* get_waypoint_from_scratchpad(yfms_context *yfms)//fixme pas
         // yfs_main_usrwp matched but encountered error: abort
         yfs_spad_reset(yfms, errbuf, -1); return NULL;
     }
-    if ((wpt = yfs_main_getwp(yfms, scrpad, NULL)))//fixme pass reference to previous waypoint for position (wptnear2)
+    if ((wpt = yfs_main_getwp(yfms, scrpad, from)))
     {
         return wpt;
     }
@@ -1381,7 +1381,7 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
                 {
                     yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1); return; // future
                 }
-                if ((wpt = get_waypoint_from_scratchpad(yfms)) == NULL)
+                if ((wpt = get_waypoint_from_scratchpad(yfms, NULL)) == NULL)//fixme pass reference to previous waypoint for position (wptnear2)
                 {
                     return;
                 }
@@ -1579,7 +1579,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             yfms->data.fpln.mod.index = yfms->data.fpln.lg_idx;
             yfs_spad_clear(yfms); return yfs_fpln_fplnupdt(yfms);
         }
-        if ((wpt = get_waypoint_from_scratchpad(yfms)) == NULL)
+        if ((wpt = get_waypoint_from_scratchpad(yfms, NULL)) == NULL)//fixme pass reference to previous waypoint for position (wptnear2)
         {
             return;
         }
