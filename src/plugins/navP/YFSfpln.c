@@ -97,7 +97,8 @@ static XPLMNavRef xplm_find_navaid(ndt_waypoint *wpt)
         }
         if (XPLM_NAV_NOT_FOUND != navRefpt)
         {
-            XPLMGetNavAidInfo(navRefpt, NULL, outLati, outLong, NULL, NULL, NULL, outID, NULL, NULL);
+            XPLMNavType outType; XPLMGetNavAidInfo(navRefpt, &outType, outLati, outLong, NULL, NULL, NULL, outID, NULL, NULL);
+//            XPLMGetNavAidInfo(navRefpt, NULL, outLati, outLong, NULL, NULL, NULL, outID, NULL, NULL);
             ndt_position positn = ndt_position_init((double)*outLati, (double)*outLong, distce_zero);
             ndt_distance dstnce = ndt_position_calcdistance(wpt->position, positn);
             /*
@@ -128,8 +129,8 @@ static XPLMNavRef xplm_find_navaid(ndt_waypoint *wpt)
                 // airports can be within a few miles from our target
                 if (ndt_distance_get(dstnce, NDT_ALTUNIT_NM) < INT64_C(3))
                 {
-                    ndt_log("YFMS [debug]: waypoint 0x%08x ID \"%s\" type %02d lati %+09.7f long %+010.7f\n", wpt, wpt->info.idnt, wpt->type, ndt_position_getlatitude(wpt->position, NDT_ANGUNIT_DEG), ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG));//fixme//debug
-                    ndt_log("YFMS [debug]: navRefpt 0x%08x ID \"%s\" type %02d lati %+09.7f long %+010.7f\n", navRefpt, outID, 99, *outLati, *outLong);//fixme//debug
+                    ndt_log("YFMS [debug]: waypoint 0x%08x ID \"%s\" type %3d lati %+09.7f long %+010.7f\n", wpt, wpt->info.idnt, wpt->type, ndt_position_getlatitude(wpt->position, NDT_ANGUNIT_DEG), ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG));//fixme//debug
+                    ndt_log("YFMS [debug]: navRefpt 0x%08x ID \"%s\" type %3d lati %+09.7f long %+010.7f\n", navRefpt, outID, outType, *outLati, *outLong);//fixme//debug
                     return navRefpt;
                 }
             }
@@ -138,8 +139,8 @@ static XPLMNavRef xplm_find_navaid(ndt_waypoint *wpt)
                 // other navaids must be within a furlong from target
                 if (ndt_distance_get(dstnce, NDT_ALTUNIT_FT) < INT64_C(660))
                 {
-                    ndt_log("YFMS [debug]: waypoint 0x%08x ID \"%s\" type %02d lati %+09.7f long %+010.7f\n", wpt, wpt->info.idnt, wpt->type, ndt_position_getlatitude(wpt->position, NDT_ANGUNIT_DEG), ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG));//fixme//debug
-                    ndt_log("YFMS [debug]: navRefpt 0x%08x ID \"%s\" type %02d lati %+09.7f long %+010.7f\n", navRefpt, outID, 99, *outLati, *outLong);//fixme//debug
+                    ndt_log("YFMS [debug]: waypoint 0x%08x ID \"%s\" type %3d lati %+09.7f long %+010.7f\n", wpt, wpt->info.idnt, wpt->type, ndt_position_getlatitude(wpt->position, NDT_ANGUNIT_DEG), ndt_position_getlongitude(wpt->position, NDT_ANGUNIT_DEG));//fixme//debug
+                    ndt_log("YFMS [debug]: navRefpt 0x%08x ID \"%s\" type %3d lati %+09.7f long %+010.7f\n", navRefpt, outID, outType, *outLati, *outLong);//fixme//debug
                     return navRefpt;
                 }
             }
