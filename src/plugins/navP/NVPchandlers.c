@@ -2310,10 +2310,6 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         return 0;
     }
-    if (p_ratio < p_b_flt)
-    {
-        p_ratio = p_b_flt;
-    }
     if (ctx->info->ac_type & ACF_TYP_MASK_QPC)
     {
         if (ctx->acfspec.qpac.ready == 0)
@@ -2333,7 +2329,7 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         XPLMSetDatai(ctx->acfspec.qpac.tolb[2], 1);
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[1], p_ratio);
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[0], p_ratio);
-                        ndt_log("DEBUG: xplm_CommandBegin with p_ratio %f\n", p_ratio);//fixme//debug
+                        ndt_log("DEBUG: xplm_CommandBegin with p_ratio %f g_speed %f\n", p_ratio, g_speed);//fixme//debug
                         return 0;
                     }
                     if (rcb->use_pkb == 0)
@@ -2416,6 +2412,10 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             rcb->rg.xpcr = NULL;
             rcb->mx.xpcr = NULL;
         }
+    }
+    if (p_ratio < p_b_flt)
+    {
+        p_ratio = p_b_flt;
     }
     switch (inPhase)
     {
