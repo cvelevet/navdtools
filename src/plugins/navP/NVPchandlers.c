@@ -3074,7 +3074,7 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             else
             {
-                if (curr < 0.251f) // increased precision when closer to idle
+                if (curr < 0.249f) // increased precision when closer to idle
                 {
                     fact = 40.00f;
                     step = 0.025f;
