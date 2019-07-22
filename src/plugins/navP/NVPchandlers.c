@@ -43,10 +43,6 @@
 #include "NVPchandlers.h"
 #include "NVPmenu.h"
 
-#ifndef TIM_ONLY
-#define TIM_ONLY 1
-#endif
-
 typedef struct
 {
     int                    before;

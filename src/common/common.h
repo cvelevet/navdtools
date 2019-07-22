@@ -26,6 +26,10 @@
 #include <stdio.h>
 #include <time.h>
 
+#ifndef TIM_ONLY
+#define TIM_ONLY 1
+#endif
+
 /* Remainder of a floored division (sign follows the divisor) */
 double ndt_mod(double y, double x);
 
