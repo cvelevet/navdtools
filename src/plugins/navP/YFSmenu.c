@@ -505,9 +505,15 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         {
             if (gskts < 40.0f && askts < 40.0f) // TODO: wait 30 seconds, ignore speeds
             {
+#if TIM_ONLY
+                ndt_log("YFMS [debug]: phase change: FMGS_PHASE_END (was %d)\n", yfms->data.phase);
+                yfs_init_fplreset(yfms); yfms->data.phase = FMGS_PHASE_END;
+/* page: ATC */ yfs_rad1_pageopen(yfms); return DEFAULT_CALLBACK_RATE;
+#else
                 ndt_log("YFMS [debug]: phase change: FMGS_PHASE_END (was %d)\n", yfms->data.phase);
                 yfs_init_fplreset(yfms); yfms->data.phase = FMGS_PHASE_END;
                 yfs_idnt_pageopen(yfms); return DEFAULT_CALLBACK_RATE;
+#endif
             }
         }
     }
