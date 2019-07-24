@@ -4423,7 +4423,7 @@ static int first_fcall_do(chandler_context *ctx)
                 }
                 _DO(1, XPLMSetDatai,    0, "AirbusFBW/ALT100_1000");            // FCU alt. sel. incre. (100ft)
                 _DO(1, XPLMSetDatai,    1, "AirbusFBW/EngineType");             // IAE-2524-A5 w/sharklets+web
-                _DO(1, XPLMSetDatai,    0, "AirbusFBW/StaComObjInhibit");       // IAE-2524-A5 w/sharklets+web
+/*unwritable?*/ _DO(1, XPLMSetDatai,    0, "AirbusFBW/SatComObjInhibit");       // IAE-2524-A5 w/sharklets+web
                 _DO(1, XPLMSetDatai,    1, "AirbusFBW/WingtipDeviceType");      // IAE-2524-A5 w/sharklets+web
                 _DO(1, XPLMSetDatai,    1, "params/wheel");                     // use scrollwheel
             }
