@@ -1858,27 +1858,32 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
             }
             if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A319_TL)
             {
+                XPLMCommandRef tolissc;
+                XPLMDataRef    tolissd;
+                float          tolissf;
+                int            tolissi;
                 if (XPIsWidgetVisible(inWidget))
                 {
                     XPHideWidget(inWidget);
                 }
-                if (ctx->data.refuel_dialg.adjust_load == NVP_MENU_DONE ||
-                    ctx->data.refuel_dialg.adjust_fuel == NVP_MENU_DONE)
-                {
-                     // always adjust the ToLiSS custom loading manager
-                    (ctx->data.refuel_dialg.adjust_load = NVP_MENU_INCR);
-                    (ctx->data.refuel_dialg.adjust_fuel = NVP_MENU_INCR);
-                }
                 if (ctx->data.refuel_dialg.adjust_load != NVP_MENU_DONE)
                 {
-                    XPLMDataRef toliss; int pax; // each ToLiSS passenger w/bags weighs 100kg
-                    pax = (int)roundf((ctx->data.refuel_dialg.load_target_kg + 50.0f) / 100.0f);
-                    ndt_log("navP [info]: load adjusted: %.0f -> %.0f (%d pax)\n",
-                            (ctx->data.refuel_dialg.load_target_kg),
-                            (ctx->data.refuel_dialg.load_target_kg = (100.0f * (float)pax)));
-                    if ((toliss = XPLMFindDataRef("AirbusFBW/NoPax")))
+                    if (145 < (tolissi = (int)(ctx->data.refuel_dialg.load_target_kg / 100.0f)))
                     {
-                        XPLMSetDatai(toliss, pax);
+                        tolissi = 145;
+                    }
+                    if (6786.0f < (tolissf = (ctx->data.refuel_dialg.load_target_kg - ((float)tolissi * 100.0f))))
+                    {
+                        tolissf = 6786.0f;
+                    }
+                    {
+                        ndt_log("navP [info]: load distributed: %.0f, pax: %d, cargo: %.0f, discarded: %.0f\n",
+                                ctx->data.refuel_dialg.load_target_kg, tolissi, tolissf,
+                                ctx->data.refuel_dialg.load_target_kg - ((float)tolissi * 100.0f) - tolissf);
+                    }
+                    if ((tolissd = XPLMFindDataRef("AirbusFBW/NoPax")))
+                    {
+                        XPLMSetDatai(tolissd, tolissi);
                     }
                     else
                     {
@@ -1886,9 +1891,10 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
                         XPLMSpeakString("boarding failed");
                         return 1;
                     }
-                    if ((toliss = XPLMFindDataRef("AirbusFBW/PaxDistrib")))
+                    if ((tolissd = XPLMFindDataRef("AirbusFBW/PaxDistrib")))
                     {
-                        XPLMSetDataf(toliss, 0.5f);
+                        sranddev(); float distrib = 0.4375f + (0.75f - 0.4375f) * rand() / (float)RAND_MAX;
+                        XPLMSetDataf(tolissd, distrib); // "random" float value between 0.4375f and 0.750f
                     }
                     else
                     {
@@ -1896,9 +1902,9 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
                         XPLMSpeakString("boarding failed");
                         return 1;
                     }
-                    if ((toliss = XPLMFindDataRef("AirbusFBW/FwdCargo")))
+                    if ((tolissd = XPLMFindDataRef("AirbusFBW/FwdCargo")))
                     {
-                        XPLMSetDataf(toliss, 0.0f);
+                        XPLMSetDataf(tolissd, tolissf * 2268.0f / 6786.0f);
                     }
                     else
                     {
@@ -1906,9 +1912,9 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
                         XPLMSpeakString("boarding failed");
                         return 1;
                     }
-                    if ((toliss = XPLMFindDataRef("AirbusFBW/AftCargo")))
+                    if ((tolissd = XPLMFindDataRef("AirbusFBW/AftCargo")))
                     {
-                        XPLMSetDataf(toliss, 0.0f);
+                        XPLMSetDataf(tolissd, tolissf * 4518.0f / 6786.0f);
                     }
                     else
                     {
@@ -1916,24 +1922,27 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
                         XPLMSpeakString("boarding failed");
                         return 1;
                     }
-                    if (acf_type_load_set(ctx->data.refuel_dialg.ic, &ctx->data.refuel_dialg.load_target_kg))
+                    if ((tolissc = XPLMFindCommand("AirbusFBW/SetWeightAndCG")))
                     {
-                        ndt_log("navP [error]: failed to set load\n");
-                        XPLMSpeakString("boarding failed");
-                        return 1;
+                        XPLMCommandOnce(tolissc);
                     }
                     else
                     {
-                        // future: adjust CG (0.00f ~= 28.6% MAC, 0.78f ~= 47.2% MAC)
-                        XPLMSetDataf(ctx->data.refuel_dialg.ic->weight.gwcgz_m, 0.0f);
+                        ndt_log("navP [error]: missing command \"%s\"\n", "AirbusFBW/SetWeightAndCG");
+                        XPLMSpeakString("boarding failed");
+                        return 1;
                     }
                     ndt_log("navP [info]: set load (%.0f)\n", ctx->data.refuel_dialg.load_target_kg);
                 }
                 if (ctx->data.refuel_dialg.adjust_fuel != NVP_MENU_DONE)
                 {
-                    if (acf_type_fuel_set(ctx->data.refuel_dialg.ic, &ctx->data.refuel_dialg.fuel_target_kg))
+                    if ((tolissd = XPLMFindDataRef("AirbusFBW/WriteFOB")))
                     {
-                        ndt_log("navP [error]: failed to set fuel\n");
+                        XPLMSetDataf(tolissd, ctx->data.refuel_dialg.fuel_target_kg);
+                    }
+                    else
+                    {
+                        ndt_log("navP [error]: missing dataref \"%s\"\n", "AirbusFBW/WriteFOB");
                         XPLMSpeakString("fueling failed");
                         return 1;
                     }
