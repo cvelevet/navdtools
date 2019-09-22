@@ -418,6 +418,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     float askts = XPLMGetDataf(yfms->xpl.airspeed_kts_pilot);
     int mslfeet = XPLMGetDataf(yfms->xpl.altitude_ft_pilot);
     int vvi_fpm = XPLMGetDataf(yfms->xpl.vvi_fpm_pilot);
+    XPLMDataRef swtid = NULL, sendv = NULL;
     switch (yfms->data.phase)
     {
         case FMGS_PHASE_END:
@@ -428,6 +429,13 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                 if ((gskts >=  50.0f || gskts >= XPLMGetDataf(yfms->xpl.acf_vs0)) &&
                     (askts >= 100.0f || askts >= XPLMGetDataf(yfms->xpl.acf_vs0)))
                 {
+                    // XXX: Falcon 7X by after
+                    if ((sendv = XPLMFindDataRef("sim/custom/xap/sendv")) &&
+                        (swtid = XPLMFindDataRef("sim/weapons/target_index")))
+                    {
+                        int index = 1;
+                        XPLMSetDatavi(swtid, &index, 2, 1);
+                    }
                     ndt_log("YFMS [debug]: phase change: FMGS_PHASE_TOF (was %d)\n", yfms->data.phase);
                     yfms->data.phase = FMGS_PHASE_TOF;
                     yfs_fpln_trackleg(yfms, -1);
@@ -442,6 +450,12 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                 // TODO: use acc. alt. instead of AGL elevation
                 if (aglfeet > 800 || (crzfeet - mslfeet) < 1000)
                 {
+                    // XXX: Falcon 7X by after
+                    if ((sendv = XPLMFindDataRef("sim/custom/xap/sendv")) &&
+                        (swtid = XPLMFindDataRef("sim/weapons/target_index")))
+                    {
+                        XPLMSetDatai(sendv, 0);
+                    }
                     ndt_log("YFMS [debug]: phase change: FMGS_PHASE_CLB (was %d)\n", yfms->data.phase);
                     yfms->data.phase = FMGS_PHASE_CLB;
                     break;
@@ -454,6 +468,13 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
             {
                 if ((crzfeet - mslfeet) < 50)
                 {
+                    // XXX: Falcon 7X by after
+                    if ((sendv = XPLMFindDataRef("sim/custom/xap/sendv")) &&
+                        (swtid = XPLMFindDataRef("sim/weapons/target_index")))
+                    {
+                        int index = 2;
+                        XPLMSetDatavi(swtid, &index, 2, 1);
+                    }
                     ndt_log("YFMS [debug]: phase change: FMGS_PHASE_CRZ (was %d)\n", yfms->data.phase);
                     yfms->data.phase = FMGS_PHASE_CRZ;
                     break;
@@ -469,6 +490,14 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                 {
                     if ((crzfeet - mcpfeet) > 1000) // TODO: don't descend if distance remaining > 200nm
                     {
+                        // XXX: Falcon 7X by after
+                        if ((sendv = XPLMFindDataRef("sim/custom/xap/sendv")) &&
+                            (swtid = XPLMFindDataRef("sim/weapons/target_index")))
+                        {
+                            int index = 3;
+                            XPLMSetDatavi(swtid, &index, 2, 1);
+                            XPLMSetDatai(sendv, 2); // TODO: when activating approach phase instead
+                        }
                         ndt_log("YFMS [debug]: phase change: FMGS_PHASE_DES (was %d)\n", yfms->data.phase);
 //                      ndt_log("YFMS [debug]: VVI %d CRZ(ft) %d MCP(ft) %d\n", vvi_fpm, crzfeet, mcpfeet);
                         yfms->data.phase = FMGS_PHASE_DES;
@@ -505,6 +534,14 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         {
             if (gskts < 40.0f && askts < 40.0f) // TODO: wait 30 seconds, ignore speeds
             {
+                // XXX: Falcon 7X by after
+                if ((sendv = XPLMFindDataRef("sim/custom/xap/sendv")) &&
+                    (swtid = XPLMFindDataRef("sim/weapons/target_index")))
+                {
+                    int index = 4;
+                    XPLMSetDatai(sendv, 0);
+                    XPLMSetDatavi(swtid, &index, 2, 1);
+                }
 #if TIM_ONLY
                 ndt_log("YFMS [debug]: phase change: FMGS_PHASE_END (was %d)\n", yfms->data.phase);
                 yfs_init_fplreset(yfms); yfms->data.phase = FMGS_PHASE_END;

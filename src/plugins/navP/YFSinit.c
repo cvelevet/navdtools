@@ -417,6 +417,14 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
             XPLMCommandOnce(yfms->xpl.gps_select_captain);
             XPLMCommandOnce(yfms->xpl.gps_select_copilot);
         }
+        XPLMDataRef swtid = XPLMFindDataRef("sim/weapons/target_index");
+        XPLMDataRef sendv = XPLMFindDataRef("sim/custom/xap/sendv");
+        if (sendv && swtid) // XXX: Falcon 7X by after
+        {
+            int index = 0;
+            XPLMSetDatai(sendv, 1);
+            XPLMSetDatavi(swtid, &index, 2, 1);
+        }
         yfms->data.init.ialized         = 1;
         yfms->data.fpln.lg_idx          = 0;
         yfms->data.fpln.awys.open       = 0;
