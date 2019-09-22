@@ -434,7 +434,7 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
         yfms->data.init.crz_alt       = ndt_distance_init(0, NDT_ALTUNIT_NA);
         yfms->data.phase              = FMGS_PHASE_END;
         yfms->data.init.corte_name[0] = 0;
-        yfms->data.init.flight_id[0]  = 0;
+//      yfms->data.init.flight_id[0]  = 0; // don't reset required/broadcast by XPDR (mode S, ADS-B out)
         yfms->data.init.cost_index    = 0;
         yfms->data.fpln.awys.open     = 0;
         yfms->data.fpln.lrev.open     = 0;
