@@ -4437,6 +4437,8 @@ static int first_fcall_do(chandler_context *ctx)
                 _DO(1, XPLMSetDataf, 0.8f, "AirbusFBW/WXAlphaND1");                 // ND1 weather to 80%
                 _DO(1, XPLMSetDataf, 0.8f, "AirbusFBW/WXAlphaND2");                 // ND2 weather to 80%
             }
+            _DO(1,XPLMSetDataf,1.0f,"AirbusFBW/AuralVolume");                       // Loudspeaker vol. (cap. side)
+            _DO(1,XPLMSetDataf,1.0f,"AirbusFBW/AuralVolumeFO");                     // Loudspeaker vol. (f/o. side)
             _DO(1, XPLMSetDatai, 1, "AirbusFBW/RMP1Switch");                        // Radio management pan. 1 (on)
             _DO(1, XPLMSetDatai, 1, "AirbusFBW/RMP2Switch");                        // Radio management pan. 2 (on)
             _DO(1, XPLMSetDatai, 0, "AirbusFBW/ALT100_1000");                       // FCU alt. sel. incre. (100ft)
