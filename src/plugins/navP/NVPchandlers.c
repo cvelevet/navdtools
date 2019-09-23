@@ -2208,9 +2208,11 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     {
                         XPLMSetDataf(rcb->l_b_rat, 1.0f);
                         XPLMSetDataf(rcb->r_b_rat, 1.0f);
+                        return 0;
                     }
                     return 0;
             }
+            return 0;
         }
         return 0;
     }
@@ -2387,9 +2389,11 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     {
                         XPLMSetDataf(rcb->l_b_rat, p_ratio);
                         XPLMSetDataf(rcb->r_b_rat, p_ratio);
+                        return 0;
                     }
                     return 0;
             }
+            return 0;
         }
         return 0;
     }
@@ -2411,6 +2415,10 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             rcb->rg.xpcr = NULL;
             rcb->mx.xpcr = NULL;
         }
+    }
+    if (p_ratio < p_b_flt)
+    {
+        p_ratio = p_b_flt;
     }
     switch (inPhase)
     {
