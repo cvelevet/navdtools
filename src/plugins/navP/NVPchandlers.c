@@ -2308,6 +2308,10 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         return 0;
     }
+    if (p_ratio < p_b_flt)
+    {
+        p_ratio = p_b_flt;
+    }
     if (ctx->info->ac_type & ACF_TYP_MASK_QPC)
     {
         if (ctx->acfspec.qpac.ready == 0)
