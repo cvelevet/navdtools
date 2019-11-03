@@ -462,6 +462,11 @@ typedef struct
         XPLMDataRef dataref[8];
         XPLMCommandRef comm[8];
     } debug;
+
+    struct
+    {
+        chandler_callback cb;
+    } coatc;
 } chandler_context;
 
 /* Callout default values */
@@ -608,6 +613,7 @@ static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_apbef(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_apaft(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_p2vvi(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_flap_func (                                        float, float, int, void*);
 static float gnd_stab_hdlr (                                        float, float, int, void*);
 static int   first_fcall_do(                                           chandler_context *ctx);
@@ -1129,6 +1135,7 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->vvi.                  pd);
     UNREGSTR_CHANDLER(ctx->vvi.                  pu);
     UNREGSTR_CHANDLER(ctx->mcdu.                 cb);
+    UNREGSTR_CHANDLER(ctx->coatc.                cb);
 
     /* …and all datarefs */
     if (ctx->bking.rc_brk.p_b_int)
@@ -4178,6 +4185,11 @@ static int chandler_p2vvi(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 1; // pass through
 }
 
+static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    return 0; // suppress all default "contact ATC" functionality
+}
+
 static float flc_flap_func(float inElapsedSinceLastCall,
                            float inElapsedTimeSinceLastFlightLoop,
                            int   inCounter,
@@ -5854,6 +5866,18 @@ static int first_fcall_do(chandler_context *ctx)
     REGISTER_CHANDLER(ctx->throt.rp, chandler_rpmdn, 1, ctx->throt.rpmratio);
 
 #if TIM_ONLY
+    if (ctx->coatc.cb.handler == NULL)
+    {
+        /* no PilotEdge plugin: can disable X-Plane default "contact ATC" functionality */
+        if (XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("com.pilotedge.plugin.xplane"))
+        {
+            if ((ctx->coatc.cb.command = XPLMFindCommand("sim/operation/contact_atc")))
+            {
+                REGISTER_CHANDLER(ctx->coatc.cb, chandler_coatc, 1/*before*/, NULL);
+            }
+        }
+    }
+
     /*
      * Kill X-Plane ATC (not needed, may/may not cause crashes in some places).
      * Do it as late as possible (avoid interfering w/init. of X-Plane itself).
