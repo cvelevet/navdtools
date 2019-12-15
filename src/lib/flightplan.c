@@ -3740,6 +3740,9 @@ static int route_leg_update(ndt_flightplan *flp)
                 continue; // leg without fix-based termination
             }
             if ((fleg->dst == leg->dst) &&
+                (fleg->type != NDT_LEGTYPE_HA &&
+                 fleg->type != NDT_LEGTYPE_HF &&
+                 fleg->type != NDT_LEGTYPE_HM) &&
                 (fleg->                type == NDT_LEGTYPE_IF ||
                  fleg->constraints.waypoint == NDT_WPTCONST_IAF))
             {
