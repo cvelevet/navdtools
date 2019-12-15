@@ -485,6 +485,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                             dis = ndt_distance_get(ndt_position_calcdistance(lastpos, nxt->position), NDT_ALTUNIT_NA);
                             if (min > dis && (nxt->type == NDT_WPTYPE_APT ||
                                               nxt->type == NDT_WPTYPE_DME ||
+                                              nxt->type == NDT_WPTYPE_LOC ||
                                               nxt->type == NDT_WPTYPE_FIX ||
                                               nxt->type == NDT_WPTYPE_NDB ||
                                               nxt->type == NDT_WPTYPE_VOR))
