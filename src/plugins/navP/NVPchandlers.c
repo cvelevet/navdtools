@@ -466,6 +466,7 @@ typedef struct
     struct
     {
         chandler_callback cb;
+        XPLMCommandRef coatc;
     } coatc;
 } chandler_context;
 
@@ -4187,6 +4188,20 @@ static int chandler_p2vvi(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
+    if (inRefcon)
+    {
+        switch (inPhase)
+        {
+            case xplm_CommandBegin:
+                XPLMCommandBegin(inRefcon);
+                break;
+            case xplm_CommandEnd:
+                XPLMCommandEnd(inRefcon);
+                break;
+            default:
+                break;
+        }
+    }
     return 0; // suppress all default "contact ATC" functionality
 }
 
@@ -5873,7 +5888,14 @@ static int first_fcall_do(chandler_context *ctx)
         {
             if ((ctx->coatc.cb.command = XPLMFindCommand("sim/operation/contact_atc")))
             {
-                REGISTER_CHANDLER(ctx->coatc.cb, chandler_coatc, 1/*before*/, NULL);
+                if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("vatsim.protodev.clients.xsquawkbox"))
+                {
+                    if ((ctx->coatc.coatc = XPLMFindCommand("xsquawkbox/voice/ptt")))
+                    {
+                        ndt_log("navP [info]: XSquawkBox detected, \"xsquawkbox/voice/ptt\" mapped to \"sim/operation/contact_atc\"\n");
+                    }
+                }
+                REGISTER_CHANDLER(ctx->coatc.cb, chandler_coatc, 1/*before*/, ctx->coatc.coatc);
             }
         }
     }
