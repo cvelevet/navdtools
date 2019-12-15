@@ -509,7 +509,9 @@ typedef struct
         // other: miscellaneous data
         XPLMFlightLoop_f fl_callback;
         XPLMCommandRef   contact_atc;
+        XPLMCommandRef   xsbcomm[16];
         XPLMPluginID    plugin_id_pe;
+        XPLMPluginID    plugin_id_xb;
         int    has_custom_nav_radios;
         int    has_custom_navigation;
         enum

@@ -78,6 +78,28 @@ void yfs_menu_resetall(yfms_context *yfms)
 
     /* check whether plugins we potentially interact with are loaded */
     yfms->xpl.plugin_id_pe = XPLMFindPluginBySignature("com.pilotedge.plugin.xplane");
+    yfms->xpl.plugin_id_xb = XPLMFindPluginBySignature("vatsim.protodev.clients.xsquawkbox");
+    if (XPLM_NO_PLUGIN_ID != yfms->xpl.plugin_id_xb)
+    {
+        yfms->xpl.xsbcomm[0] = XPLMFindCommand("xsquawkbox/voice/ptt");
+        yfms->xpl.xsbcomm[1] = XPLMFindCommand("xsquawkbox/text/end");
+        yfms->xpl.xsbcomm[2] = XPLMFindCommand("xsquawkbox/text/start");
+        yfms->xpl.xsbcomm[3] = XPLMFindCommand("xsquawkbox/text/nextpage");
+        yfms->xpl.xsbcomm[4] = XPLMFindCommand("xsquawkbox/text/prevpage");
+        yfms->xpl.xsbcomm[5] = XPLMFindCommand("xsquawkbox/command/reply_next");
+        yfms->xpl.xsbcomm[6] = XPLMFindCommand("xsquawkbox/command/start_text_entry");
+        yfms->xpl.xsbcomm[7] = XPLMFindCommand("xsquawkbox/command/toggle_text_window");
+        yfms->xpl.xsbcomm[8] = XPLMFindCommand("xsquawkbox/command/toggle_whos_online");
+        for (int i = 000; i <= 8; i++)
+        {
+            if (NULL == yfms->xpl.xsbcomm[i])
+            {
+                ndt_log("YFMS [error]: XSquawkBox detected: XPLMFindCommand(xsbcomm[%d]) failed\n", i);
+                yfms->xpl.plugin_id_xb = XPLM_NO_PLUGIN_ID;
+                break;
+            }
+        }
+    }
 
     /* always reset aircraft type (and associated automatic features) */
     yfms->xpl.has_custom_nav_radios = yfms->xpl.has_custom_navigation = 0;

@@ -501,7 +501,7 @@ int yfs_afterwindw(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
         {
             if (XPLM_VK_TAB == inVirtualKey)
             {
-                if (XPLM_NO_PLUGIN_ID != ((yfms_context*)inRefcon)->xpl.plugin_id_pe)
+                if (XPLM_NO_PLUGIN_ID != ((yfms_context*)inRefcon)->xpl.plugin_id_pe)//contact_atc/ptt
                 {
                     if ((inFlags & (xplm_DownFlag)) == xplm_DownFlag)
                     {
@@ -511,6 +511,60 @@ int yfs_afterwindw(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
                     if ((inFlags & (xplm_UpFlag)) == xplm_UpFlag)
                     {
                         XPLMCommandEnd(((yfms_context*)inRefcon)->xpl.contact_atc);
+                        return 0;
+                    }
+                    return 0;
+                }
+                if (XPLM_NO_PLUGIN_ID != ((yfms_context*)inRefcon)->xpl.plugin_id_xb)//start_text_entry
+                {
+                    if ((inFlags & (xplm_DownFlag)) == xplm_DownFlag)
+                    {
+                        XPLMCommandOnce(((yfms_context*)inRefcon)->xpl.xsbcomm[6]);
+                        return 0;
+                    }
+                    return 0;
+                }
+                return 1;
+            }
+            if (1 == inVirtualKey && '<' == inChar)
+            {
+                if (XPLM_NO_PLUGIN_ID != ((yfms_context*)inRefcon)->xpl.plugin_id_pe ||
+                    XPLM_NO_PLUGIN_ID != ((yfms_context*)inRefcon)->xpl.plugin_id_xb)//contact_atc/ptt
+                {
+                    if ((inFlags & (xplm_DownFlag)) == xplm_DownFlag)
+                    {
+                        XPLMCommandBegin(((yfms_context*)inRefcon)->xpl.contact_atc);
+                        return 0;
+                    }
+                    if ((inFlags & (xplm_UpFlag)) == xplm_UpFlag)
+                    {
+                        XPLMCommandEnd(((yfms_context*)inRefcon)->xpl.contact_atc);
+                        return 0;
+                    }
+                    return 0;
+                }
+                return 1;
+            }
+            if (XPLM_VK_F5 == inVirtualKey)
+            {
+                if (XPLM_NO_PLUGIN_ID != ((yfms_context*)inRefcon)->xpl.plugin_id_xb)//toggle_text_window
+                {
+                    if ((inFlags & (xplm_DownFlag)) == xplm_DownFlag)
+                    {
+                        XPLMCommandOnce(((yfms_context*)inRefcon)->xpl.xsbcomm[7]);
+                        return 0;
+                    }
+                    return 0;
+                }
+                return 1;
+            }
+            if (XPLM_VK_F6 == inVirtualKey)
+            {
+                if (XPLM_NO_PLUGIN_ID != ((yfms_context*)inRefcon)->xpl.plugin_id_xb)//toggle_whos_online
+                {
+                    if ((inFlags & (xplm_DownFlag)) == xplm_DownFlag)
+                    {
+                        XPLMCommandOnce(((yfms_context*)inRefcon)->xpl.xsbcomm[8]);
                         return 0;
                     }
                     return 0;
