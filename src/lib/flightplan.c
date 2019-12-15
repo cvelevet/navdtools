@@ -3570,6 +3570,14 @@ altitude_constraints:
         default:
             break;
     }
+    /*
+     * At FAF, map "at or above" altitude to "at" for better/smoother VNAV :-)
+     */
+    if (leg->constraints.altitude.typ == NDT_RESTRICT_AB &&
+        leg->constraints.waypoint == NDT_WPTCONST_FAF)
+    {
+        *_alt = leg->constraints.altitude.min;
+    }
 
 end:
     if (err)
