@@ -467,6 +467,10 @@ typedef struct
     {
         chandler_callback cb;
         XPLMCommandRef coatc;
+        XPLMPluginID pe_plid;
+        XPLMPluginID xb_plid;
+        XPLMDataRef pe_is_on;
+        XPLMDataRef xb_is_on;
     } coatc;
 } chandler_context;
 
@@ -1589,6 +1593,10 @@ int nvp_chandlers_update(void *inContext)
 
     /* Custom ground stabilization system (via flight loop callback) */
     ctx->ground.nominal_roll_c = XPLMGetDataf(ctx->ground.acf_roll_c);
+
+    /* check for presence of online ATC plugins */
+    ctx->coatc.pe_plid = XPLMFindPluginBySignature("com.pilotedge.plugin.xplane");
+    ctx->coatc.xb_plid = XPLMFindPluginBySignature("vatsim.protodev.clients.xsquawkbox")
 
     /* all good */
     ndt_log("navP [info]: nvp_chandlers_update OK\n"); XPLMSpeakString("nav P configured"); return 0;
@@ -4601,7 +4609,7 @@ static int first_fcall_do(chandler_context *ctx)
                     ndt_log("navP [warning]: failed to find AirbusFBW commands for key sniffer\n");
                     break;
                 }
-                if (XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("com.pilotedge.plugin.xplane"))
+                if (XPLM_NO_PLUGIN_ID == ctx->coatc.pe_plid)
                 {
                     ctx->a319kc.c[2][44] = NULL; // TODO: support other online plugins
                 }
@@ -5885,19 +5893,23 @@ static int first_fcall_do(chandler_context *ctx)
     if (ctx->coatc.cb.handler == NULL)
     {
         /* no PilotEdge plugin: can disable X-Plane default "contact ATC" functionality */
-        if (XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("com.pilotedge.plugin.xplane"))
+        if (XPLM_NO_PLUGIN_ID == ctx->coatc.pe_plid)
         {
             if ((ctx->coatc.cb.command = XPLMFindCommand("sim/operation/contact_atc")))
             {
-                if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("vatsim.protodev.clients.xsquawkbox"))
+                if (XPLM_NO_PLUGIN_ID != ctx->coatc.xb_plid)
                 {
                     if ((ctx->coatc.coatc = XPLMFindCommand("xsquawkbox/voice/ptt")))
                     {
-                        ndt_log("navP [info]: XSquawkBox detected, \"xsquawkbox/voice/ptt\" mapped to \"sim/operation/contact_atc\"\n");
+                        ndt_log("navP [info]: XSquawkBox detected, \"sim/operation/contact_atc\" mapped to \"xsquawkbox/voice/ptt\"\n");
                     }
                 }
                 REGISTER_CHANDLER(ctx->coatc.cb, chandler_coatc, 1/*before*/, ctx->coatc.coatc);
             }
+        }
+        else
+        {
+            ctx->coatc.pe_is_on = XPLMFindDataRef("pilotedge/status/connected");
         }
     }
 
