@@ -29,8 +29,9 @@
 
 #include "ACFvolumes.h"
 
-#define V0_DEFAULT_PE 0.5f
 #define V1_DEFAULT_AL 0.9f
+#define V0_DEFAULT_PE 0.5f
+#define V1_DEFAULT_PE M_SQRT1_2
 
 static acf_volume_context *default_ctx = NULL;
 
@@ -86,7 +87,7 @@ acf_volume_context* acf_volume_ctx_get(void)
      * has a stronger effect of headphone volume than audio_volume_com1/2.
      */
     default_ctx->custom.atc.pe.vol0 = V0_DEFAULT_PE;
-    default_ctx->custom.atc.pe.vol1 = V1_DEFAULT_AL;
+    default_ctx->custom.atc.pe.vol1 = V1_DEFAULT_PE;
 
     /* success */
     return default_ctx;
@@ -176,9 +177,9 @@ float acf_atcvol_adj(acf_volume_context *ctx, float offset)
             {
                 ctx->custom.atc.pe.vol0 = V0_DEFAULT_PE;
             }
-            if (ctx->custom.atc.pe.vol0 > 0.9f)
+            if (ctx->custom.atc.pe.vol0 > 1.0f)
             {
-                ctx->custom.atc.pe.vol0 = 0.9f;
+                ctx->custom.atc.pe.vol0 = 1.0f;
             }
             if (ctx->custom.atc.pe.vol0 < 0.1f)
             {
