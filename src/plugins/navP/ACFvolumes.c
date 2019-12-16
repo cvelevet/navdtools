@@ -29,6 +29,9 @@
 
 #include "ACFvolumes.h"
 
+#define V0_DEFAULT_PE 0.5f
+#define V1_DEFAULT_AL 0.9f
+
 static acf_volume_context *default_ctx = NULL;
 
 acf_volume_context* acf_volume_ctx_get(void)
@@ -82,8 +85,8 @@ acf_volume_context* acf_volume_ctx_get(void)
      * PilotEdge: we cannot use M_SQRT_1_2 because the radio_volume_ratio
      * has a stronger effect of headphone volume than audio_volume_com1/2.
      */
-    default_ctx->custom.atc.pe.vol0 = 0.5f / 0.9f;
-    default_ctx->custom.atc.pe.vol1 = 0.9f / 1.0f;
+    default_ctx->custom.atc.pe.vol0 = V0_DEFAULT_PE;
+    default_ctx->custom.atc.pe.vol1 = V1_DEFAULT_AL;
 
     /* success */
     return default_ctx;
@@ -135,19 +138,19 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.pe.vol1);
         }
         else
         {
-SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v1, 0.9f);
-SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v2, 0.9f);
-SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v1, 0.9f);
-SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, 0.9f);
-            XPLMSetDataf(ctx->radio.vol.com1,     0.9f);
-            XPLMSetDataf(ctx->radio.vol.com2,     0.9f);
-            XPLMSetDataf(ctx->radio.vol.nav1,     0.9f);
-            XPLMSetDataf(ctx->radio.vol.nav2,     0.9f);
-            XPLMSetDataf(ctx->radio.vol.adf1,     0.9f);
-            XPLMSetDataf(ctx->radio.vol.adf2,     0.9f);
-            XPLMSetDataf(ctx->radio.vol.mark,     0.9f);
-            XPLMSetDataf(ctx->radio.vol.dme0,     0.9f);
-            XPLMSetDataf(ctx->radio.volume, sqrtf(volume));
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v1, V1_DEFAULT_AL);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v2, V1_DEFAULT_AL);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v1, V1_DEFAULT_AL);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, V1_DEFAULT_AL);
+            XPLMSetDataf(ctx->radio.vol.com1,     V1_DEFAULT_AL);
+            XPLMSetDataf(ctx->radio.vol.com2,     V1_DEFAULT_AL);
+            XPLMSetDataf(ctx->radio.vol.nav1,     V1_DEFAULT_AL);
+            XPLMSetDataf(ctx->radio.vol.nav2,     V1_DEFAULT_AL);
+            XPLMSetDataf(ctx->radio.vol.adf1,     V1_DEFAULT_AL);
+            XPLMSetDataf(ctx->radio.vol.adf2,     V1_DEFAULT_AL);
+            XPLMSetDataf(ctx->radio.vol.mark,     V1_DEFAULT_AL);
+            XPLMSetDataf(ctx->radio.vol.dme0,     V1_DEFAULT_AL);
+            XPLMSetDataf(ctx->radio.volume,       sqrtf(volume));
             if (XPLMGetDatai(ctx->radio.atctxt) <= 0)
             {
                 XPLMSetDatai(ctx->radio.atctxt, 1);
@@ -165,13 +168,13 @@ float acf_atcvol_adj(acf_volume_context *ctx, float offset)
     {
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.pilotedge.plugin.xplane"))
         {
-            if (fabsf(offset) >= 0.01f)
+            if (fabsf(offset) > 0.5f) // offset is in "ticks" of 1/10th the default
             {
-                ctx->custom.atc.pe.vol0 += offset / ctx->custom.atc.pe.vol1;
+                ctx->custom.atc.pe.vol0 += roundf(offset) * V0_DEFAULT_PE * 0.1f;
             }
-            if (fabsf(0.5f / ctx->custom.atc.pe.vol1 - ctx->custom.atc.pe.vol0) < 0.02f)
+            if (fabsf(V0_DEFAULT_PE - ctx->custom.atc.pe.vol0) < 0.02f)
             {
-                ctx->custom.atc.pe.vol0 = 0.5f / ctx->custom.atc.pe.vol1;
+                ctx->custom.atc.pe.vol0 = V0_DEFAULT_PE;
             }
             if (ctx->custom.atc.pe.vol0 > 0.9f)
             {
