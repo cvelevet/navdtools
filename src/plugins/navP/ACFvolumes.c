@@ -169,6 +169,10 @@ float acf_atcvol_adj(acf_volume_context *ctx, float offset)
             {
                 ctx->custom.atc.pe.vol0 += offset / ctx->custom.atc.pe.vol1;
             }
+            if (fabsf(0.5f / custom.atc.pe.vol1 - custom.atc.pe.vol0) < 0.02f)
+            {
+                ctx->custom.atc.pe.vol0 = 0.5f / custom.atc.pe.vol1;
+            }
             if (ctx->custom.atc.pe.vol0 > 0.9f)
             {
                 ctx->custom.atc.pe.vol0 = 0.9f;
@@ -177,7 +181,7 @@ float acf_atcvol_adj(acf_volume_context *ctx, float offset)
             {
                 ctx->custom.atc.pe.vol0 = 0.0f;
             }
-            if (acf_radios_set(ctx, ctx->custom.atc.pe.vol0) == 1)
+            if (acf_radios_set(ctx, 0.0f/*ignored*/) == 1)
             {
                 return ctx->custom.atc.pe.vol0;
             }
