@@ -167,11 +167,11 @@ float acf_atcvol_adj(acf_volume_context *ctx, float offset)
         {
             if (fabsf(offset) >= 0.01f)
             {
-                ctx->custom.atc.pe.vol0 += offset;
+                ctx->custom.atc.pe.vol0 += offset / ctx->custom.atc.pe.vol1;
             }
-            if (ctx->custom.atc.pe.vol0 > 1.0f)
+            if (ctx->custom.atc.pe.vol0 > 0.9f)
             {
-                ctx->custom.atc.pe.vol0 = 1.0f;
+                ctx->custom.atc.pe.vol0 = 0.9f;
             }
             if (ctx->custom.atc.pe.vol0 < 0.1f)
             {
