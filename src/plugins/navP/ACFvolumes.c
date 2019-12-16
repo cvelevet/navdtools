@@ -77,8 +77,8 @@ acf_volume_context* acf_volume_ctx_get(void)
     }
 
     /* defaults that may change at runtime */
-    default_ctx->custom.atc.pe.vol0 = 0.55f;
-    default_ctx->custom.atc.pe.vol1 = 0.90f;
+    default_ctx->custom.atc.pe.vol0 = M_SQRT1_2;
+    default_ctx->custom.atc.pe.vol1 = M_SQRT1_2;
 
     /* success */
     return default_ctx;
@@ -164,11 +164,11 @@ float acf_atcvol_adj(acf_volume_context *ctx, float offset)
             {
                 ctx->custom.atc.pe.vol0 += offset;
             }
-            if (ctx->custom.atc.pe.vol0 > 0.9f)
+            if (ctx->custom.atc.pe.vol0 > 1.0f)
             {
-                ctx->custom.atc.pe.vol0 = 0.9f;
+                ctx->custom.atc.pe.vol0 = 1.0f;
             }
-            if (ctx->custom.atc.pe.vol0 < 0.0f)
+            if (ctx->custom.atc.pe.vol0 < 0.1f)
             {
                 ctx->custom.atc.pe.vol0 = 0.0f;
             }
