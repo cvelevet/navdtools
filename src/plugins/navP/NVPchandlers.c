@@ -177,6 +177,9 @@ typedef struct
     } ovly;
     struct
     {
+        XPLMDataRef vol_com0;
+        XPLMDataRef vol_com1;
+        XPLMDataRef vol_com2;
         XPLMDataRef pe_is_on;
         XPLMDataRef xb_is_on;
         XPLMFlightLoop_f flc;
@@ -1036,6 +1039,9 @@ void* nvp_chandlers_init(void)
     ctx->ground.auto_t_sts          = XPLMFindDataRef  ("sim/cockpit2/autopilot/autothrottle_enabled");
     ctx->ground.auto_p_sts          = XPLMFindDataRef  ("sim/cockpit2/autopilot/servos_on");
     ctx->ground.elev_m_agl          = XPLMFindDataRef  ("sim/flightmodel/position/y_agl");
+    ctx->ground.oatc.vol_com0       = XPLMFindDataRef  ("sim/operation/sound/radio_volume_ratio");
+    ctx->ground.oatc.vol_com1       = XPLMFindDataRef  ("sim/cockpit2/radios/actuators/audio_volume_com1");
+    ctx->ground.oatc.vol_com2       = XPLMFindDataRef  ("sim/cockpit2/radios/actuators/audio_volume_com2");
     ctx->ground.idle.onground_any   = XPLMFindDataRef  ("sim/flightmodel/failures/onground_any");
     ctx->ground.idle.throttle_all   = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/throttle_ratio_all");
     ctx->ground.idle.preset.command = XPLMCreateCommand("navP/thrust/idle_boost", "apply just a bit of throttle");
@@ -1044,6 +1050,9 @@ void* nvp_chandlers_init(void)
         !ctx->ground.auto_t_sts        ||
         !ctx->ground.auto_p_sts        ||
         !ctx->ground.elev_m_agl        ||
+        !ctx->ground.oatc.vol_com0     ||
+        !ctx->ground.oatc.vol_com1     ||
+        !ctx->ground.oatc.vol_com2     ||
         !ctx->ground.idle.throttle_all ||
         !ctx->ground.idle.preset.command)
     {
@@ -4375,10 +4384,42 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         if (grndp->oatc.pe_is_on)
         {
             int pe_is_connected = XPLMGetDatai(grndp->oatc.pe_is_on);
-            if (pe_is_connected && grndp->oatc.pe_was_connected < 1)
+            if (pe_is_connected)
             {
-                ndt_log("navP [info]: PilotEdge connection detected, acf_volume_reset in 3 seconds\n");
-                XPLMSetFlightLoopCallbackInterval(grndp->oatc.flc, 3.0f, 1, grndp->oatc.aircraft_type);
+                if (grndp->oatc.pe_was_connected < 1)
+                {
+                    // something resets radios to silent right after connecting to PE, we work around it
+                    ndt_log("navP [info]: PilotEdge connection detected, acf_volume_reset in 3 seconds\n");
+                    XPLMSetFlightLoopCallbackInterval(grndp->oatc.flc, 3.0f, 1, grndp->oatc.aircraft_type);
+                }
+                else
+                {
+                    float radio_volume_ratio = XPLMGetDataf(grndp->oatc.vol_com0);
+                    if (0.1f > radio_volume_ratio) // global radio volume is zero
+                    {
+                        // assume PE has ATIS currently playing
+                        // turn com 1 and 2 off to stop XP ATIS
+                        // without it we hear the first message
+                        // note: maybe doesn't work but it also
+                        // doesn't seem to hurt either whatever
+                        XPLMSetDataf(grndp->oatc.vol_com1, 0.0f);
+                        XPLMSetDataf(grndp->oatc.vol_com2, 0.0f);
+                    }
+                    else if (0.1f > XPLMGetDataf(grndp->oatc.vol_com1) &&
+                             0.1f > XPLMGetDataf(grndp->oatc.vol_com2))
+                    {
+                        // radios are on but both com 1 and com 2 are off, reset
+                        acf_volume_context *volume_context = acf_volume_ctx_get();
+                        if (volume_context == NULL)
+                        {
+                            ndt_log("navP [error]: gnd_stab_hdlr: acf_volume_ctx_get() failed\n");
+                        }
+                        else
+                        {
+                            acf_volume_reset(volume_context, *grndp->oatc.aircraft_type);
+                        }
+                    }
+                }
             }
             grndp->oatc.pe_was_connected = !!pe_is_connected;
         }
