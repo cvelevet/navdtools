@@ -4431,14 +4431,18 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             }
         }
 
+        // check whether we are still on the ground or flying
+        int airborne = !XPLMGetDatai(grndp->idle.onground_any);
+
         // then, update ground roll friction coefficient as required
-        if (ground_spd_kts > GS_KT_MIN && ground_spd_kts < GS_KT_MAX)
+        if (!airborne && ground_spd_kts > GS_KT_MIN && ground_spd_kts < GS_KT_MAX)
         {
             float arc; ACF_ROLL_SET(arc, ground_spd_kts, grndp->nominal_roll_c);
             XPLMSetDataf(grndp->acf_roll_c, arc); return -1; // should be smooth
         }
         XPLMSetDataf(grndp->acf_roll_c, grndp->nominal_roll_c);
-        grndp->ovly.last_thr_all = thrott_cmd_all; return 0.25f;
+        grndp->ovly.last_thr_all = thrott_cmd_all;
+        return airborne ? 1.0f : 0.25f;
     }
     return 0;
 }
