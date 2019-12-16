@@ -76,9 +76,14 @@ acf_volume_context* acf_volume_ctx_get(void)
         }
     }
 
-    /* defaults that may change at runtime */
-    default_ctx->custom.atc.pe.vol0 = M_SQRT1_2;
-    default_ctx->custom.atc.pe.vol1 = M_SQRT1_2;
+    /*
+     * defaults that may change at runtime
+     *
+     * PilotEdge: we cannot use M_SQRT_1_2 because the radio_volume_ratio
+     * has a stronger effect of headphone volume than audio_volume_com1/2.
+     */
+    default_ctx->custom.atc.pe.vol0 = 0.5f / 0.9f;
+    default_ctx->custom.atc.pe.vol1 = 0.9f / 1.0f;
 
     /* success */
     return default_ctx;
