@@ -1305,27 +1305,27 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         switch (itx->mivalue)
         {
             case MENUITEM_VOLUME_PRST0:
-                acf_volume_set(vc, ic->ac_type, 0.00f);
+                acf_volume_set(vc, 0.00f, ic->ac_type);
                 XPLMSpeakString("Volume muted");
                 return;
             case MENUITEM_VOLUME_PRST1:
-                acf_volume_set(vc, ic->ac_type, 0.10f);
+                acf_volume_set(vc, 0.10f, ic->ac_type);
                 XPLMSpeakString("Volume 10");
                 return;
             case MENUITEM_VOLUME_PRST2:
-                acf_volume_set(vc, ic->ac_type, 0.25f);
+                acf_volume_set(vc, 0.25f, ic->ac_type);
                 XPLMSpeakString("Volume 25");
                 return;
             case MENUITEM_VOLUME_PRST3:
-                acf_volume_set(vc, ic->ac_type, 0.50f);
+                acf_volume_set(vc, 0.50f, ic->ac_type);
                 XPLMSpeakString("Volume 50");
                 return;
             case MENUITEM_VOLUME_PRST4:
-                acf_volume_set(vc, ic->ac_type, 0.75f);
+                acf_volume_set(vc, 0.75f, ic->ac_type);
                 XPLMSpeakString("Volume 75");
                 return;
             case MENUITEM_VOLUME_PRST5:
-                acf_volume_set(vc, ic->ac_type, 1.00f);
+                acf_volume_set(vc, 1.00f, ic->ac_type);
                 XPLMSpeakString("Volume 100");
                 return;
             default:

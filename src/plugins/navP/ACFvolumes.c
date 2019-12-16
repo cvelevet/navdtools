@@ -181,7 +181,15 @@ float acf_atcvol_adj(acf_volume_context *ctx, float offset)
     return -1;
 }
 
-void acf_volume_set(acf_volume_context *ctx, acf_type type, float volume)
+void acf_volume_reset(acf_volume_context *ctx, acf_type type)
+{
+    if (ctx)
+    {
+        return acf_volume_set(ctx, ctx->last_volume, type);
+    }
+}
+
+void acf_volume_set(acf_volume_context *ctx, float volume, acf_type type)
 {
     if (ctx)
     {
@@ -208,6 +216,11 @@ void acf_volume_set(acf_volume_context *ctx, acf_type type, float volume)
         {
             volume = 0.00f;
         }
+        if (volume > 1.00f)
+        {
+            volume = 1.00f;
+        }
+        ctx->last_volume = volume;
 
         /* non-ATC */
         switch (type)

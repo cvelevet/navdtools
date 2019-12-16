@@ -28,6 +28,7 @@
 
 typedef struct
 {
+    float last_volume;
     struct
     {
         struct
@@ -128,8 +129,9 @@ typedef struct
 }
 acf_volume_context;
 
-acf_volume_context*  acf_volume_ctx_get(void);
-float acf_atcvol_adj(acf_volume_context *ctx, float offset);
-void  acf_volume_set(acf_volume_context *ctx, acf_type type, float volume);
+acf_volume_context* acf_volume_ctx_get(void);
+float acf_atcvol_adj  (acf_volume_context *ctx, float offset               );
+void  acf_volume_set  (acf_volume_context *ctx, float volume, acf_type type);
+void  acf_volume_reset(acf_volume_context *ctx,               acf_type type);
 
 #endif /* ACF_VOLUMES_H */
