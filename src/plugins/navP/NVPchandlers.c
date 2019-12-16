@@ -1694,7 +1694,7 @@ static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
         }
         switch (invk)
         {
-            case XPLM_VK_TAB:
+            case XPLM_VK_TAB: //fixme nedds begin/end when mapped to contact_atc
                 if (tkb.c[2][44]) XPLMCommandOnce(tkb.c[2][44]);
                 return 0;
             case XPLM_VK_END:
@@ -4425,7 +4425,17 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         }
         else if (grndp->oatc.xb_is_on)
         {
-            // TODO: fixme
+            int xb_is_connected = XPLMGetDatai(grndp->oatc.xb_is_on);
+            if (xb_is_connected)
+            {
+                if (grndp->oatc.xb_was_connected < 1)
+                {
+                    // not actually required, but we do the same as for PE above
+                    ndt_log("navP [info]: XSquawkBox connection detected acf_volume_reset in 3 seconds\n");
+                    XPLMSetFlightLoopCallbackInterval(grndp->oatc.flc, 3.0f, 1, grndp->oatc.aircraft_type);
+                }
+            }
+            grndp->oatc.xb_was_connected = !!xb_is_connected;
         }
 
 #if 0
@@ -4704,9 +4714,9 @@ static int first_fcall_do(chandler_context *ctx)
                     ndt_log("navP [warning]: failed to find AirbusFBW commands for key sniffer\n");
                     break;
                 }
-                if (XPLM_NO_PLUGIN_ID == ctx->coatc.pe_plid)
+                else
                 {
-                    ctx->a319kc.c[2][44] = NULL; // TODO: support other online plugins
+                    ctx->a319kc.c[2][44] = NULL;
                 }
                 if (NULL == (ctx->a319kc.c[2][39] = XPLMFindCommand("navP/switches/cdu_toggle")) ||
                     NULL == (ctx->a319kc.c[2][40] = ctx->a319kc.c[2][39]))
@@ -4723,11 +4733,19 @@ static int first_fcall_do(chandler_context *ctx)
                 if (NULL == (ctx->a319kc.c[2][41] = XPLMFindCommand("navP/brakes/regular"           )) ||
                     NULL == (ctx->a319kc.c[2][42] = XPLMFindCommand("navP/spoilers/extend"          )) ||
                     NULL == (ctx->a319kc.c[2][43] = XPLMFindCommand("navP/spoilers/retract"         )) ||
-                    NULL == (ctx->a319kc.c[2][44] = XPLMFindCommand("sim/operation/contact_atc"     )) ||
                     NULL == (ctx->a319kc.c[2][45] = XPLMFindCommand("sim/flight_controls/flaps_up"  )) ||
                     NULL == (ctx->a319kc.c[2][46] = XPLMFindCommand("sim/flight_controls/flaps_down")))
                 {
                     ndt_log("navP [warning]: failed to find TIM_ONLY commands for key sniffer\n");
+                }
+                if (XPLM_NO_PLUGIN_ID != ctx->coatc.pe_plid)
+                {
+                    ctx->a319kc.c[2][44] = XPLMFindCommand("sim/operation/contact_atc");
+                }
+                else if (XPLM_NO_PLUGIN_ID != ctx->coatc.xb_plid)
+                {
+                    // TODO: use ctx->a319kc.c[2][44] with '<' character (w/xsquawkbox/voice/ptt)
+                    ctx->a319kc.c[2][44] = XPLMFindCommand("xsquawkbox/command/start_text_entry");
                 }
 #endif
                 if ((ctx->a319kc.kc_is_registered = XPLMRegisterKeySniffer(&tol_keysniffer, 1/*inBeforeWindows*/, &ctx->a319kc)) != 1)
@@ -5993,23 +6011,24 @@ static int first_fcall_do(chandler_context *ctx)
     {
         if (XPLM_NO_PLUGIN_ID != ctx->coatc.pe_plid)
         {
-            ctx->ground.oatc.pe_was_connected = 0;
             ctx->ground.oatc.pe_is_on = XPLMFindDataRef("pilotedge/status/connected");
+            ctx->ground.oatc.pe_was_connected = 0;
         }
         else
         {
             /* no PilotEdge plugin: we disable/remap X-Plane's "contact ATC" command */
             if ((ctx->coatc.cb.command = XPLMFindCommand("sim/operation/contact_atc")))
             {
-                if (XPLM_NO_PLUGIN_ID != ctx->coatc.xb_plid)
-                {
-                    if ((ctx->coatc.coatc = XPLMFindCommand("xsquawkbox/voice/ptt")))
-                    {
-                        ndt_log("navP [info]: XSquawkBox detected, \"sim/operation/contact_atc\" mapped to \"xsquawkbox/voice/ptt\"\n");
-                    }
-                    ctx->ground.oatc.xb_is_on = NULL; ctx->ground.oatc.xb_was_connected = 0; // TODO: fixme
-                }
                 REGISTER_CHANDLER(ctx->coatc.cb, chandler_coatc, 1/*before*/, ctx->coatc.coatc);
+            }
+            if (XPLM_NO_PLUGIN_ID != ctx->coatc.xb_plid)
+            {
+                if ((ctx->coatc.coatc = XPLMFindCommand("xsquawkbox/voice/ptt")))
+                {
+                    ndt_log("navP [info]: XSquawkBox detected, \"sim/operation/contact_atc\" mapped to \"xsquawkbox/voice/ptt\"\n");
+                }
+                ctx->ground.oatc.xb_is_on = XPLMFindDataRef("xsquawkbox/login/status");
+                ctx->ground.oatc.xb_was_connected = 0;
             }
         }
     }
