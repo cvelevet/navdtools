@@ -175,6 +175,15 @@ typedef struct
         XPLMDataRef ice[4]; // ice ratio (pitot, inlet, prop, wing)
         XPLMDataRef ground;
     } ovly;
+    struct
+    {
+        XPLMDataRef pe_is_on;
+        XPLMDataRef xb_is_on;
+        XPLMFlightLoop_f flc;
+        int pe_was_connected;
+        int xb_was_connected;
+        int aircraft_type[1];
+    } oatc;
 } refcon_ground;
 
 typedef struct
@@ -469,8 +478,6 @@ typedef struct
         XPLMCommandRef coatc;
         XPLMPluginID pe_plid;
         XPLMPluginID xb_plid;
-        XPLMDataRef pe_is_on;
-        XPLMDataRef xb_is_on;
     } coatc;
 } chandler_context;
 
@@ -620,6 +627,7 @@ static int chandler_apaft(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_p2vvi(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_flap_func (                                        float, float, int, void*);
+static float flc_oatc_func (                                        float, float, int, void*);
 static float gnd_stab_hdlr (                                        float, float, int, void*);
 static int   first_fcall_do(                                           chandler_context *ctx);
 static int   aibus_fbw_init(                                             refcon_qpacfbw *fbw);
@@ -1596,7 +1604,15 @@ int nvp_chandlers_update(void *inContext)
 
     /* check for presence of online ATC plugins */
     ctx->coatc.pe_plid = XPLMFindPluginBySignature("com.pilotedge.plugin.xplane");
-    ctx->coatc.xb_plid = XPLMFindPluginBySignature("vatsim.protodev.clients.xsquawkbox")
+    ctx->coatc.xb_plid = XPLMFindPluginBySignature("vatsim.protodev.clients.xsquawkbox");
+    if (ctx->coatc.pe_plid || ctx->coatc.xb_plid)
+    {
+        if (ctx->ground.oatc.flc == NULL)
+        {
+            ctx->ground.oatc.aircraft_type[0] = ctx->info->ac_type;
+            XPLMRegisterFlightLoopCallback((ctx->ground.oatc.flc = &flc_oatc_func), 0, ctx->ground.oatc.aircraft_type);
+        }
+    }
 
     /* all good */
     ndt_log("navP [info]: nvp_chandlers_update OK\n"); XPLMSpeakString("nav P configured"); return 0;
@@ -4223,6 +4239,25 @@ static float flc_flap_func(float inElapsedSinceLastCall,
     return 0;
 }
 
+static float flc_oatc_func(float inElapsedSinceLastCall,
+                           float inElapsedTimeSinceLastFlightLoop,
+                           int   inCounter,
+                           void *inRefcon)
+{
+    if (inRefcon)
+    {
+        acf_volume_context *volume_context = acf_volume_ctx_get();
+        if (volume_context == NULL)
+        {
+            ndt_log("navP [error]: flc_oatc_func: acf_volume_ctx_get() failed\n");
+            return 0;
+        }
+        acf_volume_reset(volume_context, *((int*)inRefcon));
+        return 0;
+    }
+    return 0;
+}
+
 #define GS_KT_MIN             (2.500f)
 #define GS_KT_MID             (26.25f)
 #define GS_KT_MAX             (50.00f)
@@ -4335,6 +4370,22 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                 XPHideWidget(grndp->ovly.wid[0]);
                 XPHideWidget(grndp->ovly.wid[1]);
             }
+        }
+
+        /* XXX: check whether we just connected to PilotEdge or VATSIM */
+        if (grndp->oatc.pe_is_on)
+        {
+            int pe_is_connected = XPLMGetDatai(grndp->oatc.pe_is_on);
+            if (pe_is_connected && grndp->oatc.pe_was_connected < 1)
+            {
+                ndt_log("navP [info]: PilotEdge connection detected, acf_volume_reset in 3 seconds\n");
+                XPLMSetFlightLoopCallbackInterval(grndp->oatc.flc, 3.0f, 1, grndp->oatc.aircraft_type);
+            }
+            grndp->oatc.pe_was_connected = !!pe_is_connected;
+        }
+        else if (grndp->oatc.xb_is_on)
+        {
+            // TODO: fixme
         }
 
 #if 0
@@ -5875,6 +5926,10 @@ static int first_fcall_do(chandler_context *ctx)
             break;
         }
     }
+    if (ctx->ground.oatc.flc)
+    {
+        XPLMUnregisterFlightLoopCallback(ctx->ground.oatc.flc, &ctx);
+    }
     if (ctx->ground.flc_g)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
@@ -5892,9 +5947,14 @@ static int first_fcall_do(chandler_context *ctx)
 #if TIM_ONLY
     if (ctx->coatc.cb.handler == NULL)
     {
-        /* no PilotEdge plugin: can disable X-Plane default "contact ATC" functionality */
-        if (XPLM_NO_PLUGIN_ID == ctx->coatc.pe_plid)
+        if (XPLM_NO_PLUGIN_ID != ctx->coatc.pe_plid)
         {
+            ctx->ground.oatc.pe_was_connected = 0;
+            ctx->ground.oatc.pe_is_on = XPLMFindDataRef("pilotedge/status/connected");
+        }
+        else
+        {
+            /* no PilotEdge plugin: we disable/remap X-Plane's "contact ATC" command */
             if ((ctx->coatc.cb.command = XPLMFindCommand("sim/operation/contact_atc")))
             {
                 if (XPLM_NO_PLUGIN_ID != ctx->coatc.xb_plid)
@@ -5903,13 +5963,10 @@ static int first_fcall_do(chandler_context *ctx)
                     {
                         ndt_log("navP [info]: XSquawkBox detected, \"sim/operation/contact_atc\" mapped to \"xsquawkbox/voice/ptt\"\n");
                     }
+                    ctx->ground.oatc.xb_is_on = NULL; ctx->ground.oatc.xb_was_connected = 0; // TODO: fixme
                 }
                 REGISTER_CHANDLER(ctx->coatc.cb, chandler_coatc, 1/*before*/, ctx->coatc.coatc);
             }
-        }
-        else
-        {
-            ctx->coatc.pe_is_on = XPLMFindDataRef("pilotedge/status/connected");
         }
     }
 
