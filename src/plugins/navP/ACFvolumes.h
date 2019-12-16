@@ -86,6 +86,11 @@ typedef struct
             } pe;
             struct
             {
+                float vol0;
+                float vol1;
+            } xb;
+            struct
+            {
                 XPLMDataRef v1;
                 XPLMDataRef v2;
             } ea50;

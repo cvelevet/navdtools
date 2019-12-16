@@ -29,9 +29,12 @@
 
 #include "ACFvolumes.h"
 
-#define V1_DEFAULT_AL 0.9f
 #define V0_DEFAULT_PE 0.5f
 #define V1_DEFAULT_PE M_SQRT1_2
+#define V0_DEFAULT_XB M_SQRT1_2
+#define V1_DEFAULT_XB M_SQRT1_2
+#define V1_DEFAULT_AL M_SQRT1_2
+#define V0_DEFAULT_AL sqrtf(volume)
 
 static acf_volume_context *default_ctx = NULL;
 
@@ -82,12 +85,11 @@ acf_volume_context* acf_volume_ctx_get(void)
 
     /*
      * defaults that may change at runtime
-     *
-     * PilotEdge: we cannot use M_SQRT_1_2 because the radio_volume_ratio
-     * has a stronger effect of headphone volume than audio_volume_com1/2.
      */
     default_ctx->custom.atc.pe.vol0 = V0_DEFAULT_PE;
     default_ctx->custom.atc.pe.vol1 = V1_DEFAULT_PE;
+    default_ctx->custom.atc.xb.vol0 = V0_DEFAULT_XB;
+    default_ctx->custom.atc.xb.vol1 = V1_DEFAULT_XB;
 
     /* success */
     return default_ctx;
@@ -131,9 +133,40 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.pe.vol1);
             {
                 XPLMSetDatai(ctx->radio.rx.com1, 1);
             }
-            if (XPLMGetDatai(ctx->radio.atctxt) <= 0)
+            if (XPLMGetDatai(ctx->radio.atctxt) != 0)
             {
-                XPLMSetDatai(ctx->radio.atctxt, 1);
+                XPLMSetDatai(ctx->radio.atctxt, 0);
+            }
+            return 1;
+        }
+        else if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("vatsim.protodev.clients.xsquawkbox"))
+        {
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v1, ctx->custom.atc.xb.vol1);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v2, ctx->custom.atc.xb.vol1);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v1, ctx->custom.atc.xb.vol1);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.xb.vol1);
+            XPLMSetDataf(ctx->radio.vol.com1,     ctx->custom.atc.xb.vol0);
+            XPLMSetDataf(ctx->radio.vol.com2,     ctx->custom.atc.xb.vol0);
+            XPLMSetDataf(ctx->radio.vol.nav1,     ctx->custom.atc.xb.vol1);
+            XPLMSetDataf(ctx->radio.vol.nav2,     ctx->custom.atc.xb.vol1);
+            XPLMSetDataf(ctx->radio.vol.adf1,     ctx->custom.atc.xb.vol1);
+            XPLMSetDataf(ctx->radio.vol.adf2,     ctx->custom.atc.xb.vol1);
+            XPLMSetDataf(ctx->radio.vol.mark,     ctx->custom.atc.xb.vol1);
+            XPLMSetDataf(ctx->radio.vol.dme0,     ctx->custom.atc.xb.vol1);
+            XPLMSetDataf(ctx->radio.volume,       ctx->custom.atc.xb.vol1);
+            int tx = XPLMGetDatai(ctx->radio.tx.comm);
+            if (tx < 6 || tx > 7)
+            {
+                XPLMSetDatai(ctx->radio.tx.comm, 6);
+            }
+            if (XPLMGetDatai(ctx->radio.rx.com1) <= 0 &&
+                XPLMGetDatai(ctx->radio.rx.com2) <= 0)
+            {
+                XPLMSetDatai(ctx->radio.rx.com1, 1);
+            }
+            if (XPLMGetDatai(ctx->radio.atctxt) != 0)
+            {
+                XPLMSetDatai(ctx->radio.atctxt, 0);
             }
             return 1;
         }
@@ -173,7 +206,7 @@ float acf_atcvol_adj(acf_volume_context *ctx, float offset)
             {
                 ctx->custom.atc.pe.vol0 += roundf(offset) * V0_DEFAULT_PE * 0.1f;
             }
-            if (fabsf(V0_DEFAULT_PE - ctx->custom.atc.pe.vol0) < 0.02f)
+            if (fabsf((float)V0_DEFAULT_PE - ctx->custom.atc.pe.vol0) < 0.02f)
             {
                 ctx->custom.atc.pe.vol0 = V0_DEFAULT_PE;
             }
@@ -188,6 +221,29 @@ float acf_atcvol_adj(acf_volume_context *ctx, float offset)
             if (acf_radios_set(ctx, 0.0f/*ignored*/) == 1)
             {
                 return ctx->custom.atc.pe.vol0;
+            }
+        }
+        else if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("vatsim.protodev.clients.xsquawkbox"))
+        {
+            if (fabsf(offset) > 0.5f) // offset is in "ticks" of 1/10th the default
+            {
+                ctx->custom.atc.xb.vol0 += roundf(offset) * V0_DEFAULT_XB * 0.1f;
+            }
+            if (fabsf((float)V0_DEFAULT_XB - ctx->custom.atc.xb.vol0) < 0.02f)
+            {
+                ctx->custom.atc.xb.vol0 = V0_DEFAULT_XB;
+            }
+            if (ctx->custom.atc.xb.vol0 > 1.0f)
+            {
+                ctx->custom.atc.xb.vol0 = 1.0f;
+            }
+            if (ctx->custom.atc.xb.vol0 < 0.1f)
+            {
+                ctx->custom.atc.xb.vol0 = 0.0f;
+            }
+            if (acf_radios_set(ctx, 0.0f/*ignored*/) == 1)
+            {
+                return ctx->custom.atc.xb.vol0;
             }
         }
     }
