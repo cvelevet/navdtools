@@ -29,7 +29,7 @@
 
 #include "ACFvolumes.h"
 
-#define V0_DEFAULT_PE 0.5f
+#define V0_DEFAULT_PE 0.25f
 #define V1_DEFAULT_PE M_SQRT1_2
 #define V0_DEFAULT_XB M_SQRT1_2
 #define V1_DEFAULT_XB M_SQRT1_2
