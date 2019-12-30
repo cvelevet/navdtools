@@ -6016,11 +6016,6 @@ static int first_fcall_do(chandler_context *ctx)
         }
         else
         {
-            /* no PilotEdge plugin: we disable/remap X-Plane's "contact ATC" command */
-            if ((ctx->coatc.cb.command = XPLMFindCommand("sim/operation/contact_atc")))
-            {
-                REGISTER_CHANDLER(ctx->coatc.cb, chandler_coatc, 1/*before*/, ctx->coatc.coatc);
-            }
             if (XPLM_NO_PLUGIN_ID != ctx->coatc.xb_plid)
             {
                 if ((ctx->coatc.coatc = XPLMFindCommand("xsquawkbox/voice/ptt")))
@@ -6029,6 +6024,11 @@ static int first_fcall_do(chandler_context *ctx)
                 }
                 ctx->ground.oatc.xb_is_on = XPLMFindDataRef("xsquawkbox/login/status");
                 ctx->ground.oatc.xb_was_connected = 0;
+            }
+            /* no PilotEdge plugin: we disable/remap X-Plane's "contact ATC" command */
+            if ((ctx->coatc.cb.command = XPLMFindCommand("sim/operation/contact_atc")))
+            {
+                REGISTER_CHANDLER(ctx->coatc.cb, chandler_coatc, 1/*before*/, ctx->coatc.coatc);
             }
         }
     }
