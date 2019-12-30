@@ -4433,6 +4433,9 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                 {
                     // not actually required, but we do the same as for PE above
                     ndt_log("navP [info]: XSquawkBox connection detected acf_volume_reset in 3 seconds\n");
+/*XXX:XSB-specific*/XPLMSetDatai(XPLMFindDataRef("sim/cockpit2/radios/actuators/audio_com_selection" ), 0);
+/*XXX:XSB-specific*/XPLMSetDatai(XPLMFindDataRef("sim/cockpit2/radios/actuators/audio_selection_com1"), 1);
+/*XXX:XSB-specific*/XPLMSetDatai(XPLMFindDataRef("sim/cockpit2/radios/actuators/audio_selection_com2"), 1);
                     XPLMSetFlightLoopCallbackInterval(grndp->oatc.flc, 3.0f, 1, grndp->oatc.aircraft_type);
                 }
             }
