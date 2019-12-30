@@ -153,8 +153,18 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.xb.vol1);
             XPLMSetDataf(ctx->radio.vol.adf2,     ctx->custom.atc.xb.vol1);
             XPLMSetDataf(ctx->radio.vol.mark,     ctx->custom.atc.xb.vol1);
             XPLMSetDataf(ctx->radio.vol.dme0,     ctx->custom.atc.xb.vol1);
-            XPLMSetDataf(ctx->radio.volume,       ctx->custom.atc.xb.vol1);
+            XPLMSetDataf(ctx->radio.volume,                          0.0f);
             int tx = XPLMGetDatai(ctx->radio.tx.comm);
+            if (XPLMGetDatai(ctx->radio.rx.com1) == 1 &&
+                XPLMGetDatai(ctx->radio.rx.com2) == 1 && tx == 0)
+            {
+                // XXX: XSquawkBox-specific, don't start
+                // with both radios on for first connect
+                // rx=both tx=none set in NVPchandlers.c
+                XPLMSetDatai(ctx->radio.tx.comm, (tx = 6));
+                XPLMSetDatai(ctx->radio.rx.com1, 1);
+                XPLMSetDatai(ctx->radio.rx.com1, 0);
+            }
             if (tx < 6 || tx > 7)
             {
                 XPLMSetDatai(ctx->radio.tx.comm, 6);
