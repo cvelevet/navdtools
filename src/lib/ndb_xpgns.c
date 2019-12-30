@@ -1913,7 +1913,21 @@ static int place_procedures(ndt_navdatabase *ndb, ndt_airport *apt)
         {
             i++; continue; // not final approach
         }
-        if (!(rwy = ndt_runway_get(apt->runways, proc1->info.misc)))
+        /* Mismatch between runway IDs in Airports.txt
+         * and approach records in Proc/ICAO.txt files;
+         * this doesn't seem to affect SID/STAR records.
+         *
+         * We don't do this earlier during parsing, as
+         * it will interfere w/the procedure name code.
+         */
+        char rwy_id[sizeof(proc1->info.misc)];
+        strncpy(rwy_id, proc1->info.misc, sizeof(rwy_id));
+        size_t last = strnlen(rwy_id, sizeof(rwy_id)) - 1;
+        if (rwy_id[last] == 'T')
+        {
+            rwy_id[last] = '\0';
+        }
+        if (!(rwy = ndt_runway_get(apt->runways, rwy_id)))
         {
             // Navigraph/1510/LOAV: runway 28 non-existent, but approaches coded
             ndt_list_rem(allprocs, proc1); continue; // skip
@@ -2062,7 +2076,7 @@ static int rename_finalappr(ndt_airport *apt)
                         default:
                             break;
                     }
-                    if ((strlen(final->info.idnt) - strlen(rwy->info.idnt)) > 1)
+                    if ((strlen(final->info.idnt) - strlen(final->info.misc)) > 1)
                     {
                         final->approach.suffix[0] = final->info.idnt[strlen(final->info.idnt) - 1];
                         final->approach.suffix[1] = '\0';
@@ -2071,7 +2085,7 @@ static int rename_finalappr(ndt_airport *apt)
                     {
                         final->approach.suffix[0] = '\0';
                     }
-                    if (prefix && strlen(final->info.idnt) > strlen(rwy->info.idnt))
+                    if (prefix && strlen(final->info.idnt) > strlen(final->info.misc))
                     {
                         /*
                          * Max. 5 characters:
@@ -2090,14 +2104,14 @@ static int rename_finalappr(ndt_airport *apt)
                          * D28RY     VDM28RY
                          * D28R-Y    VDM28RY
                          */
-                        if (strnlen(rwy->info.idnt, 3) < 3)
+                        if (strnlen(final->info.misc, 3) < 3)
                         {
-                            snprintf(temp, sizeof(temp), "%s%s%s%s", prefix, rwy->info.idnt,
+                            snprintf(temp, sizeof(temp), "%s%s%s%s", prefix, final->info.misc,
                                      *final->approach.suffix ? "-" : "", final->approach.suffix);
                         }
                         else
                         {
-                            snprintf(temp, sizeof(temp), "%s%s%s", prefix, rwy->info.idnt, final->approach.suffix);
+                            snprintf(temp, sizeof(temp), "%s%s%s", prefix, final->info.misc, final->approach.suffix);
                         }
                         /*
                          * Update IDs for final approach and its transitions.
