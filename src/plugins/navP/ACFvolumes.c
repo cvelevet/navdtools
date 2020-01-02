@@ -123,6 +123,7 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.pe.vol1);
             XPLMSetDataf(ctx->radio.vol.mark,     ctx->custom.atc.pe.vol1);
             XPLMSetDataf(ctx->radio.vol.dme0,     ctx->custom.atc.pe.vol1);
             XPLMSetDataf(ctx->radio.volume,       ctx->custom.atc.pe.vol0);
+            XPLMSetDatai(ctx->radio.atctxt,                 volume > .01f); // Text-to-speech overlays
             int tx = XPLMGetDatai(ctx->radio.tx.comm);
             if (tx < 6 || tx > 7)
             {
@@ -132,10 +133,6 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.pe.vol1);
                 XPLMGetDatai(ctx->radio.rx.com2) <= 0)
             {
                 XPLMSetDatai(ctx->radio.rx.com1, 1);
-            }
-            if (XPLMGetDatai(ctx->radio.atctxt) != 0)
-            {
-                XPLMSetDatai(ctx->radio.atctxt, 0);
             }
             return 1;
         }
@@ -153,7 +150,8 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.xb.vol1);
             XPLMSetDataf(ctx->radio.vol.adf2,     ctx->custom.atc.xb.vol1);
             XPLMSetDataf(ctx->radio.vol.mark,     ctx->custom.atc.xb.vol1);
             XPLMSetDataf(ctx->radio.vol.dme0,     ctx->custom.atc.xb.vol1);
-            XPLMSetDataf(ctx->radio.volume,                        volume);
+            XPLMSetDatai(ctx->radio.atctxt,                 volume > .01f); // Text-to-speech overlays
+            XPLMSetDataf(ctx->radio.volume,                          0.0f);
             int tx = XPLMGetDatai(ctx->radio.tx.comm);
             if (XPLMGetDatai(ctx->radio.rx.com1) == 1 &&
                 XPLMGetDatai(ctx->radio.rx.com2) == 1 && tx == 0)
@@ -174,10 +172,6 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.xb.vol1);
             {
                 XPLMSetDatai(ctx->radio.rx.com1, 1);
             }
-            if (XPLMGetDatai(ctx->radio.atctxt) != 0)
-            {
-                XPLMSetDatai(ctx->radio.atctxt, 0);
-            }
             return 1;
         }
         else
@@ -195,11 +189,8 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, V1_DEFAULT_AL);
             XPLMSetDataf(ctx->radio.vol.mark,     V1_DEFAULT_AL);
             XPLMSetDataf(ctx->radio.vol.dme0,     V1_DEFAULT_AL);
             XPLMSetDataf(ctx->radio.volume,       sqrtf(volume));
-            if (XPLMGetDatai(ctx->radio.atctxt) <= 0)
-            {
-                XPLMSetDatai(ctx->radio.atctxt, 1);
-            }
-            return (volume >= 0.01f);
+            XPLMSetDatai(ctx->radio.atctxt,       volume > .01f); // Text-to-speech overlays
+            return (volume > .01f);
         }
     }
     return 0;
