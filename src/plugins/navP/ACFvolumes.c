@@ -153,7 +153,7 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.xb.vol1);
             XPLMSetDataf(ctx->radio.vol.adf2,     ctx->custom.atc.xb.vol1);
             XPLMSetDataf(ctx->radio.vol.mark,     ctx->custom.atc.xb.vol1);
             XPLMSetDataf(ctx->radio.vol.dme0,     ctx->custom.atc.xb.vol1);
-            XPLMSetDataf(ctx->radio.volume,                          0.0f);
+            XPLMSetDataf(ctx->radio.volume,                        volume);
             int tx = XPLMGetDatai(ctx->radio.tx.comm);
             if (XPLMGetDatai(ctx->radio.rx.com1) == 1 &&
                 XPLMGetDatai(ctx->radio.rx.com2) == 1 && tx == 0)
