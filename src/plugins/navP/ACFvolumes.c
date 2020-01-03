@@ -150,8 +150,8 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.xb.vol1);
             XPLMSetDataf(ctx->radio.vol.adf2,     ctx->custom.atc.xb.vol1);
             XPLMSetDataf(ctx->radio.vol.mark,     ctx->custom.atc.xb.vol1);
             XPLMSetDataf(ctx->radio.vol.dme0,     ctx->custom.atc.xb.vol1);
-            XPLMSetDatai(ctx->radio.atctxt,                 volume > .01f); // Text-to-speech overlays
-            XPLMSetDataf(ctx->radio.volume,                          0.0f);
+            XPLMSetDataf(ctx->radio.volume,          fminf(volume, 0.25f));
+            XPLMSetDatai(ctx->radio.atctxt,               (volume > .01f)); // Text-to-speech overlays
             int tx = XPLMGetDatai(ctx->radio.tx.comm);
             if (XPLMGetDatai(ctx->radio.rx.com1) == 1 &&
                 XPLMGetDatai(ctx->radio.rx.com2) == 1 && tx == 0)
