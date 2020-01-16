@@ -113,8 +113,15 @@ typedef struct
 {
     int    kc_is_registered;
     XPLMDataRef    datar[5];
-    XPLMCommandRef c[3][47];
+    XPLMCommandRef c[3][48];
 } refcon_a319kbc;
+
+typedef struct
+{
+    int kc_is_registered;
+    XPLMDataRef datar[1];
+    XPLMCommandRef c[10];
+} refcon_a350kbc;
 
 typedef struct
 {
@@ -242,6 +249,7 @@ typedef struct
     void     *menu_context;
     acf_info_context *info;
     refcon_a319kbc  a319kc;
+    refcon_a350kbc  a350kc;
     refcon_ground   ground;
     refcon_thrust    throt;
     refcon_gear       gear;
@@ -592,6 +600,7 @@ static int          ref_ql_idx_val(void)
 #define _DO(_verbose, _func, _val, _name) { if ((d_ref = XPLMFindDataRef(_name))) _func(d_ref, _val); else if (_verbose) ndt_log("navP [warning]: dataref not found: \"%s\"\n", _name); }
 
 static int tol_keysniffer(char inCh, XPLMKeyFlags inFlags, char inVirtualKey, void *inRefcon);
+static int a35_keysniffer(char inCh, XPLMKeyFlags inFlags, char inVirtualKey, void *inRefcon);
 static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -1226,6 +1235,17 @@ int nvp_chandlers_reset(void *inContext)
             ndt_log("navP [warning]: failed to de-register key sniffer for AirbusFBW\n");
         }
     }
+    if (ctx->a350kc.kc_is_registered)
+    {
+        if (XPLMUnregisterKeySniffer(&a35_keysniffer, 1/*inBeforeWindows*/, &ctx->a350kc) == 1)
+        {
+            ctx->a350kc.kc_is_registered = 0;
+        }
+        else
+        {
+            ndt_log("navP [warning]: failed to de-register key sniffer for AirbusFBW\n");
+        }
+    }
 
     /* Reset aircraft properties (type, engine count, retractable gear, etc.) */
     ctx->bking.rc_brk.assert = ctx->gear.assert = ctx->ground.assert = ctx->revrs.assert = NULL;
@@ -1670,6 +1690,24 @@ static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
     }
     if (w[2] < 1) // forward some keys (ISCS closed only)
     {
+        if (inChar == '<') // PTT
+        {
+            if (tkb.c[2][47] == NULL)
+            {
+                return 1; // pass through
+            }
+            if (inFlags & xplm_DownFlag)
+            {
+                XPLMCommandBegin(tkb.c[2][47]);
+                return 0; // consume
+            }
+            if (inFlags & xplm_UpFlag)
+            {
+                XPLMCommandEnd(tkb.c[2][47]);
+                return 0; // consume
+            }
+            return 0; // neither up nor down: continue
+        }
         if (invk == XPLM_VK_SPACE) // spacebar braking
         {
             if (tkb.c[2][41] == NULL)
@@ -1694,26 +1732,26 @@ static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
         }
         switch (invk)
         {
-            case XPLM_VK_TAB: //fixme nedds begin/end when mapped to contact_atc
+            case XPLM_VK_TAB:
                 if (tkb.c[2][44]) XPLMCommandOnce(tkb.c[2][44]);
-                return 0;
-            case XPLM_VK_END:
-                if (tkb.c[2][42]) XPLMCommandOnce(tkb.c[2][42]);
-                return 0;
-            case XPLM_VK_HOME:
-                if (tkb.c[2][43]) XPLMCommandOnce(tkb.c[2][43]);
-                return 0;
-            case XPLM_VK_NEXT:
-                if (tkb.c[2][46]) XPLMCommandOnce(tkb.c[2][46]);
-                return 0;
-            case XPLM_VK_PRIOR:
-                if (tkb.c[2][45]) XPLMCommandOnce(tkb.c[2][45]);
                 return 0;
             case XPLM_VK_RETURN:
                 if (tkb.c[2][39]) XPLMCommandOnce(tkb.c[2][39]);
                 return 0;
             case XPLM_VK_NUMPAD_ENT:
                 if (tkb.c[2][40]) XPLMCommandOnce(tkb.c[2][40]);
+                return 0;
+            case XPLM_VK_NEXT:
+                if (tkb.c[2][42]) XPLMCommandOnce(tkb.c[2][42]);
+                return 0;
+            case XPLM_VK_PRIOR:
+                if (tkb.c[2][43]) XPLMCommandOnce(tkb.c[2][43]);
+                return 0;
+            case XPLM_VK_HOME:
+                if (tkb.c[2][45]) XPLMCommandOnce(tkb.c[2][45]);
+                return 0;
+            case XPLM_VK_END:
+                if (tkb.c[2][46]) XPLMCommandOnce(tkb.c[2][46]);
                 return 0;
             default:
                 break;
@@ -1941,6 +1979,105 @@ static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
         default:
             return 1;
     }
+}
+
+static int a35_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *inRefcon)
+{
+    if ((inFlags & (xplm_ShiftFlag|xplm_OptionAltFlag|xplm_ControlFlag)) != 0)
+    {
+        return 1; // pass through
+    }
+    if (inRefcon == NULL)
+    {
+        return 1; // pass through
+    }
+    refcon_a350kbc kbc = *((refcon_a350kbc*)inRefcon);
+    unsigned char invk = (unsigned char)inVirtualKey;
+    if (XPLMGetDatai(kbc.datar[0])) // external view
+    {
+        return 1; // pass through
+    }
+    if (invk == XPLM_VK_SPACE)
+    {
+        // spacebar braking; can't do anything because we
+        // can't check whether we're over the MCDU or not
+        return 1; // pass through
+    }
+    if (invk == XPLM_VK_TAB)
+    {
+        return 1; // don't mess w/aircraft's KB capture (new MCDU: input fields)
+    }
+    if (inChar == '<')
+    {
+        if (kbc.c[2])
+        {
+            if (inFlags & xplm_DownFlag)
+            {
+                XPLMCommandBegin(kbc.c[2]); // "sim/operation/contact_atc"
+                return 0;
+            }
+            if (inFlags & xplm_UpFlag)
+            {
+                XPLMCommandEnd(kbc.c[2]); // "sim/operation/contact_atc"
+                return 0;
+            }
+            return 0;
+        }
+        return 1; // pass through
+    }
+    if ((inFlags & (xplm_DownFlag)) == 0)
+    {
+        return 1; // pass through
+    }
+    switch (invk)
+    {
+        case XPLM_VK_NUMPAD_ENT:
+            if (kbc.c[0])
+            {
+                XPLMCommandOnce(kbc.c[0]); // "navP/switches/cdu_toggle"
+                return 0;
+            }
+            return 1;
+        case XPLM_VK_RETURN:
+            if (kbc.c[1] &&
+                kbc.c[3] == NULL) // don't interfere with XSB text input
+            {
+                XPLMCommandOnce(kbc.c[1]); // "YFMS/toggle"
+                return 0;
+            }
+            return 1;
+        case XPLM_VK_NEXT:
+            if (kbc.c[4])
+            {
+                XPLMCommandOnce(kbc.c[4]); // "navP/spoilers/extend"
+                return 0;
+            }
+            return 1;
+        case XPLM_VK_PRIOR:
+            if (kbc.c[5])
+            {
+                XPLMCommandOnce(kbc.c[5]); // "navP/spoilers/retract"
+                return 0;
+            }
+            return 1;
+        case XPLM_VK_HOME:
+            if (kbc.c[6])
+            {
+                XPLMCommandOnce(kbc.c[6]); // "sim/flight_controls/flaps_up"
+                return 0;
+            }
+            return 1;
+        case XPLM_VK_END:
+            if (kbc.c[7])
+            {
+                XPLMCommandOnce(kbc.c[7]); // "sim/flight_controls/flaps_down"
+                return 0;
+            }
+            return 1;
+        default:
+            break;
+    }
+    return 1; // pass through
 }
 
 /*
@@ -4720,6 +4857,7 @@ static int first_fcall_do(chandler_context *ctx)
                 else
                 {
                     ctx->a319kc.c[2][44] = NULL;
+                    ctx->a319kc.c[2][47] = NULL;
                 }
                 if (NULL == (ctx->a319kc.c[2][39] = XPLMFindCommand("navP/switches/cdu_toggle")) ||
                     NULL == (ctx->a319kc.c[2][40] = ctx->a319kc.c[2][39]))
@@ -4743,12 +4881,12 @@ static int first_fcall_do(chandler_context *ctx)
                 }
                 if (XPLM_NO_PLUGIN_ID != ctx->coatc.pe_plid)
                 {
-                    ctx->a319kc.c[2][44] = XPLMFindCommand("sim/operation/contact_atc");
+                    ctx->a319kc.c[2][47] = XPLMFindCommand("sim/operation/contact_atc");
                 }
                 else if (XPLM_NO_PLUGIN_ID != ctx->coatc.xb_plid)
                 {
-                    // TODO: use ctx->a319kc.c[2][44] with '<' character (w/xsquawkbox/voice/ptt)
                     ctx->a319kc.c[2][44] = XPLMFindCommand("xsquawkbox/command/start_text_entry");
+                    ctx->a319kc.c[2][47] = XPLMFindCommand("xsquawkbox/voice/ptt");
                 }
 #endif
                 if ((ctx->a319kc.kc_is_registered = XPLMRegisterKeySniffer(&tol_keysniffer, 1/*inBeforeWindows*/, &ctx->a319kc)) != 1)
@@ -4918,6 +5056,50 @@ static int first_fcall_do(chandler_context *ctx)
                     XPLMSetDatavi(d_ref, &door_open[0], 9, 1);                      // luggage AFT
                 }
             }
+            if (ctx->a350kc.kc_is_registered)
+            {
+                ndt_log("navP [warning]: AirbusFBW key sniffer already registered\n");
+                break;
+            }
+            if (NULL == (ctx->a350kc.datar[0] = XPLMFindDataRef("sim/graphics/view/view_is_external")))
+            {
+                ndt_log("navP [warning]: failed to find AirbusFBW datarefs for key sniffer\n");
+                break;
+            }
+            if (NULL == (ctx->a350kc.c[0] = XPLMFindCommand("navP/switches/cdu_toggle")))
+            {
+                ndt_log("navP [warning]: failed to find MCDU toggle for key sniffer\n");
+            }
+#ifndef NAVP_ONLY
+            if (NULL == (ctx->a350kc.c[1] = XPLMFindCommand("YFMS/toggle")))
+            {
+                ndt_log("navP [warning]: failed to find YFMS toggle for key sniffer\n");
+            }
+#endif
+#if TIM_ONLY
+            if (NULL == (ctx->a350kc.c[4] = XPLMFindCommand("navP/spoilers/extend"          )) ||
+                NULL == (ctx->a350kc.c[5] = XPLMFindCommand("navP/spoilers/retract"         )) ||
+                NULL == (ctx->a350kc.c[6] = XPLMFindCommand("sim/flight_controls/flaps_up"  )) ||
+                NULL == (ctx->a350kc.c[7] = XPLMFindCommand("sim/flight_controls/flaps_down")))
+            {
+                ndt_log("navP [warning]: failed to find TIM_ONLY commands for key sniffer\n");
+            }
+            if (XPLM_NO_PLUGIN_ID != ctx->coatc.pe_plid)
+            {
+                ctx->a350kc.c[2] = XPLMFindCommand("sim/operation/contact_atc");
+            }
+            else if (XPLM_NO_PLUGIN_ID != ctx->coatc.xb_plid)
+            {
+                ctx->a350kc.c[2] = XPLMFindCommand("sim/operation/contact_atc");
+                ctx->a350kc.c[3] = XPLMFindCommand("xsquawkbox/command/start_text_entry");
+            }
+#endif
+            if ((ctx->a350kc.kc_is_registered = XPLMRegisterKeySniffer(&a35_keysniffer, 1/*inBeforeWindows*/, &ctx->a350kc)) != 1)
+            {
+                ndt_log("navP [warning]: failed to register key sniffer for AirbusFBW\n");
+                break;
+            }
+            ndt_log("navP [info]: AirbusFBW key sniffer registered\n");
             break;
 
         case ACF_TYP_A380_PH:
