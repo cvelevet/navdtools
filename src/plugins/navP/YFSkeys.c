@@ -505,11 +505,13 @@ int yfs_afterwindw(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
                 {
                     if ((inFlags & (xplm_DownFlag)) == xplm_DownFlag)
                     {
+                        ndt_log("PTT: down: inChar '%c' inFlags 0x%x inVirtualKey 0x%x\n", inChar, inFlags, inVirtualKey);//debug
                         XPLMCommandBegin(((yfms_context*)inRefcon)->xpl.contact_atc);
                         return 0;
                     }
                     if ((inFlags & (xplm_UpFlag)) == xplm_UpFlag)
                     {
+                        ndt_log("PTT: stop: inChar '%c' inFlags 0x%x inVirtualKey 0x%x\n", inChar, inFlags, inVirtualKey);//debug
                         XPLMCommandEnd(((yfms_context*)inRefcon)->xpl.contact_atc);
                         return 0;
                     }
@@ -519,6 +521,7 @@ int yfs_afterwindw(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
                 {
                     if ((inFlags & (xplm_DownFlag)) == xplm_DownFlag)
                     {
+                        ndt_log("PTT: text: inChar '%c' inFlags 0x%x inVirtualKey 0x%x\n", inChar, inFlags, inVirtualKey);//debug
                         XPLMCommandOnce(((yfms_context*)inRefcon)->xpl.xsbcomm[6]);
                         return 0;
                     }
@@ -526,18 +529,20 @@ int yfs_afterwindw(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
                 }
                 return 1;
             }
-            if (1 == inVirtualKey && '<' == inChar)
+            if ('<' == inChar)
             {
                 if (XPLM_NO_PLUGIN_ID != ((yfms_context*)inRefcon)->xpl.plugin_id_pe ||
                     XPLM_NO_PLUGIN_ID != ((yfms_context*)inRefcon)->xpl.plugin_id_xb)//contact_atc/ptt
                 {
                     if ((inFlags & (xplm_DownFlag)) == xplm_DownFlag)
                     {
+                        ndt_log("PTT: down: inChar '%c' inFlags 0x%x inVirtualKey 0x%x\n", inChar, inFlags, inVirtualKey);//debug
                         XPLMCommandBegin(((yfms_context*)inRefcon)->xpl.contact_atc);
                         return 0;
                     }
                     if ((inFlags & (xplm_UpFlag)) == xplm_UpFlag)
                     {
+                        ndt_log("PTT: stop: inChar '%c' inFlags 0x%x inVirtualKey 0x%x\n", inChar, inFlags, inVirtualKey);//debug
                         XPLMCommandEnd(((yfms_context*)inRefcon)->xpl.contact_atc);
                         return 0;
                     }
@@ -551,6 +556,7 @@ int yfs_afterwindw(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
                 {
                     if ((inFlags & (xplm_DownFlag)) == xplm_DownFlag)
                     {
+                        ndt_log("PTT: text: start: inChar '%c' inFlags 0x%x inVirtualKey 0x%x\n", inChar, inFlags, inVirtualKey);//debug
                         XPLMCommandOnce(((yfms_context*)inRefcon)->xpl.xsbcomm[7]);
                         return 0;
                     }
@@ -564,6 +570,7 @@ int yfs_afterwindw(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *i
                 {
                     if ((inFlags & (xplm_DownFlag)) == xplm_DownFlag)
                     {
+                        ndt_log("PTT: text: toggle: inChar '%c' inFlags 0x%x inVirtualKey 0x%x\n", inChar, inFlags, inVirtualKey);//debug
                         XPLMCommandOnce(((yfms_context*)inRefcon)->xpl.xsbcomm[8]);
                         return 0;
                     }
