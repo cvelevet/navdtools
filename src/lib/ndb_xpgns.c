@@ -977,6 +977,12 @@ static void handle_altitude_constraints(ndt_restriction *constraints, int altcst
                 constraints->altitude.typ = NDT_RESTRICT_BL;
                 break;
             case 4:
+                if (alttwo < altone) // Aerosoft and Navigraph apparently code this differently
+                {
+                    int tm = altone;
+                    altone = alttwo;
+                    alttwo = tm;
+                }
                 constraints->altitude.min = ndt_distance_init(altone, NDT_ALTUNIT_FT);
                 constraints->altitude.max = ndt_distance_init(alttwo, NDT_ALTUNIT_FT);
                 constraints->altitude.typ = NDT_RESTRICT_BT;
