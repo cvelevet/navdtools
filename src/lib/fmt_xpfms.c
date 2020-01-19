@@ -529,16 +529,16 @@ static int helpr_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row, ndt_fltpla
         switch (constraints->altitude.typ)
         {
             case NDT_RESTRICT_AB:
-                ret = ndt_fprintf(fd, "  ALT above %5d", altmin);
+                ret = ndt_fprintf(fd, "  ALT above %5d",       altmin);
                 break;
             case NDT_RESTRICT_AT:
-                ret = ndt_fprintf(fd, "  ALT    at %5d", altmax);
+                ret = ndt_fprintf(fd, "  ALT    at %5d",       altmax);
                 break;
             case NDT_RESTRICT_BL:
-                ret = ndt_fprintf(fd, "  ALT below %5d", altmax);
+                ret = ndt_fprintf(fd, "  ALT below %5d",       altmax);
                 break;
             case NDT_RESTRICT_BT:
-                ret = ndt_fprintf(fd, "  ALT %5d %5d",   altmin, altmax);
+                ret = ndt_fprintf(fd, "  ALT %5d %5d", altmax, altmin);
                 break;
             default:
                 ret = ndt_fprintf(fd, "%17s", " ");
@@ -555,13 +555,13 @@ static int helpr_waypoint_write(FILE *fd, ndt_waypoint *wpt, int row, ndt_fltpla
             switch (constraints->airspeed.typ)
             {
                 case NDT_RESTRICT_AB:
-                    ret = ndt_fprintf(fd, "  SPD min %3d", spdmin);
+                    ret = ndt_fprintf(fd, "  SPD min %3d",         spdmin);
                     break;
                 case NDT_RESTRICT_AT:
-                    ret = ndt_fprintf(fd, "  SPD  at %3d", spdmax);
+                    ret = ndt_fprintf(fd, "  SPD  at %3d",         spdmax);
                     break;
                 case NDT_RESTRICT_BL:
-                    ret = ndt_fprintf(fd, "  SPD max %3d", spdmax);
+                    ret = ndt_fprintf(fd, "  SPD max %3d",         spdmax);
                     break;
                 case NDT_RESTRICT_BT:
                     ret = ndt_fprintf(fd, "  SPD %3d %3d", spdmin, spdmax);
