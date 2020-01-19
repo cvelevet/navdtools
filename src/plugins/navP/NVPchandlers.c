@@ -5899,20 +5899,24 @@ static int first_fcall_do(chandler_context *ctx)
             break;
     }
 
-    /* set transponder code */
+    /*
+     * Set default transponder code:
+     * 2000 is the default "non-discrete" code for IFR (e.g. oceanic operations)
+     * 1200 (or 7000), on the other hand, only apply for VFR operations instead
+     */
     switch (ctx->info->ac_type)
     {
         case ACF_TYP_A320_FF: // pointless: will reset when powering up aircraft
             break;
         case ACF_TYP_A319_TL:
         case ACF_TYP_A320_QP:
-            _DO(1, XPLMSetDatai, 1, "AirbusFBW/XPDR4");
-            _DO(1, XPLMSetDatai, 2, "AirbusFBW/XPDR3");
+            _DO(1, XPLMSetDatai, 2, "AirbusFBW/XPDR4");
+            _DO(1, XPLMSetDatai, 0, "AirbusFBW/XPDR3");
             _DO(1, XPLMSetDatai, 0, "AirbusFBW/XPDR2");
             _DO(1, XPLMSetDatai, 0, "AirbusFBW/XPDR1");
             break;
         default:
-            _DO(0, XPLMSetDatai, 1200, "sim/cockpit2/radios/actuators/transponder_code");
+            _DO(0, XPLMSetDatai, 2000, "sim/cockpit2/radios/actuators/transponder_code");
             break;
     }
 
