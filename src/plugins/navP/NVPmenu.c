@@ -584,7 +584,7 @@ void* nvp_menu_init(void)
     }
 
     /* failure reset helper */
-    if (append_menu_item("Reset all failures", &ctx->items.reset_allsys,
+    if (append_menu_item("R2-D2 does maintenance", &ctx->items.reset_allsys,
                          MENUITEM_RESET_ALLSYS, ctx->id))
     {
         goto fail;
