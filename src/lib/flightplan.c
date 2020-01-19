@@ -1630,6 +1630,15 @@ ndt_procedure* ndt_procedure_gettr(ndt_list *transitions, const char *name)
     return NULL;
 }
 
+static int compare_str(const void *p1, const void *p2)
+{
+    const char *str1 = *(const char**)p1;
+    const char *str2 = *(const char**)p2;
+
+    // shouldn't be duplicates, no handling needed
+    return strcmp(str1, str2);
+}
+
 void ndt_procedure_names(ndt_list *procedures, ndt_list *output)
 {
     ndt_procedure *p1, *p2;
@@ -1662,6 +1671,9 @@ void ndt_procedure_names(ndt_list *procedures, ndt_list *output)
             }
         }
     }
+    // sort the output for the caller; ndt_procedure getter handles out-of-order
+    // procedures, so we don't need to worry about matching the input list order
+    ndt_list_sort(output, sizeof(const char*), &compare_str);
 }
 
 void ndt_procedure_trans(ndt_list *transitions, ndt_list *output)
@@ -1678,7 +1690,7 @@ void ndt_procedure_trans(ndt_list *transitions, ndt_list *output)
     }
     for (i = 0; i < ndt_list_count(transitions); i++)
     {
-        if ((p1 = ndt_list_item(transitions,  i)))
+        if ((p1 = ndt_list_item(transitions, i)))
         {
             for (j = 0; j < ndt_list_count(output); j++)
             {
@@ -1696,6 +1708,9 @@ void ndt_procedure_trans(ndt_list *transitions, ndt_list *output)
             }
         }
     }
+    // sort the output for the caller; ndt_procedure getter handles out-of-order
+    // procedures, so we don't need to worry about matching the input list order
+    ndt_list_sort(output, sizeof(const char*), &compare_str);
 }
 
 ndt_route_segment* ndt_route_segment_init()
