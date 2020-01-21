@@ -6,7 +6,7 @@ NDTINCLUDE = -I$(SOURCE_DIR)
 SDKINCLUDE = -I$(SOURCE_SDK)/CHeaders
 SDKLDPATHS = -F$(SOURCE_SDK)/Libraries/Mac
 SDKLDLINKS = -framework XPLM -framework XPWidgets
-CFLAGS     = -O3 -std=c99 -mmacosx-version-min=10.6
+CFLAGS     = -O3 -std=c99 -mmacosx-version-min=10.9
 TARGETARCH = -arch x86_64
 GITVERSION = $(shell find . -name ".git" -type d -exec git describe --long --always --dirty=/m --abbrev=1 --tags \;)
 
@@ -59,7 +59,7 @@ compat: $(CPT_SOURCES) $(CPT_HEADERS)
 	$(CC) $(NDTINCLUDE) $(CFLAGS) $(CPPFLAGS) $(TARGETARCH) -c $(CPT_SOURCES)
 
 wmmobj: $(WMM_SOURCES) $(WMM_HEADERS)
-	$(CC) $(NDTINCLUDE) $(CFLAGS) $(CPPFLAGS) $(TARGETARCH) -c $(WMM_SOURCES)
+	$(CC) $(NDTINCLUDE) $(LIBACU_INC) $(CFLAGS) $(CPPFLAGS) $(TARGETARCH) -c $(WMM_SOURCES)
 
 linux:
 	$(MAKE) -f Makefile.linux
