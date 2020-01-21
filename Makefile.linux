@@ -2,8 +2,12 @@ CFLAGS     = -O3 -std=gnu99 -Wno-unused-result -D_GNU_SOURCE
 LDLIBS     = -lm -static
 TARGETARCH =
 
+LIBACU_DIR = libacfutils-redist
+LIBACU_INC = -I$(LIBACU_DIR)/include
+LIBACU_LIB = -L$(LIBACU_DIR)/lin64/lib -lacfutils
+
 all:
-	$(MAKE) -f Makefile CFLAGS="$(CFLAGS)" LDLIBS="$(LDLIBS)" TARGETARCH="$(TARGETARCH)" navdconv
+	$(MAKE) -f Makefile CFLAGS="$(CFLAGS)" LDLIBS="$(LDLIBS)" TARGETARCH="$(TARGETARCH)" LIBACU_INC="$(LIBACU_INC)" LIBACU_LIB="$(LIBACU_LIB)" navdconv
 
 .PHONY: clean
 clean:

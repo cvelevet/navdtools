@@ -10,6 +10,10 @@ CFLAGS     = -O3 -std=c99 -mmacosx-version-min=10.6
 TARGETARCH = -arch x86_64
 GITVERSION = $(shell find . -name ".git" -type d -exec git describe --long --always --dirty=/m --abbrev=1 --tags \;)
 
+LIBACU_DIR = libacfutils-redist
+LIBACU_INC = -I$(LIBACU_DIR)/include
+LIBACU_LIB = -L$(LIBACU_DIR)/mac64/lib -lacfutils
+
 NDC_DEFINES = -DNDCONV_EXE="\"$(NDCONV_EXE)\""
 NDC_SOURCES = $(SOURCE_DIR)/tools/navdconv.c
 NDC_OBJECTS = $(addsuffix .o,$(basename $(notdir $(NDC_SOURCES))))
@@ -34,13 +38,13 @@ NVP_OBJECTS = $(addsuffix .o,$(basename $(notdir $(NVP_SOURCES))))
 all: navdconv navp
 
 navp: nvpobj libobj comobj compat wmmobj
-	$(CC) $(NVP_XPLUGIN) $(SDKLDPATHS) $(SDKLDLINKS) $(SDKINCLUDE) $(NDTINCLUDE) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(TARGETARCH) -o $(NAVP_XPDLL) $(NVP_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(WMM_OBJECTS) $(LDLIBS)
+	$(CC) $(NVP_XPLUGIN) $(SDKLDPATHS) $(SDKLDLINKS) $(SDKINCLUDE) $(NDTINCLUDE) $(LIBACU_INC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(TARGETARCH) -o $(NAVP_XPDLL) $(NVP_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(WMM_OBJECTS) $(LIBACU_LIB) $(LDLIBS)
 
 nvpobj: $(NVP_SOURCES) $(NVP_HEADERS)
 	$(CC) $(SDKINCLUDE) $(NDTINCLUDE) $(NVP_DEFINES) $(CFLAGS) $(CPPFLAGS) $(TARGETARCH) -c $(NVP_SOURCES)
 
 navdconv: ndcobj libobj comobj compat wmmobj
-	$(CC) $(NDTINCLUDE) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(TARGETARCH) -o $(NDCONV_EXE) $(NDC_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(WMM_OBJECTS) $(LDLIBS)
+	$(CC) $(NDTINCLUDE) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(TARGETARCH) -o $(NDCONV_EXE) $(NDC_OBJECTS) $(LIB_OBJECTS) $(COM_OBJECTS) $(CPT_OBJECTS) $(WMM_OBJECTS) $(LIBACU_LIB) $(LDLIBS)
 
 ndcobj: $(NDC_SOURCES)
 	$(CC) $(NDTINCLUDE) $(NDC_DEFINES) $(CFLAGS) $(CPPFLAGS) $(TARGETARCH) -c $(NDC_SOURCES)
