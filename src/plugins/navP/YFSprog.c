@@ -111,7 +111,6 @@ void yfs_prog_pageupdt(yfms_context *yfms)
     }
     else
     {
-        ndt_date      now = ndt_date_now();
         void         *wmm = yfms->ndt.ndb->wmm;
         ndt_position from = yfms->data.aircraft_pos;
         if (yfms->data.init.ialized && !yfms->data.init.aligned && yfms->data.init.from)
@@ -121,7 +120,7 @@ void yfs_prog_pageupdt(yfms_context *yfms)
         ndt_position   to = yfms->data.prog.fix->position;
         ndt_distance dist = ndt_position_calcdistance(from, to);
         double       trub = ndt_position_calcbearing (from, to);
-        double       magb = ndt_wmm_getbearing_mag   (wmm, trub, from, now);
+        double       magb = ndt_wmm_getbearing_mag(wmm, trub, from);
         yfs_printf_lft(yfms,  8,  0, COLR_IDX_GREEN, " %03.0lf/%-6.1lf", round(magb), (double)ndt_distance_get(dist, NDT_ALTUNIT_ME) / 1852.);
         yfs_printf_lft(yfms,  8, 11, COLR_IDX_WHITE, "  TO  ");
         yfs_printf_rgt(yfms,  8,  0, COLR_IDX_BLUE,  "%-7s",  yfms->data.prog.fix->info.idnt);

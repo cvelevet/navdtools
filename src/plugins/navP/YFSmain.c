@@ -1344,12 +1344,15 @@ void* yfs_main_init(void)
         char  *path         = NULL;
         do
         {
+            // X-Plane 10's WMM coefficients are a bit outdated
+            // TODO: detect X-Plane 11.50 or later and set date
+            ndt_date xpdate = ndt_date_now(); xpdate.year = 2019;
             if (0 == (ret = ndt_file_getpath(yfms->ndt.xsystem_pth, "Custom Data/GNS430/navdata/ATS.txt", &path, &pathlen)) &&
                 0 == (stat(path, &stats)) && S_ISREG(stats.st_mode)                                                         &&
                 0 == (ret = ndt_file_getpath(yfms->ndt.xsystem_pth, "Custom Data/GNS430/navdata",         &path, &pathlen)) &&
                 0 == (stat(path, &stats)) && S_ISDIR(stats.st_mode))
             {
-                if ((yfms->ndt.ndb = ndt_navdatabase_init(path, NDT_NAVDFMT_XPGNS)) == NULL)
+                if ((yfms->ndt.ndb = ndt_navdatabase_init(path, NDT_NAVDFMT_XPGNS, xpdate)) == NULL)
                 {
                     ndt_log("YFMS [error]: could not load navigation database at \"%s\"\n", path);
                     free(path); goto fail;
@@ -1362,7 +1365,7 @@ void* yfs_main_init(void)
                 0 == (ret = ndt_file_getpath(yfms->ndt.xsystem_pth, "Resources/GNS430/navdata",         &path, &pathlen)) &&
                 0 == (stat(path, &stats)) && S_ISDIR(stats.st_mode))
             {
-                if ((yfms->ndt.ndb = ndt_navdatabase_init(path, NDT_NAVDFMT_XPGNS)) == NULL)
+                if ((yfms->ndt.ndb = ndt_navdatabase_init(path, NDT_NAVDFMT_XPGNS, xpdate)) == NULL)
                 {
                     ndt_log("YFMS [error]: could not load navigation database at \"%s\"\n", path);
                     free(path); goto fail;
@@ -1829,7 +1832,6 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer, ndt
         char plce1[8], plce2[8], de1[2], de2[2]; int err;
         double brg1, brg2, dstce, lat, lon, latm, lonm;
         ndt_waypoint *wpt, *place1, *place2;
-        ndt_date now = ndt_date_now();
         ndt_distance distance;
         if (sscanf(buffer, "%7[^/]/%lf/%lf%c", plce1, &brg1, &dstce, plce2) == 3)
         {
@@ -1850,7 +1852,7 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer, ndt
             {
                 snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "NOT IN DATA BASE"); return NULL;
             }
-            if ((wpt = ndt_waypoint_pbd(place1, brg1, distance, now, yfms->ndt.ndb->wmm)))
+            if ((wpt = ndt_waypoint_pbd(place1, brg1, distance, yfms->ndt.ndb->wmm)))
             {
                 snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", "PBD");
                 goto wpt_created;
@@ -1873,9 +1875,9 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer, ndt
             {
                 err = ndt_position_calcpos4pbpb(NULL,
                                                 place1->position,
-                                                ndt_wmm_getbearing_tru(yfms->ndt.ndb->wmm, brg1, place1->position, now),
+                                                ndt_wmm_getbearing_tru(yfms->ndt.ndb->wmm, brg1, place1->position),
                                                 place2->position,
-                                                ndt_wmm_getbearing_tru(yfms->ndt.ndb->wmm, brg2, place1->position, now));
+                                                ndt_wmm_getbearing_tru(yfms->ndt.ndb->wmm, brg2, place1->position));
             }
             if (err == EDOM)
             {
@@ -1885,7 +1887,7 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer, ndt
             {
                 snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "NO INTERSECT"); return NULL;
             }
-            if ((wpt = ndt_waypoint_pbpb(place1, brg1, place2, brg2, now, yfms->ndt.ndb->wmm)))
+            if ((wpt = ndt_waypoint_pbpb(place1, brg1, place2, brg2, yfms->ndt.ndb->wmm)))
             {
                 snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s", "PBX");
                 goto wpt_created;
