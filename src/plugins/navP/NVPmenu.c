@@ -1097,6 +1097,7 @@ static void wb_handler(menu_context *ctx)
     switch (ctx->data.refuel_dialg.ic->ac_type)
     {
         case ACF_TYP_A319_TL:
+        case ACF_TYP_A350_FF:
         case ACF_TYP_A320_FF:
         case ACF_TYP_B737_XG:
             XPShowWidget(ctx->data.refuel_dialg.f_txtl_id);
@@ -2026,6 +2027,32 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
             if (ctx->data.refuel_dialg.adjust_load != NVP_MENU_DONE)
             {
                 ndt_log("payload %.0fkgs (%.0fkg/s)\n", ctx->data.refuel_dialg.load_target_kg, ctx->data.refuel_dialg.load_rate_kg_s);
+            }
+            if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A350_FF)
+            {
+                if (acf_type_fuel_set(ctx->data.refuel_dialg.ic, &ctx->data.refuel_dialg.fuel_target_kg))
+                {
+                    ndt_log("navP [error]: failed to set fuel\n");
+                    XPLMSpeakString("fueling failed");
+                    return 1;
+                }
+                else
+                {
+                    ndt_log("navP [info]: set fuel (%.0f)\n", ctx->data.refuel_dialg.fuel_target_kg);
+                }
+                if (acf_type_load_set(ctx->data.refuel_dialg.ic, &ctx->data.refuel_dialg.load_target_kg))
+                {
+                    ndt_log("navP [error]: failed to set load\n");
+                    XPLMSpeakString("boarding failed");
+                    return 1;
+                }
+                else
+                {
+                    ndt_log("navP [info]: set load (%.0f)\n", ctx->data.refuel_dialg.load_target_kg);
+                }
+                XPLMSpeakString("fuel and load set");
+                XPHideWidget(inWidget);
+                return 1;
             }
             XPLMRegisterFlightLoopCallback((ctx->data.refuel_dialg.rfc = &refuel_hdlr1), 4.0f, ctx);
         }

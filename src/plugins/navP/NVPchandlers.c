@@ -5052,6 +5052,23 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,      1, "1-sim/options/Time");                     // preferred default settings
             _DO(1, XPLMSetDatai,      0, "1-sim/options/XFMC");                     // preferred default settings
             _DO(1, XPLMSetDatai,      0, "1-sim/options/side");                     // preferred default settings
+            _DO(1, XPLMSetDataf,   0.0f, "1-sim/fms/perf/toCG");                    // 1.4.8: reset perf settings
+            _DO(1, XPLMSetDatai,      0, "1-sim/fms/init/crzFL");                   // 1.4.8: reset perf settings
+            _DO(1, XPLMSetDatai,      2, "1-sim/fms/perf/toThrust");                // 1.4.8: reset perf settings
+            _DO(1, XPLMSetDatai,     30, "1-sim/fms/perf/flexTemp"); /* 100.0% N1*/ // 1.4.8: reset perf settings
+            _DO(1, XPLMSetDatai,      2, "1-sim/fms/perf/landConfig");              // 1.4.8: reset perf settings
+            _DO(1, XPLMSetDatai,      1, "1-sim/fms/perf/toFlapSetting");           // 1.4.8: reset perf settings
+            _DO(1, XPLMSetDataf,   0.0f, "airbus_qpac/performance/V1");             // 1.4.8: reset perf settings
+            _DO(1, XPLMSetDataf,   0.0f, "airbus_qpac/performance/V2");             // 1.4.8: reset perf settings
+            _DO(1, XPLMSetDataf,   0.0f, "airbus_qpac/performance/VR");             // 1.4.8: reset perf settings
+            _DO(1, XPLMSetDataf,   0.0f, "sim/cockpit/misc/radio_altimeter_minimum"); // 4.8: reset perf settings
+            if ((d_ref = XPLMFindDataRef("sim/flightmodel/position/elevation")))    // 1.4.8: reset perf settings
+            {
+                int feet_msl = 10 * roundf(XPLMGetDataf(d_ref) / 3.048f);
+                _DO(1, XPLMSetDatai, 1500 + feet_msl, "1-sim/fms/perf/toAccAltitude");
+                _DO(1, XPLMSetDatai, 1500 + feet_msl, "1-sim/fms/perf/thrReductionAlt");
+                _DO(1, XPLMSetDatai, 1500 + feet_msl, "1-sim/fms/perf/engOutToAccAltitude");
+            }
             if (acf_type_is_engine_running() == 0) // cold & dark
             {
                 _DO(1, XPLMSetDatai,  1, "1-sim/ext/fuel_truck");                   // minimal ground config
@@ -5074,6 +5091,9 @@ static int first_fcall_do(chandler_context *ctx)
                     XPLMSetDatavi(d_ref, &door_open[0], 8, 1);                      // luggage FWD
                     XPLMSetDatavi(d_ref, &door_open[0], 9, 1);                      // luggage AFT
                 }
+                float zwft = 122470.0f, fuel = 9072.0f;
+                acf_type_zfwt_set(ctx->info,    &zwft);
+                acf_type_fuel_set(ctx->info,    &fuel);
             }
             if (ctx->a350kc.kc_is_registered)
             {
