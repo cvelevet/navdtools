@@ -146,8 +146,8 @@ typedef struct ndt_waypoint
 ndt_waypoint* ndt_waypoint_init (                        );
 void          ndt_waypoint_close(ndt_waypoint **_waypoint);
 ndt_waypoint* ndt_waypoint_llc  (const char    *format   );
-ndt_waypoint* ndt_waypoint_pbd  (ndt_waypoint  *place, double magbearing, ndt_distance distance,                    ndt_date date, void *wmm);
-ndt_waypoint* ndt_waypoint_pbpb (ndt_waypoint  *plce1, double magneticb1, ndt_waypoint   *plce2, double magneticb2, ndt_date date, void *wmm);
-ndt_waypoint* ndt_waypoint_pbpd (ndt_waypoint  *plce1, double magbearing, ndt_waypoint   *plce2, ndt_distance dist, ndt_date date, void *wmm);
+ndt_waypoint* ndt_waypoint_pbd  (ndt_waypoint  *place, double magbearing, ndt_distance distance,                    void *wmm);
+ndt_waypoint* ndt_waypoint_pbpb (ndt_waypoint  *plce1, double magneticb1, ndt_waypoint   *plce2, double magneticb2, void *wmm);
+ndt_waypoint* ndt_waypoint_pbpd (ndt_waypoint  *plce1, double magbearing, ndt_waypoint   *plce2, ndt_distance dist, void *wmm);
 
 #endif /* NDT_WAYPOINT_H */

@@ -2370,7 +2370,7 @@ int ndt_route_leg_restrict(ndt_route_leg *leg, ndt_restriction constraints)
 
 static int endpoint_intcpt(ndt_list *xpfms,
                            ndt_list *cwlst,
-                           void *wmm, ndt_date now,
+                           void *wmm,
                            int curr_type, int next_type,
                            ndt_waypoint *src1, double brg1,
                            ndt_waypoint *src2, double brg2, double intc_crs)
@@ -2502,7 +2502,7 @@ force_intercept:
     goto endpoint;
 
 endpoint:
-    if (!(wpt = ndt_waypoint_pbpb(src1, brg1, src2, brg2, now, wmm)))
+    if (!(wpt = ndt_waypoint_pbpb(src1, brg1, src2, brg2, wmm)))
     {
         return ENOMEM;
     }
@@ -2517,7 +2517,7 @@ endpoint:
     return 0;
 }
 
-static int endpoint_radial(ndt_list *xpfms, ndt_list *cwlst, void *wmm, ndt_date now,
+static int endpoint_radial(ndt_list *xpfms, ndt_list *cwlst, void *wmm,
                            ndt_waypoint *src,    double bearing,
                            ndt_waypoint *navaid, double radial)
 {
@@ -2557,7 +2557,7 @@ static int endpoint_radial(ndt_list *xpfms, ndt_list *cwlst, void *wmm, ndt_date
         ndt_list_add(xpfms, navaid);
         return 0;
     }
-    ndt_waypoint *wpt = ndt_waypoint_pbpb(src, bearing, navaid, radial, now, wmm);
+    ndt_waypoint *wpt = ndt_waypoint_pbpb(src, bearing, navaid, radial, wmm);
     if (!wpt)
     {
         return ENOMEM;
@@ -2569,7 +2569,7 @@ static int endpoint_radial(ndt_list *xpfms, ndt_list *cwlst, void *wmm, ndt_date
     return 0;
 }
 
-static int endpoint_dmedis(ndt_list *xpfms, ndt_list *cwlst, void *wmm, ndt_date now, ndt_waypoint *src,
+static int endpoint_dmedis(ndt_list *xpfms, ndt_list *cwlst, void *wmm, ndt_waypoint *src,
                            ndt_waypoint *dmenav, double bearing, ndt_distance dmedis)
 {
     if (!xpfms || !cwlst || !wmm)
@@ -2580,7 +2580,7 @@ static int endpoint_dmedis(ndt_list *xpfms, ndt_list *cwlst, void *wmm, ndt_date
     {
         return EINVAL;
     }
-    ndt_waypoint *wpt = ndt_waypoint_pbpd(src, bearing, dmenav, dmedis, now, wmm);
+    ndt_waypoint *wpt = ndt_waypoint_pbpd(src, bearing, dmenav, dmedis, wmm);
     if (!wpt)
     {
         return ENOMEM;
@@ -2593,7 +2593,7 @@ static int endpoint_dmedis(ndt_list *xpfms, ndt_list *cwlst, void *wmm, ndt_date
     return 0;
 }
 
-static int endpoint_altitd(ndt_list *xpfms, ndt_list *cwlst, void *wmm, ndt_date now, ndt_waypoint *src,
+static int endpoint_altitd(ndt_list *xpfms, ndt_list *cwlst, void *wmm, ndt_waypoint *src,
                            double bearing, ndt_distance altfrom, ndt_distance altstop, ndt_distance rwyl)
 {
     if (!xpfms || !cwlst || !wmm)
@@ -2618,7 +2618,7 @@ static int endpoint_altitd(ndt_list *xpfms, ndt_list *cwlst, void *wmm, ndt_date
         // descending 3.0° (1 vertical feet per 15 horizontal feet)
         dist = ndt_distance_init(ndt_distance_get(diff, NDT_ALTUNIT_NA) * -15LL, NDT_ALTUNIT_NA);
     }
-    if (!(wpt = ndt_waypoint_pbd(src, bearing, dist, now, wmm)))
+    if (!(wpt = ndt_waypoint_pbd(src, bearing, dist, wmm)))
     {
         return ENOMEM;
     }
@@ -2651,7 +2651,7 @@ static int endpoint_altitd(ndt_list *xpfms, ndt_list *cwlst, void *wmm, ndt_date
  *                            slightly incorrect; e.g. Navigraph 1510, LSZH, SID,
  *                            ALBI1D: CF(253, ZH553, ofly), CD(149, HOC D31) etc.
  */
-static ndt_waypoint* route_leg_xpfms(ndt_flightplan *flp,    ndt_date       now,
+static ndt_waypoint* route_leg_xpfms(ndt_flightplan *flp,
                                      ndt_waypoint   *legsrc, ndt_route_leg *leg,
                                      ndt_route_leg   *nxt,   ndt_distance *_alt)
 {
@@ -2766,7 +2766,7 @@ dummies:
             default:
                 break; // compiler warning…
         }
-        if ((err = endpoint_altitd(leg->xpfms, flp->cws, wmm, now, legsrc, brg,
+        if ((err = endpoint_altitd(leg->xpfms, flp->cws, wmm, legsrc, brg,
                                    *_alt, alt, rwy ? rwy->length : NDT_DISTANCE_ZERO)))
         {
             goto end;
@@ -2809,8 +2809,8 @@ dummies:
             err = EINVAL;
             goto end;
         }
-        if ((err = endpoint_dmedis(leg->xpfms, flp->cws, wmm, now,
-                                   src, nav, brg, dme)))
+        if ((err = endpoint_dmedis(leg->xpfms, flp->cws,
+                                   wmm, src, nav, brg, dme)))
         {
             goto end;
         }
@@ -2842,8 +2842,8 @@ dummies:
             err = EINVAL;
             goto end;
         }
-        if ((err = endpoint_radial(leg->xpfms, flp->cws, wmm, now,
-                                   legsrc, brg, nav, rad)))
+        if ((err = endpoint_radial(leg->xpfms, flp->cws,
+                                   wmm, legsrc, brg, nav, rad)))
         {
             goto end;
         }
@@ -2853,7 +2853,7 @@ dummies:
     {
         if (!(wpt = ndt_waypoint_pbd(legsrc,
                                      leg->fix.course,
-                                     leg->fix.distance, now, wmm)))
+                                     leg->fix.distance, wmm)))
         {
             err = ENOMEM;
             goto end;
@@ -2891,7 +2891,7 @@ dummies:
         {
             double radial = ndt_mod(leg->arc.start + ((double)i * stp), 360.);
             if (!(wpt = ndt_waypoint_pbd(leg->arc.center, radial,
-                                         leg->arc.distance, now, wmm)))
+                                         leg->arc.distance, wmm)))
             {
                 err = ENOMEM;
                 goto end;
@@ -2942,7 +2942,7 @@ dummies:
         {
             double bearing = ndt_mod(start + ((double)i * rstep), 360.);
             if (!(wpt = ndt_waypoint_pbd(leg->radius.center, bearing,
-                                         leg->radius.distance, now, wmm)))
+                                         leg->radius.distance, wmm)))
             {
                 err = ENOMEM;
                 goto end;
@@ -2965,7 +2965,7 @@ dummies:
         ndt_waypoint *wpt1, *wpt2, *wpt3;
         ndt_distance  dist = leg->turn.outdis;
         double        brng = leg->turn.outbrg;
-        if (!(wpt1 = ndt_waypoint_pbd(leg->turn.waypoint, brng, dist, now, wmm)))
+        if (!(wpt1 = ndt_waypoint_pbd(leg->turn.waypoint, brng, dist, wmm)))
         {
             err = ENOMEM;
             goto end;
@@ -2982,7 +2982,7 @@ dummies:
          */
         dist = ndt_distance_init(INT64_C(5000), NDT_ALTUNIT_ME); // 2.70nm
         brng = brng + leg->turn.tangle;
-        if (!(wpt2 = ndt_waypoint_pbd(wpt1, brng, dist, now, wmm)))
+        if (!(wpt2 = ndt_waypoint_pbd(wpt1, brng, dist, wmm)))
         {
             err = ENOMEM;
             goto end;
@@ -2997,7 +2997,7 @@ dummies:
          */
         dist = ndt_distance_init(INT64_C(5000), NDT_ALTUNIT_ME); // 2.70nm
         brng = brng - leg->turn.tangle / 2.;
-        if (!(wpt3 = ndt_waypoint_pbd(wpt1, brng, dist, now, wmm)))
+        if (!(wpt3 = ndt_waypoint_pbd(wpt1, brng, dist, wmm)))
         {
             err = ENOMEM;
             goto end;
@@ -3160,7 +3160,7 @@ intc:
      *         // turn left to KLO, but QPAC plugin defaults right (A350 v1.2.1)
      */
     if ((err = endpoint_intcpt(xpfm, flp->cws, wmm,
-                               now, leg->type, nxt->type,
+                               leg->type, nxt->type,
                                src1, brg1, src2, brg2, intc)))
     {
         /*
@@ -3268,7 +3268,7 @@ intc_drect:
          ndt_distance_get(dctd, NDT_ALTUNIT_FT) < INT64_C(660))) // 1 furlong
     {
         dctd = ndt_distance_init(INT64_C(3000), NDT_ALTUNIT_ME);
-        if (!(wpt = ndt_waypoint_pbd(nxt->dst, brg1, dctd, now, wmm)))
+        if (!(wpt = ndt_waypoint_pbd(nxt->dst, brg1, dctd, wmm)))
         {
             err = ENOMEM;
             goto end;
@@ -3288,7 +3288,7 @@ intc_drect:
             default:
                 goto altitude;
         }
-        if (!(wpt = ndt_waypoint_pbd(nxt->dst, brg1, dctd, now, wmm)))
+        if (!(wpt = ndt_waypoint_pbd(nxt->dst, brg1, dctd, wmm)))
         {
             err = ENOMEM;
             goto end;
@@ -3321,11 +3321,11 @@ intc_drect:
         dctd = ndt_distance_init(INT64_C(3000), NDT_ALTUNIT_ME);
         if (angl < 0.)
         {
-            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 - 090., 360.), dctd, now, wmm);
+            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 - 090., 360.), dctd, wmm);
         }
         else
         {
-            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 + 090., 360.), dctd, now, wmm);
+            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 + 090., 360.), dctd, wmm);
         }
         if (!wpt)
         {
@@ -3343,11 +3343,11 @@ intc_drect:
         dctd = ndt_distance_init(INT64_C(4242), NDT_ALTUNIT_ME); // sqrt(2) factor
         if (angl < 0.)
         {
-            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 - 135., 360.), dctd, now, wmm);
+            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 - 135., 360.), dctd, wmm);
         }
         else
         {
-            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 + 135., 360.), dctd, now, wmm);
+            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 + 135., 360.), dctd, wmm);
         }
         if (!wpt)
         {
@@ -3365,11 +3365,11 @@ intc_drect:
         dctd = ndt_distance_init(INT64_C(3000), NDT_ALTUNIT_ME);
         if (angl < 0.)
         {
-            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 - 180., 360.), dctd, now, wmm);
+            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 - 180., 360.), dctd, wmm);
         }
         else
         {
-            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 + 180., 360.), dctd, now, wmm);
+            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 + 180., 360.), dctd, wmm);
         }
         if (!wpt)
         {
@@ -3921,7 +3921,7 @@ static int route_leg_update(ndt_flightplan *flp)
             err = ENOMEM;
             goto end;
         }
-        if (!(legsrc = route_leg_xpfms(flp, now, legsrc, leg, nxt, &altitud)))
+        if (!(legsrc = route_leg_xpfms(flp, legsrc, leg, nxt, &altitud)))
         {
             err = EINVAL;
             goto end;

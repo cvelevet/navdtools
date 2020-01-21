@@ -204,8 +204,7 @@ int ndt_fmt_icaor_flightplan_set_route(ndt_flightplan *flp, const char *rte)
 
                 // convert nautical miles to meters for distance
                 ndstce = ndt_distance_init((int64_t)(distance * 1852.), NDT_ALTUNIT_ME);
-                cuswpt = ndt_waypoint_pbd(lastpl, bearing, ndstce,
-                                          ndt_date_now(), flp->ndb->wmm);
+                cuswpt = ndt_waypoint_pbd(lastpl, bearing, ndstce, flp->ndb->wmm);
             }
             else if (strlen(prefix) == 4 && !strncmp(prefix, "NAT", 3))
             {
