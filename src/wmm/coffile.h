@@ -9,6 +9,9 @@
 #ifndef WMM_COFFILE_H
 #define WMM_COFFILE_H
 
+#define NDT_WMM_COFFILE_YEAR_MIN 2020.
+#define NDT_WMM_COFFILE_YEAR_MAX 2025.
+
 static const char *NDT_WMM_COFFILE =
 "    2020.0            WMM-2020        12/10/2019\n"
 "  1  0  -29404.5       0.0        6.7        0.0\n"
