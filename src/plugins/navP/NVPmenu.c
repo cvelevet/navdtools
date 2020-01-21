@@ -1894,7 +1894,7 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
                     }
                     if ((tolissd = XPLMFindDataRef("AirbusFBW/PaxDistrib")))
                     {
-                        sranddev(); float distrib = 0.4375f + (0.75f - 0.4375f) * rand() / (float)RAND_MAX;
+                        srand(time(NULL)); float distrib = 0.4375f + (0.75f - 0.4375f) * rand() / (float)RAND_MAX;
                         XPLMSetDataf(tolissd, distrib); // "random" float value between 0.4375f and 0.750f
                     }
                     else
