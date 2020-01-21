@@ -340,7 +340,7 @@ end:
     return wpt;
 }
 
-ndt_waypoint* ndt_waypoint_pbd(ndt_waypoint *plce, double magb, ndt_distance dist, ndt_date date, void *wmm)
+ndt_waypoint* ndt_waypoint_pbd(ndt_waypoint *plce, double magb, ndt_distance dist, void *wmm)
 {
     ndt_waypoint *wpt = NULL;
     if (!plce || !wmm || !(wpt = ndt_waypoint_init()))
@@ -362,7 +362,7 @@ end:
     return wpt;
 }
 
-ndt_waypoint* ndt_waypoint_pbpb(ndt_waypoint *src1, double mag1, ndt_waypoint *src2, double mag2, ndt_date date, void *wmm)
+ndt_waypoint* ndt_waypoint_pbpb(ndt_waypoint *src1, double mag1, ndt_waypoint *src2, double mag2, void *wmm)
 {
     ndt_waypoint *wpt = NULL;
     if (!src1 || !src2 || !wmm || !(wpt = ndt_waypoint_init()))
@@ -402,7 +402,7 @@ end:
     return wpt;
 }
 
-ndt_waypoint* ndt_waypoint_pbpd(ndt_waypoint *src1, double magb, ndt_waypoint *src2, ndt_distance dist, ndt_date date, void *wmm)
+ndt_waypoint* ndt_waypoint_pbpd(ndt_waypoint *src1, double magb, ndt_waypoint *src2, ndt_distance dist, void *wmm)
 {
     ndt_waypoint *wpt = NULL;
     if (!src1 || !src2 || !wmm || !(wpt = ndt_waypoint_init()))
