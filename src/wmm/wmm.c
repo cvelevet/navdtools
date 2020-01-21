@@ -32,6 +32,14 @@
 #include "coffile.h"
 #include "wmm.h"
 
+void ndt_wmm_close(void **_wmm)
+{
+    if (*_wmm)
+    {
+        wmm_close(*_wmm);
+    }
+}
+
 static char* get_temporary_filename(const char *basename)
 {
     char filename[1024];
@@ -67,7 +75,7 @@ static char* get_temporary_filename(const char *basename)
     return strdup(filename);
 }
 
-void* ndt_wmm_init(void) // TODO: accept random date as input
+void* ndt_wmm_init(ndt_date date)
 {
     void *lau_wmm = NULL;
     char *tmpname = NULL;
@@ -90,8 +98,8 @@ void* ndt_wmm_init(void) // TODO: accept random date as input
     fclose(tmpfile);
     tmpfile = NULL;
 
-    ndt_date now = ndt_date_now(); // quick and dirty convertion to decimal year
-    double yeard = (double)now.year + (double)(now.month - 1) / 12. + (double)(now.day - 1) / 365.;
+    // quick and dirty convertion to decimal year
+    double yeard = (double)date.year + (double)(date.month - 1) / 12. + (double)(date.day - 1) / 365.;
     if (yeard < NDT_WMM_COFFILE_YEAR_MIN)
     {
         yeard = NDT_WMM_COFFILE_YEAR_MIN;
@@ -122,17 +130,9 @@ fail:
     return NULL;
 }
 
-void ndt_wmm_close(void **_wmm)
+double ndt_wmm_getbearing_mag(void *wmm, double tru_bearing, ndt_position position)
 {
-    if (*_wmm)
-    {
-        wmm_close(*_wmm);
-    }
-}
-
-double ndt_wmm_getbearing_mag(void *wmm, double tru_bearing, ndt_position position, ndt_date date)
-{
-    geo_pos3_t pos; // TODO: warn when date doesn't match our wmm???
+    geo_pos3_t pos;
     pos.lat  = ndt_position_getlatitude (position, NDT_ANGUNIT_DEG);
     pos.lon  = ndt_position_getlongitude(position, NDT_ANGUNIT_DEG);
     pos.elev = ndt_distance_get(ndt_position_getaltitude(position), NDT_ALTUNIT_ME);
@@ -140,9 +140,9 @@ double ndt_wmm_getbearing_mag(void *wmm, double tru_bearing, ndt_position positi
     return mag_bearing ? mag_bearing : 360.;
 }
 
-double ndt_wmm_getbearing_tru(void *wmm, double mag_bearing, ndt_position position, ndt_date date)
+double ndt_wmm_getbearing_tru(void *wmm, double mag_bearing, ndt_position position)
 {
-    geo_pos3_t pos; // TODO: warn when date doesn't match our wmm???
+    geo_pos3_t pos;
     pos.lat  = ndt_position_getlatitude (position, NDT_ANGUNIT_DEG);
     pos.lon  = ndt_position_getlongitude(position, NDT_ANGUNIT_DEG);
     pos.elev = ndt_distance_get(ndt_position_getaltitude(position), NDT_ALTUNIT_ME);

@@ -21,9 +21,9 @@
 #ifndef NDT_WMM_H
 #define NDT_WMM_H
 
-void*  ndt_wmm_init          (void);
 void   ndt_wmm_close         (void **_wmm);
-double ndt_wmm_getbearing_mag(void *wmm, double tru_bearing, ndt_position position, ndt_date date);
-double ndt_wmm_getbearing_tru(void *wmm, double mag_bearing, ndt_position position, ndt_date date);
+void*  ndt_wmm_init          (ndt_date date);
+double ndt_wmm_getbearing_mag(void *wmm, double tru_bearing, ndt_position position);
+double ndt_wmm_getbearing_tru(void *wmm, double mag_bearing, ndt_position position);
 
 #endif /* NDT_WMM_H */

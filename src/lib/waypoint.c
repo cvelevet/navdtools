@@ -352,7 +352,7 @@ ndt_waypoint* ndt_waypoint_pbd(ndt_waypoint *plce, double magb, ndt_distance dis
     wpt->pbd.place    = plce;
     wpt->type         = NDT_WPTYPE_PBD;
     wpt->position     = ndt_position_calcpos4pbd(plce->position,
-                                                 ndt_wmm_getbearing_tru(wmm, magb, plce->position, date),
+                                                 ndt_wmm_getbearing_tru(wmm, magb, plce->position),
                                                  dist);
     snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%s/%05.1lf/%05.1lf",
              plce->info.idnt, magb,
@@ -376,9 +376,9 @@ ndt_waypoint* ndt_waypoint_pbpb(ndt_waypoint *src1, double mag1, ndt_waypoint *s
     wpt->type      = NDT_WPTYPE_PBX;
     int rtval      = ndt_position_calcpos4pbpb(&wpt->position,
                                                src1->position,
-                                               ndt_wmm_getbearing_tru(wmm, mag1, src1->position, date),
+                                               ndt_wmm_getbearing_tru(wmm, mag1, src1->position),
                                                src2->position,
-                                               ndt_wmm_getbearing_tru(wmm, mag2, src2->position, date));
+                                               ndt_wmm_getbearing_tru(wmm, mag2, src2->position));
     switch (rtval)
     {
         case 0:
@@ -416,7 +416,7 @@ ndt_waypoint* ndt_waypoint_pbpd(ndt_waypoint *src1, double magb, ndt_waypoint *s
     wpt->type          = NDT_WPTYPE_INT;
     int rtval          = ndt_position_calcpos4pbpd(&wpt->position,
                                                    src1->position,
-                                                   ndt_wmm_getbearing_tru(wmm, magb, src1->position, date),
+                                                   ndt_wmm_getbearing_tru(wmm, magb, src1->position),
                                                    src2->position, dist);
     switch (rtval)
     {

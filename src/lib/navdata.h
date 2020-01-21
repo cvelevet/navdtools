@@ -48,8 +48,8 @@ typedef struct ndt_navdatabase
     void *wmm;                  // World Magnetic Model library wrapper
 } ndt_navdatabase;
 
-ndt_navdatabase* ndt_navdatabase_init (const char      *root, ndt_navdataformat fmt);
-void             ndt_navdatabase_close(ndt_navdatabase **ptr                       );
+ndt_navdatabase* ndt_navdatabase_init (const char      *root, ndt_navdataformat fmt, ndt_date date);
+void             ndt_navdatabase_close(ndt_navdatabase **ptr                                      );
 
 void          ndt_navdata_add_waypoint(ndt_navdatabase *ndb, ndt_waypoint *wpt                                                                                                        );
 void          ndt_navdata_rem_waypoint(ndt_navdatabase *ndb, ndt_waypoint *wpt                                                                                                        );

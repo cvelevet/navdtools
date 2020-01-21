@@ -43,7 +43,7 @@ static int compare_apt(const void *apt1, const void *apt2);
 static int compare_awy(const void *awy1, const void *awy2);
 static int compare_wpt(const void *wpt1, const void *wpt2);
 
-ndt_navdatabase* ndt_navdatabase_init(const char *ndr, ndt_navdataformat fmt)
+ndt_navdatabase* ndt_navdatabase_init(const char *ndr, ndt_navdataformat fmt, ndt_date date)
 {
     int  err = 0;
     char errbuf[64];
@@ -67,7 +67,7 @@ ndt_navdatabase* ndt_navdatabase_init(const char *ndr, ndt_navdataformat fmt)
         goto end;
     }
 
-    if ((ndb->wmm = ndt_wmm_init()) == NULL)
+    if ((ndb->wmm = ndt_wmm_init(date)) == NULL)
     {
         ndt_log("navdata: failed to open World Magnetic Model\n");
         err = -1;
