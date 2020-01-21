@@ -1800,11 +1800,10 @@ ndt_route_segment* ndt_route_segment_airway(ndt_waypoint *src, ndt_waypoint *dst
             goto fail;
         }
         // note: we must update split_airways too should we update this function
-        ndt_date now = ndt_date_now();
         leg->dis     = ndt_position_calcdistance(src->position,   dst->position);
         leg->trb     = ndt_position_calcbearing (src->position,   dst->position);
-        leg->imb     = ndt_wmm_getbearing_mag(ndb->wmm, leg->trb, dst->position, now);
-        leg->omb     = ndt_wmm_getbearing_mag(ndb->wmm, leg->trb, src->position, now);
+        leg->imb     = ndt_wmm_getbearing_mag(ndb->wmm, leg->trb, dst->position);
+        leg->omb     = ndt_wmm_getbearing_mag(ndb->wmm, leg->trb, src->position);
         leg->type    = NDT_LEGTYPE_TF;
         leg->src     = src;
         leg->dst     = dst;
@@ -2423,8 +2422,8 @@ static int endpoint_intcpt(ndt_list *xpfms,
      * Different issue than the above 3, but the code below also works
      * to force-find a suitable incercept course and associated waypoint.
      */
-    trb1 = ndt_wmm_getbearing_tru   (  wmm, brg1, src1->position, now);
-    trb2 = ndt_wmm_getbearing_tru   (  wmm, brg2, src2->position, now);
+    trb1 = ndt_wmm_getbearing_tru   (                  wmm, brg1, src1->position      );
+    trb2 = ndt_wmm_getbearing_tru   (                  wmm, brg2, src2->position      );
     pbpb = ndt_position_calcpos4pbpb(&posn, src1->position, trb1, src2->position, trb2);
     if (pbpb)
     {
@@ -2488,13 +2487,13 @@ force_intercept:
          * associated "90-degree angle" intercept course using the new brg1.
          */
         trb1 = ndt_position_calcbearing(src1->position, src2->position);
-        brg1 = ndt_wmm_getbearing_mag  (wmm, trb1, src1->position, now);
+        brg1 = ndt_wmm_getbearing_mag  (     wmm, trb1, src1->position);
     }
     brg1 = (ndt_position_bearing_angle(brg1, brg2) < 0. ?
             ndt_mod(intc_crs - 90., 360.) :
             ndt_mod(intc_crs + 90., 360.));
-    trb1 = ndt_wmm_getbearing_tru   ( wmm, brg1, src1->position, now);
-    trb2 = ndt_wmm_getbearing_tru   ( wmm, brg2, src2->position, now);
+    trb1 = ndt_wmm_getbearing_tru   (                 wmm, brg1, src1->position      );
+    trb2 = ndt_wmm_getbearing_tru   (                 wmm, brg2, src2->position      );
     pbpb = ndt_position_calcpos4pbpb(NULL, src1->position, trb1, src2->position, trb2);
     if (pbpb)
     {
@@ -2551,8 +2550,8 @@ static int endpoint_radial(ndt_list *xpfms, ndt_list *cwlst, void *wmm, ndt_date
      *
      * Future: consider using a similar forced intercept as endpoint_intcpt()
      */
-    double trb1 = ndt_wmm_getbearing_tru(wmm, bearing,   src->position, now);
-    double trb2 = ndt_wmm_getbearing_tru(wmm, radial, navaid->position, now);
+    double trb1 = ndt_wmm_getbearing_tru(      wmm, bearing,    src->position       );
+    double trb2 = ndt_wmm_getbearing_tru(      wmm,  radial, navaid->position       );
     if (ndt_position_calcpos4pbpb(NULL, src->position, trb1, navaid->position, trb2))
     {
         ndt_list_add(xpfms, navaid);
@@ -2929,7 +2928,7 @@ dummies:
          */
         double start = ndt_mod(leg->radius.start + 180., 360.);
         double trueb = ndt_position_calcbearing(leg->radius.center->position, leg->dst->position);
-        double rstop = ndt_wmm_getbearing_mag  (wmm, trueb,    leg->radius.center->position, now);
+        double rstop = ndt_wmm_getbearing_mag  (        wmm, trueb, leg->radius.center->position);
         double angle = ndt_position_bearing_angle(start, rstop); // angle for shortest turn
         if ((leg->constraints.turn == NDT_TURN_LEFT  && angle > 0.) ||
             (leg->constraints.turn == NDT_TURN_RIGHT && angle < 0.))
@@ -3011,7 +3010,7 @@ dummies:
          * Store the final true course in order to compute a final intercept.
          */
         double tbrg = ndt_position_calcbearing(wpt2->position, wpt3->position);
-        pi_finalbrg = ndt_wmm_getbearing_mag  (wmm, tbrg, wpt2->position, now);
+        pi_finalbrg = ndt_wmm_getbearing_mag  (     wmm, tbrg, wpt2->position);
         goto intc;
     }
 
@@ -3077,7 +3076,7 @@ intc:
                 intc = nxt->course.magnetic;
                 brg2 = ndt_mod(intc + 180., 360.);
                 trb1 = ndt_position_calcbearing(src1->position, src2->position);
-                brg1 = ndt_wmm_getbearing_mag  (wmm, trb1, src1->position, now);
+                brg1 = ndt_wmm_getbearing_mag  (     wmm, trb1, src1->position);
                 if (fabs(ndt_position_bearing_angle (brg1, intc)) < 6.)
                 {
                     goto altitude; // almost no turn, pointless intercept
@@ -3310,7 +3309,7 @@ intc_drect:
         goto altitude; // waypoints too close, so angle unreliable: skip helpers
     }
     double dtrb = ndt_position_calcbearing  (src1->position, nxt->dst->position);
-    double dctb = ndt_wmm_getbearing_mag    (wmm,  dtrb,    src1->position, now);
+    double dctb = ndt_wmm_getbearing_mag    (         wmm, dtrb, src1->position);
     double angl = ndt_position_bearing_angle(brg1, dctb);
     if ((nxt->constraints.turn == NDT_TURN_LEFT  && angl > 0.) ||
         (nxt->constraints.turn == NDT_TURN_RIGHT && angl < 0.))
@@ -3856,8 +3855,8 @@ static int route_leg_update(ndt_flightplan *flp)
             // TODO: set distance even with xpfms dummies
             leg->dis = ndt_position_calcdistance(leg->src->position, leg->dst->position);
             leg->trb = ndt_position_calcbearing (leg->src->position, leg->dst->position);
-            leg->imb = ndt_wmm_getbearing_mag   (wmm, leg->trb, leg->dst->position, now);
-            leg->omb = ndt_wmm_getbearing_mag   (wmm, leg->trb, leg->src->position, now);
+            leg->imb = ndt_wmm_getbearing_mag   (     wmm, leg->trb, leg->dst->position);
+            leg->omb = ndt_wmm_getbearing_mag   (     wmm, leg->trb, leg->src->position);
         }
         src = leg->dst;
     }
@@ -3899,8 +3898,8 @@ static int route_leg_update(ndt_flightplan *flp)
             leg      = flp->arr.last.rleg;
             leg->dis = ndt_position_calcdistance(leg->src->position, leg->dst->position);
             leg->trb = ndt_position_calcbearing (leg->src->position, leg->dst->position);
-            leg->imb = ndt_wmm_getbearing_mag   (wmm, leg->trb, leg->dst->position, now);
-            leg->omb = ndt_wmm_getbearing_mag   (wmm, leg->trb, leg->src->position, now);
+            leg->imb = ndt_wmm_getbearing_mag   (     wmm, leg->trb, leg->dst->position);
+            leg->omb = ndt_wmm_getbearing_mag   (     wmm, leg->trb, leg->src->position);
         }
     }
     else if (flp->arr.last.rsgt)

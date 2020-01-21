@@ -188,7 +188,7 @@ end:
 
 static int print_airportnfo(void)
 {
-    ndt_navdatabase *navdata = ndt_navdatabase_init(path_navdat, NDT_NAVDFMT_XPGNS);
+    ndt_navdatabase *navdata = ndt_navdatabase_init(path_navdat, NDT_NAVDFMT_XPGNS, ndt_date_now());
     if (!navdata)
     {
         return EINVAL;
@@ -407,7 +407,7 @@ static int sidstar_task(void)
     /*
      * Initialize navigation data and airport procedures.
      */
-    if (!(navdata = ndt_navdatabase_init(path_navdat, NDT_NAVDFMT_XPGNS)))
+    if (!(navdata = ndt_navdatabase_init(path_navdat, NDT_NAVDFMT_XPGNS, ndt_date_now())))
     {
         rval = EINVAL;
         goto end;
@@ -573,7 +573,7 @@ static int execute_task(void)
     char            *flp_rte = NULL;
     FILE            *outfile = NULL;
 
-    if (!(navdata = ndt_navdatabase_init(path_navdat, NDT_NAVDFMT_XPGNS)))
+    if (!(navdata = ndt_navdatabase_init(path_navdat, NDT_NAVDFMT_XPGNS, ndt_date_now())))
     {
         ret = EINVAL;
         goto end;
