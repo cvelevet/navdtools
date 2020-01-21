@@ -2087,6 +2087,24 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     if (inPhase == xplm_CommandEnd)
     {
+#if TIM_ONLY
+        /*
+         * Partial time and date sync: sync date with today, sync
+         * minutes and seconds; however, we don't set hour of day.
+         */
+        XPLMDataRef d_ref[2]; // TODO: move to a command or menu item
+        if ((d_ref[0] = XPLMFindDataRef("sim/time/zulu_time_sec")) &&
+            (d_ref[1] = XPLMFindDataRef("sim/time/local_date_days")))
+        {
+            ndt_date today_now = ndt_date_now(); // note: XP doesn't know of 02/29 (easier for us :-)
+            float xplm_gmt_sec = XPLMGetDataf(d_ref[0]); xplm_gmt_sec -= fmodf(xplm_gmt_sec, 3600.0f);
+            float mins_seconds = (float)today_now.minutes * 60.0f + (float)today_now.seconds * 1.0f;
+            int month2days[12] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, };
+            int xplm_date_days = month2days[today_now.month - 1] + today_now.day - 1;
+            XPLMSetDataf(d_ref[0], xplm_gmt_sec + mins_seconds);
+            XPLMSetDatai(d_ref[1], xplm_date_days);
+        }
+#endif
         chandler_context *ctx = inRefcon;
         XPLMPluginID pid; XPLMCommandRef cmd; XPLMDataRef data;
         int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
