@@ -152,7 +152,10 @@ static void yfs_msw_callback_drto(yfms_context *yfms, int rx, int ry, int delta)
     {
         return; // out of bounds
     }
-    yfms->data.drto.ln_off -= delta;
+    if (delta)
+    {
+        yfms->data.drto.ln_off -= delta;
+    }
     int legct, legrm = (legct = ndt_list_count(yfms->data.fpln.legs)) - yfms->data.fpln.lg_idx;
     int indx0 = yfms->data.fpln.lg_idx + yfms->data.drto.ln_off;
     int ndisp = legct - indx0;
@@ -162,9 +165,9 @@ static void yfs_msw_callback_drto(yfms_context *yfms, int rx, int ry, int delta)
         yfms->data.drto.ln_off -= legrm - ndisp;
         yfs_drto_pageupdt(yfms); return;
     }
-    if (yfms->data.drto.ln_off < 0)
+    if (yfms->data.drto.ln_off < 0 - yfms->data.fpln.lg_idx)
     {
-        yfms->data.drto.ln_off = 0; // fixme allow selecting previous waypoints too
+        yfms->data.drto.ln_off = 0 - yfms->data.fpln.lg_idx;
         yfs_drto_pageupdt(yfms); return;
     }
     yfs_drto_pageupdt(yfms); return;
@@ -206,10 +209,13 @@ static void dct_spc_callback_lnup(yfms_context *yfms)
 
 static void dct_spc_callback_lndn(yfms_context *yfms)
 {
-    yfms->data.drto.ln_off--;
-    if (yfms->data.drto.ln_off < 0)
+    if (yfms->data.drto.ln_off < 1 - yfms->data.fpln.lg_idx)
     {
-        yfms->data.drto.ln_off = 0; // fixme allow selecting previous waypoints too
+        yfms->data.drto.ln_off = 0 - yfms->data.fpln.lg_idx;
+    }
+    else
+    {
+        yfms->data.drto.ln_off--;
     }
     yfs_drto_pageupdt(yfms); return;
 }
