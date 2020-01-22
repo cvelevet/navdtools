@@ -957,25 +957,34 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
     ndt_route_leg *tmp, *leg, *t_p_leg, *dct_leg;
     float groundspeed = XPLMGetDataf(yfms->xpl.groundspeed);
     char buf[23]; int insert_after = 0; ndt_waypoint *t_p_wpt;
-    // TODO: don't offset p_tp when on ground (phase anything less than takeoff)
-    // ground_trk_tru == true_psi on ground (no winds), ground_trk_tru == hpath airborne
-    float grd_trk_tru = XPLMGetDataf(yfms->xpl.mag_trk) - XPLMGetDataf(yfms->xpl.mag_var);
     ndt_distance dnxt = ndt_distance_init(2, NDT_ALTUNIT_NM); //fixme: debug: hardcode to 2 nautical miles for testing pourposes
 //  ndt_distance dnxt = ndt_distance_init(groundspeed * 3, NDT_ALTUNIT_ME); // compute airc. pos. ~3 seconds from now (GS in m/s)
     ndt_position ppos = ndt_position_init(XPLMGetDatad(yfms->xpl.latitude), XPLMGetDatad(yfms->xpl.longitude), NDT_DISTANCE_ZERO);
-    ndt_position p_tp = ndt_position_calcpos4pbd(ppos, grd_trk_tru, dnxt); snprintf(buf, sizeof(buf), "%+010.6lf/%+011.6lf",
-                                                                                    ndt_position_getlatitude (p_tp, NDT_ANGUNIT_DEG),
-                                                                                    ndt_position_getlongitude(p_tp, NDT_ANGUNIT_DEG));
+    float cur_trk_tru = XPLMGetDataf(yfms->xpl.mag_trk) - XPLMGetDataf(yfms->xpl.mag_var);
+    ndt_position p_tp = ndt_position_calcpos4pbd(ppos, cur_trk_tru, dnxt);
+    float new_trk_tru = ndt_position_calcbearing(ppos, p_tp);
+    if (yfms->data.phase >= FMGS_PHASE_TOF)
+    {
+        snprintf(buf, sizeof(buf), "%+010.6lf/%+011.6lf",
+                 ndt_position_getlatitude (p_tp, NDT_ANGUNIT_DEG),
+                 ndt_position_getlongitude(p_tp, NDT_ANGUNIT_DEG));
 #if 0
-    ndt_log("YFMS [debug]: direct to PPOS %+010.6lf/%+011.6lf\n", ndt_position_getlatitude(ppos, NDT_ANGUNIT_DEG), ndt_position_getlongitude(ppos, NDT_ANGUNIT_DEG));
-    ndt_log("YFMS [debug]: direct to T-P: %+010.6lf/%+011.6lf\n", ndt_position_getlatitude(p_tp, NDT_ANGUNIT_DEG), ndt_position_getlongitude(p_tp, NDT_ANGUNIT_DEG));
-    ndt_log("YFMS [debug]: direct to act. di. is %"PRId64"(m)\n", ndt_distance_get(ndt_position_calcdistance(ppos, p_tp), NDT_ALTUNIT_ME));
-    ndt_log("YFMS [debug]: direct to est. di. is %"PRId64"(m)\n", ndt_distance_get(dnxt, NDT_ALTUNIT_ME));
-    ndt_log("YFMS [debug]: direct to act. HDG is %05.1lf\n",      ndt_position_calcbearing(ppos, p_tp));
-    ndt_log("YFMS [debug]: direct to est. HDG is %05.1f\n",       trueheading);
-    ndt_log("YFMS [debug]: direct to ground speed is %f\n",       groundspeed);
+        ndt_log("YFMS [debug]: direct to PPOS %+010.6lf/%+011.6lf\n", ndt_position_getlatitude(ppos, NDT_ANGUNIT_DEG), ndt_position_getlongitude(ppos, NDT_ANGUNIT_DEG));
+        ndt_log("YFMS [debug]: direct to T-P: %+010.6lf/%+011.6lf\n", ndt_position_getlatitude(p_tp, NDT_ANGUNIT_DEG), ndt_position_getlongitude(p_tp, NDT_ANGUNIT_DEG));
+        ndt_log("YFMS [debug]: direct to act. di. is %"PRId64"(m)\n", ndt_distance_get(ndt_position_calcdistance(ppos, p_tp), NDT_ALTUNIT_ME));
+        ndt_log("YFMS [debug]: direct to est. di. is %"PRId64"(m)\n", ndt_distance_get(dnxt, NDT_ALTUNIT_ME));
+        ndt_log("YFMS [debug]: direct to act. HDG is %05.1lf\n",      ndt_position_calcbearing(ppos, p_tp));
+        ndt_log("YFMS [debug]: direct to est. HDG is %05.1f\n",       trueheading);
+        ndt_log("YFMS [debug]: direct to ground speed is %f\n",       groundspeed);
 #endif
-    if ((t_p_wpt = ndt_waypoint_llc(buf)) == NULL)
+    }
+    else // on ground: T-P == PPOS (wind == groundspeed == 0)
+    {
+        snprintf(buf, sizeof(buf), "%+010.6lf/%+011.6lf",
+                 ndt_position_getlatitude (ppos, NDT_ANGUNIT_DEG),
+                 ndt_position_getlongitude(ppos, NDT_ANGUNIT_DEG));
+    }
+    if ((t_p_wpt = ndt_waypoint_llc(buf)) == NULL) // TODO: ndt_waypopint_pos()
     {
         return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 B", COLR_IDX_ORANGE);      // PAGE_DRTO
     }
