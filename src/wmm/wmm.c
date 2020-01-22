@@ -146,6 +146,6 @@ double ndt_wmm_getbearing_tru(void *wmm, double mag_bearing, ndt_position positi
     pos.lat  = ndt_position_getlatitude (position, NDT_ANGUNIT_DEG);
     pos.lon  = ndt_position_getlongitude(position, NDT_ANGUNIT_DEG);
     pos.elev = ndt_distance_get(ndt_position_getaltitude(position), NDT_ALTUNIT_ME);
-    double tru_bearing = ndt_mod(wmm_true2mag(wmm, mag_bearing, pos), 360.);
+    double tru_bearing = ndt_mod(wmm_mag2true(wmm, mag_bearing, pos), 360.);
     return tru_bearing ? tru_bearing : 360.;
 }
