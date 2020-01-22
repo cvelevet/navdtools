@@ -590,6 +590,15 @@ static int execute_task(void)
         goto end;
     }
 
+    /*
+     * TODO: future: also applicable to YFMS
+     * When setting up a departure resp. arrival runway *without* corresponding
+     * departure resp. approach procedures, insert a wayppoint 5nm after/before
+     * the applicable runway threshold; compute the runway's true bearing using
+     * the reciprocal runway's threshold instead of relying on the nav database
+     * to avoid mismatch between database's magnetic model vs. that of the sim.
+     */
+
     // departure airport/runway, SID and arrival airport/runway must
     // be set first for sequencing and filtering of duplicate waypoints
     if (dep_apt)
