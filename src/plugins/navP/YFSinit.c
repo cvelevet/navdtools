@@ -429,7 +429,8 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
         yfms->data.fpln.lg_idx          = 0;
         yfms->data.fpln.awys.open       = 0;
         yfms->data.fpln.lrev.open       = 0;
-        yfms->data.phase 		= FMGS_PHASE_PRE;
+        yfms->data.init.flight_id[0]    = 0;
+        yfms->data.phase                = FMGS_PHASE_PRE;
         yfms->data.fpln.dist.remain     = ndt_distance_init(0, NDT_ALTUNIT_NA);
         yfms->data.fpln.dist.ref_leg_id = -1; // XXX: force a full distance re-sync
         yfms->data.fpln.xplm_last       = 99; // XXX: force a full flight plan sync
