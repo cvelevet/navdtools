@@ -296,12 +296,131 @@ ndt_airport* ndt_navdata_init_airport(ndt_navdatabase *ndb, ndt_airport *apt)
     switch (ndb->fmt)
     {
         case NDT_NAVDFMT_XPGNS:
-            return ndt_ndb_xpgns_navdata_init_airport(ndb, apt);
+            if (NULL == (apt = ndt_ndb_xpgns_navdata_init_airport(ndb, apt)))
+            {
+                return NULL;
+            }
+            break;
 
         case NDT_NAVDFMT_OTHER:
         default:
             return NULL;
     }
+
+    /*
+     * Recompute all runway headings from coordinates. This allows using:
+     * - old navigation databases with newer magnetic models (e.g. navdconv)
+     * - new navigation databases with older magnetic models (e.g. X-Plane 10)
+     */
+    ndt_list *tmp = ndt_list_init(); ndt_runway *rwy, *couples[10][2];
+    if (tmp == NULL)
+    {
+        return NULL;
+    }
+    for (size_t i = 0; i < 10; i++)
+    {
+        couples[i][0] = NULL;
+        couples[i][1] = NULL;
+    }
+    for (size_t i = 0; i < ndt_list_count(apt->runways); i++)
+    {
+        if ((rwy = ndt_list_item(apt->runways, i)))
+        {
+            ndt_list_add(tmp, rwy);
+        }
+    }
+    for (size_t i = 0; i < 10; i++)
+    {
+        char rwy_recipr[4], rwy_suffix, scrap; int rwy_number;
+        if ((ndt_list_count(tmp) > 0) && (rwy = ndt_list_item(tmp, 0)))
+        {
+            switch (sscanf(rwy->info.idnt, "%2d%c%c", &rwy_number, &rwy_suffix, &scrap))
+            {
+                case 2:
+                    break;
+                case 1:
+                    rwy_suffix = 0;
+                    break;
+                default:
+                    ndt_log("ERROR: ndt_navdata_init_airport: unsupported runway identifier \"%s\"\n", rwy->info.idnt);
+                    return NULL;
+            }
+            if (rwy_suffix)
+            {
+                switch (rwy_suffix)
+                {
+                    case 'L':
+                        rwy_suffix = 'R';
+                        break;
+                    case 'R':
+                        rwy_suffix = 'L';
+                        break;
+                    case 'C':
+                    case 'T':
+                        break;
+                    default:
+                        ndt_log("ERROR: ndt_navdata_init_airport: unsupported runway identifier \"%s\"\n", rwy->info.idnt);
+                        return NULL;
+                }
+            }
+            if (rwy_number < 1 || rwy_number > 36)
+            {
+                ndt_log("ERROR: ndt_navdata_init_airport: unsupported runway identifier \"%s\"\n", rwy->info.idnt);
+                return NULL;
+            }
+            else if (rwy_number <= 18)
+            {
+                rwy_number += 18;
+            }
+            else
+            {
+                rwy_number -= 18;
+            }
+            if (sizeof(rwy_recipr) <= snprintf(rwy_recipr, sizeof(rwy_recipr), "%02d%c", rwy_number, rwy_suffix))
+            {
+                ndt_log("ERROR: ndt_navdata_init_airport: unsupported reciprocal runway \"%s\" for \"%s\"\n", rwy_recipr, rwy->info.idnt);
+                return NULL;
+            }
+            else
+            {
+                couples[i][0] = rwy;
+            }
+            for (size_t j = 1; j < ndt_list_count(tmp); j++)
+            {
+                if ((rwy = ndt_list_item(tmp, j)))
+                {
+                    if (!strcmp(rwy->info.idnt, rwy_recipr))
+                    {
+                        couples[i][1] = rwy;
+                        break; // found reciprocal of the runway's threshold
+                    }
+                }
+            }
+            if (couples[i][1]) ndt_list_rem(tmp, couples[i][1]);
+            if (couples[i][0]) ndt_list_rem(tmp, couples[i][0]);
+        }
+    }
+    for (size_t i = 0; i < 10; i++)
+    {
+        if (couples[i][0])
+        {
+            if (couples[i][1])
+            {
+                couples[i][0]->tru_heading = ndt_position_calcbearing(couples[i][0]->threshold, couples[i][1]->threshold);
+                couples[i][0]->mag_heading = ndt_wmm_getbearing_mag(ndb->wmm, couples[i][0]->tru_heading, couples[i][0]->threshold);
+                couples[i][1]->tru_heading = ndt_position_calcbearing(couples[i][1]->threshold, couples[i][0]->threshold);
+                couples[i][1]->mag_heading = ndt_wmm_getbearing_mag(ndb->wmm, couples[i][1]->tru_heading, couples[i][1]->threshold);
+            }
+            else
+            {
+                couples[i][0]->tru_heading = ndt_wmm_getbearing_tru(ndb->wmm, couples[i][0]->ndb_heading, couples[i][0]->threshold);
+                couples[i][0]->mag_heading = couples[i][0]->ndb_heading;
+            }
+        }
+    }
+    ndt_list_empty(tmp);
+    ndt_list_close(&tmp);
+    return apt;
 }
 
 ndt_airway* ndt_navdata_get_airway(ndt_navdatabase *ndb, const char *idt, size_t *idx)
