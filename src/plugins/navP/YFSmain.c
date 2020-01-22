@@ -1919,66 +1919,6 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer, ndt
                 yfms->ndt.flp.rte->dep.rwy->waypoint &&
                 yfms->ndt.flp.rte->dep.rwy->waypoint == place1)
             {
-                char rwy_recipr[4], rwy_suffix[2]; int rwy_number, rw_heading; ndt_runway *runway;
-                switch (sscanf(yfms->ndt.flp.rte->dep.rwy->info.idnt, "%2d%c%c", &rwy_number, rwy_suffix, plce2))
-                {
-                    case 2:
-                        break;
-                    case 1:
-                        rwy_suffix[0] = 0;
-                        break;
-                    default:
-                        snprintf(errbuf, YFS_ROW_BUF_SIZE, "INVALID RUNWAY %s", yfms->ndt.flp.rte->dep.rwy->info.idnt); return NULL;
-                }
-                switch (rwy_suffix[0])
-                {
-                    case 'L':
-                        rwy_suffix[0] = 'R';
-                        break;
-                    case 'R':
-                        rwy_suffix[0] = 'L';
-                        break;
-                    case 'C':
-                    case 'T':
-                        break;
-                    default:
-                        snprintf(errbuf, YFS_ROW_BUF_SIZE, "INVALID RUNWAY %s", yfms->ndt.flp.rte->dep.rwy->info.idnt); return NULL;
-                }
-                if (rwy_number < 1 || rwy_number > 36)
-                {
-                    snprintf(errbuf, YFS_ROW_BUF_SIZE, "INVALID RUNWAY %s", yfms->ndt.flp.rte->dep.rwy->info.idnt); return NULL;
-                }
-                if (rwy_number <= 18)
-                {
-                    rwy_number += 18;
-                }
-                else
-                {
-                    rwy_number += 18;
-                }
-                if ((2 + !!rwy_suffix[0]) != snprintf(rwy_recipr, sizeof(rwy_recipr), "%02d%.1s", rwy_number, rwy_suffix))
-                {
-                    snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "YFS MAIN USRWP BUG 2"); return NULL;
-                }
-                for (size_t i = 0; i < ndt_list_count(yfms->ndt.flp.rte->dep.apt->runways); i++)
-                {
-                    if ((runway = ndt_list_item(yfms->ndt.flp.rte->dep.apt->runways, i)))
-                    {
-                        if (!strcmp(runway->info.idnt, yfms->ndt.flp.rte->dep.rwy->info.idnt))
-                        {
-                            break; // found reciprocal of the departure runway's threshold
-                        }
-                    }
-                    runway = NULL;
-                }
-                if (runway == NULL)
-                {
-                    snprintf(errbuf, YFS_ROW_BUF_SIZE, "INVALID RUNWAY %s", yfms->ndt.flp.rte->dep.rwy->info.idnt); return NULL;
-                }
-                else
-                {
-                    rw_heading = ndt_position_calcbearing(runway->threshold, yfms->ndt.flp.rte->dep.rwy->threshold);
-                }
                 snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "NOT IMPLEMENTED"); return NULL; // TODO: future
             }
             /*
@@ -1991,66 +1931,6 @@ ndt_waypoint* yfs_main_usrwp(yfms_context *yfms, char *errbuf, char *buffer, ndt
                 yfms->ndt.flp.rte->arr.rwy->waypoint &&
                 yfms->ndt.flp.rte->arr.rwy->waypoint == place1)
             {
-                char rwy_recipr[4], rwy_suffix[2]; int rwy_number, rw_heading; ndt_runway *runway;
-                switch (sscanf(yfms->ndt.flp.rte->arr.rwy->info.idnt, "%2d%c%c", &rwy_number, rwy_suffix, plce2))
-                {
-                    case 2:
-                        break;
-                    case 1:
-                        rwy_suffix[0] = 0;
-                        break;
-                    default:
-                        snprintf(errbuf, YFS_ROW_BUF_SIZE, "INVALID RUNWAY %s", yfms->ndt.flp.rte->arr.rwy->info.idnt); return NULL;
-                }
-                switch (rwy_suffix[0])
-                {
-                    case 'L':
-                        rwy_suffix[0] = 'R';
-                        break;
-                    case 'R':
-                        rwy_suffix[0] = 'L';
-                        break;
-                    case 'C':
-                    case 'T':
-                        break;
-                    default:
-                        snprintf(errbuf, YFS_ROW_BUF_SIZE, "INVALID RUNWAY %s", yfms->ndt.flp.rte->arr.rwy->info.idnt); return NULL;
-                }
-                if (rwy_number < 1 || rwy_number > 36)
-                {
-                    snprintf(errbuf, YFS_ROW_BUF_SIZE, "INVALID RUNWAY %s", yfms->ndt.flp.rte->arr.rwy->info.idnt); return NULL;
-                }
-                if (rwy_number <= 18)
-                {
-                    rwy_number += 18;
-                }
-                else
-                {
-                    rwy_number += 18;
-                }
-                if ((2 + !!rwy_suffix[0]) != snprintf(rwy_recipr, sizeof(rwy_recipr), "%02d%.1s", rwy_number, rwy_suffix))
-                {
-                    snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "YFS MAIN USRWP BUG 2"); return NULL;
-                }
-                for (size_t i = 0; i < ndt_list_count(yfms->ndt.flp.rte->arr.apt->runways); i++)
-                {
-                    if ((runway = ndt_list_item(yfms->ndt.flp.rte->arr.apt->runways, i)))
-                    {
-                        if (!strcmp(runway->info.idnt, yfms->ndt.flp.rte->arr.rwy->info.idnt))
-                        {
-                            break; // found reciprocal of the departure runway's threshold
-                        }
-                    }
-                    runway = NULL;
-                }
-                if (runway == NULL)
-                {
-                    snprintf(errbuf, YFS_ROW_BUF_SIZE, "INVALID RUNWAY %s", yfms->ndt.flp.rte->arr.rwy->info.idnt); return NULL;
-                }
-                else
-                {
-                    rw_heading = ndt_position_calcbearing(runway->threshold, yfms->ndt.flp.rte->arr.rwy->threshold);
-                }
                 snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "NOT IMPLEMENTED"); return NULL; // TODO: future
             }
             snprintf(errbuf, YFS_ROW_BUF_SIZE, "%s", "NOT IMPLEMENTED"); return NULL;
