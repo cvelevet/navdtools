@@ -49,7 +49,9 @@ typedef struct ndt_runway
     ndt_info      info;       // identification information
     ndt_distance  width;      // width
     ndt_distance  length;     // length
-    int           heading;    // heading
+    int       ndb_heading;    // navigation database mag. heading
+    double    mag_heading;    // computed heading (magnetic north)
+    double    tru_heading;    // computed heading (true north)
     ndt_distance  overfly;    // threshold overflying height
     ndt_position  threshold;  // threshold coordinates
     ndt_waypoint *waypoint;   // associated waypoint

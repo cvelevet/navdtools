@@ -1045,8 +1045,8 @@ static const char* navaid_type_name(ndt_runway *rwy)
     if (rwy)
     {
         // KLAX, KJFK: ILS but slight mismatch (up to 3°)
-        if ((rwy->ils.course >= rwy->heading && rwy->ils.course - rwy->heading <= 3) ||
-            (rwy->heading >= rwy->ils.course && rwy->heading - rwy->ils.course <= 3))
+        if ((rwy->ils.course >= rwy->ndb_heading && rwy->ils.course - rwy->ndb_heading <= 3) ||
+            (rwy->ndb_heading >= rwy->ils.course && rwy->ndb_heading - rwy->ils.course <= 3))
         {
             // XXX: slopes > 6.0 degrees treated as IGS, not ILS (e.g. Navigraph LSZA)
             return rwy->ils.slope > 6.1 ? "IGS" : rwy->ils.slope > 0.1 ? "ILS" : "LOC";
@@ -1106,10 +1106,10 @@ static int print_rwy_info(FILE *fd, ndt_runway *rwy, const char *prefix)
     if (rwy->ils.avail)
     {
         return ndt_fprintf(fd,
-                           "%s%s (%d°), %d (%d) ft, surface: %s, %s: %.2lf (%d°, %.1lf°)\n",
+                           "%s%s (%03d°), %d (%d) ft, surface: %s, %s: %.2lf (%03d°, %.1lf°)\n",
                            prefix ? prefix : "",
                            rwy->info.idnt,
-                           rwy->heading,
+                           rwy->ndb_heading,
                            rwy_len, rwy_wid,
                            surfacetype_name (rwy),
                            navaid_type_name (rwy),
@@ -1119,10 +1119,10 @@ static int print_rwy_info(FILE *fd, ndt_runway *rwy, const char *prefix)
     else
     {
         return ndt_fprintf(fd,
-                           "%s%s (%d°), %d (%d) ft, surface: %s\n",
+                           "%s%s (%03d°), %d (%d) ft, surface: %s\n",
                            prefix ? prefix : "",
                            rwy->info.idnt,
-                           rwy->heading,
+                           rwy->ndb_heading,
                            rwy_len, rwy_wid,
                            surfacetype_name(rwy));
     }
@@ -1709,23 +1709,23 @@ int ndt_fmt_icaor_print_airportnfo(ndt_navdatabase *ndb, const char *icao, int r
             {
                 case 1:
                 {
-                    fprintf(stdout, "    %-3s %03d°   Length: %5d, width: %3d, surface: %9s, %s: %.2lf (%03d°, %.1lf°)\n",
-                            rwy->info.idnt, rwy->heading, j, k, surfacetype_name(rwy), navaid_type_name(rwy),
+                    fprintf(stdout, "    %-3s %05.1lf° (db: %03d°) Length: %5d, width: %3d, surface: %s, %s: %.2lf (%03d°, %.1lf°)\n",
+                            rwy->info.idnt, rwy->mag_heading, rwy->ndb_heading, j, k, surfacetype_name(rwy), navaid_type_name(rwy),
                             ndt_frequency_get(rwy->ils.freq), rwy->ils.course, rwy->ils.slope);
                     break;
                 }
 
                 case -1:
                 {
-                    fprintf(stdout, "    %-3s %03d°   Length: %5d, width: %3d, surface: %9s, glide path:  %.1lf°\n",
-                            rwy->info.idnt, rwy->heading, j, k, surfacetype_name(rwy), rwy->ils.slope);
+                    fprintf(stdout, "    %-3s %05.1lf° (db: %03d°) Length: %5d, width: %3d, surface: %s, glide path:  %.1lf°\n",
+                            rwy->info.idnt, rwy->mag_heading, rwy->ndb_heading, j, k, surfacetype_name(rwy), rwy->ils.slope);
                     break;
                 }
 
                 default:
                 {
-                    fprintf(stdout, "    %-3s %03d°   Length: %5d, width: %3d, surface: %9s\n",
-                            rwy->info.idnt, rwy->heading, j, k, surfacetype_name(rwy));
+                    fprintf(stdout, "    %-3s %05.1lf° (db: %03d°) Length: %5d, width: %3d, surface: %s\n",
+                            rwy->info.idnt, rwy->mag_heading, rwy->ndb_heading, j, k, surfacetype_name(rwy));
                     break;
                 }
             }
@@ -1739,7 +1739,7 @@ int ndt_fmt_icaor_print_airportnfo(ndt_navdatabase *ndb, const char *icao, int r
                         ndt_procedure_open(ndb, pr1);
                     }
                     leg = ndt_list_item(pr1->proclegs, 0);
-                    fprintf(stdout, "        approach: %-11s from: %-5s",
+                    fprintf(stdout, "        approach: %-7s from: %-5s",
                             pr1->info.idnt,
                             leg && leg->type == NDT_LEGTYPE_IF ? leg->dst->info.idnt :
                             leg && leg->src  != NULL           ? leg->src->info.idnt : "");

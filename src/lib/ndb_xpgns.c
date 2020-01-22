@@ -375,7 +375,7 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
              */
             if (sscanf(line,
                        "R,%4[^,],%d,%d,%d,%d,%lf,%d,%lf,%lf,%d,%lf,%d,%d,%d", rwy->info.idnt,
-                       &rwy->heading,
+                       &rwy->ndb_heading,
                        &length,
                        &width,
                        &rwy->ils.avail,
@@ -443,7 +443,7 @@ static int parse_airports(char *src, ndt_navdatabase *ndb)
 
             snprintf(rwy->info.desc, sizeof(rwy->info.desc),
                      "%s runway %s, heading %03d°, length %d ft, width %d ft",
-                     apt->info.idnt, rwy->info.idnt, rwy->heading, length, width);
+                     apt->info.idnt, rwy->info.idnt, rwy->ndb_heading, length, width);
 
             if ((rwy->ils.avail = !!rwy->ils.avail))
             {
