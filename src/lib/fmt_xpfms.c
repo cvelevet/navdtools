@@ -718,6 +718,11 @@ static int ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
         {
             goto fail;
         }
+
+        if (!flp->dep.sid.proc)
+        {
+            // TODO: future: append waypoint 5 miles from threshold on runway course
+        }
     }
 
     // all flightplan legs
@@ -786,8 +791,10 @@ static int ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
     }
 
     // arrival runway and airport
-    if (flp->arr.rwy)
+    if (flp->arr.rwy && !flp->arr.apch.proc)
     {
+        // TODO: future: prepend waypoint 5 miles from threshold on final course
+
         row = update__row(fd, row);
         ret = helpr_waypoint_write(fd, flp->arr.rwy->waypoint, row, fmt, NULL);
         if (ret)
@@ -913,6 +920,11 @@ static int helpr_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
         {
             goto fail;
         }
+
+        if (!flp->dep.sid.proc)
+        {
+            // TODO: future: append waypoint 5 miles from threshold on runway course
+        }
     }
 
     // SID, enroute transition
@@ -1014,8 +1026,10 @@ static int helpr_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
     {
         goto fail;
     }
-    if (flp->arr.rwy)
+    if (flp->arr.rwy && !flp->arr.apch.proc)
     {
+        // TODO: future: prepend waypoint 5 miles from threshold on final course
+
         if ((ret = helpr_waypoint_write(fd, flp->arr.rwy->waypoint, row++, fmt, NULL)))
         {
             goto fail;
@@ -1484,6 +1498,8 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
         {
             goto end;
         }
+
+        // TODO: future: append waypoint 5 miles from threshold on runway course
     }
     if ((ret = xpfms_write_legs(fd, flp->legs, flp->arr.rwy)))
     {
@@ -1491,6 +1507,8 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
     if (flp->arr.rwy && !flp->arr.apch.proc)
     {
+        // TODO: future: prepend waypoint 5 miles from threshold on final course
+
         /*
          * Target 50 feet above actual runway threshold elevation;
          * matches behavior of e.g. FlightFactor A320-214 Ultimate.
