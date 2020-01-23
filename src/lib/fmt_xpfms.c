@@ -344,11 +344,22 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                     int64_t distancem = ndt_distance_get(dist, NDT_ALTUNIT_ME);
                     if (distancem < 9) // close enough, map to the runway
                     {
+                        if (flp->dep.rwy == NULL)
+                        {
+                            ndt_waypoint_close(&dst);
+                            flp->dep.rwy = rwy;
+                            dst = NULL;
+                            break;
+                        }
                         ndt_waypoint_close(&dst);
                         dst = rwy->waypoint;
                         break;
                     }
                 }
+            }
+            if (dst == NULL)
+            {
+                continue; // we set the departure runway above, skip waypoint
             }
             if (dst->type == NDT_WPTYPE_LLC)
             {
@@ -361,12 +372,23 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                         int64_t distancem = ndt_distance_get(dist, NDT_ALTUNIT_ME);
                         if (distancem < 9) // close enough, map to the runway
                         {
+                            if (flp->arr.rwy == NULL)
+                            {
+                                ndt_waypoint_close(&dst);
+                                flp->arr.rwy = rwy;
+                                dst = NULL;
+                                break;
+                            }
                             ndt_waypoint_close(&dst);
                             dst = rwy->waypoint;
                             break;
                         }
                     }
                 }
+            }
+            if (dst == NULL)
+            {
+                continue; // we set the arrival runway above, skip waypoint
             }
             if (dst->type == NDT_WPTYPE_LLC)
             {
