@@ -130,6 +130,10 @@ fail:
     return NULL;
 }
 
+// TODO: X-Plane: alternative wmm implementation, links against XPLM300 (SDK 3.0.1)
+// check runtime availability of XPLMGetMagneticVariation, load symbols and use it
+// hard part would be querying at runtime whether we're an XPLM plugin or navdconv
+// most certainly will require linking against separate builds of the wmm module :(
 double ndt_wmm_getbearing_mag(void *wmm, double tru_bearing, ndt_position position)
 {
     geo_pos3_t pos;

@@ -1344,8 +1344,8 @@ void* yfs_main_init(void)
         char  *path         = NULL;
         do
         {
-            // X-Plane 10's WMM coefficients are a bit outdated
-            // TODO: detect X-Plane 11.50 or later and set date
+            // X-Plane 10's WMM coefficients are a bit outdated (2019/12/31?)
+            // our data starts 2020/01/01, any date in 2019 should match XP10
             ndt_date xpdate = ndt_date_now(); xpdate.year = 2019;
             if (0 == (ret = ndt_file_getpath(yfms->ndt.xsystem_pth, "Custom Data/GNS430/navdata/ATS.txt", &path, &pathlen)) &&
                 0 == (stat(path, &stats)) && S_ISREG(stats.st_mode)                                                         &&
