@@ -37,14 +37,14 @@
 
 int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
 {
-    ndt_waypoint *src = NULL;
-    char         *start, *pos;
-    char         *line = NULL, *last_apt = NULL, buf[64];
-    int           linecap, header = 0, err = 0, init = 0;
-    int           aft, typ, n_waypnts, discontinuity = 0;
-    double        alt, lat, lon, spd; int after_fafx = 0;
     ndt_position  llc;
     ndt_airspeed  kts;
+    char         *start, *pos;
+    ndt_waypoint *src = NULL, *dst = NULL;
+    char         *line = NULL, *last_apt = NULL, buf[64];
+    int           linecap, header = 1, err = 0, init = 0;
+    int           aft, typ, n_waypnts, discontinuity = 0;
+    double        alt, lat, lon, spd; int after_fafx = 0;
 
     if (!flp || !rte)
     {
@@ -59,6 +59,7 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
         goto end;
     }
 
+    /* first pass: departure and arrival airports only */
     while ((err = ndt_file_getline(&line, &linecap, &pos)) > 0)
     {
         if (*line == '\r' || *line == '\n')
@@ -66,52 +67,48 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
             continue; // skip blank lines
         }
 
-        if (header < 1)
+        switch (header)
         {
-            if (*line != 'I' && *line != 'A' && *line != 'L')
-            {
-                ndt_log("[fmt_xpfms]: invalid header (line 1)\n");
-                err = EINVAL;
-                goto end;
-            }
-            header++;
-            continue;
-        }
-        else if (header < 2)
-        {
-            if (strncmp(line, "3 version", 9))
-            {
-                ndt_log("[fmt_xpfms]: invalid header (line 2)\n");
-                err = EINVAL;
-                goto end;
-            }
-            header++;
-            continue;
-        }
-        else if (header < 3)
-        {
-            // skip next line (don't know the meaning of the field)
-            header++;
-            continue;
-        }
-        else if (header < 4)
-        {
-            if (sscanf(line, "%d", &n_waypnts) != 1)
-            {
-                ndt_log("[fmt_xpfms]: invalid header (line 4)\n");
-                err = EINVAL;
-                goto end;
-            }
-            if (n_waypnts <= 1)
-            {
-                n_waypnts = -1; // don't trust it, read the whole file
-            }
-            else
-            {
-                n_waypnts++;   // format doesn't account for waypoint 0
-            }
-            header++;
-            continue;
+            case 1:
+                if (*line != 'I' && *line != 'A' && *line != 'L')
+                {
+                    ndt_log("[fmt_xpfms]: invalid header (line 1)\n");
+                    err = EINVAL;
+                    goto end;
+                }
+                header++;
+                continue;
+            case 2:
+                if (strncmp(line, "3 version", 9))
+                {
+                    ndt_log("[fmt_xpfms]: invalid header (line 2)\n");
+                    err = EINVAL;
+                    goto end;
+                }
+                header++;
+                continue;
+            case 3:
+                header++;
+                continue;
+            case 4:
+                if (sscanf(line, "%d", &n_waypnts) != 1)
+                {
+                    ndt_log("[fmt_xpfms]: invalid header (line 4)\n");
+                    err = EINVAL;
+                    goto end;
+                }
+                if (n_waypnts <= 1)
+                {
+                    n_waypnts = -1; // don't trust it, read the whole file
+                }
+                else
+                {
+                    n_waypnts++;   // format doesn't account for waypoint 0
+                }
+                header++;
+                continue;
+            default:
+                break;
         }
 
         if (sscanf(line, "%d %63s %lf %lf %lf %lf", &typ, buf, &alt, &lat, &lon, &spd) != 6)
@@ -121,21 +118,9 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                 err = EINVAL;
                 goto end;
             }
-            // no speed constraint on this line, reset
-            spd = 0.;
+            spd = 0.; // no speed constraint on this line, reset
         }
 
-        llc = ndt_position_init(lat, lon, ndt_distance_init(0, NDT_ALTUNIT_NA));
-        kts = ndt_airspeed_init(spd, NDT_SPDUNIT_KTS);
-        aft = round(10. * round(alt / 10.));
-
-        if (typ == 0)
-        {
-            discontinuity = 1;
-            continue;
-        }
-
-        /* Departure */
         if (!init)
         {
             if (!flp->dep.apt)
@@ -151,17 +136,140 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                     goto end;
                 }
             }
+        }
+        init = 1;
 
+        llc = ndt_position_init(lat, lon, ndt_distance_init(0, NDT_ALTUNIT_NA));
+        kts = ndt_airspeed_init(spd, NDT_SPDUNIT_KTS);
+        aft = round(10. * round(alt / 10.));
+
+        if (typ == 0)
+        {
+            continue;
+        }
+
+        if (typ != 13 && typ != 28)
+        {
+            for (size_t dstidx = 0; (dst = ndt_navdata_get_waypoint(flp->ndb, buf, &dstidx)); dstidx++)
+            {
+                switch (dst->type)
+                {
+                    case NDT_WPTYPE_APT:
+                        if (typ !=  1) dst = NULL;
+                        break;
+
+                    case NDT_WPTYPE_NDB:
+                        if (typ !=  2) dst = NULL;
+                        break;
+
+                    case NDT_WPTYPE_VOR:
+                        if (typ !=  3) dst = NULL;
+                        break;
+
+                    case NDT_WPTYPE_FIX:
+                        if (typ != 11) dst = NULL;
+                        break;
+
+                    default:
+                        dst = NULL;
+                        break;
+                }
+                if (dst)
+                {
+                    ndt_position a = dst->position;
+                    ndt_position b = llc;
+
+                    if (ndt_distance_get(ndt_position_calcdistance(a, b), NDT_ALTUNIT_NM) <= 1)
+                    {
+                        break; // we have our waypoint
+                    }
+                    dst = NULL; // too far
+                }
+            }
+        }
+        else
+        {
+            dst = NULL;
+        }
+    }
+    if (!dst || dst->type != NDT_WPTYPE_APT)
+    {
+        ndt_log("[fmt_xpfms]: arrival airport not set\n");
+        err = EINVAL;
+        goto end;
+    }
+    else
+    {
+        if ((err = ndt_flightplan_set_arrival(flp, dst->info.idnt, NULL)))
+        {
+            ndt_log("[fmt_xpfms]: invalid arrival airport '%s'\n", dst->info.idnt);
+            err = EINVAL;
+            goto end;
+        }
+    }
+
+    /* reset */
+    init = 0;
+    header = 1;
+    free(start);
+    start = pos = strdup(rte);
+    if (!start)
+    {
+        err = ENOMEM;
+        goto end;
+    }
+
+    /* second pass: the rest */
+    while ((err = ndt_file_getline(&line, &linecap, &pos)) > 0)
+    {
+        if (*line == '\r' || *line == '\n')
+        {
+            continue; // skip blank lines
+        }
+
+        switch (header) // already parsed above
+        {
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+                header++;
+                continue;
+            default:
+                break;
+        }
+
+        if (init == 0) // already parsed in first pass
+        {
             /* Set the initial source waypoint (SID, runway or airport). */
             src = (flp->dep.sid.enroute.rsgt ? flp->dep.sid.enroute.rsgt->dst :
                    flp->dep.sid.        rsgt ? flp->dep.sid.        rsgt->dst :
                    flp->dep.rwy              ? flp->dep.rwy->waypoint         : flp->dep.apt->waypoint);
+            init = 1;
+            continue;
+        }
 
-            init = 1;//done
+        if (sscanf(line, "%d %63s %lf %lf %lf %lf", &typ, buf, &alt, &lat, &lon, &spd) != 6)
+        {
+            if (sscanf(line, "%d %63s %lf %lf %lf", &typ, buf, &alt, &lat, &lon)       != 5)
+            {
+                err = EINVAL;
+                goto end;
+            }
+            spd = 0.; // no speed constraint on this line, reset
+        }
+
+        llc = ndt_position_init(lat, lon, ndt_distance_init(0, NDT_ALTUNIT_NA));
+        kts = ndt_airspeed_init(spd, NDT_SPDUNIT_KTS);
+        aft = round(10. * round(alt / 10.));
+
+        if (typ == 0)
+        {
+            discontinuity = 1;
+            continue;
         }
 
         ndt_route_segment *rsg = NULL;
-        ndt_waypoint      *dst = NULL;
         ndt_restriction   constraints;
 
         if (typ != 13 && typ != 28)
@@ -203,6 +311,10 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                 }
             }
         }
+        else
+        {
+            dst = NULL;
+        }
 
         if (!dst) // use coordinates
         {
@@ -223,7 +335,43 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                 err = ENOMEM;
                 goto end;
             }
-            ndt_list_add(flp->cws, dst);
+            for (size_t i = 0; i < ndt_list_count(flp->dep.apt->runways); i++)
+            {
+                ndt_runway *rwy = ndt_list_item(flp->dep.apt->runways, i);
+                if (rwy)
+                {
+                    ndt_distance dist = ndt_position_calcdistance(dst->position, rwy->waypoint->position);
+                    int64_t distancem = ndt_distance_get(dist, NDT_ALTUNIT_ME);
+                    if (distancem < 9) // close enough, map to the runway
+                    {
+                        ndt_waypoint_close(&dst);
+                        dst = rwy->waypoint;
+                        break;
+                    }
+                }
+            }
+            if (dst->type == NDT_WPTYPE_LLC)
+            {
+                for (size_t i = 0; i < ndt_list_count(flp->arr.apt->runways); i++)
+                {
+                    ndt_runway *rwy = ndt_list_item(flp->arr.apt->runways, i);
+                    if (rwy)
+                    {
+                        ndt_distance dist = ndt_position_calcdistance(dst->position, rwy->waypoint->position);
+                        int64_t distancem = ndt_distance_get(dist, NDT_ALTUNIT_ME);
+                        if (distancem < 9) // close enough, map to the runway
+                        {
+                            ndt_waypoint_close(&dst);
+                            dst = rwy->waypoint;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (dst->type == NDT_WPTYPE_LLC)
+            {
+                ndt_list_add(flp->cws, dst);
+            }
         }
 
         if (discontinuity)
@@ -367,54 +515,15 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
         err = 0; // we may break out with err > 0 (e.g. when n_waypnts reaches 0)
     }
 
-    /* Arrival */
-    if (!flp->arr.apt)
-    {
-        ndt_route_segment *rsg = ndt_list_item(flp->rte, -1);
-        if (!rsg)
-        {
-            err = ENOMEM;
-            goto end;
-        }
-        if (rsg->dst->type != NDT_WPTYPE_APT)
-        {
-            ndt_log("[fmt_xpfms]: arrival airport not set\n");
-            err = EINVAL;
-            goto end;
-        }
-        if ((err = ndt_flightplan_set_arrival(flp, rsg->dst->info.idnt, NULL)))
-        {
-            ndt_log("[fmt_xpfms]: invalid arrival airport '%s'\n",
-                    rsg->dst->info.idnt);
-            err = EINVAL;
-            goto end;
-        }
-        ndt_list_rem  (flp->rte, rsg);
-        ndt_route_segment_close(&rsg);
-    }
-
     /*
      * Remove unwanted segments.
      */
-    ndt_route_segment *fst = ndt_list_item(flp->rte,  0);
-    ndt_route_segment *ult = ndt_list_item(flp->rte, -1);
-    if (fst && fst->dst == flp->dep.apt->waypoint)
-    {
-        // check for duplicates
-        if (fst == ult)
-        {
-            ult = NULL;
-        }
-
-        // don't include the departure airport as the first leg
-        ndt_list_rem  (flp->rte, fst);
-        ndt_route_segment_close(&fst);
-    }
-    if (ult && ult->dst == flp->arr.apt->waypoint)
+    ndt_route_segment *last = ndt_list_item(flp->rte, -1);
+    if (last && last->dst == flp->arr.apt->waypoint)
     {
         // don't include the arrival airport as the last leg
-        ndt_list_rem  (flp->rte, ult);
-        ndt_route_segment_close(&ult);
+        ndt_list_rem  (flp->rte, last);
+        ndt_route_segment_close(&last);
     }
 
 end:
