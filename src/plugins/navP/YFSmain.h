@@ -499,6 +499,8 @@ typedef struct
         XPLMDataRef altitude_ft_pilot;
         XPLMDataRef airspeed_kts_pilot;
         XPLMDataRef autothrottle_enabled;
+        XPLMDataRef heading_dial_deg_mag_copilot;
+        XPLMDataRef heading_dial_deg_mag_pilot;
         XPLMDataRef airspeed_dial_kts_mach;
         XPLMDataRef altitude_dial_mcp_feet;
         XPLMCommandRef gps_select_copilot;

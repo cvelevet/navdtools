@@ -1443,6 +1443,8 @@ void* yfs_main_init(void)
         (yfms->xpl.airspeed_is_mach                = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_is_mach"                      )) == NULL ||
         (yfms->xpl.altitude_ft_pilot               = XPLMFindDataRef("sim/cockpit2/gauges/indicators/altitude_ft_pilot"             )) == NULL ||
         (yfms->xpl.airspeed_kts_pilot              = XPLMFindDataRef("sim/cockpit2/gauges/indicators/airspeed_kts_pilot"            )) == NULL ||
+        (yfms->xpl.heading_dial_deg_mag_copilot    = XPLMFindDataRef("sim/cockpit2/autopilot/heading_dial_deg_mag_copilot"          )) == NULL ||
+        (yfms->xpl.heading_dial_deg_mag_pilot      = XPLMFindDataRef("sim/cockpit2/autopilot/heading_dial_deg_mag_pilot"            )) == NULL ||
         (yfms->xpl.airspeed_dial_kts_mach          = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_dial_kts_mach"                )) == NULL ||
         (yfms->xpl.altitude_dial_mcp_feet          = XPLMFindDataRef("sim/cockpit2/autopilot/altitude_dial_ft"                      )) == NULL ||
         (yfms->xpl.autothrottle_enabled            = XPLMFindDataRef("sim/cockpit2/autopilot/autothrottle_enabled"                  )) == NULL ||

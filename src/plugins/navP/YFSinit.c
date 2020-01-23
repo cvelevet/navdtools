@@ -324,14 +324,14 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
                 yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1);
                 return yfs_flightplan_reinit(yfms, NULL, NULL, NULL);
             }
-            ndt_route_segment *rsg = ndt_route_segment_direct(corte->dep.apt->waypoint, corte->dep.rwy->waypoint);
-            if (rsg == NULL)
+            if (yfms->data.phase < FMGS_PHASE_TOF) // inserting a runway on the ground
             {
-                yfs_spad_reset(yfms, "MEMORY ERROR 0", COLR_IDX_ORANGE);
-                return yfs_flightplan_reinit(yfms, NULL, NULL, NULL);
+                // set autopilot to runway heading using navdlib-computed true heading and X-Plane's local magnetic model
+                XPLMSetDataf(yfms->xpl.heading_dial_deg_mag_pilot,   corte->dep.rwy->tru_heading + XPLMGetDataf(yfms->xpl.mag_var));
+                XPLMSetDataf(yfms->xpl.heading_dial_deg_mag_copilot, corte->dep.rwy->tru_heading + XPLMGetDataf(yfms->xpl.mag_var));
             }
-            ndt_waypoint *rwy = corte->dep.rwy->waypoint; corte->dep.rwy = NULL;
-            ndt_route_leg *leg = ndt_flightplan_insert_direct(corte, rwy, ndt_list_item(corte->legs, 0), 0);
+            ndt_runway *rwy = corte->dep.rwy; corte->dep.rwy = NULL; // ensure leg->src == dep->apt->waypoint
+            ndt_route_leg *leg = ndt_flightplan_insert_direct(corte, rwy->waypoint, ndt_list_item(corte->legs, 0), 0);
         }
     }
     else
