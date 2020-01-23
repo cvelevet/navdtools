@@ -1450,14 +1450,6 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
     if (flp->arr.rwy)
     {
         /*
-         * TODO: future: don't write runway threshold if we have an approach.
-         * Once we implement it properly, said threshold will be included in
-         * the approach's legs when applicable (e.g. not circling approaches).
-         *
-         * Will also require moving the altitude code to approach leg writing.
-         */
-
-        /*
          * Target 50 feet above actual runway threshold elevation;
          * matches behavior of e.g. FlightFactor A320-214 Ultimate.
          */
@@ -1488,6 +1480,14 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
                     break;
             }
         }
+
+        /*
+        * TODO: future: don't write runway threshold if we have an approach.
+        * Once we implement it properly, said threshold will be included in
+        * the approach's legs when applicable (e.g. not circling approaches).
+        *
+        * Will also require moving the altitude code to approach leg writing.
+        */
         if ((ret = print_waypoint(fd, flp->arr.rwy->waypoint, altitude, 0)))
         {
             goto end;
