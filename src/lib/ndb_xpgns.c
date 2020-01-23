@@ -1088,6 +1088,29 @@ static void handle_turndrct_constraints(ndt_restriction *constraints, int turndr
     }
 }
 
+static ndt_waypoint* procedure_runway(ndt_list *runways, const char *idt, ndt_position position)
+{
+    if (runways)
+    {
+        if (!strncmp(idt, "RW", 2))
+        {
+            for (size_t i = 0, j = ndt_list_count(runways); i < j; i++)
+            {
+                ndt_runway *rwy = ndt_list_item(runways, i);
+                if (rwy && !strcmp(rwy->info.idnt, idt + 2))
+                {
+                    ndt_distance d = ndt_position_calcdistance(rwy->threshold, position);
+                    if (ndt_distance_get(d, NDT_ALTUNIT_ME) < 9)
+                    {
+                        return rwy->waypoint;
+                    }
+                }
+            }
+        }
+    }
+    return NULL;
+}
+
 static ndt_waypoint* procedure_waypoint(const char *idt, double lat, double lon)
 {
     ndt_waypoint *wpt = NULL;
@@ -1216,8 +1239,9 @@ static int procedure_appendleg(ndt_procedure *proc, ndt_route_leg *leg1, int spc
     }
     snprintf(leg1->info.desc, sizeof(leg1->info.desc), "%s", line);
 
-    // check for missed approach legs
-    if (spcial == 3 || ndt_list_count(proc->mapplegs))
+    // did we process the missed approach waypoint yet?
+    ndt_route_leg *leg0 = ndt_list_item(proc->proclegs, -1);
+    if (leg0 && leg0->constraints.waypoint == NDT_WPTCONST_MAP)
     {
         if (!proc->mapplegs)
         {
@@ -2217,6 +2241,10 @@ static int open_a_procedure(ndt_navdatabase *ndb, ndt_procedure *proc)
             dist = ndt_distance_init(dmedis * 1852. / .3048, NDT_ALTUNIT_FT);
             posn = ndt_position_init(wptlat, wptlon, NDT_DISTANCE_ZERO);
             wpt2 = ndt_navdata_get_wpt4pos(ndb, wpt_id, NULL, posn);
+            if (!wpt2 && proc->apt)
+            {
+                wpt2 = procedure_runway(proc->apt->runways, wpt_id, posn);
+            }
             if (!wpt2 && !(wpt2 = procedure_waypoint(wpt_id, wptlat, wptlon)))
             {
                 ret = ENOMEM;
@@ -2482,6 +2510,10 @@ static int open_a_procedure(ndt_navdatabase *ndb, ndt_procedure *proc)
             dist = ndt_distance_init(legdis * 1852. / .3048, NDT_ALTUNIT_FT);
             posn = ndt_position_init(wptlat, wptlon, NDT_DISTANCE_ZERO);
             wpt2 = ndt_navdata_get_wpt4pos(ndb, wpt_id, NULL, posn);
+            if (!wpt2 && proc->apt)
+            {
+                wpt2 = procedure_runway(proc->apt->runways, wpt_id, posn);
+            }
             if (!wpt2 && !(wpt2 = procedure_waypoint(wpt_id, wptlat, wptlon)))
             {
                 ret = ENOMEM;
@@ -2616,6 +2648,10 @@ static int open_a_procedure(ndt_navdatabase *ndb, ndt_procedure *proc)
 
             posn = ndt_position_init(wptlat, wptlon, NDT_DISTANCE_ZERO);
             wpt2 = ndt_navdata_get_wpt4pos(ndb, wpt_id, NULL, posn);
+            if (!wpt2 && proc->apt)
+            {
+                wpt2 = procedure_runway(proc->apt->runways, wpt_id, posn);
+            }
             if (!wpt2 && !(wpt2 = procedure_waypoint(wpt_id, wptlat, wptlon)))
             {
                 ret = ENOMEM;
@@ -2685,6 +2721,10 @@ static int open_a_procedure(ndt_navdatabase *ndb, ndt_procedure *proc)
             dist = ndt_distance_init(altone, NDT_ALTUNIT_FT);
             posn = ndt_position_init(wptlat, wptlon, NDT_DISTANCE_ZERO);
             wpt1 = ndt_navdata_get_wpt4pos(ndb, wpt_id, NULL, posn);
+            if (!wpt1 && proc->apt)
+            {
+                wpt1 = procedure_runway(proc->apt->runways, wpt_id, posn);
+            }
             if (!wpt1 && !(wpt1 = procedure_waypoint(wpt_id, wptlat, wptlon)))
             {
                 ret = ENOMEM;
@@ -2758,6 +2798,10 @@ static int open_a_procedure(ndt_navdatabase *ndb, ndt_procedure *proc)
             dist = ndt_distance_init(dmedis * 1852. / .3048, NDT_ALTUNIT_FT);
             posn = ndt_position_init(wptlat, wptlon, NDT_DISTANCE_ZERO);
             wpt1 = ndt_navdata_get_wpt4pos(ndb, wpt_id, NULL, posn);
+            if (!wpt1 && proc->apt)
+            {
+                wpt1 = procedure_runway(proc->apt->runways, wpt_id, posn);
+            }
             if (!wpt1 && !(wpt1 = procedure_waypoint(wpt_id, wptlat, wptlon)))
             {
                 ret = ENOMEM;
@@ -2830,6 +2874,10 @@ static int open_a_procedure(ndt_navdatabase *ndb, ndt_procedure *proc)
 
             dist = ndt_distance_init(dmedis * 1852. / .3048, NDT_ALTUNIT_FT);
             wpt1 = ndt_navdata_get_wpt4pos(ndb, wpt_id, NULL, posn);
+            if (!wpt1 && proc->apt)
+            {
+                wpt1 = procedure_runway(proc->apt->runways, wpt_id, posn);
+            }
             if (!wpt1 && !(wpt1 = procedure_waypoint(wpt_id, wptlat, wptlon)))
             {
                 ret = ENOMEM;
@@ -2908,6 +2956,10 @@ static int open_a_procedure(ndt_navdatabase *ndb, ndt_procedure *proc)
 
             posn = ndt_position_init(wptlat, wptlon, NDT_DISTANCE_ZERO);
             wpt1 = ndt_navdata_get_wpt4pos(ndb, wpt_id, NULL, posn);
+            if (!wpt1 && proc->apt)
+            {
+                wpt1 = procedure_runway(proc->apt->runways, wpt_id, posn);
+            }
             if (!wpt1 && !(wpt1 = procedure_waypoint(wpt_id, wptlat, wptlon)))
             {
                 ret = ENOMEM;
@@ -2976,6 +3028,10 @@ static int open_a_procedure(ndt_navdatabase *ndb, ndt_procedure *proc)
 
             posn = ndt_position_init(wptlat, wptlon, NDT_DISTANCE_ZERO);
             wpt2 = ndt_navdata_get_wpt4pos(ndb, wpt_id, NULL, posn);
+            if (!wpt2 && proc->apt)
+            {
+                wpt2 = procedure_runway(proc->apt->runways, wpt_id, posn);
+            }
             if (!wpt2 && !(wpt2 = procedure_waypoint(wpt_id, wptlat, wptlon)))
             {
                 ret = ENOMEM;
@@ -3045,6 +3101,10 @@ static int open_a_procedure(ndt_navdatabase *ndb, ndt_procedure *proc)
 
             posn = ndt_position_init(wptlat, wptlon, NDT_DISTANCE_ZERO);
             wpt1 = ndt_navdata_get_wpt4pos(ndb, wpt_id, NULL, posn);
+            if (!wpt1 && proc->apt)
+            {
+                wpt1 = procedure_runway(proc->apt->runways, wpt_id, posn);
+            }
             if (!wpt1 && !(wpt1 = procedure_waypoint(wpt_id, wptlat, wptlon)))
             {
                 ret = ENOMEM;
@@ -3124,6 +3184,10 @@ static int open_a_procedure(ndt_navdatabase *ndb, ndt_procedure *proc)
             dist = ndt_distance_init(radius * 1852. / .3048, NDT_ALTUNIT_FT);
             posn = ndt_position_init(wptlat, wptlon, NDT_DISTANCE_ZERO);
             wpt2 = ndt_navdata_get_wpt4pos(ndb, wpt_id, NULL, posn);
+            if (!wpt2 && proc->apt)
+            {
+                wpt2 = procedure_runway(proc->apt->runways, wpt_id, posn);
+            }
             if (!wpt2 && !(wpt2 = procedure_waypoint(wpt_id, wptlat, wptlon)))
             {
                 ret = ENOMEM;
@@ -3201,6 +3265,10 @@ static int open_a_procedure(ndt_navdatabase *ndb, ndt_procedure *proc)
 
             posn = ndt_position_init(wptlat, wptlon, NDT_DISTANCE_ZERO);
             wpt2 = ndt_navdata_get_wpt4pos(ndb, wpt_id, NULL, posn);
+            if (!wpt2 && proc->apt)
+            {
+                wpt2 = procedure_runway(proc->apt->runways, wpt_id, posn);
+            }
             if (!wpt2 && !(wpt2 = procedure_waypoint(wpt_id, wptlat, wptlon)))
             {
                 ret = ENOMEM;
@@ -3580,6 +3648,10 @@ static int open_a_procedure(ndt_navdatabase *ndb, ndt_procedure *proc)
 
             posn = ndt_position_init(wptlat, wptlon, NDT_DISTANCE_ZERO);
             wpt2 = ndt_navdata_get_wpt4pos(ndb, wpt_id, NULL, posn);
+            if (!wpt2 && proc->apt)
+            {
+                wpt2 = procedure_runway(proc->apt->runways, wpt_id, posn);
+            }
             if (!wpt2 && !(wpt2 = procedure_waypoint(wpt_id, wptlat, wptlon)))
             {
                 ret = ENOMEM;
@@ -3666,6 +3738,10 @@ static int open_a_procedure(ndt_navdatabase *ndb, ndt_procedure *proc)
             dist = ndt_distance_init(altone, NDT_ALTUNIT_FT);
             posn = ndt_position_init(wptlat, wptlon, NDT_DISTANCE_ZERO);
             wpt2 = ndt_navdata_get_wpt4pos(ndb, wpt_id, NULL, posn);
+            if (!wpt2 && proc->apt)
+            {
+                wpt2 = procedure_runway(proc->apt->runways, wpt_id, posn);
+            }
             if (!wpt2 && !(wpt2 = procedure_waypoint(wpt_id, wptlat, wptlon)))
             {
                 ret = ENOMEM;
@@ -3752,6 +3828,10 @@ static int open_a_procedure(ndt_navdatabase *ndb, ndt_procedure *proc)
 
             posn = ndt_position_init(wptlat, wptlon, NDT_DISTANCE_ZERO);
             wpt2 = ndt_navdata_get_wpt4pos(ndb, wpt_id, NULL, posn);
+            if (!wpt2 && proc->apt)
+            {
+                wpt2 = procedure_runway(proc->apt->runways, wpt_id, posn);
+            }
             if (!wpt2 && !(wpt2 = procedure_waypoint(wpt_id, wptlat, wptlon)))
             {
                 ret = ENOMEM;

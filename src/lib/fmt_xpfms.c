@@ -344,8 +344,9 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                     int64_t distancem = ndt_distance_get(dist, NDT_ALTUNIT_ME);
                     if (distancem < 9) // close enough, map to the runway
                     {
-                        if (flp->dep.rwy == NULL)
+                        if (flp->dep.rwy == NULL && ndt_list_count(flp->rte) == 0)
                         {
+                            // first actual leg, so we can set depaerture runway
                             ndt_waypoint_close(&dst);
                             flp->dep.rwy = rwy;
                             dst = NULL;
@@ -372,23 +373,13 @@ int ndt_fmt_xpfms_flightplan_set_route(ndt_flightplan *flp, const char *rte)
                         int64_t distancem = ndt_distance_get(dist, NDT_ALTUNIT_ME);
                         if (distancem < 9) // close enough, map to the runway
                         {
-                            if (flp->arr.rwy == NULL)
-                            {
-                                ndt_waypoint_close(&dst);
-                                flp->arr.rwy = rwy;
-                                dst = NULL;
-                                break;
-                            }
+                            // arrival runway from route: trickier, don't bother
                             ndt_waypoint_close(&dst);
                             dst = rwy->waypoint;
                             break;
                         }
                     }
                 }
-            }
-            if (dst == NULL)
-            {
-                continue; // we set the arrival runway above, skip waypoint
             }
             if (dst->type == NDT_WPTYPE_LLC)
             {
@@ -1324,6 +1315,31 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
                 speed = 0;
                 break;
         }
+        if (leg->type == NDT_WPTYPE_RWY && leg->dst == arr_rwy->waypoint)
+        {
+            /*
+             * For GPS approaches, our runway threshold must be an NPA waypoint.
+             *
+             * For other approaches, just make it a regular waypoint, as overfly
+             * waypoints may sometimes throw the QPAC plugin off, especially when
+             * loading the final approach mid-flight. Example of this would be the
+             * ILS approach for runway 19 at DTTA (Aerosoft 1511, with or without
+             * the TUC approach transition). Not marking the arrival rwy threshold
+             * as overfly may not fix the above case, but it's worth a try anyway.
+             */
+            switch (leg->rsg->prc->approach.type)
+            {
+                case NDT_APPRTYPE_GLS:
+                case NDT_APPRTYPE_GPS:
+                case NDT_APPRTYPE_RNP:
+                case NDT_APPRTYPE_RNV:
+                    altitude = round(ndt_distance_get(leg->constraints.altitude.max, NDT_ALTUNIT_FT) / 10.) * 10;
+                    altitude = altitude + 10 * (altitude == 0) - 1;
+                    break;
+                default:
+                    break;
+            }
+        }
         switch (leg->type)
         {
             case NDT_LEGTYPE_HF:
@@ -1442,6 +1458,10 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
      */
     int  ret, altitude;
     int  cnt = xpfms_count_legs(flp->legs) + dep_apt + dep_rwy + arr_rwy + arr_apt;
+    if ((flp->arr.apch.proc))
+    {
+        (cnt -= 1); // the arrival runway is now in flp->legs
+    }
     if ((ret = xpfms_write_header(fd, cnt)))
     {
         goto end;
@@ -1469,7 +1489,7 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
     {
         goto end;
     }
-    if (flp->arr.rwy)
+    if (flp->arr.rwy && !flp->arr.apch.proc)
     {
         /*
          * Target 50 feet above actual runway threshold elevation;
@@ -1478,38 +1498,6 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
         altitude = ndt_distance_get(flp->arr.rwy->threshold.altitude, NDT_ALTUNIT_FT) + 50;
         altitude = round(altitude / 10.) * 10; altitude = altitude + 10 * (altitude == 00); // regular waypoint
 
-        /*
-         * For GPS approaches, our runway threshold must be an NPA waypoint.
-         *
-         * For other approaches, just make it a regular waypoint, as overfly
-         * waypoints may sometimes throw the QPAC plugin off, especially when
-         * loading the final approach mid-flight. Example of this would be the
-         * ILS approach for runway 19 at DTTA (Aerosoft 1511, with or without
-         * the TUC approach transition). Not marking the arrival rwy threshold
-         * as overfly may not fix the above case, but it's worth a try anyway.
-         */
-        if (flp->arr.apch.proc)
-        {
-            switch (flp->arr.apch.proc->approach.type)
-            {
-                case NDT_APPRTYPE_GLS:
-                case NDT_APPRTYPE_GPS:
-                case NDT_APPRTYPE_RNP:
-                case NDT_APPRTYPE_RNV:
-                    altitude = altitude - 1; // NPA waypoint
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        /*
-        * TODO: future: don't write runway threshold if we have an approach.
-        * Once we implement it properly, said threshold will be included in
-        * the approach's legs when applicable (e.g. not circling approaches).
-        *
-        * Will also require moving the altitude code to approach leg writing.
-        */
         if ((ret = print_waypoint(fd, flp->arr.rwy->waypoint, altitude, 0)))
         {
             goto end;
