@@ -721,7 +721,21 @@ static int ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
 
         if (!flp->dep.sid.proc)
         {
-            // TODO: future: append waypoint 5 miles from threshold on runway course
+            ndt_position posn = ndt_position_calcpos4pbd(flp->dep.rwy->waypoint->position, flp->dep.rwy->tru_heading, ndt_distance_add(flp->dep.rwy->length, ndt_distance_init(5, NDT_ALTUNIT_NM)));
+            ndt_waypoint *tmp = ndt_waypoint_posn(posn);
+            if (tmp)
+            {
+                row = update__row(fd, row);
+                ret = helpr_waypoint_write(fd, tmp, row, fmt, NULL);
+                if (ret)
+                {
+                    goto fail;
+                }
+            }
+            else
+            {
+                ndt_log("[fmt_xpfms]: failed to insert 5-mile waypoint for departure runway\n");
+            }
         }
     }
 
@@ -793,7 +807,21 @@ static int ceeva_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
     // arrival runway and airport
     if (flp->arr.rwy && !flp->arr.apch.proc)
     {
-        // TODO: future: prepend waypoint 5 miles from threshold on final course
+        ndt_position posn = ndt_position_calcpos4pbd(flp->arr.rwy->waypoint->position, ndt_mod(flp->arr.rwy->tru_heading + 180., 360.), ndt_distance_init(5, NDT_ALTUNIT_NM));
+        ndt_waypoint *tmp = ndt_waypoint_posn(posn);
+        if (tmp)
+        {
+            row = update__row(fd, row);
+            ret = helpr_waypoint_write(fd, tmp, row, fmt, NULL);
+            if (ret)
+            {
+                goto fail;
+            }
+        }
+        else
+        {
+            ndt_log("[fmt_xpfms]: failed to insert 5-mile final for arrival runway\n");
+        }
 
         row = update__row(fd, row);
         ret = helpr_waypoint_write(fd, flp->arr.rwy->waypoint, row, fmt, NULL);
@@ -923,7 +951,19 @@ static int helpr_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
 
         if (!flp->dep.sid.proc)
         {
-            // TODO: future: append waypoint 5 miles from threshold on runway course
+            ndt_position posn = ndt_position_calcpos4pbd(flp->dep.rwy->waypoint->position, flp->dep.rwy->tru_heading, ndt_distance_add(flp->dep.rwy->length, ndt_distance_init(5, NDT_ALTUNIT_NM)));
+            ndt_waypoint *tmp = ndt_waypoint_posn(posn);
+            if (tmp)
+            {
+                if ((ret = helpr_waypoint_write(fd, tmp, row++, fmt, NULL)))
+                {
+                    goto fail;
+                }
+            }
+            else
+            {
+                ndt_log("[fmt_xpfms]: failed to insert 5-mile waypoint for departure runway\n");
+            }
         }
     }
 
@@ -1028,7 +1068,19 @@ static int helpr_flightplan_write(ndt_flightplan *flp, FILE *fd, ndt_fltplanform
     }
     if (flp->arr.rwy && !flp->arr.apch.proc)
     {
-        // TODO: future: prepend waypoint 5 miles from threshold on final course
+        ndt_position posn = ndt_position_calcpos4pbd(flp->arr.rwy->waypoint->position, ndt_mod(flp->arr.rwy->tru_heading + 180., 360.), ndt_distance_init(5, NDT_ALTUNIT_NM));
+        ndt_waypoint *tmp = ndt_waypoint_posn(posn);
+        if (tmp)
+        {
+            if ((ret = helpr_waypoint_write(fd, tmp, row++, fmt, NULL)))
+            {
+                goto fail;
+            }
+        }
+        else
+        {
+            ndt_log("[fmt_xpfms]: failed to insert 5-mile final for arrival runway\n");
+        }
 
         if ((ret = helpr_waypoint_write(fd, flp->arr.rwy->waypoint, row++, fmt, NULL)))
         {
@@ -1476,6 +1528,14 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
     {
         (cnt -= 1); // the arrival runway is now in flp->legs
     }
+    if ((flp->arr.rwy && !flp->arr.apch.proc))
+    {
+        (cnt += 1); // inserting 5-mile final on course waypoint
+    }
+    if ((flp->dep.rwy && !flp->dep.sid.proc))
+    {
+        (cnt += 1); // inserting ~5-mile runway heading waypoint
+    }
     if ((ret = xpfms_write_header(fd, cnt)))
     {
         goto end;
@@ -1499,7 +1559,22 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
             goto end;
         }
 
-        // TODO: future: append waypoint 5 miles from threshold on runway course
+        if (!flp->dep.sid.proc)
+        {
+            ndt_position posn = ndt_position_calcpos4pbd(flp->dep.rwy->waypoint->position, flp->dep.rwy->tru_heading, ndt_distance_add(flp->dep.rwy->length, ndt_distance_init(5, NDT_ALTUNIT_NM)));
+            ndt_waypoint *tmp = ndt_waypoint_posn(posn);
+            if (tmp)
+            {
+                if ((ret = print_waypoint(fd, tmp, 0, 0)))
+                {
+                    goto end;
+                }
+            }
+            else
+            {
+                ndt_log("[fmt_xpfms]: failed to insert 5-mile waypoint for departure runway\n");
+            }
+        }
     }
     if ((ret = xpfms_write_legs(fd, flp->legs, flp->arr.rwy)))
     {
@@ -1507,7 +1582,19 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
     }
     if (flp->arr.rwy && !flp->arr.apch.proc)
     {
-        // TODO: future: prepend waypoint 5 miles from threshold on final course
+        ndt_position posn = ndt_position_calcpos4pbd(flp->arr.rwy->waypoint->position, ndt_mod(flp->arr.rwy->tru_heading + 180., 360.), ndt_distance_init(5, NDT_ALTUNIT_NM));
+        ndt_waypoint *tmp = ndt_waypoint_posn(posn);
+        if (tmp)
+        {
+            if ((ret = print_waypoint(fd, tmp, 0, 0)))
+            {
+                goto end;
+            }
+        }
+        else
+        {
+            ndt_log("[fmt_xpfms]: failed to insert 5-mile final for arrival runway\n");
+        }
 
         /*
          * Target 50 feet above actual runway threshold elevation;
