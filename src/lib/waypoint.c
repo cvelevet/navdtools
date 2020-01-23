@@ -61,11 +61,32 @@ void ndt_waypoint_close(ndt_waypoint **_wpt)
     }
 }
 
+ndt_waypoint* ndt_waypoint_posn(ndt_position position)
+{
+    ndt_waypoint *wpt = ndt_waypoint_init();
+    if (wpt == NULL)
+    {
+        goto end;
+    }
+
+    double lat = ndt_position_getlatitude (position, NDT_ANGUNIT_DEG);
+    double lon = ndt_position_getlongitude(position, NDT_ANGUNIT_DEG);
+
+    /* Keep the identifier short */
+    snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%c%02d%c%03d",
+             lat >= 0. ? 'N' : 'S', (int)round(fabs(lat)),
+             lon >= 0. ? 'E' : 'W', (int)round(fabs(lon)));
+
+    wpt->type     = NDT_WPTYPE_LLC;
+    wpt->position = position;
+
+end:
+    return wpt;
+}
+
 ndt_waypoint* ndt_waypoint_llc(const char *fmt)
 {
-    ndt_waypoint *wpt = NULL;
-
-    if (!fmt || !(wpt = ndt_waypoint_init()))
+    if (!fmt)
     {
         goto end;
     }
@@ -96,7 +117,6 @@ ndt_waypoint* ndt_waypoint_llc(const char *fmt)
                 lat = -lat;
                 break;
             default:  // invalid value
-                ndt_waypoint_close(&wpt);
                 goto end;
         }
         switch (*de2)
@@ -109,7 +129,6 @@ ndt_waypoint* ndt_waypoint_llc(const char *fmt)
                 lon = -lon;
                 break;
             default:  // invalid value
-                ndt_waypoint_close(&wpt);
                 goto end;
         }
     }
@@ -138,7 +157,6 @@ ndt_waypoint* ndt_waypoint_llc(const char *fmt)
                 lat = -lat;
                 break;
             default:  // invalid value
-                ndt_waypoint_close(&wpt);
                 goto end;
         }
         switch (*de2)
@@ -151,7 +169,6 @@ ndt_waypoint* ndt_waypoint_llc(const char *fmt)
                 lon = -lon;
                 break;
             default:  // invalid value
-                ndt_waypoint_close(&wpt);
                 goto end;
         }
     }
@@ -190,7 +207,6 @@ ndt_waypoint* ndt_waypoint_llc(const char *fmt)
                 lat = -lat;
                 break;
             default:  // invalid value
-                ndt_waypoint_close(&wpt);
                 goto end;
         }
         switch (*de2)
@@ -203,7 +219,6 @@ ndt_waypoint* ndt_waypoint_llc(const char *fmt)
                 lon = -lon;
                 break;
             default:  // invalid value
-                ndt_waypoint_close(&wpt);
                 goto end;
         }
     }
@@ -233,7 +248,6 @@ ndt_waypoint* ndt_waypoint_llc(const char *fmt)
                 lat = -lat;
                 break;
             default:  // invalid value
-                ndt_waypoint_close(&wpt);
                 goto end;
         }
     }
@@ -264,7 +278,6 @@ ndt_waypoint* ndt_waypoint_llc(const char *fmt)
                 lat = -lat;
                 break;
             default:  // invalid value
-                ndt_waypoint_close(&wpt);
                 goto end;
         }
     }
@@ -286,7 +299,6 @@ ndt_waypoint* ndt_waypoint_llc(const char *fmt)
                 lat = -lat;
                 break;
             default:  // invalid value
-                ndt_waypoint_close(&wpt);
                 goto end;
         }
         switch (*de2)
@@ -299,7 +311,6 @@ ndt_waypoint* ndt_waypoint_llc(const char *fmt)
                 lon = -lon;
                 break;
             default:  // invalid value
-                ndt_waypoint_close(&wpt);
                 goto end;
         }
     }
@@ -317,27 +328,19 @@ ndt_waypoint* ndt_waypoint_llc(const char *fmt)
     else
     {
         /* Invalid or unsupported format */
-        ndt_waypoint_close(&wpt);
         goto end;
     }
 
     if (round(fabs(lat)) > 90. || round(fabs(lon)) > 180.)
     {
         /* Invalid data */
-        ndt_waypoint_close(&wpt);
         goto end;
     }
 
-    /* Keep the identifier short */
-    snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "%c%02d%c%03d",
-             lat >= 0. ? 'N' : 'S', (int)round(fabs(lat)),
-             lon >= 0. ? 'E' : 'W', (int)round(fabs(lon)));
-
-    wpt->position = ndt_position_init(lat, lon, ndt_distance_init(0, NDT_ALTUNIT_NA));
-    wpt->type     = NDT_WPTYPE_LLC;
+    return ndt_waypoint_posn(ndt_position_init(lat, lon, ndt_distance_init(0, NDT_ALTUNIT_NA)));
 
 end:
-    return wpt;
+    return NULL;
 }
 
 ndt_waypoint* ndt_waypoint_pbd(ndt_waypoint *plce, double magb, ndt_distance dist, void *wmm)
