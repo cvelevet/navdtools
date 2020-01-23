@@ -1291,10 +1291,12 @@ int ndt_fmt_irecp_flightplan_write(ndt_flightplan *flp, FILE *fd)
         }
     }
 
-    // dummy final leg to runway threshold
-    if ((ret = fmt_irecp_print_leg(fd, flp->arr.last.rleg)))
+    if (flp->arr.apch.proc == NULL) // dummy final leg to arrival airport
     {
-        goto end;
+        if ((ret = fmt_irecp_print_leg(fd, flp->arr.last.rleg)))
+        {
+            goto end;
+        }
     }
 
 end:

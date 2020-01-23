@@ -3873,9 +3873,10 @@ static int route_leg_update(ndt_flightplan *flp)
 
     /*
      * Dummy last leg from last leg's endpoint (if it exists) to the arrival
-     * runway threshold (if set, else use arrival airport coordinates).
+     * airport. Note: arrival runway and missed approach legs are part of the
+     * final approach route segments, and always come before this specific leg.
      */
-    ndt_waypoint *dst = flp->arr.rwy ? flp->arr.rwy->waypoint : flp->arr.apt ? flp->arr.apt->waypoint : NULL;
+    ndt_waypoint *dst = flp->arr.apt ? flp->arr.apt->waypoint : NULL;
     if (dst)
     {
         if (!flp->arr.last.rsgt)
