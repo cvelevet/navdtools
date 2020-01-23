@@ -312,6 +312,27 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
     {
         yfms->data.init.from = src = corte->dep.apt;
         yfms->data.init.to   = dst = corte->arr.apt;
+        // TODO: remove this when YFMS can add/remove/switch procedures directly
+        if (corte->arr.rwy)
+        {
+            corte->arr.rwy = NULL;
+        }
+        if (corte->dep.rwy)
+        {
+            if (corte->dep.sid.proc)
+            {
+                yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1);
+                return yfs_flightplan_reinit(yfms, NULL, NULL, NULL);
+            }
+            ndt_route_segment *rsg = ndt_route_segment_direct(corte->dep.apt->waypoint, corte->dep.rwy->waypoint);
+            if (rsg == NULL)
+            {
+                yfs_spad_reset(yfms, "MEMORY ERROR 0", COLR_IDX_ORANGE);
+                return yfs_flightplan_reinit(yfms, NULL, NULL, NULL);
+            }
+            ndt_waypoint *rwy = corte->dep.rwy->waypoint; corte->dep.rwy = NULL;
+            ndt_route_leg *leg = ndt_flightplan_insert_direct(corte, rwy, ndt_list_item(corte->legs, 0), 0);
+        }
     }
     else
     {
