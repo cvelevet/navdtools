@@ -1379,6 +1379,10 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
      *
      * Include depart. runway if we also have a SID  (for improved QPAC support).
      * Include arrival runway if we have an approach (for improved QPAC support).
+     *
+     * Update: we now always write the departure and arrival runways, regardless
+     *         of whether we also have a SID or approach procedure. But we still
+     *         compute corresponding variables (as they're used in part 2 below).
      */
     int dep_rwy = (flp->dep.rwy && flp->dep.sid. proc);
     int arr_rwy = (flp->arr.rwy && flp->arr.apch.proc);
@@ -1430,11 +1434,10 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
             goto end;
         }
     }
-    if (dep_rwy)
+    if (flp->dep.rwy)
     {
-        altitude = ndt_distance_get(flp->dep.rwy->threshold.altitude, NDT_ALTUNIT_FT);
-        altitude = round(altitude / 10.) * 10;
-        altitude = altitude + 10 * (altitude == 0); // regular waypoint
+        altitude = ndt_distance_get(flp->dep.rwy->threshold.altitude, NDT_ALTUNIT_FT) + 00;
+        altitude = round(altitude / 10.) * 10; altitude = altitude + 10 * (altitude == 00); // regular waypoint
         if ((ret = print_waypoint(fd, flp->dep.rwy->waypoint, altitude, 0)))
         {
             goto end;
@@ -1444,14 +1447,22 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
     {
         goto end;
     }
-    if (arr_rwy)
+    if (flp->arr.rwy)
     {
+        /*
+         * TODO: future: don't write runway threshold if we have an approach.
+         * Once we implement it properly, said threshold will be included in
+         * the approach's legs when applicable (e.g. not circling approaches).
+         *
+         * Will also require moving the altitude code to approach leg writing.
+         */
+
         /*
          * Target 50 feet above actual runway threshold elevation;
          * matches behavior of e.g. FlightFactor A320-214 Ultimate.
          */
         altitude = ndt_distance_get(flp->arr.rwy->threshold.altitude, NDT_ALTUNIT_FT) + 50;
-        altitude = round(altitude / 10.) * 10;
+        altitude = round(altitude / 10.) * 10; altitude = altitude + 10 * (altitude == 00); // regular waypoint
 
         /*
          * For GPS approaches, our runway threshold must be an NPA waypoint.
@@ -1463,22 +1474,28 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
          * the TUC approach transition). Not marking the arrival rwy threshold
          * as overfly may not fix the above case, but it's worth a try anyway.
          */
-        switch (flp->arr.apch.proc->approach.type)
+        if (flp->arr.apch.proc)
         {
-            case NDT_APPRTYPE_GLS:
-            case NDT_APPRTYPE_GPS:
-            case NDT_APPRTYPE_RNP:
-            case NDT_APPRTYPE_RNV:
-                altitude = altitude + 10 * (altitude == 0) - 1; // NPA waypoint
-                break;
-            default:
-                altitude = altitude + 10 * (altitude == 0); // regular waypoint
-                break;
+            switch (flp->arr.apch.proc->approach.type)
+            {
+                case NDT_APPRTYPE_GLS:
+                case NDT_APPRTYPE_GPS:
+                case NDT_APPRTYPE_RNP:
+                case NDT_APPRTYPE_RNV:
+                    altitude = altitude - 1; // NPA waypoint
+                    break;
+                default:
+                    break;
+            }
         }
         if ((ret = print_waypoint(fd, flp->arr.rwy->waypoint, altitude, 0)))
         {
             goto end;
         }
+    }
+    if (flp->arr.apch.proc)
+    {
+        // TODO: future: write missed approach legs before arrival airport
     }
     if (arr_apt)
     {
