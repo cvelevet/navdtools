@@ -384,20 +384,10 @@ ndt_airport* ndt_navdata_init_airport(ndt_navdatabase *ndb, ndt_airport *apt)
             else
             {
                 couples[i][0] = rwy;
+                couples[i][1] = ndt_runway_get(tmp, rwy_recipr);
             }
-            for (size_t j = 1; j < ndt_list_count(tmp); j++)
-            {
-                if ((rwy = ndt_list_item(tmp, j)))
-                {
-                    if (!strcmp(rwy->info.idnt, rwy_recipr))
-                    {
-                        couples[i][1] = rwy;
-                        break; // found reciprocal of the runway's threshold
-                    }
-                }
-            }
-            if (couples[i][1]) ndt_list_rem(tmp, couples[i][1]);
             if (couples[i][0]) ndt_list_rem(tmp, couples[i][0]);
+            if (couples[i][1]) ndt_list_rem(tmp, couples[i][1]);
         }
     }
     for (size_t i = 0; i < 10; i++)
