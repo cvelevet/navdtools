@@ -545,15 +545,13 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
     }
 
     /* two lines per leg (header/course/distance, then name/constraints) */
-    ndt_route_leg *leg; ndt_distance distance, dtrack = ndt_distance_init(0, NDT_ALTUNIT_NA);
-    if ((leg = ndt_list_item(yfms->data.fpln.legs, yfms->data.fpln.lg_idx)))
+    ndt_distance distance = ndt_distance_init(0, NDT_ALTUNIT_NA), dtrack = ndt_distance_init(0, NDT_ALTUNIT_NA);
+    ndt_route_leg *leg = ndt_list_item(yfms->data.fpln.legs, yfms->data.fpln.lg_idx);
+    if (leg && leg->dst) // tracked leg, compute dtrack
     {
-        if (leg->dst) // tracked leg, compute dtrack
-        {
-            ndt_position to = leg->dst->position;
-            ndt_position from = yfms->data.aircraft_pos;
-            dtrack = ndt_position_calcdistance(from, to);
-        }
+        ndt_position to = leg->dst->position;
+        ndt_position from = yfms->data.aircraft_pos;
+        dtrack = ndt_position_calcdistance(from, to);
     }
     for (int i = 0; i < 5; i++)
     {
@@ -667,14 +665,17 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
      */
     if (yfms->data.fpln.dist.ref_leg_id != yfms->data.fpln.lg_idx)
     {
-        {
-            distance = ndt_distance_init(0, NDT_ALTUNIT_NA);
-        }
         for (int i = yfms->data.fpln.lg_idx + 1; i < ndt_list_count(yfms->data.fpln.legs); i++)
         {
             if ((leg = ndt_list_item(yfms->data.fpln.legs, i)))
             {
+                if (leg->constraints.waypoint == NDT_WPTCONST_MAP)
+                {
+                    distance = ndt_distance_add(distance, leg->dis);
+                    break; // missed approach legs technically "after" destination
+                }
                 distance = ndt_distance_add(distance, leg->dis);
+                continue;
             }
         }
         yfms->data.fpln.dist.remain = distance;
@@ -687,12 +688,14 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
     }
 
     /* final destination :D */
+    ndt_waypoint *destination = yfms->data.init.to->waypoint;
+    if (yfms->data.fpln.m_leg && yfms->data.fpln.m_leg->dst)
+    {
+        destination = yfms->data.fpln.m_leg->dst;
+    }
     yfs_printf_lft(yfms, 11, 0, COLR_IDX_WHITE, "%s", " DEST   TIME  DIST  EFOB");
-    yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%-4s%-3s ----  %4.0lf  ----", // TODO: TIME
-                   yfms->ndt.flp.rte->arr.apt->info.idnt,
-                   yfms->ndt.flp.rte->arr.rwy ?
-                   yfms->ndt.flp.rte->arr.rwy->info.idnt : "",
-                   (double)ndt_distance_get(distance, NDT_ALTUNIT_ME) / 1852.);
+    yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%-7s ----  %4.0lf  ----", // TODO: TIME
+                   destination->info.idnt, (double)ndt_distance_get(distance, NDT_ALTUNIT_ME) / 1852.);
 
     /* all good */
     yfms->mwindow.screen.redraw = 1; return;
@@ -739,9 +742,8 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)
     {
         ndt_list_empty(yfms->data.fpln.legs);
     }
-    {
-        yfms->data.fpln.d_fpl = yfms->ndt.flp.rte; // default plan if all empty
-    }
+    yfms->data.fpln.d_fpl = yfms->ndt.flp.rte; // default plan if all empty
+    yfms->data.fpln.m_leg = NULL;
 
     //fixme filter out leg 0 (departure to first wpt) when we have legs already,
     //      even for enroute and arrival plans (test this, test this, test this)
@@ -779,6 +781,10 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)
                 switch (leg->type)
                 {
                     default:
+                        if (leg->constraints.waypoint == NDT_WPTCONST_MAP)
+                        {
+                            yfms->data.fpln.m_leg = leg;
+                        }
                         yfms->data.fpln.d_fpl = yfms->ndt.flp.rte;
                         ndt_list_add(yfms->data.fpln.legs, leg);
                         break;
@@ -819,6 +825,10 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)
                 switch (leg->type)
                 {
                     default:
+                        if (leg->constraints.waypoint == NDT_WPTCONST_MAP)
+                        {
+                            yfms->data.fpln.m_leg = leg;
+                        }
                         yfms->data.fpln.d_fpl = yfms->ndt.flp.iac;
                         ndt_list_add(yfms->data.fpln.legs, leg);
                         break;
@@ -829,7 +839,7 @@ void yfs_fpln_fplnupdt(yfms_context *yfms)
 
     /* Last leg (arrival runway or airport) */
     ndt_list_add(yfms->data.fpln.legs, (yfms->data.fpln.d_leg = yfms->data.fpln.d_fpl->arr.last.rleg));
-    yfms->data.fpln.dindex = ndt_list_count(yfms->data.fpln.legs) - 1; // future: may != due to MAP
+    yfms->data.fpln.dindex = ndt_list_count(yfms->data.fpln.legs) - 1;
 
     /* Future: missed approach legs */
 

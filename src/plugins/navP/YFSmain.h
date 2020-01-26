@@ -324,6 +324,7 @@ typedef struct
             ndt_waypoint       *w_tp; // present pos. waypoint for DIR TO
             ndt_flightplan    *d_fpl; // last non-empty flight plan element
             ndt_route_leg     *d_leg; // leg to the arrival airport or runway
+            ndt_route_leg     *m_leg; // leg to missed approach waypt, if any
             ndt_list           *legs; // list of all flight plan legs, if any
             struct
             {
