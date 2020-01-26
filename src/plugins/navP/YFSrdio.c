@@ -91,13 +91,22 @@ static double get_com_frequency(const char *string)
     {
         len = strnlen(string, 8);
     }
-    if (len < 3 || len > 7) // min: "122", max: "122.800"
+    if (len < 2 || len > 7) // min: "22", max: "122.800"
     {
         return -1.;
     }
     if (sscanf(string, "%lf", &freq) != 1)
     {
         return -1.;
+    }
+    if (*string != '1')
+    {
+        double i = 1.0;
+        while (i < freq)
+        {
+            i *= 10.0;
+        }
+        freq += round(i);
     }
     while (1000. <= freq + YVP_FLOORDBL) // no decimal separator provided
     {
