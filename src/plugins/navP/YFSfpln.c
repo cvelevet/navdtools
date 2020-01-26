@@ -434,6 +434,11 @@ static void lrev_pageupdt(yfms_context *yfms)
     {
         yfs_printf_lft(yfms, 2, 0, COLR_IDX_WHITE, "%s", "<DEPARTURE");
     }
+    if (yfms->data.fpln.lrev.leg == yfms->data.fpln.m_leg)
+    {
+        // TODO: future: open destination arrival page???
+        // we must compare to real MCDU behavior first
+    }
     if (yfms->data.fpln.lrev.idx == yfms->data.fpln.dindex)
     {
         yfs_printf_rgt(yfms, 2, 0, COLR_IDX_WHITE, "%s", "ARRIVAL>");
@@ -567,13 +572,6 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
                 have_waypt = 1;
                 break;
             default: // regular leg
-                if (index == yfms->data.fpln.dindex)
-                {
-                    fpl_print_airport_rwy(yfms, (2 * (i + 1)), yfms->ndt.flp.rte->arr.apt, yfms->ndt.flp.rte->arr.rwy);
-                    leg = yfms->data.fpln.d_leg;
-                    have_waypt = 1;
-                    break;
-                }
                 if ((leg = ndt_list_item(yfms->data.fpln.legs, index)) && (leg->type == NDT_LEGTYPE_ZZ))
                 {
                     yfs_printf_lft(yfms, (2 * (i + 1)), 0, COLR_IDX_WHITE, "%s", "---F-PLN DISCONTINUITY--");
@@ -1516,9 +1514,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             yfms->data.fpln.lrev.leg  = index == -1 ? ndt_list_item(yfms->data.fpln.legs, 0) : leg;
             if (index == yfms->data.fpln.dindex)
             {
-                yfms->data.fpln.lrev.wpt = (yfms->ndt.flp.rte->arr.rwy           ?
-                                            yfms->ndt.flp.rte->arr.rwy->waypoint :
-                                            yfms->ndt.flp.rte->arr.apt->waypoint);
+                yfms->data.fpln.lrev.wpt = yfms->ndt.flp.rte->arr.apt->waypoint;
             }
             else if (index == -1)
             {
