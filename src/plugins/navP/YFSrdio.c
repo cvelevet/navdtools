@@ -119,7 +119,7 @@ static double get_com_frequency(const char *string)
     else
     {
         f250 = (round(freq *  40.) /  40.);
-        f833 = (round(freq * 120.) / 120.);
+        f833 = ( ceil(freq * 120.) / 120.);
     }
     if (fabs(f833 - f250) > .001)
     {
@@ -127,7 +127,6 @@ static double get_com_frequency(const char *string)
         {
             f833 += .005;
         }
-        f833 = (round(f833 * 200.) / 200.);
         return (round(f833 * 200.) / 200.); // display frequency rounded to .005 Mhz
     }
     return f250;
