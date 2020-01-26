@@ -1394,16 +1394,13 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
                 }
                 if (wpt->type == NDT_WPTYPE_RWY && yfms->data.phase < FMGS_PHASE_TOF) // inserting a runway on the ground
                 {
-                    for (size_t i = 0, j = ndt_list_count(yfms->data.init.from->runways); i < j; i++)
+                    ndt_airport *ap = yfms->data.init.from;
+                    ndt_runway *rwy = ndt_runway_get(ap->runways, wpt->info.idnt + strlen(ap->info.idnt));
+                    if (rwy && rwy->waypoint == wpt)
                     {
-                        ndt_runway *rwy = ndt_list_item(yfms->data.init.from->runways, i);
-                        if (rwy && rwy->waypoint == wpt)
-                        {
-                            // set autopilot to runway heading using navdlib-computed true heading and X-Plane local magnetic model
-                            XPLMSetDataf(yfms->xpl.heading_dial_deg_mag_pilot,    rwy->tru_heading + XPLMGetDataf(yfms->xpl.mag_var));
-                            XPLMSetDataf(yfms->xpl.heading_dial_deg_mag_copilot,  rwy->tru_heading + XPLMGetDataf(yfms->xpl.mag_var));
-                            break;
-                        }
+                        // set autopilot to runway heading using navdlib-computed true heading and X-Plane local magnetic model
+                        XPLMSetDataf(yfms->xpl.heading_dial_deg_mag_pilot,   rwy->tru_heading + XPLMGetDataf(yfms->xpl.mag_var));
+                        XPLMSetDataf(yfms->xpl.heading_dial_deg_mag_copilot, rwy->tru_heading + XPLMGetDataf(yfms->xpl.mag_var));
                     }
                 }
                 // insert after unless we're from the departure's lat. rev. page
@@ -1622,16 +1619,13 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (wpt->type == NDT_WPTYPE_RWY && yfms->data.phase < FMGS_PHASE_TOF) // inserting a runway on the ground
         {
-            for (size_t i = 0, j = ndt_list_count(yfms->data.init.from->runways); i < j; i++)
+            ndt_airport *ap = yfms->data.init.from;
+            ndt_runway *rwy = ndt_runway_get(ap->runways, wpt->info.idnt + strlen(ap->info.idnt));
+            if (rwy && rwy->waypoint == wpt)
             {
-                ndt_runway *rwy = ndt_list_item(yfms->data.init.from->runways, i);
-                if (rwy && rwy->waypoint == wpt)
-                {
-                    // set autopilot to runway heading using navdlib-computed true heading and X-Plane local magnetic model
-                    XPLMSetDataf(yfms->xpl.heading_dial_deg_mag_pilot,    rwy->tru_heading + XPLMGetDataf(yfms->xpl.mag_var));
-                    XPLMSetDataf(yfms->xpl.heading_dial_deg_mag_copilot,  rwy->tru_heading + XPLMGetDataf(yfms->xpl.mag_var));
-                    break;
-                }
+                // set autopilot to runway heading using navdlib-computed true heading and X-Plane local magnetic model
+                XPLMSetDataf(yfms->xpl.heading_dial_deg_mag_pilot,   rwy->tru_heading + XPLMGetDataf(yfms->xpl.mag_var));
+                XPLMSetDataf(yfms->xpl.heading_dial_deg_mag_copilot, rwy->tru_heading + XPLMGetDataf(yfms->xpl.mag_var));
             }
         }
         if ((ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), wpt, leg, 0)) == NULL)
