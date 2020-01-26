@@ -82,7 +82,7 @@ static inline int navaid_is_ils(int type)
  */
 static double get_com_frequency(const char *string)
 {
-    double freq; size_t len;
+    double freq, f250, f833; size_t len;
     if (!string)
     {
         return -1.;
@@ -112,21 +112,25 @@ static double get_com_frequency(const char *string)
     {
         freq /= 10.;
     }
-    {
-        /*
-         * For com. radios, the "tick" is 25.0 kHz. For frequencies that don't
-         * divide cleanly by our tick, always use the next (i.e. higher) tick.
-         *
-         * 8.33 kHz is more complex and will be implemented at a later date.
-         */
-        freq = ceil(freq * 40. + YVP_CEIL_DBL) / 40.;
-    }
     if (freq + YVP_FLOORDBL <= 118.000 || freq + YVP_CEIL_DBL >= 136.999) // valid range 118.* -> 136.* Mhz
     {
         return -1.;
     }
-    /* For display purposes, we must round the frequency to .005 Mhz (1/200) */
-    return (round(freq * 200.) / 200.);
+    else
+    {
+        f250 = (round(freq *  40.) /  40.);
+        f833 = (round(freq * 120.) / 120.);
+    }
+    if (fabs(f833 - f250) > .001)
+    {
+        if (fabs((f833 = (floor(freq * 120.) / 120.)) - f250) < .001)
+        {
+            f833 += .005;
+        }
+        f833 = (round(f833 * 200.) / 200.);
+        return (round(f833 * 200.) / 200.); // display frequency rounded to .005 Mhz
+    }
+    return f250;
 }
 
 static double get_nav_frequency(const char *string)
