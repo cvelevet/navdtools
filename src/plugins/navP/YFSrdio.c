@@ -148,6 +148,15 @@ static double get_nav_frequency(const char *string)
     {
         return -1.;
     }
+    if (*string != '1')
+    {
+        double i = 1.0;
+        while (i < freq)
+        {
+            i *= 10.0;
+        }
+        freq += round(i);
+    }
     while (1000. <= freq + YVP_FLOORDBL) // no decimal separator provided
     {
         freq /= 10.;
