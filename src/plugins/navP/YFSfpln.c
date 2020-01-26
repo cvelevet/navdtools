@@ -1413,9 +1413,21 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
                 }
                 // insert after unless we're from the departure's lat. rev. page
                 // since in the latter case, leg is not the current but next leg
-                if ((ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), wpt, leg, yfms->data.fpln.lrev.idx != -1)) == NULL)
+                ndt_route_leg *new_leg = ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), wpt, leg, yfms->data.fpln.lrev.idx != -1);
+                if (new_leg == NULL)
                 {
                     yfs_spad_reset(yfms, "UNKNOWN ERROR 3", COLR_IDX_ORANGE); return;
+                }
+                if (wpt->type == NDT_WPTYPE_RWY)
+                {
+                    ndt_airport *ap = yfms->data.init.to;
+                    ndt_runway *rwy = ndt_runway_get(ap->runways, wpt->info.idnt + strlen(ap->info.idnt));
+                    if (rwy && rwy->waypoint == wpt)
+                    {
+                        // XXX: temporary: remove when YFMS has full procedure support
+                        ndt_restriction r = ndt_leg_const_init(); r.waypoint = NDT_WPTCONST_MAP;
+                        ndt_route_leg_restrict(new_leg, r);
+                    }
                 }
                 yfms->data.fpln.lrev.open     = 0;
                 yfms->data.fpln.mod.source    = trk;
@@ -1634,9 +1646,21 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
                 XPLMSetDataf(yfms->xpl.heading_dial_deg_mag_copilot, rwy->tru_heading + XPLMGetDataf(yfms->xpl.mag_var));
             }
         }
-        if ((ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), wpt, leg, 0)) == NULL)
+        ndt_route_leg *new_leg = ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), wpt, leg, 0);
+        if (new_leg == NULL)
         {
             yfs_spad_reset(yfms, "UNKNOWN ERROR 3", COLR_IDX_ORANGE); return;
+        }
+        if (wpt->type == NDT_WPTYPE_RWY)
+        {
+            ndt_airport *ap = yfms->data.init.to;
+            ndt_runway *rwy = ndt_runway_get(ap->runways, wpt->info.idnt + strlen(ap->info.idnt));
+            if (rwy && rwy->waypoint == wpt)
+            {
+                // XXX: temporary: remove when YFMS has full procedure support
+                ndt_restriction r = ndt_leg_const_init(); r.waypoint = NDT_WPTCONST_MAP;
+                ndt_route_leg_restrict(new_leg, r);
+            }
         }
         yfms->data.fpln.mod.source    = trk;
         yfms->data.fpln.mod.opaque    = (void*)trk->xpfms;
