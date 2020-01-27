@@ -1083,12 +1083,7 @@ static void set_transponder_code(yfms_context *yfms, int code)
 
 static void yfs_rad1_pageupdt(yfms_context *yfms)
 {
-    /* don't print updated data before processing delayed swap, if any */
-    if (yfms->data.rdio.delayed_swap)
-    {
-        /* half the usual delay of a quarter second should work well enough */
-        XPLMSetFlightLoopCallbackInterval(yfms->xpl.fl_callback, .125f, 1, yfms); return;
-    }
+    /* don't print updated data before processing delayed actions, if any */
     if (yfms->data.rdio.asrt_delayed_baro_s)
     {
         XPLMSetFlightLoopCallbackInterval(yfms->xpl.fl_callback, .125f, 1, yfms); return;
@@ -1114,11 +1109,19 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     yfs_printf_rgt(yfms, 3, 0, COLR_IDX_WHITE, "%s", "STANDBY");
 
     /* line 2: active frequencies (green) */
-    yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%03d.%03d", XPLMGetDatai(yfms->xpl.com1_frequency_Mhz),         XPLMGetDatai(yfms->xpl.com1_frequency_khz));
-    yfs_printf_rgt(yfms, 2, 0, COLR_IDX_GREEN, "%03d.%03d", XPLMGetDatai(yfms->xpl.com2_frequency_Mhz),         XPLMGetDatai(yfms->xpl.com2_frequency_khz));
+    yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%03d.%03d", XPLMGetDatai(yfms->xpl.com1_frequency_Mhz), XPLMGetDatai(yfms->xpl.com1_frequency_khz));
+    yfs_printf_rgt(yfms, 2, 0, COLR_IDX_GREEN, "%03d.%03d", XPLMGetDatai(yfms->xpl.com2_frequency_Mhz), XPLMGetDatai(yfms->xpl.com2_frequency_khz));
     /* line 4: standby frequencies (blue) */
-    yfs_printf_lft(yfms, 4, 0, COLR_IDX_BLUE,  "%03d.%03d", XPLMGetDatai(yfms->xpl.com1_standby_frequency_Mhz), XPLMGetDatai(yfms->xpl.com1_standby_frequency_khz));
-    yfs_printf_rgt(yfms, 4, 0, COLR_IDX_BLUE,  "%03d.%03d", XPLMGetDatai(yfms->xpl.com2_standby_frequency_Mhz), XPLMGetDatai(yfms->xpl.com2_standby_frequency_khz));
+    if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
+    {
+        yfs_printf_lft(yfms, 4, 0, COLR_IDX_BLUE,  "%07.3lf", ((double)yfms->xpl.qpac.com1_sby_hz_833) / 1000.);
+        yfs_printf_rgt(yfms, 4, 0, COLR_IDX_BLUE,  "%07.3lf", ((double)yfms->xpl.qpac.com2_sby_hz_833) / 1000.);
+    }
+    else
+    {
+        yfs_printf_lft(yfms, 4, 0, COLR_IDX_BLUE,  "%03d.%03d", XPLMGetDatai(yfms->xpl.com1_standby_frequency_Mhz), XPLMGetDatai(yfms->xpl.com1_standby_frequency_khz));
+        yfs_printf_rgt(yfms, 4, 0, COLR_IDX_BLUE,  "%03d.%03d", XPLMGetDatai(yfms->xpl.com2_standby_frequency_Mhz), XPLMGetDatai(yfms->xpl.com2_standby_frequency_khz));
+    }
 
     /* line 7: headers (white) */
     yfs_printf_ctr(yfms, 7,    COLR_IDX_WHITE, "%s", "XPDR");
@@ -1410,15 +1413,20 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[1] == 0 && (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC))
     {
+        int new_activ_com_frequency_hz_833;
         switch (key[0])
         {
             case 0:
                 XPLMCommandOnce(yfms->xpl.qpac.VHF1Capt);
-                XPLMCommandOnce(yfms->xpl.qpac.RMPSwapCapt);
+                new_activ_com_frequency_hz_833 = yfms->xpl.qpac.com1_sby_hz_833;
+                yfms->xpl.qpac.com1_sby_hz_833 = XPLMGetDatai(yfms->xpl.com1_left_frequency_hz_833);
+                XPLMSetDatai (yfms->xpl.com1_left_frequency_hz_833, new_activ_com_frequency_hz_833);
                 break;
             default:
                 XPLMCommandOnce(yfms->xpl.qpac.VHF2Co);
-                XPLMCommandOnce(yfms->xpl.qpac.RMPSwapCo);
+                new_activ_com_frequency_hz_833 = yfms->xpl.qpac.com2_sby_hz_833;
+                yfms->xpl.qpac.com2_sby_hz_833 = XPLMGetDatai(yfms->xpl.com2_left_frequency_hz_833);
+                XPLMSetDatai (yfms->xpl.com2_left_frequency_hz_833, new_activ_com_frequency_hz_833);
                 break;
         }
         yfs_rad1_pageupdt(yfms); return;
@@ -1471,11 +1479,9 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         {
             if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
             {
-                XPLMCommandOnce(yfms->xpl.qpac.VHF1Capt);
-                XPLMCommandOnce(yfms->xpl.qpac.RMPSwapCapt);
-                XPLMSetDatai(yfms->xpl.com1_left_frequency_hz_833, hz8);
-                yfms->data.rdio.delayed_swap = yfms->xpl.qpac.RMPSwapCapt;
-                yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                yfs_spad_clear(yfms);
+                yfms->xpl.qpac.com1_sby_hz_833 = hz8;
+                return yfs_rad1_pageupdt(yfms);
             }
             XPLMSetDatai(yfms->xpl.com1_standby_frequency_Mhz, mhz);
             XPLMSetDatai(yfms->xpl.com1_standby_frequency_khz, khz);
@@ -1485,11 +1491,9 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         {
             if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
             {
-                XPLMCommandOnce(yfms->xpl.qpac.VHF2Co);
-                XPLMCommandOnce(yfms->xpl.qpac.RMPSwapCo);
-                XPLMSetDatai(yfms->xpl.com2_left_frequency_hz_833, hz8);
-                yfms->data.rdio.delayed_swap = yfms->xpl.qpac.RMPSwapCo;
-                yfs_spad_clear(yfms); yfs_rad1_pageupdt(yfms); return;
+                yfs_spad_clear(yfms);
+                yfms->xpl.qpac.com2_sby_hz_833 = hz8;
+                return yfs_rad1_pageupdt(yfms);
             }
             XPLMSetDatai(yfms->xpl.com2_standby_frequency_Mhz, mhz);
             XPLMSetDatai(yfms->xpl.com2_standby_frequency_khz, khz);

@@ -179,7 +179,6 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfms->data.init.corte_name[0] = 0;
 
     /* delayed setters */
-    yfms->data.rdio.delayed_swap = NULL;
     yfms->data.rdio.asrt_delayed_baro_s = 0;
     yfms->data.rdio.asrt_delayed_redraw = 0;
 
@@ -476,17 +475,11 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                                                 ndt_distance_init((int64_t)(XPLMGetDatad(yfms->xpl.elevation_msl) / .3048), NDT_ALTUNIT_FT));
 
     /*
-     * process delayed standby <=> active frequency swap from the radio page
+     * process delayed actions from the radio page
      *
      * do it here because yfs_rad1_pageupdt can't, as it's called for the same
-     * flight model iteration as the frequency is being written to the dataref
+     * flight model iteration as data can be be written to applicable datarefs
      */
-    if (yfms->data.rdio.delayed_swap)
-    {
-        XPLMCommandOnce(yfms->data.rdio.delayed_swap);
-        yfms->data.rdio.delayed_swap = NULL;
-        return .125f; // give time for the swap to occur before printing again
-    }
     if (yfms->data.rdio.asrt_delayed_baro_s)
     {
         float unip; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_f32_lunip, &unip);

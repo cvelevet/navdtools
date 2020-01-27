@@ -989,18 +989,8 @@ static void toggle_main_window(yfms_context *yfms)
             yfms->xpl.qpac.BaroStdCapt            = XPLMFindDataRef("AirbusFBW/BaroStdCapt"                     );
             yfms->xpl.qpac.BaroUnitFO             = XPLMFindDataRef("AirbusFBW/BaroUnitFO"                      );
             yfms->xpl.qpac.BaroStdFO              = XPLMFindDataRef("AirbusFBW/BaroStdFO"                       );
-            yfms->xpl.qpac.RMPSwapCapt            = XPLMFindCommand("AirbusFBW/RMPSwapCapt"                     );
-            yfms->xpl.qpac.RMPSwapCo              = XPLMFindCommand("AirbusFBW/RMPSwapCo"                       );
             yfms->xpl.qpac.VHF1Capt               = XPLMFindCommand("AirbusFBW/VHF1Capt"                        );
             yfms->xpl.qpac.VHF2Co                 = XPLMFindCommand("AirbusFBW/VHF2Co"                          );
-            yfms->xpl.qpac.RMP1FreqUpLrg          = XPLMFindCommand("AirbusFBW/RMP1FreqUpLrg"                   );
-            yfms->xpl.qpac.RMP1FreqUpSml          = XPLMFindCommand("AirbusFBW/RMP1FreqUpSml"                   );
-            yfms->xpl.qpac.RMP1FreqDownLrg        = XPLMFindCommand("AirbusFBW/RMP1FreqDownLrg"                 );
-            yfms->xpl.qpac.RMP1FreqDownSml        = XPLMFindCommand("AirbusFBW/RMP1FreqDownSml"                 );
-            yfms->xpl.qpac.RMP2FreqUpLrg          = XPLMFindCommand("AirbusFBW/RMP2FreqUpLrg"                   );
-            yfms->xpl.qpac.RMP2FreqUpSml          = XPLMFindCommand("AirbusFBW/RMP2FreqUpSml"                   );
-            yfms->xpl.qpac.RMP2FreqDownLrg        = XPLMFindCommand("AirbusFBW/RMP2FreqDownLrg"                 );
-            yfms->xpl.qpac.RMP2FreqDownSml        = XPLMFindCommand("AirbusFBW/RMP2FreqDownSml"                 );
             yfms->xpl.q350.pressModeLeft          = XPLMFindDataRef("1-sim/pres/pressModeLeft/switch"           );
             yfms->xpl.q350.pressModeRight         = XPLMFindDataRef("1-sim/pres/pressModeRight/switch"          );
             yfms->xpl.q350.pressLeftButton        = XPLMFindDataRef("1-sim/pres/pressLeftButton"                );
@@ -1115,37 +1105,29 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.has_custom_navigation = 1;
                 yfms->xpl.atyp = YFS_ATYP_IXEG; break;
             }
-            if (yfms->xpl.qpac.XPDR[0]         && yfms->xpl.qpac.XPDR[1]           &&
-                yfms->xpl.qpac.XPDR[2]         && yfms->xpl.qpac.XPDR[3]           &&
-                yfms->xpl.qpac.XPDRPower       && yfms->xpl.qpac.XPDRAltitude      &&
-                yfms->xpl.qpac.XPDRTCASMode    && yfms->xpl.qpac.XPDRTCASAltSelect &&
-                yfms->xpl.qpac.BaroUnitCapt    && yfms->xpl.qpac.BaroStdCapt       &&
-                yfms->xpl.qpac.BaroUnitFO      && yfms->xpl.qpac.BaroStdFO         &&
-                yfms->xpl.qpac.RMPSwapCapt     && yfms->xpl.qpac.RMPSwapCo         &&
-                yfms->xpl.qpac.VHF1Capt        && yfms->xpl.qpac.VHF2Co            &&
-                yfms->xpl.qpac.RMP1FreqUpLrg   && yfms->xpl.qpac.RMP1FreqUpSml     &&
-                yfms->xpl.qpac.RMP1FreqDownLrg && yfms->xpl.qpac.RMP1FreqDownSml   &&
-                yfms->xpl.qpac.RMP2FreqUpLrg   && yfms->xpl.qpac.RMP2FreqUpSml     &&
-                yfms->xpl.qpac.RMP2FreqDownLrg && yfms->xpl.qpac.RMP2FreqDownSml)
+            if (yfms->xpl.qpac.XPDR[0]      && yfms->xpl.qpac.XPDR[1]           &&
+                yfms->xpl.qpac.XPDR[2]      && yfms->xpl.qpac.XPDR[3]           &&
+                yfms->xpl.qpac.XPDRPower    && yfms->xpl.qpac.XPDRAltitude      &&
+                yfms->xpl.qpac.XPDRTCASMode && yfms->xpl.qpac.XPDRTCASAltSelect &&
+                yfms->xpl.qpac.BaroUnitCapt && yfms->xpl.qpac.BaroStdCapt       &&
+                yfms->xpl.qpac.BaroUnitFO   && yfms->xpl.qpac.BaroStdFO         &&
+                yfms->xpl.qpac.VHF1Capt     && yfms->xpl.qpac.VHF2Co)
             {
-                yfms->xpl.has_custom_nav_radios = 1;
-                yfms->xpl.has_custom_navigation = 1;
+                yfms->xpl.qpac.com1_sby_hz_833 = XPLMGetDatai(yfms->xpl.com1_standby_frequency_hz_833);
+                yfms->xpl.qpac.com2_sby_hz_833 = XPLMGetDatai(yfms->xpl.com2_standby_frequency_hz_833);
+                yfms->xpl.has_custom_nav_radios= yfms->xpl.has_custom_navigation = 1;
                 yfms->xpl.atyp = YFS_ATYP_TOLI; break;
             }
-            if (yfms->xpl.qpac.XPDR[0]         && yfms->xpl.qpac.XPDR[1]         &&
-                yfms->xpl.qpac.XPDR[2]         && yfms->xpl.qpac.XPDR[3]         &&
-                yfms->xpl.qpac.XPDRPower       && yfms->xpl.qpac.XPDRAltitude    &&
-                yfms->xpl.qpac.BaroUnitCapt    && yfms->xpl.qpac.BaroStdCapt     &&
-                yfms->xpl.qpac.BaroUnitFO      && yfms->xpl.qpac.BaroStdFO       &&
-                yfms->xpl.qpac.RMPSwapCapt     && yfms->xpl.qpac.RMPSwapCo       &&
-                yfms->xpl.qpac.VHF1Capt        && yfms->xpl.qpac.VHF2Co          &&
-                yfms->xpl.qpac.RMP1FreqUpLrg   && yfms->xpl.qpac.RMP1FreqUpSml   &&
-                yfms->xpl.qpac.RMP1FreqDownLrg && yfms->xpl.qpac.RMP1FreqDownSml &&
-                yfms->xpl.qpac.RMP2FreqUpLrg   && yfms->xpl.qpac.RMP2FreqUpSml   &&
-                yfms->xpl.qpac.RMP2FreqDownLrg && yfms->xpl.qpac.RMP2FreqDownSml)
+            if (yfms->xpl.qpac.XPDR[0]      && yfms->xpl.qpac.XPDR[1]      &&
+                yfms->xpl.qpac.XPDR[2]      && yfms->xpl.qpac.XPDR[3]      &&
+                yfms->xpl.qpac.XPDRPower    && yfms->xpl.qpac.XPDRAltitude &&
+                yfms->xpl.qpac.BaroUnitCapt && yfms->xpl.qpac.BaroStdCapt  &&
+                yfms->xpl.qpac.BaroUnitFO   && yfms->xpl.qpac.BaroStdFO    &&
+                yfms->xpl.qpac.VHF1Capt     && yfms->xpl.qpac.VHF2Co)
             {
-                yfms->xpl.has_custom_nav_radios = 1;
-                yfms->xpl.has_custom_navigation = 1;
+                yfms->xpl.qpac.com1_sby_hz_833 = XPLMGetDatai(yfms->xpl.com1_standby_frequency_hz_833);
+                yfms->xpl.qpac.com2_sby_hz_833 = XPLMGetDatai(yfms->xpl.com2_standby_frequency_hz_833);
+                yfms->xpl.has_custom_nav_radios= yfms->xpl.has_custom_navigation = 1;
                 yfms->xpl.atyp = YFS_ATYP_QPAC; break;
             }
             if (yfms->xpl.q350.pressModeLeft    && yfms->xpl.q350.pressModeRight  &&
@@ -1400,6 +1382,8 @@ void* yfs_main_init(void)
         (yfms->xpl.com2_standby_frequency_khz      = XPLMFindDataRef("sim/cockpit2/radios/actuators/com2_standby_frequency_khz"     )) == NULL ||
         (yfms->xpl.com1_left_frequency_hz_833      = XPLMFindDataRef("sim/cockpit2/radios/actuators/com1_left_frequency_hz_833"     )) == NULL ||
         (yfms->xpl.com2_left_frequency_hz_833      = XPLMFindDataRef("sim/cockpit2/radios/actuators/com2_left_frequency_hz_833"     )) == NULL ||
+        (yfms->xpl.com1_standby_frequency_hz_833   = XPLMFindDataRef("sim/cockpit2/radios/actuators/com1_standby_frequency_hz_833"  )) == NULL ||
+        (yfms->xpl.com2_standby_frequency_hz_833   = XPLMFindDataRef("sim/cockpit2/radios/actuators/com2_standby_frequency_hz_833"  )) == NULL ||
         (yfms->xpl.barometer_setting_in_hg_pilot   = XPLMFindDataRef("sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot"  )) == NULL ||
         (yfms->xpl.barometer_setting_in_hg_copilot = XPLMFindDataRef("sim/cockpit2/gauges/actuators/barometer_setting_in_hg_copilot")) == NULL ||
         (yfms->xpl.nav1_type                       = XPLMFindDataRef("sim/cockpit2/radios/indicators/nav1_type"                     )) == NULL || // PAGE_RAD2

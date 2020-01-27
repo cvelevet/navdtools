@@ -401,7 +401,6 @@ typedef struct
         prog;
         struct
         {
-            XPLMCommandRef delayed_swap;
             int32_t asrt_delayed_baro_s;
             int32_t asrt_delayed_baro_u;
             int32_t asrt_delayed_baro_v;
@@ -455,6 +454,8 @@ typedef struct
         XPLMDataRef com2_standby_frequency_khz;
         XPLMDataRef com1_left_frequency_hz_833;
         XPLMDataRef com2_left_frequency_hz_833;
+        XPLMDataRef com1_standby_frequency_hz_833;
+        XPLMDataRef com2_standby_frequency_hz_833;
         XPLMDataRef barometer_setting_in_hg_pilot;
         XPLMDataRef barometer_setting_in_hg_copilot;
         // PAGE_RAD2
@@ -545,6 +546,8 @@ typedef struct
         } ixeg;
         struct
         {
+            int com1_sby_hz_833;
+            int com2_sby_hz_833;
             XPLMDataRef XPDR[4];
             XPLMDataRef XPDRPower;
             XPLMDataRef XPDRAltitude;
@@ -556,16 +559,6 @@ typedef struct
             XPLMDataRef BaroStdFO;
             XPLMCommandRef VHF2Co;
             XPLMCommandRef VHF1Capt;
-            XPLMCommandRef RMPSwapCo;
-            XPLMCommandRef RMPSwapCapt;
-            XPLMCommandRef RMP1FreqUpLrg;
-            XPLMCommandRef RMP2FreqUpLrg;
-            XPLMCommandRef RMP1FreqUpSml;
-            XPLMCommandRef RMP2FreqUpSml;
-            XPLMCommandRef RMP1FreqDownLrg;
-            XPLMCommandRef RMP2FreqDownLrg;
-            XPLMCommandRef RMP1FreqDownSml;
-            XPLMCommandRef RMP2FreqDownSml;
         }
         qpac;
         struct
