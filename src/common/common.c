@@ -926,16 +926,13 @@ int ndt_position_fprintllc(ndt_position pos, ndt_llcfmt fmt, FILE *fd)
 
 ndt_frequency ndt_frequency_init(double f)
 {
-    ndt_frequency frequency;
-
-    frequency.value = f * 120;
-
-    return frequency;
+    ndt_frequency freqcy = { .value = round(f * 600.) }; // lcm(20, 40, 120, 200)
+    return freqcy;
 }
 
 double ndt_frequency_get(ndt_frequency f)
 {
-    return f.value / 120.;
+    return (((double)f.value) / 600.); // lcm(20, 40, 120, 200)
 }
 
 ndt_date ndt_date_init(time_t time)

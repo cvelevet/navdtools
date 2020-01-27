@@ -166,7 +166,7 @@ int          ndt_position_fprintllc    (ndt_position position,  ndt_llcfmt forma
 
 typedef struct ndt_frequency
 {
-    int value; // unit: 8.33 kHz ticks
+    int value; // unit: 1666 Hz ticks
 } ndt_frequency;
 
 ndt_frequency ndt_frequency_init(double        frequency);
