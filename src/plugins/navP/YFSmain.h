@@ -687,6 +687,7 @@ ndt_waypoint* yfs_main_usrwp(yfms_context*, char*, char*, ndt_waypoint*);
 int           yfs_main_is_usrwpt(yfms_context*,           ndt_waypoint*);
 void          yfs_main_usrwp_ref(yfms_context*,           ndt_waypoint*);
 void          yfs_main_usrwp_unr(yfms_context*,           ndt_waypoint*);
+void          yfs_fmgs_phase_set(yfms_context*,                     int);
 void          yfs_printf_lft(void*,           int, int, int, char*, ...);
 void          yfs_printf_rgt(void*,           int, int, int, char*, ...);
 void          yfs_printf_ctr(void*,           int,      int, char*, ...);

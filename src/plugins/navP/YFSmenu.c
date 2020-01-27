@@ -376,6 +376,88 @@ void yfs_curr_pageupdt(yfms_context *yfms)
     return;
 }
 
+void yfs_fmgs_phase_set(yfms_context *yfms, int new_phase)
+{
+#if TIM_ONLY
+    int open_radio_1_on_end = 1;
+#else
+    int open_radio_1_on_end = 0;
+#endif
+    XPLMDataRef swtid, sendv; int index;
+    switch (new_phase)
+    {
+        case FMGS_PHASE_PRE:
+            ndt_log("YFMS [debug]: phase change: FMGS_PHASE_PRE (was %d)\n", yfms->data.phase);
+            ndt_log("YFMS [debug]: FMGS_PHASE_PRE can only be set by yfs_flightplan_reinit\n");
+            return;
+
+        case FMGS_PHASE_TOF:
+            if ((sendv = XPLMFindDataRef("sim/custom/xap/sendv")) &&
+                (swtid = XPLMFindDataRef("sim/weapons/target_index")))
+            {
+                index = 1; XPLMSetDatavi(swtid, &index, 2, 1); // XXX: Falcon 7X by after
+            }
+            ndt_log("YFMS [debug]: phase change: FMGS_PHASE_TOF (was %d)\n", yfms->data.phase);
+            yfms->data.phase = FMGS_PHASE_TOF;
+            yfs_fpln_trackleg(yfms, -1);
+            return;
+
+        case FMGS_PHASE_CLB:
+            ndt_log("YFMS [debug]: phase change: FMGS_PHASE_CLB (was %d)\n", yfms->data.phase);
+            yfms->data.phase = FMGS_PHASE_CLB;
+            return;
+
+        case FMGS_PHASE_CRZ:
+            if ((sendv = XPLMFindDataRef("sim/custom/xap/sendv")) &&
+                (swtid = XPLMFindDataRef("sim/weapons/target_index")))
+            {
+                index = 2; XPLMSetDatavi(swtid, &index, 2, 1); // XXX: Falcon 7X by after
+            }
+            ndt_log("YFMS [debug]: phase change: FMGS_PHASE_CRZ (was %d)\n", yfms->data.phase);
+            yfms->data.phase = FMGS_PHASE_CRZ;
+            return;
+
+        case FMGS_PHASE_DES:
+            if ((sendv = XPLMFindDataRef("sim/custom/xap/sendv")) &&
+                (swtid = XPLMFindDataRef("sim/weapons/target_index")))
+            {
+                index = 3; XPLMSetDatavi(swtid, &index, 2, 1); // XXX: Falcon 7X by after
+                XPLMSetDatai(sendv, 2); // TODO: when switching to approach phase instead
+            }
+            ndt_log("YFMS [debug]: phase change: FMGS_PHASE_DES (was %d)\n", yfms->data.phase);
+            yfms->data.phase = FMGS_PHASE_DES;
+            return;
+
+        case FMGS_PHASE_APP:
+            ndt_log("YFMS [debug]: phase change: FMGS_PHASE_APP (was %d)\n", yfms->data.phase);
+            ndt_log("YFMS [error]: phase change: FMGS_PHASE_APP NOT IMPLEMENTED\n");
+            return;
+
+        case FMGS_PHASE_GOA:
+            ndt_log("YFMS [debug]: phase change: FMGS_PHASE_GOA (was %d)\n", yfms->data.phase);
+            ndt_log("YFMS [error]: phase change: FMGS_PHASE_GOA NOT IMPLEMENTED\n");
+            return;
+
+        case FMGS_PHASE_END:
+            if ((sendv = XPLMFindDataRef("sim/custom/xap/sendv")) &&
+                (swtid = XPLMFindDataRef("sim/weapons/target_index")))
+            {
+                index = 4; XPLMSetDatavi(swtid, &index, 2, 1); XPLMSetDatai(sendv, 0); // XXX: Falcon 7X by after
+            }
+            ndt_log("YFMS [debug]: phase change: FMGS_PHASE_END (was %d)\n", yfms->data.phase);
+            yfs_init_fplreset(yfms); yfms->data.phase = FMGS_PHASE_END;
+            if (open_radio_1_on_end)
+            {
+                return yfs_rad1_pageopen(yfms);
+            }
+            return yfs_idnt_pageopen(yfms);
+
+        default:
+            ndt_log("YFMS [error]: phase change: unknown phase %d (was %d)\n", new_phase, yfms->data.phase);
+            return;
+    }
+}
+
 static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                                    float inElapsedTimeSinceLastFlightLoop,
                                    int   inCounter,
@@ -440,42 +522,34 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     float askts = XPLMGetDataf(yfms->xpl.airspeed_kts_pilot);
     int mslfeet = XPLMGetDataf(yfms->xpl.altitude_ft_pilot);
     int vvi_fpm = XPLMGetDataf(yfms->xpl.vvi_fpm_pilot);
-    XPLMDataRef swtid = NULL, sendv = NULL;
     switch (yfms->data.phase)
     {
         case FMGS_PHASE_END:
             goto vclb_vdes_vmax_auto;
+
         case FMGS_PHASE_PRE:
             if (crzfeet > 1000)
             {
                 if ((gskts >=  50.0f || gskts >= XPLMGetDataf(yfms->xpl.acf_vs0)) &&
                     (askts >= 100.0f || askts >= XPLMGetDataf(yfms->xpl.acf_vs0)))
                 {
-                    // XXX: Falcon 7X by after
-                    if ((sendv = XPLMFindDataRef("sim/custom/xap/sendv")) &&
-                        (swtid = XPLMFindDataRef("sim/weapons/target_index")))
-                    {
-                        int index = 1; XPLMSetDatavi(swtid, &index, 2, 1);
-                    }
-                    ndt_log("YFMS [debug]: phase change: FMGS_PHASE_TOF (was %d)\n", yfms->data.phase);
-                    yfms->data.phase = FMGS_PHASE_TOF;
-                    yfs_fpln_trackleg(yfms, -1);
+                    yfs_fmgs_phase_set(yfms, FMGS_PHASE_TOF);
                     break;
                 }
                 break;
             }
             break;
+
         case FMGS_PHASE_TOF:
             if (aglfeet > 400 && !XPLMGetDatai(yfms->xpl.autothrottle_enabled))
             {
                 if (2 == XPLMGetDatai(yfms->xpl.vvi_status) ||
                     2 == XPLMGetDatai(yfms->xpl.pitch_status))
                 {
-                    // XXX: Falcon 7X by after
-                    if ((sendv = XPLMFindDataRef("sim/custom/xap/sendv")) &&
-                        (swtid = XPLMFindDataRef("sim/weapons/target_index")))
+                    if (XPLMFindDataRef("sim/custom/xap/sendv") &&
+                        XPLMFindDataRef("sim/weapons/target_index"))
                     {
-                        XPLMSetDatai(yfms->xpl.autothrottle_enabled, 1);
+                        XPLMSetDatai(yfms->xpl.autothrottle_enabled, 1); // XXX: Falcon 7X by after
                     }
                 }
             }
@@ -484,14 +558,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                 // TODO: use acc. alt. instead of AGL elevation
                 if (aglfeet > 800 || (crzfeet - mslfeet) < 1000)
                 {
-                    // XXX: Falcon 7X by after
-                    if ((sendv = XPLMFindDataRef("sim/custom/xap/sendv")) &&
-                        (swtid = XPLMFindDataRef("sim/weapons/target_index")))
-                    {
-                        XPLMSetDatai(sendv, 0);
-                    }
-                    ndt_log("YFMS [debug]: phase change: FMGS_PHASE_CLB (was %d)\n", yfms->data.phase);
-                    yfms->data.phase = FMGS_PHASE_CLB;
+                    yfs_fmgs_phase_set(yfms, FMGS_PHASE_CLB);
                     break;
                 }
                 break;
@@ -500,16 +567,17 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         case FMGS_PHASE_CLB:
             if (crzfeet > 1000)
             {
+                if (aglfeet > 2500 || (crzfeet - mslfeet) < 1000)
+                {
+                    XPLMDataRef sendv = XPLMFindDataRef("sim/custom/xap/sendv");
+                    if (sendv && XPLMFindDataRef("sim/weapons/target_index"))
+                    {
+                        XPLMSetDatai(sendv, 0); // XXX: Falcon 7X by after
+                    }
+                }
                 if ((crzfeet - mslfeet) < 50)
                 {
-                    // XXX: Falcon 7X by after
-                    if ((sendv = XPLMFindDataRef("sim/custom/xap/sendv")) &&
-                        (swtid = XPLMFindDataRef("sim/weapons/target_index")))
-                    {
-                        int index = 2; XPLMSetDatavi(swtid, &index, 2, 1);
-                    }
-                    ndt_log("YFMS [debug]: phase change: FMGS_PHASE_CRZ (was %d)\n", yfms->data.phase);
-                    yfms->data.phase = FMGS_PHASE_CRZ;
+                    yfs_fmgs_phase_set(yfms, FMGS_PHASE_CRZ);
                     break;
                 }
                 break;
@@ -523,16 +591,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                 {
                     if ((crzfeet - mcpfeet) > 1000) // TODO: don't descend if distance remaining > 200nm
                     {
-                        // XXX: Falcon 7X by after
-                        if ((sendv = XPLMFindDataRef("sim/custom/xap/sendv")) &&
-                            (swtid = XPLMFindDataRef("sim/weapons/target_index")))
-                        {
-                            int index = 3; XPLMSetDatavi(swtid, &index, 2, 1);
-                            XPLMSetDatai(sendv, 2); // TODO: when activating approach phase instead
-                        }
-                        ndt_log("YFMS [debug]: phase change: FMGS_PHASE_DES (was %d)\n", yfms->data.phase);
-//                      ndt_log("YFMS [debug]: VVI %d CRZ(ft) %d MCP(ft) %d\n", vvi_fpm, crzfeet, mcpfeet);
-                        yfms->data.phase = FMGS_PHASE_DES;
+                        yfs_fmgs_phase_set(yfms, FMGS_PHASE_DES);
                         break;
                     }
                 }
@@ -566,22 +625,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         {
             if (gskts < 40.0f && askts < 40.0f) // TODO: wait 30 seconds, ignore speeds
             {
-                // XXX: Falcon 7X by after
-                if ((sendv = XPLMFindDataRef("sim/custom/xap/sendv")) &&
-                    (swtid = XPLMFindDataRef("sim/weapons/target_index")))
-                {
-                    XPLMSetDatai(sendv, 0);
-                    int index = 4; XPLMSetDatavi(swtid, &index, 2, 1);
-                }
-#if TIM_ONLY
-                ndt_log("YFMS [debug]: phase change: FMGS_PHASE_END (was %d)\n", yfms->data.phase);
-                yfs_init_fplreset(yfms); yfms->data.phase = FMGS_PHASE_END;
-/* page: ATC */ yfs_rad1_pageopen(yfms); return DEFAULT_CALLBACK_RATE;
-#else
-                ndt_log("YFMS [debug]: phase change: FMGS_PHASE_END (was %d)\n", yfms->data.phase);
-                yfs_init_fplreset(yfms); yfms->data.phase = FMGS_PHASE_END;
-                yfs_idnt_pageopen(yfms); return DEFAULT_CALLBACK_RATE;
-#endif
+                yfs_fmgs_phase_set(yfms, FMGS_PHASE_END); return DEFAULT_CALLBACK_RATE;
             }
         }
     }
