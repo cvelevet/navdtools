@@ -27,6 +27,7 @@
 #include "lib/navdata.h"
 #include "wmm/wmm.h"
 
+#include "YFSinit.h"
 #include "YFSmain.h"
 #include "YFSprog.h"
 #include "YFSspad.h"
@@ -132,9 +133,38 @@ void yfs_prog_pageupdt(yfms_context *yfms)
 
 static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refcon)
 {
-    if (key[1] == 0) // updating cruise altitude (only works if already set)
+    if (key[1] == 0) // updating cruise altitude
     {
-        return;      // TODO: implement
+        int new_crz_alt; char scrpad[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, scrpad);
+        if (0 >= yfms->data.init.ialized ||
+            0 >= ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_NA))
+        {
+            return yfs_spad_reset(yfms, "NOT ALLOWED", -1); // can only update, not set
+        }
+        if (yfms->data.phase < FMGS_PHASE_TOF)
+        {
+            return yfs_spad_reset(yfms, "NOT ALLOWED", -1); // use INIT page instead
+        }
+        if (strnlen(scrpad, 1))
+        {
+            if (strcmp(scrpad, "CLR") == 0)
+            {
+                return yfs_spad_reset(yfms, "NOT ALLOWED", -1);
+            }
+            if (sscanf(scrpad, "FL%d", &new_crz_alt) == 1 ||
+                sscanf(scrpad,   "%d", &new_crz_alt) == 1)
+            {
+                if (new_crz_alt <= 0) // cannot clear cruise altitude at this point
+                {
+                    return yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1);
+                }
+                yfs_spad_clear(yfms); new_crz_alt *= 100;
+                yfs_init_altitude(yfms, new_crz_alt);
+                return yfs_prog_pageupdt(yfms);
+            }
+            return yfs_spad_reset(yfms, "FORMAT ERROR", -1);
+        }
+        return yfs_spad_reset(yfms, "FORMAT ERROR", -1);
     }
     if (key[0] == 0 && key[1] == 3) // future: specify required accuracy
     {
