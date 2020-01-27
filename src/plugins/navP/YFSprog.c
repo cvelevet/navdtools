@@ -170,7 +170,8 @@ static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refco
                         int act_mcp_alt = roundf(0.01f * XPLMGetDataf(yfms->xpl.altitude_dial_mcp_feet));
                         if (act_mcp_alt < new_crz_alt)
                         {
-                            if (XPLMGetDataf(yfms->xpl.vvi_fpm_pilot) < -250.0f)
+                            // TODO: future: recompute VNAV profile as required
+                            if (XPLMGetDataf(yfms->xpl.vvi_fpm_pilot) < -250.0f)//fixme: improve
                             {
                                 yfs_fmgs_phase_set(yfms, FMGS_PHASE_DES);
                                 return yfs_prog_pageupdt(yfms);
