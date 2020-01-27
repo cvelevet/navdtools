@@ -23,8 +23,9 @@
 
 #include "YFSmain.h"
 
-void yfs_init_pageopen(yfms_context *yfms);
-void yfs_init_pageupdt(yfms_context *yfms);
-void yfs_init_fplreset(yfms_context *yfms);
+void yfs_init_pageopen(yfms_context *yfms     );
+void yfs_init_pageupdt(yfms_context *yfms     );
+void yfs_init_fplreset(yfms_context *yfms     );
+void yfs_init_altitude(yfms_context *yfms, int);
 
 #endif /* YFS_INIT_H */
