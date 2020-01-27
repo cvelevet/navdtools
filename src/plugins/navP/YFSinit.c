@@ -497,7 +497,7 @@ void yfs_init_altitude(yfms_context *yfms, int crz_alt_ft)
             XPLMSetDatai(yfms->xpl.q380.PeterCRZ, 0);
         }
         yfms->data.init.crz_alt = ndt_distance_init(0, NDT_ALTUNIT_NA);
-        return;
+        return yfs_spad_clear(yfms);
     }
     // SR71 Blackbird can go all the way to FL850
     if (crz_alt_ft >= 2500 && crz_alt_ft <= 85000)
@@ -511,7 +511,7 @@ void yfs_init_altitude(yfms_context *yfms, int crz_alt_ft)
             XPLMSetDatai(yfms->xpl.q380.PeterCRZ, crz_alt_ft / 100);
         }
         yfms->data.init.crz_alt = ndt_distance_init(crz_alt_ft, NDT_ALTUNIT_FT);
-        return;
+        return yfs_spad_clear(yfms);
     }
     return yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1);
 }
@@ -716,15 +716,13 @@ static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refco
             {
                 if (strcmp(buf, "CLR") == 0)
                 {
-                    yfs_spad_clear(yfms);
                     yfs_init_altitude(yfms, -1);
                     return yfs_init_pageupdt(yfms);
                 }
                 if (sscanf(buf, "FL%d", &crz_alt) == 1 ||
                     sscanf(buf,   "%d", &crz_alt) == 1)
                 {
-                    yfs_spad_clear(yfms); crz_alt *= 100;
-                    yfs_init_altitude(yfms, crz_alt);
+                    yfs_init_altitude(yfms, crz_alt * 100);
                     return yfs_init_pageupdt(yfms);
                 }
                 return yfs_spad_reset(yfms, "FORMAT ERROR", -1);

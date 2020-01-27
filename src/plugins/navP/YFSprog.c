@@ -136,8 +136,8 @@ static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refco
     if (key[1] == 0) // updating cruise altitude
     {
         int new_crz_alt; char scrpad[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, scrpad);
-        if (0 >= yfms->data.init.ialized ||
-            0 >= ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_NA))
+        int act_crz_alt = ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FL);
+        if (yfms->data.init.ialized <= 0 || act_crz_alt <= 0)
         {
             return yfs_spad_reset(yfms, "NOT ALLOWED", -1); // can only update, not set
         }
@@ -158,8 +158,31 @@ static void yfs_lsk_callback_prog(yfms_context *yfms, int key[2], intptr_t refco
                 {
                     return yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1);
                 }
-                yfs_spad_clear(yfms); new_crz_alt *= 100;
-                yfs_init_altitude(yfms, new_crz_alt);
+                else
+                {
+                    yfs_init_altitude(yfms, new_crz_alt * 100);
+                }
+                if (new_crz_alt == ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_FL))
+                {
+                    yfs_spad_copy2(yfms, scrpad);
+                    if (0 == strnlen(scrpad, 1)) // no error, update phase of flight as required
+                    {
+                        int act_mcp_alt = roundf(0.01f * XPLMGetDataf(yfms->xpl.altitude_dial_mcp_feet));
+                        if (act_mcp_alt < new_crz_alt)
+                        {
+                            if (XPLMGetDataf(yfms->xpl.vvi_fpm_pilot) < -250.0f)
+                            {
+                                yfs_fmgs_phase_set(yfms, FMGS_PHASE_DES);
+                                return yfs_prog_pageupdt(yfms);
+                            }
+                            yfs_fmgs_phase_set(yfms, FMGS_PHASE_CLB);
+                            return yfs_prog_pageupdt(yfms);
+                        }
+                        yfs_fmgs_phase_set(yfms, FMGS_PHASE_CRZ);
+                        return yfs_prog_pageupdt(yfms);
+                    }
+                    return yfs_prog_pageupdt(yfms);
+                }
                 return yfs_prog_pageupdt(yfms);
             }
             return yfs_spad_reset(yfms, "FORMAT ERROR", -1);
