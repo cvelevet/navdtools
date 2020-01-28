@@ -5091,9 +5091,11 @@ static int first_fcall_do(chandler_context *ctx)
                     XPLMSetDatavi(d_ref, &door_open[0], 8, 1);                      // luggage FWD
                     XPLMSetDatavi(d_ref, &door_open[0], 9, 1);                      // luggage AFT
                 }
-                float zwft = 122470.0f, fuel = 9072.0f;
-                acf_type_zfwt_set(ctx->info,    &zwft);
-                acf_type_fuel_set(ctx->info,    &fuel);
+                // grosswt: 334,000 lb == 151,500 kg
+                float fuel = 0.45359207f * 020000.0f;
+                float zwft = 0.45359207f * 314000.0f;
+                acf_type_zfwt_set(ctx->info,  &zwft);
+                acf_type_fuel_set(ctx->info,  &fuel);
             }
             if (ctx->a350kc.kc_is_registered)
             {
