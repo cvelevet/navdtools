@@ -542,6 +542,8 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                     if (XPLMFindDataRef("sim/custom/xap/sendv") &&
                         XPLMFindDataRef("sim/weapons/target_index"))
                     {
+                        //fixme "sim/custom/xap/V2"+20 (tested range: 112+20 to 142+20)
+                        //fixme limits: SF1: 200, SF2: 190, SF3: 180, offset by -15kts?
                         XPLMSetDatai(yfms->xpl.autothrottle_enabled, 1); // XXX: Falcon 7X by after
                     }
                 }
