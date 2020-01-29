@@ -2022,6 +2022,13 @@ ndt_route_segment* ndt_route_segment_proced(ndt_waypoint *src, ndt_restriction *
             ndt_list_add(proclegs, ndt_list_item(proc->transition.sid->proclegs, i));
         }
     }
+    if (proc->type == NDT_PROCTYPE_FINAL && proc->mapplegs && ndt_list_count(proc->mapplegs))
+    {
+        for (size_t i = 0, j = ndt_list_count(proc->mapplegs); i < j; i++)
+        {
+            ndt_list_add(proclegs, ndt_list_item(proc->mapplegs, i));
+        }
+    }
 
     if (proc->type == NDT_PROCTYPE_SID_2 || proc->type == NDT_PROCTYPE_SID_5)
     {

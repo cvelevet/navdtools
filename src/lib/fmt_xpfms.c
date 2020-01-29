@@ -1234,9 +1234,9 @@ static int xpfms_skip4dist(ndt_waypoint *src, ndt_waypoint *leg_wpt, ndt_waypoin
     return 0;
 }
 
-static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
+static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy, int qpac_approach)
 {
-    ndt_waypoint *fapchfix = NULL, *lst = NULL;
+    ndt_waypoint *fapchfix = NULL, *mapchfix = NULL, *lst = NULL;
     ndt_distance rwthralt, fapchalt;
     ndt_position rwthrpos;
     ndt_route_leg *leg;
@@ -1293,7 +1293,21 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-        if (fapchfix)
+        if (qpac_approach && mapchfix)
+        {
+            if (fapchfix)
+            {
+                // fapchfix (RNAV-like approach): QPAC does not see FAF/NPA info
+                // if we write the missed approach legs after the arrival runway
+                break;
+            }
+            else
+            {
+                // we get best results, even for ILS, when we skip missed anyway
+                break;
+            }
+        }
+        if (qpac_approach && fapchfix)
         {
             if (!leg->dst)
             {
@@ -1328,10 +1342,10 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
         {
             // only set FAF for RNAV approaches, else the
             // QPAC plugin will disable ILS functionality
-            if (leg->rsg->prc->approach.type == NDT_APPRTYPE_GLS ||
-                leg->rsg->prc->approach.type == NDT_APPRTYPE_GPS ||
-                leg->rsg->prc->approach.type == NDT_APPRTYPE_RNP ||
-                leg->rsg->prc->approach.type == NDT_APPRTYPE_RNV)
+            if (qpac_approach && (leg->rsg->prc->approach.type == NDT_APPRTYPE_GLS ||
+                                  leg->rsg->prc->approach.type == NDT_APPRTYPE_GPS ||
+                                  leg->rsg->prc->approach.type == NDT_APPRTYPE_RNP ||
+                                  leg->rsg->prc->approach.type == NDT_APPRTYPE_RNV))
             {
                 if (!arr_rwy->waypoint)
                 {
@@ -1465,6 +1479,10 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy)
                 break;
             }
         }
+        if (leg->constraints.waypoint == NDT_WPTCONST_MAP)
+        {
+            mapchfix = leg->dst;
+        }
         if (ret)
         {
             goto end;
@@ -1576,7 +1594,7 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
             }
         }
     }
-    if ((ret = xpfms_write_legs(fd, flp->legs, flp->arr.rwy)))
+    if ((ret = xpfms_write_legs(fd, flp->legs, flp->arr.rwy, flp->dep.apt == flp->arr.apt)))
     {
         goto end;
     }
@@ -1607,10 +1625,6 @@ static int xpfms_flightplan_write(ndt_flightplan *flp, FILE *fd)
         {
             goto end;
         }
-    }
-    if (flp->arr.apch.proc)
-    {
-        // TODO: future: write missed approach legs before arrival airport
     }
     if (arr_apt)
     {
