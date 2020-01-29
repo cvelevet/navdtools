@@ -82,7 +82,7 @@ static inline int navaid_is_ils(int type)
  */
 static double get_com_frequency(const char *string)
 {
-    double freq, f250, f833; size_t len;
+    double freq; int channel; size_t len;
     if (!string)
     {
         return -1.;
@@ -118,18 +118,40 @@ static double get_com_frequency(const char *string)
     }
     else
     {
-        f250 = (round(freq *  40.) /  40.);
-        f833 = ( ceil(freq * 120.) / 120.);
+        channel = YVP_FLOORDBL + round(freq * 200.);
     }
-    if (fabs(f833 - f250) > .001)
+    switch (channel % 20)
     {
-        if (fabs((f833 = (floor(freq * 120.) / 120.)) - f250) < .001)
-        {
-            f833 += .005;
-        }
-        return (round(f833 * 200.) / 200.); // display frequency rounded to .005 Mhz
+        case 0:  // .?00: valid 25.0 kHz
+        case 5:  // .?25: valid 25.0 kHz
+        case 10: // .?50: valid 25.0 kHz
+        case 15: // .?75: valid 25.0 kHz
+            return (((double)channel) / 200.);
+
+        case 4:  // .?20: mapped to 25.0 kHz
+        case 9:  // .?45: mapped to 25.0 kHz
+        case 14: // .?70: mapped to 25.0 kHz
+        case 19: // .?95: mapped to 25.0 kHz
+            return ((((double)channel) + 1) / 200.);
+
+        case 1:  // .?05: valid 8.33 kHz
+        case 2:  // .?10: valid 8.33 kHz
+        case 3:  // .?15: valid 8.33 kHz
+        case 6:  // .?30: valid 8.33 kHz
+        case 7:  // .?35: valid 8.33 kHz
+        case 8:  // .?40: valid 8.33 kHz
+        case 11: // .?55: valid 8.33 kHz
+        case 12: // .?60: valid 8.33 kHz
+        case 13: // .?65: valid 8.33 kHz
+        case 16: // .?80: valid 8.33 kHz
+        case 17: // .?85: valid 8.33 kHz
+        case 18: // .?90: valid 8.33 kHz
+            return (((double)channel) / 200.);
+
+        default: // unreachable
+            return -1.;
     }
-    return f250;
+    return -1.; // unreachable
 }
 
 static double get_nav_frequency(const char *string)
