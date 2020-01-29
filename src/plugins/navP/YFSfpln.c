@@ -550,13 +550,15 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
     }
 
     /* two lines per leg (header/course/distance, then name/constraints) */
-    ndt_distance distance = ndt_distance_init(0, NDT_ALTUNIT_NA), dtrack = ndt_distance_init(0, NDT_ALTUNIT_NA);
     ndt_route_leg *leg = ndt_list_item(yfms->data.fpln.legs, yfms->data.fpln.lg_idx);
-    if (leg && leg->dst) // tracked leg, compute dtrack
+    ndt_distance dstce = ndt_distance_init(0, NDT_ALTUNIT_NA);
+    ndt_distance dtrck = ndt_distance_init(0, NDT_ALTUNIT_NA);
+    ndt_distance remng = ndt_distance_init(0, NDT_ALTUNIT_NA);
+    if (leg && leg->dst) // tracked leg, compute dtrck
     {
         ndt_position to = leg->dst->position;
         ndt_position from = yfms->data.aircraft_pos;
-        dtrack = ndt_position_calcdistance(from, to);
+        dtrck = ndt_position_calcdistance(from, to);
     }
     for (int i = 0; i < 5; i++)
     {
@@ -598,23 +600,23 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
                 {
                     if (leg->dst) // display remaining distance instead of leg's
                     {
-                        distance = dtrack;
+                        dstce = dtrck;
                     }
                     else  // distance unavailable, set to invalid value
                     {
-                        distance = ndt_distance_init(-1, NDT_ALTUNIT_NA);
+                        dstce = ndt_distance_init(-1, NDT_ALTUNIT_NA);
                     }
                 }
                 else
                 {
-                    distance = leg->dis;
+                    dstce = leg->dis;
                 }
                 if (leg->rsg == NULL)
                 {
                     yfs_menu_resetall(yfms); return yfs_spad_reset(yfms, "ERROR -> RESET", COLR_IDX_ORANGE);
                 }
-                double  distance_nmile = (double)ndt_distance_get(distance, NDT_ALTUNIT_ME) / 1852.;
-                switch (leg->rsg->type) // LSGG>BGTL(QPAC) suggests omb is used (as opposed to imb)
+                double  distance_nmile = (double)ndt_distance_get(dstce, NDT_ALTUNIT_ME) / 1852.;
+                switch (leg->rsg->type) // LSGG->BGTL (QPAC) suggests omb used (rather than imb)
                 {
                     case NDT_RSTYPE_PRC: // TODO
 //                      switch (leg->type)
@@ -669,21 +671,17 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
             {
                 if (leg->constraints.waypoint == NDT_WPTCONST_MAP)
                 {
-                    distance = ndt_distance_add(distance, leg->dis);
+                    remng = ndt_distance_add(remng, leg->dis);
                     break; // missed approach legs technically "after" destination
                 }
-                distance = ndt_distance_add(distance, leg->dis);
+                remng = ndt_distance_add(remng, leg->dis);
                 continue;
             }
         }
-        yfms->data.fpln.dist.remain = distance;
+        yfms->data.fpln.dist.remain = remng;
         yfms->data.fpln.dist.ref_leg_id = yfms->data.fpln.lg_idx;
-        distance = ndt_distance_add(yfms->data.fpln.dist.remain, dtrack);
     }
-    else
-    {
-        distance = ndt_distance_add(yfms->data.fpln.dist.remain, dtrack);
-    }
+    remng = ndt_distance_add(yfms->data.fpln.dist.remain, dtrck);
 
     /* final destination :D */
     ndt_waypoint *destination = yfms->data.init.to->waypoint;
@@ -693,7 +691,7 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
     }
     yfs_printf_lft(yfms, 11, 0, COLR_IDX_WHITE, "%s", " DEST   TIME  DIST  EFOB");
     yfs_printf_lft(yfms, 12, 0, COLR_IDX_WHITE, "%-7s ----  %4.0lf  ----", // TODO: TIME
-                   destination->info.idnt, (double)ndt_distance_get(distance, NDT_ALTUNIT_ME) / 1852.);
+                   destination->info.idnt, (double)ndt_distance_get(remng, NDT_ALTUNIT_ME) / 1852.);
 
     /* all good */
     yfms->mwindow.screen.redraw = 1; return;
