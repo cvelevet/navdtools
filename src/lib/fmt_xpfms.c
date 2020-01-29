@@ -1340,8 +1340,7 @@ static int xpfms_write_legs(FILE *fd, ndt_list *legs, ndt_runway *arr_rwy, int q
                  leg->rsg->prc && (leg->rsg->prc->type == NDT_PROCTYPE_FINAL ||
                                    leg->rsg->prc->type == NDT_PROCTYPE_APPTR))
         {
-            // only set FAF for RNAV approaches, else the
-            // QPAC plugin will disable ILS functionality
+            // only set FAF for RNAV or QPAC plugin will disable ILS functionality
             if (qpac_approach && (leg->rsg->prc->approach.type == NDT_APPRTYPE_GLS ||
                                   leg->rsg->prc->approach.type == NDT_APPRTYPE_GPS ||
                                   leg->rsg->prc->approach.type == NDT_APPRTYPE_RNP ||
