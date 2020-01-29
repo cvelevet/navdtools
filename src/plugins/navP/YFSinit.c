@@ -317,6 +317,24 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
         {
             corte->arr.rwy = NULL;
         }
+        else
+        {
+            for (int i = 0, j = ndt_list_count(corte->legs); i < j; i++)
+            {
+                ndt_route_leg *l = ndt_list_item(corte->legs, i);
+                if (l && l->dst && l->dst->type == NDT_WPTYPE_RWY)
+                {
+                    ndt_airport *a = corte->arr.apt;
+                    ndt_runway *rw = ndt_runway_get(a->runways, l->dst->info.idnt + strlen(a->info.idnt));
+                    if (rw)
+                    {
+                        ndt_restriction r = ndt_leg_const_init();
+                        r.waypoint = NDT_WPTCONST_MAP;
+                        ndt_route_leg_restrict(l, r);
+                    }
+                }
+            }
+        }
         if (corte->dep.rwy)
         {
             if (corte->dep.sid.proc)
