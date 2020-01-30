@@ -1411,7 +1411,9 @@ void* yfs_main_init(void)
         (yfms->xpl.mag_var                         = XPLMFindDataRef("sim/flightmodel/position/magnetic_variation"                  )) == NULL ||
         (yfms->xpl.latitude                        = XPLMFindDataRef("sim/flightmodel/position/latitude"                            )) == NULL ||
         (yfms->xpl.longitude                       = XPLMFindDataRef("sim/flightmodel/position/longitude"                           )) == NULL ||
+        (yfms->xpl.g_sealevel                      = XPLMFindDataRef("sim/physics/g_sealevel"                                       )) == NULL ||
         (yfms->xpl.groundspeed                     = XPLMFindDataRef("sim/flightmodel/position/groundspeed"                         )) == NULL ||
+        (yfms->xpl.true_airspeed                   = XPLMFindDataRef("sim/flightmodel/position/true_airspeed"                       )) == NULL ||
         (yfms->xpl.elevation_agl                   = XPLMFindDataRef("sim/flightmodel/position/y_agl"                               )) == NULL ||
         (yfms->xpl.elevation_msl                   = XPLMFindDataRef("sim/flightmodel/position/elevation"                           )) == NULL ||
         (yfms->xpl.tropopause                      = XPLMFindDataRef("sim/weather/tropo_alt_mtr"                                    )) == NULL ||
@@ -1434,6 +1436,7 @@ void* yfs_main_init(void)
         (yfms->xpl.autothrottle_enabled            = XPLMFindDataRef("sim/cockpit2/autopilot/autothrottle_enabled"                  )) == NULL ||
         (yfms->xpl.vvi_status                      = XPLMFindDataRef("sim/cockpit2/autopilot/vvi_status"                            )) == NULL ||
         (yfms->xpl.pitch_status                    = XPLMFindDataRef("sim/cockpit2/autopilot/pitch_status"                          )) == NULL ||
+        (yfms->xpl.bank_angle_mode                 = XPLMFindDataRef("sim/cockpit2/autopilot/bank_angle_mode"                       )) == NULL ||
         (yfms->xpl.contact_atc                     = XPLMFindCommand("sim/operation/contact_atc"                                    )) == NULL)
     {
         ndt_log("YFMS [error]: could not load aircraft-related datarefs and commands\n");

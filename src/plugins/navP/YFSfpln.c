@@ -19,9 +19,12 @@
  */
 
 #include <errno.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "acfutils/perf.h"
 
 #include "common/common.h"
 #include "compat/compat.h"
@@ -952,40 +955,11 @@ void yfs_fpln_trackleg(yfms_context *yfms, int index)
     }
 }
 
-void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
+void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)//fixme
 {
-    // TODO: proper direct to "source" coord adjustment
-    // https://en.wikipedia.org/wiki/Standard_rate_turn
-    // sim/cockpit/autopilot/heading_roll_mode                int    y  enum        Bank limit - 0 = auto, 1-6 = 5-30 degrees of bank
-    // sim/cockpit2/autopilot/bank_angle_mode                 int    y  enum        Maximum bank angle mode, 0->6. Higher number is steeper allowable bank.
-    // sim/flightmodel/position/true_airspeed                 float  n  meters/sec  Air speed true - this does not take into account air density at altitude!
-    // sim/flightmodel/position/groundspeed                   float  n  meters/sec  The ground speed of the aircraft
-    int insert_after = 0; ndt_waypoint *t_p_wpt;
     ndt_route_leg *tmp, *leg, *t_p_leg, *dct_leg;
-    float groundspeed = XPLMGetDataf(yfms->xpl.groundspeed);
-    ndt_distance dnxt = ndt_distance_init(2, NDT_ALTUNIT_NM); //fixme: debug: hardcode to 2 nautical miles for testing pourposes
-//  ndt_distance dnxt = ndt_distance_init(groundspeed * 3, NDT_ALTUNIT_ME); // compute airc. pos. ~3 seconds from now (GS in m/s)
-    ndt_position ppos = ndt_position_init(XPLMGetDatad(yfms->xpl.latitude), XPLMGetDatad(yfms->xpl.longitude), NDT_DISTANCE_ZERO);
-    float cur_trk_tru = XPLMGetDataf(yfms->xpl.mag_trk) - XPLMGetDataf(yfms->xpl.mag_var);
-    ndt_position p_tp = ndt_position_calcpos4pbd(ppos, cur_trk_tru, dnxt);
-    float new_trk_tru = ndt_position_calcbearing(ppos, p_tp);
-#if 0
-        ndt_log("YFMS [debug]: direct to PPOS %+010.6lf/%+011.6lf\n", ndt_position_getlatitude(ppos, NDT_ANGUNIT_DEG), ndt_position_getlongitude(ppos, NDT_ANGUNIT_DEG));
-        ndt_log("YFMS [debug]: direct to T-P: %+010.6lf/%+011.6lf\n", ndt_position_getlatitude(p_tp, NDT_ANGUNIT_DEG), ndt_position_getlongitude(p_tp, NDT_ANGUNIT_DEG));
-        ndt_log("YFMS [debug]: direct to act. di. is %"PRId64"(m)\n", ndt_distance_get(ndt_position_calcdistance(ppos, p_tp), NDT_ALTUNIT_ME));
-        ndt_log("YFMS [debug]: direct to est. di. is %"PRId64"(m)\n", ndt_distance_get(dnxt, NDT_ALTUNIT_ME));
-        ndt_log("YFMS [debug]: direct to act. HDG is %05.1lf\n",      ndt_position_calcbearing(ppos, p_tp));
-        ndt_log("YFMS [debug]: direct to est. HDG is %05.1f\n",       new_trk_tru);
-        ndt_log("YFMS [debug]: direct to ground speed is %f\n",       groundspeed);
-#endif
-    if ((t_p_wpt = ndt_waypoint_posn(yfms->data.phase >= FMGS_PHASE_TOF ? p_tp : ppos)) == NULL)
-    {
-        return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 B", COLR_IDX_ORANGE);      // PAGE_DRTO
-    }
-    else
-    {
-        snprintf(t_p_wpt->info.idnt, sizeof(t_p_wpt->info.idnt), "%s", "T-P");
-    }
+    ndt_waypoint *t_p_wpt, *dct_wpt;
+    int insert_after = 0;
     if (toinsert)
     {
         index = yfms->data.fpln.lg_idx;
@@ -993,35 +967,91 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
     }
     if ((leg = ndt_list_item(yfms->data.fpln.legs, index)) == NULL)
     {
-        ndt_waypoint_close(&t_p_wpt);
-        return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 C", COLR_IDX_ORANGE);      // PAGE_DRTO
+        return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 B", COLR_IDX_ORANGE);      // PAGE_DRTO
     }
-#if 0
-    XPLMDataRef hdg = XPLMFindDataRef("sim/cockpit2/gauges/indicators/heading_AHARS_deg_mag_pilot");
-    XPLMDataRef trk = XPLMFindDataRef("sim/cockpit2/gauges/indicators/ground_track_mag_pilot");
-    XPLMDataRef var = XPLMFindDataRef("sim/flightmodel/position/magnetic_variation");
-    XPLMDataRef gcm = XPLMFindDataRef("sim/cockpit/radios/gps_course_degtm");
-    XPLMDataRef pst = XPLMFindDataRef("sim/flightmodel/position/true_psi");
-    XPLMDataRef psm = XPLMFindDataRef("sim/flightmodel/position/mag_psi");
-    XPLMDataRef hpa = XPLMFindDataRef("sim/flightmodel/position/hpath");
-    XPLMDataRef gct = XPLMFindDataRef("sim/cockpit/gps/course");
-    ndt_log("YFMS [debug]: heading_AHARS_deg_mag_pilot %.1f ground_track_mag_pilot %.1f magnetic_variation %+.1f grd_trk_tru(dct) %.1f\n"
-            " ............ true_psi %.1f mag_psi %.1f hpath %.1f GPS true %.1f mag %.1f LEG trb %+.1f omb %+.1f (imb %+.1f)\n",
-            XPLMGetDataf(hdg), XPLMGetDataf(trk), XPLMGetDataf(var), grd_trk_tru,
-            XPLMGetDataf(pst), XPLMGetDataf(psm), XPLMGetDataf(hpa),
-            XPLMGetDataf(gct), XPLMGetDataf(gcm), leg->trb, leg->omb, leg->imb);
-#endif
     if (toinsert && leg->dst &&
         toinsert == leg->dst)
     {
-        // toinsert being tracked already, should use list instead              // PAGE_DRTO
-        ndt_waypoint_close(&t_p_wpt); yfms->data.drto.dctwp = NULL;             // PAGE_DRTO
-        yfs_drto_pageupdt(yfms); return yfs_spad_reset(yfms, "NOT ALLOWED", -1);// PAGE_DRTO
+        yfs_drto_pageupdt(yfms); // toinsert already tracked, user should use the DIRTO list
+        return yfs_spad_reset(yfms, "NOT ALLOWED", -1);                         // PAGE_DRTO
+    }
+    if (leg->dst == NULL)
+    {
+        if (leg->xpfms == NULL || !ndt_list_count(leg->xpfms))
+        {
+            return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 C", COLR_IDX_ORANGE);  // PAGE_DRTO
+        }
+        if ((dct_wpt = ndt_list_item(leg->xpfms, 0)) == NULL)
+        {
+            return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 D", COLR_IDX_ORANGE);  // PAGE_DRTO
+        }
+    }
+    else
+    {
+        dct_wpt = leg->dst;
+    }
+    ndt_position ppos = ndt_position_init(XPLMGetDatad(yfms->xpl.latitude), XPLMGetDatad(yfms->xpl.longitude), NDT_DISTANCE_ZERO);
+    if (yfms->data.phase >= FMGS_PHASE_TOF)
+    {
+        float cur_trk_tru = XPLMGetDataf(yfms->xpl.mag_trk) - XPLMGetDataf(yfms->xpl.mag_var);
+        float new_trk_tru = ndt_position_calcbearing   (ppos, dct_wpt->position);
+        double angle_true = ndt_position_bearing_angle(cur_trk_tru, new_trk_tru);
+        double tp_trk_tru = ndt_mod(cur_trk_tru + angle_true / 2., 360.);
+        int otto_bank_ang = XPLMGetDatai(yfms->xpl.bank_angle_mode);
+        double velocityms = XPLMGetDataf(yfms->xpl.true_airspeed);
+        double g_sealevel = XPLMGetDataf(yfms->xpl.g_sealevel);
+        double bank_angle = M_PI / 36.0; // 5 degrees of bank
+        switch (otto_bank_ang)
+        {
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+                bank_angle *= (double)otto_bank_ang; // 5 to 25 degrees of bank
+                break;
+
+            case 0:
+            case 6:
+            default:
+                bank_angle *= 6.0; // 30 degrees of bank
+                break;
+        }
+        double turnradius = pow(velocityms, 2.0) / (g_sealevel * tan(bank_angle));
+        double radius4ang = turnradius * fabs(angle_true) / 90.0; // 2 * r per course reversal
+        ndt_distance d_tp = ndt_distance_init(round(radius4ang / 0.3048) + 0.1, NDT_ALTUNIT_FT);
+        ndt_position p_tp = ndt_position_calcpos4pbd(ppos, tp_trk_tru, d_tp);
+        ndt_log("YFMS [debug]: yfs_fpln_directto: g %lf TAS %.1lf bank angle %d (%.0lf°) turn radius %.0lf ft %.3lf nmi\n",
+                g_sealevel, MPS2KT(velocityms), otto_bank_ang, bank_angle, MET2FEET(turnradius), MET2NM(turnradius));
+        t_p_wpt = ndt_waypoint_posn(p_tp);
+    }
+    else
+    {
+#if 0 // sanity-check our code re: turn radius value
+        for (double i = 100.0; i < 501.0; i += 100.0)
+        {
+            double rate1 = 6.0;
+            double rate2 = 12.0;
+            double turnradius1 = pow(KT2MPS(i), 2.0) / (EARTH_GRAVITY * tan(M_PI / rate1));
+            double turnradius2 = pow(KT2MPS(i), 2.0) / (EARTH_GRAVITY * tan(M_PI / rate2));
+            ndt_log("DEBUG: TAS %3.0lf (%3.0lf) rate %.0lf radius %5.0lf ft diameter %6.0lf ft\n", i, KT2MPS(i), 180.0 / rate1, turnradius1 / 0.3048, turnradius1 / 0.1524);
+            ndt_log("DEBUG: TAS %3.0lf (%3.0lf) rate %.0lf radius %5.0lf ft diameter %6.0lf ft\n", i, KT2MPS(i), 180.0 / rate2, turnradius2 / 0.3048, turnradius2 / 0.1524);
+        }
+#endif
+        t_p_wpt = ndt_waypoint_posn(ppos);
+    }
+    if (t_p_wpt == NULL)
+    {
+        return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 E", COLR_IDX_ORANGE);      // PAGE_DRTO
+    }
+    else
+    {
+        snprintf(t_p_wpt->info.idnt, sizeof(t_p_wpt->info.idnt), "%s", "T-P");
     }
     if ((t_p_leg = ndt_flightplan_insert_direct(fpl_getfplan_for_leg(yfms, leg), t_p_wpt, leg, insert_after)) == NULL)
     {
         ndt_waypoint_close(&t_p_wpt);
-        return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 D", COLR_IDX_ORANGE);      // PAGE_DRTO
+        return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 F", COLR_IDX_ORANGE);      // PAGE_DRTO
     }
     if (yfms->data.fpln.w_tp)
     {
@@ -1044,7 +1074,7 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
             {
                 ndt_route_leg_close(&t_p_leg); ndt_waypoint_close(&t_p_wpt);
             }
-            return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 E", COLR_IDX_ORANGE);  // PAGE_DRTO
+            return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 G", COLR_IDX_ORANGE);  // PAGE_DRTO
         }
     }
     if (toinsert)
@@ -1055,7 +1085,7 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
             {
                 ndt_route_leg_close(&t_p_leg); ndt_waypoint_close(&t_p_wpt);
             }
-            return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 F", COLR_IDX_ORANGE);  // PAGE_DRTO
+            return yfs_spad_reset(yfms, "UNKNOWN ERROR 1 H", COLR_IDX_ORANGE);  // PAGE_DRTO
         }
         yfms->data.fpln.w_tp = t_p_wpt;
     }

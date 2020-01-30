@@ -487,7 +487,9 @@ typedef struct
         XPLMDataRef latitude;
         XPLMDataRef longitude;
         XPLMDataRef tropopause;
+        XPLMDataRef g_sealevel;
         XPLMDataRef groundspeed;
+        XPLMDataRef true_airspeed;
         XPLMDataRef elevation_agl;
         XPLMDataRef elevation_msl;
         // autopilot
@@ -497,6 +499,7 @@ typedef struct
         XPLMDataRef pitch_status;
         XPLMDataRef vvi_fpm_pilot;
         XPLMDataRef nav_mode_status;
+        XPLMDataRef bank_angle_mode;
         XPLMDataRef airspeed_is_mach;
         XPLMDataRef altitude_ft_pilot;
         XPLMDataRef airspeed_kts_pilot;
