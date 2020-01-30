@@ -1008,7 +1008,30 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
             case 2:
             case 3:
             case 4:
-            case 5:
+            case 5: // XXX: sane turn
+                if (otto_bank_ang > 0)
+                {
+                    if (otto_bank_ang < 6 && fabs(angle_true) >= 90.0)
+                    {
+                        XPLMSetDatai(yfms->xpl.bank_angle_mode, 6);
+                        bank_angle *= 6.0; // 30 degrees of bank
+                        break;
+                    }
+                    if (otto_bank_ang < 3 && fabs(angle_true) >= 45.0)
+                    {
+                        XPLMSetDatai(yfms->xpl.bank_angle_mode, 3);
+                        bank_angle *= 3.0; // 15 degrees of bank
+                        break;
+                    }
+                    if (otto_bank_ang < 2 && fabs(angle_true) >= 30.0)
+                    {
+                        XPLMSetDatai(yfms->xpl.bank_angle_mode, 2);
+                        bank_angle *= 2.0; // 10 degrees of bank
+                        break;
+                    }
+                    bank_angle *= (double)otto_bank_ang; // 5 to 25 degrees of bank
+                    break;
+                }
                 bank_angle *= (double)otto_bank_ang; // 5 to 25 degrees of bank
                 break;
 
@@ -1020,7 +1043,7 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
         }
         double turnradius = pow(velocityms, 2.0) / (g_sealevel * tan(bank_angle));
         double radius4ang = turnradius * fabs(angle_true) / 90.0; // 2 * r per course reversal
-        ndt_distance d_tp = ndt_distance_init(round(radius4ang / 0.3048) + 0.1, NDT_ALTUNIT_FT);
+        ndt_distance d_tp = ndt_distance_init(round(radius4ang / 0.3048) * 1.1, NDT_ALTUNIT_FT);
         ndt_position p_tp = ndt_position_calcpos4pbd(ppos, tp_trk_tru, d_tp);
         ndt_log("YFMS [debug]: yfs_fpln_directto: g %lf TAS %.1lf bank angle %d (%.0lf°) turn radius %.0lf ft %.3lf nmi\n",
                 g_sealevel, MPS2KT(velocityms), otto_bank_ang, RAD2DEG(bank_angle), MET2FEET(turnradius), MET2NM(turnradius));
