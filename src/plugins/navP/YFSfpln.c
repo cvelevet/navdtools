@@ -1022,7 +1022,7 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)//f
         ndt_distance d_tp = ndt_distance_init(round(radius4ang / 0.3048) + 0.1, NDT_ALTUNIT_FT);
         ndt_position p_tp = ndt_position_calcpos4pbd(ppos, tp_trk_tru, d_tp);
         ndt_log("YFMS [debug]: yfs_fpln_directto: g %lf TAS %.1lf bank angle %d (%.0lf°) turn radius %.0lf ft %.3lf nmi\n",
-                g_sealevel, MPS2KT(velocityms), otto_bank_ang, bank_angle, MET2FEET(turnradius), MET2NM(turnradius));
+                g_sealevel, MPS2KT(velocityms), otto_bank_ang, RAD2DEG(bank_angle), MET2FEET(turnradius), MET2NM(turnradius));
         t_p_wpt = ndt_waypoint_posn(p_tp);
     }
     else
