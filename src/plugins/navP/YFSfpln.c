@@ -955,8 +955,9 @@ void yfs_fpln_trackleg(yfms_context *yfms, int index)
     }
 }
 
-void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)//fixme
+void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
 {
+    // TODO: future: direct to with inbound course, abeam, direction etc.
     ndt_route_leg *tmp, *leg, *t_p_leg, *dct_leg;
     ndt_waypoint *t_p_wpt, *dct_wpt;
     int insert_after = 0;
