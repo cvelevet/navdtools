@@ -1027,6 +1027,7 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)//f
     }
     else
     {
+        t_p_wpt = ndt_waypoint_posn(ppos);
 #if 0 // sanity-check our code re: turn radius value
         for (double i = 100.0; i < 501.0; i += 100.0)
         {
@@ -1038,7 +1039,6 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)//f
             ndt_log("DEBUG: TAS %3.0lf (%3.0lf) rate %.0lf radius %5.0lf ft diameter %6.0lf ft\n", i, KT2MPS(i), 180.0 / rate2, turnradius2 / 0.3048, turnradius2 / 0.1524);
         }
 #endif
-        t_p_wpt = ndt_waypoint_posn(ppos);
     }
     if (t_p_wpt == NULL)
     {
