@@ -1428,7 +1428,7 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
                 {
                     yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
                 }
-                if (wpt->type == NDT_WPTYPE_RWY && yfms->data.phase < FMGS_PHASE_TOF) // inserting a runway on the ground
+                if (wpt->type == NDT_WPTYPE_RWY && XPLMGetDataf(yfms->xpl.elevation_agl) < 100.0f) // inserting a runway on the ground
                 {
                     ndt_airport *ap = yfms->data.init.from;
                     ndt_runway *rwy = ndt_runway_get(ap->runways, wpt->info.idnt + strlen(ap->info.idnt));
@@ -1663,7 +1663,7 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
                 yfs_spad_reset(yfms, "NOT ALLOWED", -1); return;
             }
         }
-        if (wpt->type == NDT_WPTYPE_RWY && yfms->data.phase < FMGS_PHASE_TOF) // inserting a runway on the ground
+        if (wpt->type == NDT_WPTYPE_RWY && XPLMGetDataf(yfms->xpl.elevation_agl) < 100.0f) // inserting a runway on the ground
         {
             ndt_airport *ap = yfms->data.init.from;
             ndt_runway *rwy = ndt_runway_get(ap->runways, wpt->info.idnt + strlen(ap->info.idnt));

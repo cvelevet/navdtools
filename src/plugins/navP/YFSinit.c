@@ -342,7 +342,7 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
                 yfs_spad_reset(yfms, "NOT IMPLEMENTED", -1);
                 return yfs_flightplan_reinit(yfms, NULL, NULL, NULL);
             }
-            if (yfms->data.phase < FMGS_PHASE_TOF) // inserting a runway on the ground
+            if (XPLMGetDataf(yfms->xpl.elevation_agl) < 100.0f) // inserting a runway on the ground
             {
                 // set autopilot to runway heading using navdlib-computed true heading and X-Plane's local magnetic model
                 XPLMSetDataf(yfms->xpl.heading_dial_deg_mag_pilot,   corte->dep.rwy->tru_heading + XPLMGetDataf(yfms->xpl.mag_var));
