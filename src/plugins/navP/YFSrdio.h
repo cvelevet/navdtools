@@ -26,5 +26,6 @@
 void yfs_rad1_pageopen(yfms_context *yfms);
 void yfs_rad2_pageopen(yfms_context *yfms);
 void yfs_rdio_pageupdt(yfms_context *yfms);
+void yfs_rdio_ils_data(yfms_context *yfms, float, int, int);
 
 #endif /* YFS_RDIO_H */

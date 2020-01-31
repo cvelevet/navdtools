@@ -321,6 +321,7 @@ typedef struct
             int               lg_idx; // currently tracked leg in list
             int               ln_off; // currently topmost line offset
             int               dindex; // index of d_leg (in legs list)
+            ndt_runway        *l_rwy; // landing runway for ILS or LOC
             ndt_waypoint       *w_tp; // present pos. waypoint for DIR TO
             ndt_flightplan    *d_fpl; // last non-empty flight plan element
             ndt_route_leg     *d_leg; // leg to the arrival airport or runway
@@ -663,11 +664,6 @@ typedef struct
             int vdes_kias;
         }
         otto;
-        struct
-        {
-            int frequency_changed;
-        }
-        ils;
     }
     xpl;
 }

@@ -37,6 +37,7 @@
 #include "YFSfpln.h"
 #include "YFSmain.h"
 #include "YFSmenu.h"
+#include "YFSrdio.h"
 #include "YFSspad.h"
 
 static void            yfs_lsk_callback_fpln(yfms_context *yfms, int key[2],                intptr_t refcon);
@@ -1471,6 +1472,10 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
                     ndt_runway *rwy = ndt_runway_get(ap->runways, wpt->info.idnt + strlen(ap->info.idnt));
                     if (rwy && rwy->waypoint == wpt)
                     {
+                        if (rwy->ils.avail)
+                        {
+                            yfs_rdio_ils_data(yfms, ndt_frequency_get(rwy->ils.freq), rwy->ils.course, 1); // ILS data to NAV1
+                        }
                         // set autopilot to runway heading using navdlib-computed true heading and X-Plane local magnetic model
                         XPLMSetDataf(yfms->xpl.heading_dial_deg_mag_pilot,   rwy->tru_heading + XPLMGetDataf(yfms->xpl.mag_var));
                         XPLMSetDataf(yfms->xpl.heading_dial_deg_mag_copilot, rwy->tru_heading + XPLMGetDataf(yfms->xpl.mag_var));
@@ -1492,6 +1497,10 @@ static void lsk_callback_lrev(yfms_context *yfms, int key[2], intptr_t refcon)
                         // XXX: temporary: remove when YFMS has full procedure support
                         ndt_restriction r = ndt_leg_const_init(); r.waypoint = NDT_WPTCONST_MAP;
                         ndt_route_leg_restrict(new_leg, r);
+                    }
+                    if (rwy && rwy->waypoint == wpt)
+                    {
+                        yfms->data.fpln.l_rwy = rwy;
                     }
                 }
                 yfms->data.fpln.lrev.open     = 0;
@@ -1706,6 +1715,10 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             ndt_runway *rwy = ndt_runway_get(ap->runways, wpt->info.idnt + strlen(ap->info.idnt));
             if (rwy && rwy->waypoint == wpt)
             {
+                if (rwy->ils.avail)
+                {
+                    yfs_rdio_ils_data(yfms, ndt_frequency_get(rwy->ils.freq), rwy->ils.course, 1); // ILS data to NAV1
+                }
                 // set autopilot to runway heading using navdlib-computed true heading and X-Plane local magnetic model
                 XPLMSetDataf(yfms->xpl.heading_dial_deg_mag_pilot,   rwy->tru_heading + XPLMGetDataf(yfms->xpl.mag_var));
                 XPLMSetDataf(yfms->xpl.heading_dial_deg_mag_copilot, rwy->tru_heading + XPLMGetDataf(yfms->xpl.mag_var));
@@ -1725,6 +1738,10 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
                 // XXX: temporary: remove when YFMS has full procedure support
                 ndt_restriction r = ndt_leg_const_init(); r.waypoint = NDT_WPTCONST_MAP;
                 ndt_route_leg_restrict(new_leg, r);
+            }
+            if (rwy && rwy->waypoint == wpt)
+            {
+                yfms->data.fpln.l_rwy = rwy;
             }
         }
         yfms->data.fpln.mod.source    = trk;

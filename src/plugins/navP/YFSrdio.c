@@ -394,6 +394,63 @@ void yfs_rdio_pageupdt(yfms_context *yfms)
     }
 }
 
+void yfs_rdio_ils_data(yfms_context *yfms, float frequency, int course, int mask)
+{
+    int hz10 = round(frequency * 100.) + YVP_FLOORDBL;
+    if (course != -1)
+    {
+        if (course < 1 || course > 360)
+        {
+            course = 360;
+        }
+    }
+    if (mask & 2)
+    {
+        if (frequency > 0.)
+        {
+            if (yfms->xpl.atyp == YFS_ATYP_FB76)
+            {
+                if ((((hz10)) > 11195) || (((hz10 / 10) % 2) == 0))
+                {
+                    yfs_spad_reset(yfms, "FORMAT ERROR", -1); return; // non-ILS
+                }
+            }
+            XPLMSetDatai(yfms->xpl.nav2_frequency_hz, hz10);
+        }
+        if (course != -1)
+        {
+            XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_copilot, course);
+            XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot, course);
+        }
+    }
+    if (mask & 1)
+    {
+        if (yfms->xpl.atyp == YFS_ATYP_FB76)
+        {
+            return; // FF-B767: NAV1: not an ILS-capable radio
+        }
+        if (frequency > 0.)
+        {
+            XPLMSetDatai(yfms->xpl.nav1_frequency_hz, hz10);
+        }
+        if (course != -1)
+        {
+            // X-Plane may overwrite the HSI course even if the OBS we've
+            // updated isn't the current HSI source, we simply restore it
+            if ((XPLMGetDatai(yfms->xpl.autopilot_source) == 0 && XPLMGetDatai(yfms->xpl.  HSI_source_select_pilot) == 2) ||
+                (XPLMGetDatai(yfms->xpl.autopilot_source) == 1 && XPLMGetDatai(yfms->xpl.HSI_source_select_copilot) == 2))
+            {
+                yfms->data.rdio.hsi_obs_deg_mag_rigt = XPLMGetDataf(yfms->xpl.hsi_obs_deg_mag_copilot);
+                yfms->data.rdio.hsi_obs_deg_mag_left = XPLMGetDataf(yfms->xpl.hsi_obs_deg_mag_pilot);
+                yfms->data.rdio.hsi_obs_deg_mag_rest = 2;
+            }
+            XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_copilot, course);
+            XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_pilot, course);
+        }
+    }
+    return;
+}
+
 enum
 {
     BARO_ANY = 0,
@@ -1244,21 +1301,6 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
 
 static void yfs_rad2_pageupdt(yfms_context *yfms)
 {
-    /* check if we must restore the HSI course */
-    if (yfms->data.rdio.hsi_obs_deg_mag_rest > 1)
-    {
-        yfms->data.rdio.hsi_obs_deg_mag_rest = 1;
-    }
-    else
-    {
-        if (yfms->data.rdio.hsi_obs_deg_mag_rest == 1)
-        {
-            XPLMSetDataf(yfms->xpl.  hsi_obs_deg_mag_pilot, yfms->data.rdio.hsi_obs_deg_mag_left);
-            XPLMSetDataf(yfms->xpl.hsi_obs_deg_mag_copilot, yfms->data.rdio.hsi_obs_deg_mag_rigt);
-        }
-        yfms->data.rdio.hsi_obs_deg_mag_rest = 0;
-    }
-
     /* reset lines before drawing */
     for (int i = 0; i < YFS_DISPLAY_NUMR - 1; i++)
     {
@@ -1345,14 +1387,6 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     {                                                                           // ILS is using X-Plane's NAV2
         if (nav2_frequency_hz >= 10800)
         {
-            if (navaid_is_ils(nav2_type))
-            {
-                if (yfms->xpl.ils.frequency_changed > 0) // auto-set all OBS courses after user-requested ILS change
-                {
-                    yfms->xpl.ils.frequency_changed = 0;
-                    // TODO: implement navdata-based course auto-selection
-                }
-            }
             yfs_printf_lft(yfms, 6, 0, COLR_IDX_BLUE, "%4s/%06.2lf", nav2_nav_id[0] ? nav2_nav_id : " [ ]", nav2_frequency_hz / 100.);
             yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%03d", nav2_obs_deg_mag_pilot);
             ils_in_use = 1;
@@ -1363,11 +1397,6 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     {
         if (navaid_is_ils(nav2_type))
         {
-            if (yfms->xpl.ils.frequency_changed > 0) // auto-set all OBS courses after user-requested ILS change
-            {
-                yfms->xpl.ils.frequency_changed = 0;
-                // TODO: implement navdata-based course auto-selection
-            }
             yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%03d", autopilot_source == 1 ? nav2_obs_deg_mag_copilot : nav2_obs_deg_mag_pilot);
             yfs_printf_lft(yfms, 6, 0, COLR_IDX_BLUE,    "%4s/%06.2lf", nav2_nav_id[0] ? nav2_nav_id : " [ ]", nav2_frequency_hz / 100.);
             ils_in_use = 1;
@@ -1377,11 +1406,6 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     {                                                                           // w/NAV1 master
         if (navaid_is_ils(nav1_type))
         {
-            if (yfms->xpl.ils.frequency_changed > 0) // auto-set all OBS courses after user-requested ILS change
-            {
-                yfms->xpl.ils.frequency_changed = 0;
-                // TODO: implement navdata-based course auto-selection
-            }
             yfs_printf_lft(yfms, 8, 0, COLR_IDX_BLUE, "%03d", autopilot_source == 1 ? nav1_obs_deg_mag_copilot : nav1_obs_deg_mag_pilot);
             yfs_printf_lft(yfms, 6, 0, COLR_IDX_BLUE,    "%4s/%06.2lf", nav1_nav_id[0] ? nav1_nav_id : " [ ]", nav1_frequency_hz / 100.);
             ils_in_use = 1;
@@ -1417,13 +1441,6 @@ static void yfs_rad2_pageupdt(yfms_context *yfms)
     yfs_printf_rgt(yfms, 10, 0, COLR_IDX_BLUE, "%03d/%-4s", adf2_frequency_hz, adf2_nav_id[0] ? adf2_nav_id : "[ ] ");
 
     /* all good */
-    if (yfms->xpl.ils.frequency_changed > 0)
-    {
-        if (yfms->xpl.ils.frequency_changed++ > 5) // wait up to ~1 sec. maximum
-        {
-            yfms->xpl.ils.frequency_changed = 0;
-        }
-    }
     yfms->mwindow.screen.redraw = 1; return;
 }
 
@@ -1904,7 +1921,7 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 2) // ILS 1 frequency get/set
     {
-        double freq; int hz10; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
+        double freq; char buf[YFS_ROW_BUF_SIZE]; yfs_spad_copy2(yfms, buf);
         if (buf[0] == 0)
         {
             if (yfms->mwindow.screen.text[6][5] != '1')
@@ -1924,25 +1941,13 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
             {
                 return yfs_spad_reset(yfms, "FORMAT ERROR", -1);
             }
-            hz10 = (int)round(freq * 100.);
+            yfs_spad_clear(yfms);
+            yfs_rdio_ils_data(yfms, freq, -1, 1|2);
+            return yfs_rad2_pageupdt(yfms);
         }
-        else
-        {
-            hz10 = (int)round(freq * 100.);
-        }
-        if (yfms->xpl.atyp == YFS_ATYP_FB76)
-        {
-            if ((((hz10)) > 11195) || (((hz10 / 10) % 2) == 0))
-            {
-                yfs_spad_reset(yfms, "FORMAT ERROR", -1); return; // non-ILS
-            }
-        }
-        else
-        {
-            XPLMSetDatai(yfms->xpl.nav1_frequency_hz, hz10); // FB76: N/A
-        }
-        XPLMSetDatai(yfms->xpl.nav2_frequency_hz, hz10); yfs_spad_clear(yfms);
-        /* don't update page, must wait */yfms->xpl.ils.frequency_changed = 1; return;
+        yfs_spad_clear(yfms);
+        yfs_rdio_ils_data(yfms, freq, -1, 1|2);
+        return yfs_rad2_pageupdt(yfms);
     }
     if (key[0] == 0 && key[1] == 3) // ILS 1 course get/set
     {
@@ -1960,27 +1965,9 @@ static void yfs_lsk_callback_rad2(yfms_context *yfms, int key[2], intptr_t refco
         {
             yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
         }
-        if (crs < 1)
-        {
-            crs = 360;
-        }
-        if (yfms->xpl.atyp != YFS_ATYP_FB76)
-        {
-            // X-Plane may overwrite the HSI course even if the OBS we've
-            // updated isn't the current HSI source, we simply restore it
-            if ((XPLMGetDatai(yfms->xpl.autopilot_source) == 0 && XPLMGetDatai(yfms->xpl.  HSI_source_select_pilot) == 2) ||
-                (XPLMGetDatai(yfms->xpl.autopilot_source) == 1 && XPLMGetDatai(yfms->xpl.HSI_source_select_copilot) == 2))
-            {
-                yfms->data.rdio.hsi_obs_deg_mag_rigt = XPLMGetDataf(yfms->xpl.hsi_obs_deg_mag_copilot);
-                yfms->data.rdio.hsi_obs_deg_mag_left = XPLMGetDataf(yfms->xpl.hsi_obs_deg_mag_pilot);
-                yfms->data.rdio.hsi_obs_deg_mag_rest = 2;
-            }
-            XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_copilot, (float)crs);
-            XPLMSetDataf(yfms->xpl.nav1_obs_deg_mag_pilot, (float)crs);
-        }
-        XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_copilot, (float)crs);
-        XPLMSetDataf(yfms->xpl.nav2_obs_deg_mag_pilot, (float)crs);
-        yfs_spad_clear(yfms); return yfs_rad2_pageupdt(yfms);
+        yfs_spad_clear(yfms);
+        yfs_rdio_ils_data(yfms, -1., crs, 1|2);
+        return yfs_rad2_pageupdt(yfms);
     }
     if (key[1] == 4) // ADF 1/2 frequency get/set
     {

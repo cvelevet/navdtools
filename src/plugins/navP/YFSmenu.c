@@ -170,6 +170,7 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfms->data.prog.fix           = NULL;
     yfms->data.init.to            = NULL;
     yfms->data.init.from          = NULL;
+    yfms->data.fpln.l_rwy         = NULL;
     yfms->data.init.aligned       = 0;
     yfms->data.init.ialized       = 0;
     yfms->data.fpln.awys.open     = 0;
@@ -423,6 +424,10 @@ void yfs_fmgs_phase_set(yfms_context *yfms, int new_phase)
                 index = 3; XPLMSetDatavi(swtid, &index, 2, 1); // XXX: Falcon 7X by after
                 XPLMSetDatai(sendv, 2); // TODO: when switching to approach phase instead
             }
+            if (yfms->data.fpln.l_rwy)  // TODO: when switching to approach phase instead
+            {
+                yfs_rdio_ils_data(yfms, ndt_frequency_get(yfms->data.fpln.l_rwy->ils.freq), yfms->data.fpln.l_rwy->ils.course, 1); // ILS data to NAV1
+            }
             ndt_log("YFMS [debug]: phase change: FMGS_PHASE_DES (was %d)\n", yfms->data.phase);
             yfms->data.phase = FMGS_PHASE_DES;
             return;
@@ -480,6 +485,16 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
      * do it here because yfs_rad1_pageupdt can't, as it's called for the same
      * flight model iteration as data can be be written to applicable datarefs
      */
+    if (yfms->data.rdio.hsi_obs_deg_mag_rest > 0)
+    {
+        if (yfms->data.rdio.hsi_obs_deg_mag_rest > 1)
+        {
+            yfms->data.rdio.hsi_obs_deg_mag_rest = 1; return 0.125f;
+        }
+        XPLMSetDataf(yfms->xpl.  hsi_obs_deg_mag_pilot, yfms->data.rdio.hsi_obs_deg_mag_left);
+        XPLMSetDataf(yfms->xpl.hsi_obs_deg_mag_copilot, yfms->data.rdio.hsi_obs_deg_mag_rigt);
+        yfms->data.rdio.hsi_obs_deg_mag_rest = 0;
+    }
     if (yfms->data.rdio.asrt_delayed_baro_s)
     {
         float unip; yfms->xpl.asrt.api.ValueGet(yfms->xpl.asrt.baro.id_f32_lunip, &unip);

@@ -35,6 +35,7 @@
 #include "YFSfpln.h"
 #include "YFSinit.h"
 #include "YFSmain.h"
+#include "YFSrdio.h"
 #include "YFSspad.h"
 
 static void yfs_lsk_callback_init(yfms_context *yfms, int key[2], intptr_t refcon);
@@ -290,6 +291,7 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
     {
         ndt_log("YFMS [debug]: phase change: yfs_flightplan_reinit: FMGS_PHASE_END\n");
         yfms->data.phase = FMGS_PHASE_END;
+        yfms->data.fpln.l_rwy = NULL;
         yfms->data.init.ialized = 0;
     }
     if (yfms->ndt.flp.arr)
@@ -315,6 +317,7 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
         // TODO: remove this when YFMS can add/remove/switch procedures directly
         if (corte->arr.rwy)
         {
+            yfms->data.fpln.l_rwy = corte->arr.rwy;
             corte->arr.rwy = NULL;
         }
         else
@@ -331,6 +334,7 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
                         ndt_restriction r = ndt_leg_const_init();
                         r.waypoint = NDT_WPTCONST_MAP;
                         ndt_route_leg_restrict(l, r);
+                        yfms->data.fpln.l_rwy = rw;
                     }
                 }
             }
@@ -350,6 +354,10 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
             }
             ndt_runway *rwy = corte->dep.rwy; corte->dep.rwy = NULL; // ensure leg->src == dep->apt->waypoint
             ndt_route_leg *leg = ndt_flightplan_insert_direct(corte, rwy->waypoint, ndt_list_item(corte->legs, 0), 0);
+            if (rwy->ils.avail)
+            {
+                yfs_rdio_ils_data(yfms, ndt_frequency_get(rwy->ils.freq), rwy->ils.course, 1); // ILS data to NAV1
+            }
         }
     }
     else
