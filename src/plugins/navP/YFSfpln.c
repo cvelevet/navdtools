@@ -1042,12 +1042,22 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
                 bank_angle *= 6.0; // 30 degrees of bank
                 break;
         }
+#if 1 // initial variant, doesn't work great, but OK enough to be usable
         double turn_delay = 10.0;  // from 0 to full bank angle + safety margin
         double turnradius = pow(velocityms, 2.0) / (g_sealevel * tan(bank_angle));
         double radius4ang = turnradius * fabs(angle_true) / 90.0; // diameter / angle
-        ndt_distance dlay = ndt_distance_init(ground_spd * turn_delay, NDT_ALTUNIT_ME);
+        ndt_distance tdis = ndt_distance_init(ground_spd * turn_delay, NDT_ALTUNIT_ME);
         ndt_distance d_tp = ndt_distance_init(round(MET2FEET(radius4ang)), NDT_ALTUNIT_FT);
-        ndt_position p_tp = ndt_position_calcpos4pbd(ppos, tp_trk_tru, ndt_distance_add(d_tp, dlay));
+        ndt_position p_tp = ndt_position_calcpos4pbd(ppos, tp_trk_tru, ndt_distance_add(d_tp, tdis));
+#else // still requires fine-tuning, may be worse idea overall
+        double turn_delay = 6.0;  // from 0 to full bank angle + safety margin
+        double turnradius = pow(velocityms, 2.0) / (g_sealevel * tan(bank_angle));
+        double radius4ang = turnradius * fabs(angle_true) / 90.0; // diameter / angle
+        ndt_distance tdis = ndt_distance_init(ground_spd * turn_delay, NDT_ALTUNIT_ME);
+        ndt_distance d_tp = ndt_distance_init(round(MET2FEET(radius4ang) * 1.1), NDT_ALTUNIT_FT);
+        ndt_position tpos = ndt_position_calcpos4pbd(ppos, cur_trk_tru, tdis);
+        ndt_position p_tp = ndt_position_calcpos4pbd(tpos, tp_trk_tru, d_tp);
+#endif // TODO: future: something which is less of a hack
         ndt_log("YFMS [debug]: yfs_fpln_directto: g %lf TAS %.1lf bank angle %d (%.0lf°) turn radius %.0lf ft %.3lf nmi\n",
                 g_sealevel, MPS2KT(velocityms), otto_bank_ang, RAD2DEG(bank_angle), MET2FEET(turnradius), MET2NM(turnradius));
         t_p_wpt = ndt_waypoint_posn(p_tp);
