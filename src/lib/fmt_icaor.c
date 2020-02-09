@@ -1719,7 +1719,7 @@ int ndt_fmt_icaor_print_airportnfo(ndt_navdatabase *ndb, const char *icao, int r
 
                 case -1:
                 {
-                    fprintf(stdout, "    %-3s %05.1lf° (db: %03d°) Length: %5d, width: %3d, surface: %s, glide path:  %.1lf°\n",
+                    fprintf(stdout, "    %-3s %05.1lf° (db: %03d°) Length: %5d, width: %3d, surface: %s, glide path: %.1lf°\n",
                             rwy->info.idnt, rwy->mag_heading, rwy->ndb_heading, j, k, surfacetype_name(rwy), rwy->ils.slope);
                     break;
                 }
