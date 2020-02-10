@@ -573,11 +573,9 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
             case -2:
                 yfs_printf_lft(yfms, (2 * (i + 1)), 0, COLR_IDX_WHITE, "%s", "------END OF F-PLN------");
                 next_leg_print_course = 0;
-                have_waypt = 0;
                 break;
             case -1: // departure airport
                 fpl_print_airport_rwy(yfms, (2 * (i + 1)), yfms->ndt.flp.rte->dep.apt, yfms->ndt.flp.rte->dep.rwy);
-                next_leg_print_course = 1;
                 have_waypt = 1;
                 break;
             default: // regular leg
@@ -585,11 +583,9 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
                 {
                     yfs_printf_lft(yfms, (2 * (i + 1)), 0, COLR_IDX_WHITE, "%s", "---F-PLN DISCONTINUITY--");
                     next_leg_print_course = 0;
-                    have_waypt = 0;
                     break;
                 }
                 fpl_print_leg_generic(yfms, (2 * (i + 1)), leg);
-                next_leg_print_course = 1;
                 have_waypt = 1;
                 break;
         }
