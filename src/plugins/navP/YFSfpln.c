@@ -564,7 +564,7 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
         ndt_position from = yfms->data.aircraft_pos;
         dtrck = ndt_position_calcdistance(from, to);
     }
-    for (int i = 0; i < 5; i++)
+    for (int i = 0, next_leg_print_course = 1; i < 5; i++)
     {
         ndt_route_leg *leg = NULL;
         int have_waypt = 0, index;
@@ -572,18 +572,24 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
         {
             case -2:
                 yfs_printf_lft(yfms, (2 * (i + 1)), 0, COLR_IDX_WHITE, "%s", "------END OF F-PLN------");
+                next_leg_print_course = 0;
+                have_waypt = 0;
                 break;
             case -1: // departure airport
                 fpl_print_airport_rwy(yfms, (2 * (i + 1)), yfms->ndt.flp.rte->dep.apt, yfms->ndt.flp.rte->dep.rwy);
+                next_leg_print_course = 1;
                 have_waypt = 1;
                 break;
             default: // regular leg
                 if ((leg = ndt_list_item(yfms->data.fpln.legs, index)) && (leg->type == NDT_LEGTYPE_ZZ))
                 {
                     yfs_printf_lft(yfms, (2 * (i + 1)), 0, COLR_IDX_WHITE, "%s", "---F-PLN DISCONTINUITY--");
+                    next_leg_print_course = 0;
+                    have_waypt = 0;
                     break;
                 }
                 fpl_print_leg_generic(yfms, (2 * (i + 1)), leg);
+                next_leg_print_course = 1;
                 have_waypt = 1;
                 break;
         }
@@ -619,28 +625,32 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
                 {
                     yfs_menu_resetall(yfms); return yfs_spad_reset(yfms, "ERROR -> RESET", COLR_IDX_ORANGE);
                 }
-                double  distance_nmile = (double)ndt_distance_get(dstce, NDT_ALTUNIT_ME) / 1852.;
-                switch (leg->rsg->type) // LSGG->BGTL (QPAC) suggests omb used (rather than imb)
+                if (next_leg_print_course)
                 {
-                    case NDT_RSTYPE_PRC: // TODO
-//                      switch (leg->type)
-                        break;
-                    case NDT_RSTYPE_AWY:
-                        yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 1, COLR_IDX_WHITE, "%.6s", leg->awyleg->awy->info.idnt);
-                        yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 8, COLR_IDX_WHITE,              "TRK%03.0lf", leg->omb);
-                        yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_GREEN,        "%.0lf     ", distance_nmile);
-                        if (i == 4) yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 3, COLR_IDX_WHITE,              "%s", "NM");
-                        break;
-                    default:
-                        yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 1, COLR_IDX_WHITE,         "C%03.0lf", leg->omb);
-                        yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_GREEN, "%.0lf     ", distance_nmile);
-                        if (i == 4) yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 3, COLR_IDX_WHITE,       "%s", "NM");
-                        break;
+                    double  distance_nmile = (double)ndt_distance_get(dstce, NDT_ALTUNIT_ME) / 1852.;
+                    switch (leg->rsg->type) // LSGG->BGTL (QPAC) suggests omb used (rather than imb)
+                    {
+                        case NDT_RSTYPE_PRC: // TODO
+//                          switch (leg->type)
+                            break;
+                        case NDT_RSTYPE_AWY:
+                            yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 1, COLR_IDX_WHITE, "%.6s", leg->awyleg->awy->info.idnt);
+                            yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 8, COLR_IDX_WHITE,              "TRK%03.0lf", leg->omb);
+                            yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_GREEN,        "%.0lf     ", distance_nmile);
+                            if (i == 4) yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 3, COLR_IDX_WHITE,              "%s", "NM");
+                            break;
+                        default:
+                            yfs_printf_lft(yfms, ((2 * (i + 1)) - 1), 1, COLR_IDX_WHITE,         "C%03.0lf", leg->omb);
+                            yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_GREEN, "%.0lf     ", distance_nmile);
+                            if (i == 4) yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 3, COLR_IDX_WHITE,       "%s", "NM");
+                            break;
+                    }
+                    if (distance_nmile < 0.) // not valid/available: must unprint it
+                    {
+                        yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_GREEN, "   --     ");
+                    }
                 }
-                if (distance_nmile < 0.) // not valid/available: must unprint it
-                {
-                    yfs_printf_rgt(yfms, ((2 * (i + 1)) - 1), 0, COLR_IDX_GREEN, "   --     ");
-                }
+                next_leg_print_course = 1;
             }
             if (i == 0) // column headers, overwrite other info
             {
