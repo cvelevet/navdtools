@@ -194,6 +194,11 @@ typedef struct
         int xb_was_connected;
         int aircraft_type[1];
     } oatc;
+    struct
+    {
+        XPLMDataRef     view_type;
+        XPLMDataRef zulu_time_sec;
+    } time;
 } refcon_ground;
 
 typedef struct
@@ -1048,21 +1053,25 @@ void* nvp_chandlers_init(void)
     ctx->ground.auto_t_sts          = XPLMFindDataRef  ("sim/cockpit2/autopilot/autothrottle_enabled");
     ctx->ground.auto_p_sts          = XPLMFindDataRef  ("sim/cockpit2/autopilot/servos_on");
     ctx->ground.elev_m_agl          = XPLMFindDataRef  ("sim/flightmodel/position/y_agl");
+    ctx->ground.time.view_type      = XPLMFindDataRef  ("sim/graphics/view/view_type");
+    ctx->ground.time.zulu_time_sec  = XPLMFindDataRef  ("sim/time/zulu_time_sec");
     ctx->ground.oatc.vol_com0       = XPLMFindDataRef  ("sim/operation/sound/radio_volume_ratio");
     ctx->ground.oatc.vol_com1       = XPLMFindDataRef  ("sim/cockpit2/radios/actuators/audio_volume_com1");
     ctx->ground.oatc.vol_com2       = XPLMFindDataRef  ("sim/cockpit2/radios/actuators/audio_volume_com2");
     ctx->ground.idle.onground_any   = XPLMFindDataRef  ("sim/flightmodel/failures/onground_any");
     ctx->ground.idle.throttle_all   = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/throttle_ratio_all");
     ctx->ground.idle.preset.command = XPLMCreateCommand("navP/thrust/idle_boost", "apply just a bit of throttle");
-    if (!ctx->ground.acf_roll_c        ||
-        !ctx->ground.ground_spd        ||
-        !ctx->ground.auto_t_sts        ||
-        !ctx->ground.auto_p_sts        ||
-        !ctx->ground.elev_m_agl        ||
-        !ctx->ground.oatc.vol_com0     ||
-        !ctx->ground.oatc.vol_com1     ||
-        !ctx->ground.oatc.vol_com2     ||
-        !ctx->ground.idle.throttle_all ||
+    if (!ctx->ground.acf_roll_c         ||
+        !ctx->ground.ground_spd         ||
+        !ctx->ground.auto_t_sts         ||
+        !ctx->ground.auto_p_sts         ||
+        !ctx->ground.elev_m_agl         ||
+        !ctx->ground.time.view_type     ||
+        !ctx->ground.time.zulu_time_sec ||
+        !ctx->ground.oatc.vol_com0      ||
+        !ctx->ground.oatc.vol_com1      ||
+        !ctx->ground.oatc.vol_com2      ||
+        !ctx->ground.idle.throttle_all  ||
         !ctx->ground.idle.preset.command)
     {
         goto fail;
@@ -2087,24 +2096,6 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     if (inPhase == xplm_CommandEnd)
     {
-#if TIM_ONLY
-        /*
-         * Partial time and date sync: sync date with today, sync
-         * minutes and seconds; however, we don't set hour of day.
-         */
-        XPLMDataRef d_ref[2]; // TODO: move to a command or menu item
-        if ((d_ref[0] = XPLMFindDataRef("sim/time/zulu_time_sec")) &&
-            (d_ref[1] = XPLMFindDataRef("sim/time/local_date_days")))
-        {
-            ndt_date today_now = ndt_date_now(); // note: XP doesn't know of 02/29 (easier for us :-)
-            float xplm_gmt_sec = XPLMGetDataf(d_ref[0]); xplm_gmt_sec -= fmodf(xplm_gmt_sec, 3600.0f);
-            float mins_seconds = (float)today_now.minutes * 60.0f + (float)today_now.seconds * 1.0f;
-            int month2days[12] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, };
-            int xplm_date_days = month2days[today_now.month - 1] + today_now.day - 1;
-            XPLMSetDataf(d_ref[0], xplm_gmt_sec + mins_seconds);
-            XPLMSetDatai(d_ref[1], xplm_date_days);
-        }
-#endif
         chandler_context *ctx = inRefcon;
         XPLMPluginID pid; XPLMCommandRef cmd; XPLMDataRef data;
         int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
@@ -4462,6 +4453,33 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 
         if ((grndp->ovly.check_4icing += inElapsedSinceLastCall) >= 10.0f) // every ten seconds
         {
+#if TIM_ONLY
+            // place here: check every 10 seconds only
+            // partial time sync: minutes/seconds only
+            switch (XPLMGetDatai(grndp->time.view_type)) // skip if menu showing etc.
+            {
+                case 1000: // 2D w/panel
+                case 1017: // ext. chase
+                case 1023: // 2D w/heads
+                case 1026: // 3D cockpit
+                case 1031: // ext. along
+                    {
+                        ndt_date datenow = ndt_date_now();
+                        float time_currt = XPLMGetDataf(grndp->time.zulu_time_sec);
+                        float time_hours = time_currt - fmodf(time_currt, 3600.0f);
+                        float minute_sec = (float)datenow.minutes * 60.0f + (float)datenow.seconds * 1.0f;
+                        if (fabsf(time_currt - time_hours - minute_sec) > 10.0f)
+                        {
+                            XPLMSetDataf(grndp->time.zulu_time_sec, time_hours + minute_sec);
+                        }
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+#endif
+            // main thing: we check for icing conditions
             if (XPLMGetDataf(grndp->ovly.ice[0]) > 0.04f ||
                 XPLMGetDataf(grndp->ovly.ice[1]) > 0.04f ||
                 XPLMGetDataf(grndp->ovly.ice[2]) > 0.04f ||
@@ -6014,6 +6032,28 @@ static int first_fcall_do(chandler_context *ctx)
         REGISTER_CHANDLER(ctx->vvi.pd, chandler_p2vvi, 1, &ctx->vvi);
         REGISTER_CHANDLER(ctx->vvi.pu, chandler_p2vvi, 1, &ctx->vvi);
     }
+
+#if TIM_ONLY
+    /*
+     * Partial time and date sync: sync date with today, sync
+     * minutes and seconds; however, we don't set hour of day.
+     */
+    if ((d_ref = XPLMFindDataRef("sim/time/local_date_days")))
+    {
+        ndt_date today_now = ndt_date_now(); // note: XP doesn't know 02/29 (easier :-)
+        int month2days[12] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, };
+        int xplm_date_days = month2days[today_now.month - 1] + today_now.day - 1;
+        XPLMSetDatai(d_ref, xplm_date_days);
+    }
+    if (ctx->ground.time.zulu_time_sec)
+    {
+        ndt_date datenow = ndt_date_now();
+        float time_currt = XPLMGetDataf(ctx->ground.time.zulu_time_sec);
+        float time_hours = time_currt - fmodf(time_currt, 3600.0f);
+        float minute_sec = (float)datenow.minutes * 60.0f + (float)datenow.seconds * 1.0f;
+        XPLMSetDataf(ctx->ground.time.zulu_time_sec, time_hours + minute_sec);
+    }
+#endif
 
     /*
      * Custom ground stabilization system (via flight loop callback)
