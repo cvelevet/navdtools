@@ -1751,7 +1751,7 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
         {
             float current_fuel; acf_type_fuel_get(ctx->data.refuel_dialg.ic, &current_fuel);
             float maximum_fuel; acf_type_fmax_get(ctx->data.refuel_dialg.ic, &maximum_fuel);
-            float minimum_fuel = maximum_fuel / 6.0f;
+            float minim_fuel = maximum_fuel / 8.0f; minim_fuel = fminf(minim_fuel, 2000.0f);
             if (fabsf(target_fuel_weight - current_fuel) > LOAD_MINIMUM_DIFF)
             {
                 if (target_fuel_weight > current_fuel)
@@ -1774,10 +1774,9 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
             {
                 ctx->data.refuel_dialg.fuel_target_kg = maximum_fuel;
             }
-            if (ctx->data.refuel_dialg.fuel_target_kg < minimum_fuel &&
-                ctx->data.refuel_dialg.fuel_target_kg < 3175.0f) // 7,000 pounds
+            if (ctx->data.refuel_dialg.fuel_target_kg < minim_fuel)
             {
-                ctx->data.refuel_dialg.fuel_target_kg = minimum_fuel;
+                ctx->data.refuel_dialg.fuel_target_kg = minim_fuel;
             }
         }
         else
