@@ -2029,25 +2029,31 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
             }
             if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A350_FF)
             {
-                if (acf_type_fuel_set(ctx->data.refuel_dialg.ic, &ctx->data.refuel_dialg.fuel_target_kg))
+                if (ctx->data.refuel_dialg.adjust_fuel != NVP_MENU_DONE)
                 {
-                    ndt_log("navP [error]: failed to set fuel\n");
-                    XPLMSpeakString("fueling failed");
-                    return 1;
+                    if (acf_type_fuel_set(ctx->data.refuel_dialg.ic, &ctx->data.refuel_dialg.fuel_target_kg))
+                    {
+                        ndt_log("navP [error]: failed to set fuel\n");
+                        XPLMSpeakString("fueling failed");
+                        return 1;
+                    }
+                    else
+                    {
+                        ndt_log("navP [info]: set fuel (%.0f)\n", ctx->data.refuel_dialg.fuel_target_kg);
+                    }
                 }
-                else
+                if (ctx->data.refuel_dialg.adjust_load != NVP_MENU_DONE)
                 {
-                    ndt_log("navP [info]: set fuel (%.0f)\n", ctx->data.refuel_dialg.fuel_target_kg);
-                }
-                if (acf_type_load_set(ctx->data.refuel_dialg.ic, &ctx->data.refuel_dialg.load_target_kg))
-                {
-                    ndt_log("navP [error]: failed to set load\n");
-                    XPLMSpeakString("boarding failed");
-                    return 1;
-                }
-                else
-                {
-                    ndt_log("navP [info]: set load (%.0f)\n", ctx->data.refuel_dialg.load_target_kg);
+                    if (acf_type_load_set(ctx->data.refuel_dialg.ic, &ctx->data.refuel_dialg.load_target_kg))
+                    {
+                        ndt_log("navP [error]: failed to set load\n");
+                        XPLMSpeakString("boarding failed");
+                        return 1;
+                    }
+                    else
+                    {
+                        ndt_log("navP [info]: set load (%.0f)\n", ctx->data.refuel_dialg.load_target_kg);
+                    }
                 }
                 XPLMSpeakString("fuel and load set");
                 XPHideWidget(inWidget);
