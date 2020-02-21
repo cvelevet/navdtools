@@ -4465,12 +4465,15 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                 case 1031: // ext. along
                     {
                         ndt_date datenow = ndt_date_now();
+                        float minsec_new = (float)datenow.minutes * 60.0f + (float)datenow.seconds * 1.0f;
                         float time_currt = XPLMGetDataf(grndp->time.zulu_time_sec);
-                        float time_hours = time_currt - fmodf(time_currt, 3600.0f);
-                        float minute_sec = (float)datenow.minutes * 60.0f + (float)datenow.seconds * 1.0f;
-                        if (fabsf(time_currt - time_hours - minute_sec) > 10.0f)
+                        float minsec_cur = fmodf(time_currt, 3600.0f);
+                        if (minsec_cur >   15.0f && // hours change
+                            minsec_cur < 3585.0f && // don't resync
+                            fabsf(minsec_cur - minsec_new) > 15.0f)
                         {
-                            XPLMSetDataf(grndp->time.zulu_time_sec, time_hours + minute_sec);
+                            ndt_log("navP [info]: time: resync: minutes: seconds\n");
+                            XPLMSetDataf(grndp->time.zulu_time_sec, time_currt - minsec_cur + minsec_new);
                         }
                     }
                     break;
@@ -6049,9 +6052,8 @@ static int first_fcall_do(chandler_context *ctx)
     {
         ndt_date datenow = ndt_date_now();
         float time_currt = XPLMGetDataf(ctx->ground.time.zulu_time_sec);
-        float time_hours = time_currt - fmodf(time_currt, 3600.0f);
-        float minute_sec = (float)datenow.minutes * 60.0f + (float)datenow.seconds * 1.0f;
-        XPLMSetDataf(ctx->ground.time.zulu_time_sec, time_hours + minute_sec);
+        float minsec_new = (float)datenow.minutes * 60.0f + (float)datenow.seconds * 1.0f;
+        XPLMSetDataf(ctx->ground.time.zulu_time_sec, time_currt - fmodf(time_currt, 3600.0f) + minsec_new);
     }
 #endif
 
