@@ -1751,7 +1751,7 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
         {
             float current_fuel; acf_type_fuel_get(ctx->data.refuel_dialg.ic, &current_fuel);
             float maximum_fuel; acf_type_fmax_get(ctx->data.refuel_dialg.ic, &maximum_fuel);
-            float minim_fuel = maximum_fuel / 8.0f; minim_fuel = fminf(minim_fuel, 2000.0f);
+            float minim_fuel = maximum_fuel / 8.0f; minim_fuel = fminf(minim_fuel, 4000.0f);
             if (fabsf(target_fuel_weight - current_fuel) > LOAD_MINIMUM_DIFF)
             {
                 if (target_fuel_weight > current_fuel)
