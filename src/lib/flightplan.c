@@ -2964,7 +2964,7 @@ dummies:
         }
         goto intc;
     }
-    if (leg->type == NDT_LEGTYPE_PI)
+    if (leg->type == NDT_LEGTYPE_PI) // TODO: re-write
     {
         /*
          * First segment, from initial turn fix to a distance along a course.
@@ -2987,7 +2987,7 @@ dummies:
          * Not sure how to use limdis, so let's just make is short as possible.
          * Calibrated for nicest short turn using FlightFactor/QPAC A350 v1.20.
          */
-        dist = ndt_distance_init(INT64_C(5000), NDT_ALTUNIT_ME); // 2.70nm
+        dist = ndt_distance_init(INT64_C(10000), NDT_ALTUNIT_FT); // turn diameter (TAS ~180 w/bank 30)
         brng = brng + leg->turn.tangle;
         if (!(wpt2 = ndt_waypoint_pbd(wpt1, brng, dist, wmm)))
         {
@@ -3002,7 +3002,7 @@ dummies:
         /*
          * Third segment, start turning back towards original outbound course.
          */
-        dist = ndt_distance_init(INT64_C(5000), NDT_ALTUNIT_ME); // 2.70nm
+        dist = ndt_distance_init(INT64_C(10000), NDT_ALTUNIT_FT); // turn diameter (TAS ~180 w/bank 30)
         brng = brng - leg->turn.tangle / 2.;
         if (!(wpt3 = ndt_waypoint_pbd(wpt1, brng, dist, wmm)))
         {
@@ -3264,7 +3264,7 @@ intc_drect:
     /*
      * Direct from a fix and back.
      * Calibrated for nicest turn using FlightFactor/QPAC A350 1.20:
-     * LIPE 30 LSGG none none none "BOA7P FRZ"
+     * --dep LIPE/30 --arr LSGG --rte "BOA7P FRZ" (e.g. cycle 1601)
      *
      * Note: we previously relied on distance-based checks only (1nm), but it
      *       gave false positives, e.g. KABQ, JEMEZ3.08, (5860) -> TYILR: ~417m
@@ -3274,14 +3274,14 @@ intc_drect:
         (src1 == leg->dst &&
          ndt_distance_get(dctd, NDT_ALTUNIT_FT) < INT64_C(660))) // 1 furlong
     {
-        dctd = ndt_distance_init(INT64_C(3000), NDT_ALTUNIT_ME);
+        dctd = ndt_distance_init(INT64_C(20000), NDT_ALTUNIT_FT); // turn diameter (TAS ~250 w/bank 30)
         if (!(wpt = ndt_waypoint_pbd(nxt->dst, brg1, dctd, wmm)))
         {
             err = ENOMEM;
             goto end;
         }
         wpt->type = NDT_WPTYPE_LLC;
-        snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "(DCT %s D1.6)", nxt->dst->info.idnt);
+        snprintf(wpt->info.idnt, sizeof(wpt->info.idnt), "(DCT %s D3.3)", nxt->dst->info.idnt);
         ndt_list_add(nxt->xpfms, wpt);
         ndt_list_add(flp->cws,   wpt);
         switch (nxt->constraints.turn)
@@ -3323,60 +3323,20 @@ intc_drect:
     {
         angl = ndt_position_angle_reverse(angl);
     }
-    if (fabs(angl) > 120. && leg->constraints.waypoint != NDT_WPTCONST_FOV)
+    if (fabs(angl) > 120.)
     {
-        dctd = ndt_distance_init(INT64_C(3000), NDT_ALTUNIT_ME);
+        dctd = ndt_distance_init(INT64_C(20000), NDT_ALTUNIT_FT); // turn diameter (TAS ~250 w/bank 30)
+        if (leg->constraints.waypoint == NDT_WPTCONST_FOV)
+        {
+            // TODO: update src1 accordingly
+        }
         if (angl < 0.)
         {
-            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 - 090., 360.), dctd, wmm);
+            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 - 90., 360.), dctd, wmm);
         }
         else
         {
-            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 + 090., 360.), dctd, wmm);
-        }
-        if (!wpt)
-        {
-            err = ENOMEM;
-            goto end;
-        }
-        wpt->type = NDT_WPTYPE_LLC;
-        snprintf(wpt->info.idnt, sizeof(wpt->info.idnt),
-                 "(TURN %s)", angl < 0. ? "LEFT" : "RIGHT");
-        ndt_list_add(nxt->xpfms, wpt);
-        ndt_list_add(flp->cws,   wpt);
-    }
-    if (fabs(angl) > 180.)
-    {
-        dctd = ndt_distance_init(INT64_C(4242), NDT_ALTUNIT_ME); // sqrt(2) factor
-        if (angl < 0.)
-        {
-            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 - 135., 360.), dctd, wmm);
-        }
-        else
-        {
-            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 + 135., 360.), dctd, wmm);
-        }
-        if (!wpt)
-        {
-            err = ENOMEM;
-            goto end;
-        }
-        wpt->type = NDT_WPTYPE_LLC;
-        snprintf(wpt->info.idnt, sizeof(wpt->info.idnt),
-                 "(TURN %s)", angl < 0. ? "LEFT" : "RIGHT");
-        ndt_list_add(nxt->xpfms, wpt);
-        ndt_list_add(flp->cws,   wpt);
-    }
-    if (fabs(angl) > 270.)
-    {
-        dctd = ndt_distance_init(INT64_C(3000), NDT_ALTUNIT_ME);
-        if (angl < 0.)
-        {
-            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 - 180., 360.), dctd, wmm);
-        }
-        else
-        {
-            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 + 180., 360.), dctd, wmm);
+            wpt = ndt_waypoint_pbd(src1, ndt_mod(brg1 + 90., 360.), dctd, wmm);
         }
         if (!wpt)
         {
