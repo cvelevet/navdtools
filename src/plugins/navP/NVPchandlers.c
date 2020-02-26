@@ -4473,7 +4473,16 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                             minsec_cur < 3585.0f && // don't resync
                             fabsf(minsec_cur - minsec_new) > 15.0f)
                         {
-                            ndt_log("navP [info]: time: resync: minutes: seconds\n");
+                            float hh = floorf(time_currt / 3600.0f);//debug
+                            float mc = floorf(minsec_cur /   60.0f);//debug
+                            float mn = floorf(minsec_new /   60.0f);//debug
+                            float sc = fmodf (minsec_cur,    60.0f);//debug
+                            float sn = fmodf (minsec_new,    60.0f);//debug
+                            float nh = datenow.hours, nm = datenow.minutes, ns = datenow.seconds;//debug
+                            ndt_log("navP [info]: time: resync: difference: %lf\n", fabsf(minsec_cur-minsec_new));//debug
+                            ndt_log("navP [info]: time: resync: irl: now: %02.0lf:%02.0lf:%02.0lf\n", nh, nm, ns);//debug
+                            ndt_log("navP [info]: time: resync: sim: old: %02.0lf:%02.0lf:%02.0lf\n", hh, mc, sc);//debug
+                            ndt_log("navP [info]: time: resync: sim: new: %02.0lf:%02.0lf:%02.0lf\n", hh, mn, sn);//debug
                             XPLMSetDataf(grndp->time.zulu_time_sec, time_currt - minsec_cur + minsec_new);
                         }
                     }
