@@ -1870,8 +1870,8 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
                 }
                 if (ctx->data.refuel_dialg.adjust_load != NVP_MENU_DONE)
                 {
-                    float c19[]= { 2268.0f,4518.0f,6786.0f }, c21[] = { 5670.0f,7167.0f,12837.0f };
-                    float *crg = ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A321_TL ? c21 : c19;
+                    float c1[] = { 2268.0f, 4518.0f, 6786.0f, }, c2[] = { 5670.0f, 7167.0f, 12837.0f, };
+                    float *crg = ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A321_TL ?  c2 :  c1;
                     int maxpax = ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A321_TL ? 224 : 145;
                     if (maxpax < (tolissi = (int)(ctx->data.refuel_dialg.load_target_kg / 100.0f)))
                     {
