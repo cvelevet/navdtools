@@ -315,12 +315,20 @@ acf_info_context* acf_type_info_update()
             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(   "ToLiSs.Airbus.systems") ||
             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(     "ToLiss.A319.systems") ||
             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("XP10.ToLiss.A319.systems") ||
-            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("XP11.ToLiss.A319.systems"))
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("XP11.ToLiss.A319.systems") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("XP10.ToLiss.A321.systems") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("XP11.ToLiss.A321.systems"))
         {
             if (!STRN_CASECMP_AUTO(global_info->descrp, "A319") &&
                 !STRN_CASECMP_AUTO(global_info->icaoid, "A319"))
             {
                 global_info->ac_type = ACF_TYP_A319_TL;
+                break;
+            }
+            if (!STRN_CASECMP_AUTO(global_info->descrp, "A321") &&
+                !STRN_CASECMP_AUTO(global_info->icaoid, "A321"))
+            {
+                global_info->ac_type = ACF_TYP_A321_TL;
                 break;
             }
             if (!STRN_CASECMP_AUTO(global_info->author, "QualityPark"))
