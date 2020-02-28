@@ -1097,6 +1097,7 @@ static void wb_handler(menu_context *ctx)
     switch (ctx->data.refuel_dialg.ic->ac_type)
     {
         case ACF_TYP_A319_TL:
+        case ACF_TYP_A321_TL:
         case ACF_TYP_A350_FF:
         case ACF_TYP_A320_FF:
         case ACF_TYP_B737_XG:
@@ -1856,7 +1857,8 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
                     ndt_log("%.3f ", ctx->data.refuel_dialg.ic->fuel.tanks.rat[ii-1]);
                 }
             }
-            if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A319_TL)
+            if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A319_TL ||
+                ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A321_TL)
             {
                 XPLMCommandRef tolissc;
                 XPLMDataRef    tolissd;
@@ -1868,13 +1870,16 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
                 }
                 if (ctx->data.refuel_dialg.adjust_load != NVP_MENU_DONE)
                 {
-                    if (145 < (tolissi = (int)(ctx->data.refuel_dialg.load_target_kg / 100.0f)))
+                    float c19[]= { 2268.0f,4518.0f,6786.0f }, c21[] = { 5670.0f,7167.0f,12837.0f };
+                    float *crg = ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A321_TL ? c21 : c19;
+                    int maxpax = ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A321_TL ? 224 : 145;
+                    if (maxpax < (tolissi = (int)(ctx->data.refuel_dialg.load_target_kg / 100.0f)))
                     {
-                        tolissi = 145;
+                        tolissi = maxpax;
                     }
-                    if (6786.0f < (tolissf = (ctx->data.refuel_dialg.load_target_kg - ((float)tolissi * 100.0f))))
+                    if (crg[2] < (tolissf = (ctx->data.refuel_dialg.load_target_kg - ((float)tolissi * 100.0f))))
                     {
-                        tolissf = 6786.0f;
+                        tolissf = crg[2];
                     }
                     {
                         ndt_log("navP [info]: load distributed: %.0f, pax: %d, cargo: %.0f, discarded: %.0f\n",
@@ -1904,7 +1909,7 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
                     }
                     if ((tolissd = XPLMFindDataRef("AirbusFBW/FwdCargo")))
                     {
-                        XPLMSetDataf(tolissd, tolissf * 2268.0f / 6786.0f);
+                        XPLMSetDataf(tolissd, tolissf * crg[0] / crg[2]);
                     }
                     else
                     {
@@ -1914,7 +1919,7 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
                     }
                     if ((tolissd = XPLMFindDataRef("AirbusFBW/AftCargo")))
                     {
-                        XPLMSetDataf(tolissd, tolissf * 4518.0f / 6786.0f);
+                        XPLMSetDataf(tolissd, tolissf * crg[1] / crg[2]);
                     }
                     else
                     {
