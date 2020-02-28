@@ -1410,8 +1410,9 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case ACF_TYP_A319_TL:
+        case ACF_TYP_A321_TL:
             ctx->otto.disc.cc.name = "toliss_airbus/ap_disc_left_stick";
-/*untested*/ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             ctx->otto.conn.cc.name = "toliss_airbus/ap1_push";
             break;
 
@@ -3096,7 +3097,8 @@ static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             return 0;
         }
-        if (ctx->info->ac_type == ACF_TYP_A319_TL)
+        if (ctx->info->ac_type == ACF_TYP_A319_TL ||
+            ctx->info->ac_type == ACF_TYP_A321_TL)
         {
             int propmode; XPLMGetDatavi(ctx->revrs.prop_mode, &propmode, 0, 1);
             if (propmode == 3)
@@ -3148,7 +3150,8 @@ static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             return 0;
         }
-        if (ctx->info->ac_type == ACF_TYP_A319_TL)
+        if (ctx->info->ac_type == ACF_TYP_A319_TL ||
+            ctx->info->ac_type == ACF_TYP_A321_TL)
         {
             int propmode; XPLMGetDatavi(ctx->revrs.prop_mode, &propmode, 0, 1);
             if (propmode == 1)
@@ -3413,6 +3416,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 return 1; // no callouts for J.A.R. addons
             case ACF_TYP_A319_TL:
             case ACF_TYP_A320_QP:
+            case ACF_TYP_A321_TL:
             case ACF_TYP_A330_RW:
             case ACF_TYP_A350_FF:
             case ACF_TYP_A380_PH:
@@ -3848,6 +3852,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     cdu->i_disabled = 0; break;
 
                 case ACF_TYP_A319_TL:
+                case ACF_TYP_A321_TL:
                     if (NULL == (cdu->command[0] = XPLMFindCommand("AirbusFBW/UndockMCDU1"     )) ||
                         NULL == (cdu->command[1] = XPLMFindCommand("AirbusFBW/UndockMCDU2"     )) ||
                         NULL == (cdu->dataref[0] = XPLMFindDataRef("AirbusFBW/PopUpHeightArray")) ||
@@ -4067,6 +4072,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
 
             case ACF_TYP_A319_TL:
+            case ACF_TYP_A321_TL:
             {
                 int PopUpHeightArray[2]; XPLMGetDatavi(cdu->dataref[0], PopUpHeightArray, 0, 2);
                 if (PopUpHeightArray[0] <= 0 && PopUpHeightArray[1] <= 0) // both popups hidden
@@ -4743,27 +4749,41 @@ static int first_fcall_do(chandler_context *ctx)
 
         case ACF_TYP_A319_TL:
         case ACF_TYP_A320_QP:
+        case ACF_TYP_A321_TL:
             if (ctx->info->ac_type == ACF_TYP_A320_QP)
             {
                 if ((cr = XPLMFindCommand("AirbusFBW/PopUpPedestal1")))
                 {
                     XPLMCommandOnce(cr);
                 }
-                _DO(1, XPLMSetDatai,    0, "AirbusFBW/ALT100_1000");            // FCU alt. sel. incr. (1000ft) (no scrollwheel)
+                _DO(1, XPLMSetDatai, 0, "AirbusFBW/ALT100_1000");               // FCU alt. sel. incr. (1000ft) (no scrollwheel)
             }
             else
             {
                 if (acf_type_is_engine_running() == 0) // cold & dark
                 {
-                    _DO(1, XPLMSetDatai,1, "AirbusFBW/EnableExternalPower");    // ensure we have ground power
-                    _DO(1, XPLMSetDatai,1, "AirbusFBW/GroundLPAir");            // lo pressure ground air: yes
-                    _DO(1, XPLMSetDatai,0, "AirbusFBW/GroundHPAir");            // hi pressure ground air: off
+                    _DO(1, XPLMSetDatai, 1, "AirbusFBW/EnableExternalPower");   // ensure we have ground power
+                    _DO(1, XPLMSetDatai, 0, "AirbusFBW/GroundLPAir");           // lo pressure ground air: off
+                    _DO(1, XPLMSetDatai, 0, "AirbusFBW/GroundHPAir");           // hi pressure ground air: off
                 }
-                _DO(1, XPLMSetDatai,    0, "AirbusFBW/ALT100_1000");            // FCU alt. sel. incre. (100ft)
-                _DO(1, XPLMSetDatai,    1, "AirbusFBW/EngineType");             // IAE-2524-A5 w/sharklets+web
-/*unwritable?*/ _DO(1, XPLMSetDatai,    0, "AirbusFBW/SatComObjInhibit");       // IAE-2524-A5 w/sharklets+web
-                _DO(1, XPLMSetDatai,    1, "AirbusFBW/WingtipDeviceType");      // IAE-2524-A5 w/sharklets+web
-                _DO(1, XPLMSetDatai,    1, "params/wheel");                     // use scrollwheel
+                switch (ctx->info->ac_type)
+                {
+                    case ACF_TYP_A321_TL:
+                        _DO(1, XPLMSetDatai, 1, "AirbusFBW/EngineType");        // IAE engines w/sharklets+web
+/*unwritable?*/         _DO(1, XPLMSetDatai, 0, "AirbusFBW/SatComObjInhibit");  // IAE engines w/sharklets+web
+                        _DO(1, XPLMSetDatai, 1, "AirbusFBW/WingtipDeviceType"); // IAE engines w/sharklets+web
+                        _DO(1, XPLMSetDatai, 0, "AirbusFBW/FuelNumExtraTanks"); // use 3 fuel tanks by default
+                        break;
+
+                    case ACF_TYP_A319_TL:
+                    default:
+                        _DO(1, XPLMSetDatai, 1, "AirbusFBW/EngineType");        // IAE engines w/sharklets+web
+/*unwritable?*/         _DO(1, XPLMSetDatai, 0, "AirbusFBW/SatComObjInhibit");  // IAE engines w/sharklets+web
+                        _DO(1, XPLMSetDatai, 1, "AirbusFBW/WingtipDeviceType"); // IAE engines w/sharklets+web
+                        break;
+                }
+                _DO(1, XPLMSetDatai, 0, "AirbusFBW/ALT100_1000");               // FCU alt. sel. incre. (100ft)
+                _DO(1, XPLMSetDatai, 1, "params/wheel");                        // use scrollwheel
             }
             if ((d_ref = XPLMFindDataRef("AirbusFBW/DUBrightness")))
             {
@@ -4790,7 +4810,8 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/audio_selection_com1"); // C1:TX/RX
             _DO(0, XPLMSetDatai, 6, "sim/cockpit2/radios/actuators/audio_com_selection");  // C1:TX/RX
-            if (ctx->info->ac_type == ACF_TYP_A319_TL)
+            if (ctx->info->ac_type == ACF_TYP_A319_TL ||
+                ctx->info->ac_type == ACF_TYP_A321_TL)
             {
                 if (ctx->a319kc.kc_is_registered)
                 {
@@ -5981,6 +6002,7 @@ static int first_fcall_do(chandler_context *ctx)
             break;
         case ACF_TYP_A319_TL:
         case ACF_TYP_A320_QP:
+        case ACF_TYP_A321_TL:
             _DO(1, XPLMSetDatai, 2, "AirbusFBW/XPDR4");
             _DO(1, XPLMSetDatai, 0, "AirbusFBW/XPDR3");
             _DO(1, XPLMSetDatai, 0, "AirbusFBW/XPDR2");
@@ -6098,6 +6120,12 @@ static int first_fcall_do(chandler_context *ctx)
             ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
 //          ctx->ground.idle.r_t[0]   = 0.10875f; // ~26.1% N1 @ NTD
 //          ctx->ground.idle.r_t[1]   = 0.10875f; // ~26.1% N1 @ NTD
+            ctx->ground.idle.r_t[0]   = 0.20000f; // thr. step 0.04f
+            ctx->ground.idle.r_t[1]   = 0.20000f; // thr. step 0.04f
+            ctx->ground.idle.minimums = 1; break;
+
+        case ACF_TYP_A321_TL:
+            ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
             ctx->ground.idle.r_t[0]   = 0.20000f; // thr. step 0.04f
             ctx->ground.idle.r_t[1]   = 0.20000f; // thr. step 0.04f
             ctx->ground.idle.minimums = 1; break;
