@@ -296,6 +296,7 @@ void acf_volume_set(acf_volume_context *ctx, float volume, acf_type type)
         switch (type)
         {
             case ACF_TYP_A319_TL:
+            case ACF_TYP_A321_TL:
                 // ToLiSS A319's defaults:
                 // - engine volume     25%
                 // - system volume     25%
