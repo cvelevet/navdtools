@@ -4759,9 +4759,9 @@ static int first_fcall_do(chandler_context *ctx)
                 switch (ctx->info->ac_type)
                 {
                     case ACF_TYP_A321_TL:
-                        _DO(1, XPLMSetDatai, 1, "AirbusFBW/EngineType");        // IAE engines w/sharklets+web
-/*unwritable?*/         _DO(1, XPLMSetDatai, 0, "AirbusFBW/SatComObjInhibit");  // IAE engines w/sharklets+web
-                        _DO(1, XPLMSetDatai, 1, "AirbusFBW/WingtipDeviceType"); // IAE engines w/sharklets+web
+                        _DO(1, XPLMSetDatai, 2, "AirbusFBW/EngineType");        // CFM engines w/sharklets+web
+/*unwritable?*/         _DO(1, XPLMSetDatai, 0, "AirbusFBW/SatComObjInhibit");  // CFM engines w/sharklets+web
+                        _DO(1, XPLMSetDatai, 1, "AirbusFBW/WingtipDeviceType"); // CFM engines w/sharklets+web
                         _DO(1, XPLMSetDatai, 0, "AirbusFBW/FuelNumExtraTanks"); // use 3 fuel tanks by default
                         break;
 
