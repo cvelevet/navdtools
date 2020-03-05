@@ -4762,7 +4762,7 @@ static int first_fcall_do(chandler_context *ctx)
                         _DO(1, XPLMSetDatai, 2, "AirbusFBW/EngineType");        // CFM engines w/sharklets+web
 /*unwritable?*/         _DO(1, XPLMSetDatai, 0, "AirbusFBW/SatComObjInhibit");  // CFM engines w/sharklets+web
                         _DO(1, XPLMSetDatai, 1, "AirbusFBW/WingtipDeviceType"); // CFM engines w/sharklets+web
-                        _DO(1, XPLMSetDatai, 0, "AirbusFBW/FuelNumExtraTanks"); // use 3 fuel tanks by default
+                        _DO(1, XPLMSetDatai, 2, "AirbusFBW/FuelNumExtraTanks"); // use 5 fuel tanks by default
                         break;
 
                     case ACF_TYP_A319_TL:
