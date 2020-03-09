@@ -4807,10 +4807,6 @@ static int first_fcall_do(chandler_context *ctx)
             if (ctx->info->ac_type == ACF_TYP_A319_TL ||
                 ctx->info->ac_type == ACF_TYP_A321_TL)
             {
-                if ((d_ref = XPLMFindDataRef("AirbusFBW/BrakePedalInputOverride")))
-                {
-                    XPLMSetDatai(d_ref, 1);
-                }
                 if (ctx->a319kc.kc_is_registered)
                 {
                     ndt_log("navP [warning]: AirbusFBW key sniffer already registered\n");
@@ -6400,6 +6396,11 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
                 (fbw->tolb[1] = XPLMFindDataRef("AirbusFBW/BrakePedalInputRight")) &&
                 (fbw->tolb[2] = XPLMFindDataRef("AirbusFBW/BrakePedalInputOverride")))
             {
+                /*
+                 * Permanently override braking input.
+                 */
+                XPLMSetDatai(fbw->tolb[2], 1);
+
                 /*
                  * We're good to go!
                  */
