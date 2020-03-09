@@ -2388,6 +2388,17 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 default: // xplm_CommandContinue
                     if (ctx->acfspec.qpac.tolb[2])
                     {
+                        if (-0.1f > (XPLMGetDataf(rcb->p_b_rat) -
+                                     XPLMGetDataf(ctx->acfspec.qpac.tolb[0])))
+                        {
+                            XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1);
+                            ndt_log("navP [error]: ToLiSS b. overr. fail, "
+                                    "using parking brake (%d %.2lf %.2lf\n",
+                                    XPLMGetDatai(ctx->acfspec.qpac.tolb[2]),
+                                    XPLMGetDataf(ctx->acfspec.qpac.tolb[0]),
+                                    XPLMGetDataf(ctx->acfspec.qpac.tolb[1]));
+                            return 0;
+                        }
                         return 0;
                     }
                     if (rcb->use_pkb == 0)
@@ -2561,6 +2572,17 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 default: // xplm_CommandContinue
                     if (ctx->acfspec.qpac.tolb[2])
                     {
+                        if (-0.1f > (XPLMGetDataf(rcb->p_b_rat) -
+                                     XPLMGetDataf(ctx->acfspec.qpac.tolb[0])))
+                        {
+                            XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1);
+                            ndt_log("navP [error]: ToLiSS b. overr. fail, "
+                                    "using parking brake (%d %.2lf %.2lf\n",
+                                    XPLMGetDatai(ctx->acfspec.qpac.tolb[2]),
+                                    XPLMGetDataf(ctx->acfspec.qpac.tolb[0]),
+                                    XPLMGetDataf(ctx->acfspec.qpac.tolb[1]));
+                            return 0;
+                        }
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[0], p_ratio);
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[1], p_ratio);
                         return 0;
