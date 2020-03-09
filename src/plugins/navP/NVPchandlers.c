@@ -102,6 +102,7 @@ typedef struct
     int              ready;
     chandler_callback mwcb;
     XPLMCommandRef   iscst;
+    int            tolbctr;
     XPLMDataRef    tolb[3];
     XPLMDataRef    gpws[4];
     XPLMDataRef    pkb_ref;
@@ -2342,8 +2343,9 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type == ACF_TYP_A350_FF));
                     if (ctx->acfspec.qpac.tolb[2])
                     {
-                        XPLMSetDataf(ctx->acfspec.qpac.tolb[1], 1.0f);
+                        ctx->acfspec.qpac.tolbctr = 0;
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[0], 1.0f);
+                        XPLMSetDataf(ctx->acfspec.qpac.tolb[1], 1.0f);
                         return 0;
                     }
                     if (rcb->use_pkb == 0)
@@ -2371,6 +2373,7 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 case xplm_CommandEnd:
                     if (ctx->acfspec.qpac.tolb[2])
                     {
+                        ctx->acfspec.qpac.tolbctr = 0;
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[0], 0.0f);
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[1], 0.0f);
                     }
@@ -2388,16 +2391,28 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 default: // xplm_CommandContinue
                     if (ctx->acfspec.qpac.tolb[2])
                     {
-                        if (0.1f < (XPLMGetDataf(ctx->acfspec.qpac.tolb[0]) -
-                                    XPLMGetDataf(rcb->p_b_rat)))
+                        if (!XPLMGetDatai(ctx->acfspec.qpac.pkb_ref))
                         {
-                            ndt_log("navP [error]: ToLiSS braking override fail, "
-                                    "using parking brake (%d %.2lf %.2lf %.2lf)\n",
-                                    XPLMGetDatai(ctx->acfspec.qpac.tolb[2]),
-                                    XPLMGetDataf(ctx->acfspec.qpac.tolb[0]),
-                                    XPLMGetDataf(ctx->acfspec.qpac.tolb[1]),
-                                    XPLMGetDataf(rcb->p_b_rat));
-                            XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1);
+                            if (ctx->acfspec.qpac.tolbctr < 10)
+                            {
+                                ctx->acfspec.qpac.tolbctr++;
+                            }
+                            else
+                            {
+                                if (0.01f > XPLMGetDataf(rcb->p_b_rat) &&
+                                    0.01f < XPLMGetDataf(ctx->acfspec.qpac.tolb[0]))
+                                {
+                                    ndt_log("navP [error]: ToLiSS braking override fail, "
+                                            "using parking brake (%d %.2lf %.2lf %.2lf)\n",
+                                            XPLMGetDatai(ctx->acfspec.qpac.tolb[2]),
+                                            XPLMGetDataf(ctx->acfspec.qpac.tolb[0]),
+                                            XPLMGetDataf(ctx->acfspec.qpac.tolb[1]),
+                                            XPLMGetDataf(rcb->p_b_rat));
+                                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1);
+                                    return 0;
+                                }
+                                return 0;
+                            }
                             return 0;
                         }
                         return 0;
@@ -2522,8 +2537,9 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type == ACF_TYP_A350_FF));
                     if (ctx->acfspec.qpac.tolb[2])
                     {
-                        XPLMSetDataf(ctx->acfspec.qpac.tolb[1], p_ratio);
+                        ctx->acfspec.qpac.tolbctr = 0;
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[0], p_ratio);
+                        XPLMSetDataf(ctx->acfspec.qpac.tolb[1], p_ratio);
                         return 0;
                     }
                     if (rcb->use_pkb == 0)
@@ -2556,6 +2572,7 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 case xplm_CommandEnd:
                     if (ctx->acfspec.qpac.tolb[2])
                     {
+                        ctx->acfspec.qpac.tolbctr = 0;
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[0], 0.0f);
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[1], 0.0f);
                     }
@@ -2573,20 +2590,32 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 default: // xplm_CommandContinue
                     if (ctx->acfspec.qpac.tolb[2])
                     {
-                        if (0.1f < (XPLMGetDataf(ctx->acfspec.qpac.tolb[0]) -
-                                    XPLMGetDataf(rcb->p_b_rat)))
+                        if (!XPLMGetDatai(ctx->acfspec.qpac.pkb_ref))
                         {
-                            ndt_log("navP [error]: ToLiSS braking override fail, "
-                                    "using parking brake (%d %.2lf %.2lf %.2lf)\n",
-                                    XPLMGetDatai(ctx->acfspec.qpac.tolb[2]),
-                                    XPLMGetDataf(ctx->acfspec.qpac.tolb[0]),
-                                    XPLMGetDataf(ctx->acfspec.qpac.tolb[1]),
-                                    XPLMGetDataf(rcb->p_b_rat));
-                            XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1);
+                            if (ctx->acfspec.qpac.tolbctr < 10)
+                            {
+                                ctx->acfspec.qpac.tolbctr++;
+                            }
+                            else
+                            {
+                                if (0.01f > XPLMGetDataf(rcb->p_b_rat) &&
+                                    0.01f < XPLMGetDataf(ctx->acfspec.qpac.tolb[0]))
+                                {
+                                    ndt_log("navP [error]: ToLiSS braking override fail, "
+                                            "using parking brake (%d %.2lf %.2lf %.2lf)\n",
+                                            XPLMGetDatai(ctx->acfspec.qpac.tolb[2]),
+                                            XPLMGetDataf(ctx->acfspec.qpac.tolb[0]),
+                                            XPLMGetDataf(ctx->acfspec.qpac.tolb[1]),
+                                            XPLMGetDataf(rcb->p_b_rat));
+                                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1);
+                                    return 0;
+                                }
+                                XPLMSetDataf(ctx->acfspec.qpac.tolb[0], p_ratio);
+                                XPLMSetDataf(ctx->acfspec.qpac.tolb[1], p_ratio);
+                                return 0;
+                            }
                             return 0;
                         }
-                        XPLMSetDataf(ctx->acfspec.qpac.tolb[0], p_ratio);
-                        XPLMSetDataf(ctx->acfspec.qpac.tolb[1], p_ratio);
                         return 0;
                     }
                     if (rcb->use_pkb == 0)
