@@ -2342,7 +2342,6 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type == ACF_TYP_A350_FF));
                     if (ctx->acfspec.qpac.tolb[2])
                     {
-                        XPLMSetDatai(ctx->acfspec.qpac.tolb[2], 1);
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[1], 1.0f);
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[0], 1.0f);
                         return 0;
@@ -2374,7 +2373,6 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     {
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[0], 0.0f);
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[1], 0.0f);
-                        XPLMSetDatai(ctx->acfspec.qpac.tolb[2], 0);
                     }
                     if (rcb->use_pkb == 0)
                     {
@@ -2516,7 +2514,6 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type == ACF_TYP_A350_FF));
                     if (ctx->acfspec.qpac.tolb[2])
                     {
-                        XPLMSetDatai(ctx->acfspec.qpac.tolb[2], 1);
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[1], p_ratio);
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[0], p_ratio);
                         ndt_log("DEBUG: xplm_CommandBegin with p_ratio %f g_speed %f\n", p_ratio, g_speed);//fixme//debug
@@ -2554,7 +2551,6 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     {
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[0], 0.0f);
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[1], 0.0f);
-                        XPLMSetDatai(ctx->acfspec.qpac.tolb[2], 0);
                     }
                     if (rcb->use_pkb == 0)
                     {
@@ -4813,6 +4809,10 @@ static int first_fcall_do(chandler_context *ctx)
             if (ctx->info->ac_type == ACF_TYP_A319_TL ||
                 ctx->info->ac_type == ACF_TYP_A321_TL)
             {
+                if ((d_ref = XPLMFindDataRef("AirbusFBW/BrakePedalInputOverride")))
+                {
+                    XPLMSetDatai(d_ref, 1);
+                }
                 if (ctx->a319kc.kc_is_registered)
                 {
                     ndt_log("navP [warning]: AirbusFBW key sniffer already registered\n");
