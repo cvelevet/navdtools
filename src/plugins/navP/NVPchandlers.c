@@ -2586,6 +2586,11 @@ static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1);
                             return 0;
                         }
+                        float  to0                  =                  XPLMGetDataf(ctx->acfspec.qpac.tolb[0]);//debug
+                        float  to1                  =                  XPLMGetDataf(ctx->acfspec.qpac.tolb[1]);//debug
+                        int  tolb2                  =                  XPLMGetDataf(ctx->acfspec.qpac.tolb[2]);//debug
+                        float  pkb                  =                  XPLMGetDataf(             rcb->p_b_rat);//debug
+                        ndt_log("navP [debug]: %d %.2lf %.2lf %.2lf %.2lf\n", tolb2, to0, to1, pkb, to0 - pkb);//debug
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[0], p_ratio);
                         XPLMSetDataf(ctx->acfspec.qpac.tolb[1], p_ratio);
                         return 0;
