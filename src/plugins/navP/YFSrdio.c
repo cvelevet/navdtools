@@ -1648,12 +1648,15 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     }
     if (key[0] == 0 && key[1] == 5)
     {
-        if (standard_pressure(yfms) == 0)
+        if (standard_pressure(yfms) == 0) // not STD, toggle into it
         {
-            // not STD, toggle into it
+            int altstd[3]; get_altimeter(yfms, altstd);
+            int hpa=altstd[1]==BARO_HPA;
+            altstd[0]=hpa ? 1013 : 2992;
+            set_altimeter(yfms, altstd);
             int toggle[2] = { -1, -1, };
             set_altimeter(yfms, toggle);
-            yfs_rad1_pageupdt(yfms); return;
+            return yfs_rad1_pageupdt(yfms);
         }
         return;
     }
