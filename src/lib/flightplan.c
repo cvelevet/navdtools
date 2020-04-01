@@ -3195,6 +3195,10 @@ intc:
                     leg->course.navaid = nxt->dst;
                     leg->course.radial = nxt->course.magnetic;
                     break;
+                // TODO: fix missed approach for EDDS/25/ILS (cycle 2004)
+                case NDT_LEGTYPE_CR:
+                case NDT_LEGTYPE_VR:
+                        break;
                 default:
                     goto end;
             }
