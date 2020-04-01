@@ -3198,7 +3198,7 @@ intc:
                 // TODO: fix missed approach for EDDS/25/ILS (cycle 2004)
                 case NDT_LEGTYPE_CR:
                 case NDT_LEGTYPE_VR:
-                        break;
+                    break;
                 default:
                     goto end;
             }
