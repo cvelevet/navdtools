@@ -102,6 +102,7 @@ typedef struct
     int              ready;
     chandler_callback mwcb;
     XPLMCommandRef   iscst;
+    int            toaltbr;
     int            tolbctr;
     XPLMDataRef    tolb[3];
     XPLMDataRef    gpws[4];
@@ -2402,6 +2403,23 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                 if (0.01f > XPLMGetDataf(rcb->p_b_rat) &&
                                     0.01f < XPLMGetDataf(ctx->acfspec.qpac.tolb[0]))
                                 {
+                                    if (ctx->acfspec.qpac.toaltbr == 0)
+                                    {
+                                        const char *name; XPLMDataRef data; XPLMSpeakString("ToLiSS: falling back to parking brake");
+                                        if ((data = XPLMFindDataRef((name = "sim/flightmodel/ground/surface_texture_type"))))
+                                        {
+                                            ndt_log("navP [debug]: %s: %d\n", name, XPLMGetDatai(data));
+                                        }
+                                        if ((data = XPLMFindDataRef((name = "sim/weather/runway_friction"))))
+                                        {
+                                            ndt_log("navP [debug]: %s: %f\n", name, XPLMGetDataf(data));
+                                        }
+                                        if ((data = XPLMFindDataRef((name = "sim/weather/rain_percent"))))
+                                        {
+                                            ndt_log("navP [debug]: %s: %f\n", name, XPLMGetDataf(data));
+                                        }
+                                        ctx->acfspec.qpac.toaltbr = 1;
+                                    }
                                     ndt_log("navP [error]: ToLiSS braking override fail, "
                                             "using parking brake (%d %.2lf %.2lf %.2lf)\n",
                                             XPLMGetDatai(ctx->acfspec.qpac.tolb[2]),
@@ -6452,6 +6470,11 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
                  * Permanently override braking input.
                  */
                 XPLMSetDatai(fbw->tolb[2], 1);
+
+                /*
+                 * DEBUG: log stuff when alternate/fallback braking is used.
+                 */
+                fbw->toaltbr = 0;
 
                 /*
                  * We're good to go!
