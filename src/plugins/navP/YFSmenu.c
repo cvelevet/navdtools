@@ -170,6 +170,7 @@ void yfs_menu_resetall(yfms_context *yfms)
     yfms->data.prog.fix           = NULL;
     yfms->data.init.to            = NULL;
     yfms->data.init.from          = NULL;
+    yfms->data.fpln.l_ils         = NULL;
     yfms->data.fpln.l_rwy         = NULL;
     yfms->data.init.aligned       = 0;
     yfms->data.init.ialized       = 0;
@@ -424,10 +425,6 @@ void yfs_fmgs_phase_set(yfms_context *yfms, int new_phase)
                 index = 3; XPLMSetDatavi(swtid, &index, 2, 1); // XXX: Falcon 7X by after
                 XPLMSetDatai(sendv, 2); // TODO: when switching to approach phase instead
             }
-            if (yfms->data.fpln.l_rwy)  // TODO: when switching to approach phase instead
-            {
-                yfs_rdio_ils_data(yfms, ndt_frequency_get(yfms->data.fpln.l_rwy->ils.freq), yfms->data.fpln.l_rwy->ils.course, 1); // ILS data to NAV1
-            }
             ndt_log("YFMS [debug]: phase change: FMGS_PHASE_DES (was %d)\n", yfms->data.phase);
             yfms->data.phase = FMGS_PHASE_DES;
             return;
@@ -639,11 +636,31 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
             }
         }
     }
-    if (yfms->data.phase >= FMGS_PHASE_TOF)
+    if (yfms->data.phase <= FMGS_PHASE_GOA)
     {
-        yfs_fpln_fplnsync(yfms); // continuously sync w/XPLMNavigation to avoid surprises
+        if (yfms->data.phase >= FMGS_PHASE_TOF)
+        {
+            yfs_fpln_fplnsync(yfms); // continuously sync w/XPLMNavigation to avoid surprises
+        }
+        if (yfms->data.phase >= FMGS_PHASE_CLB)
+        {
+            /*
+             * IRL conditions: phase CLB to GOA, 300nm direct to DEST, ILS/similar approach set
+             */
+            if (yfms->data.fpln.l_rwy && yfms->data.fpln.l_rwy != yfms->data.fpln.l_ils) // new runway since we last set ILS
+            {
+                if (INT64_C(300) > ndt_distance_get(ndt_position_calcdistance(yfms->data.fpln.l_rwy->threshold, yfms->data.aircraft_pos), NDT_ALTUNIT_NM))
+                {
+                    if (yfms->data.fpln.l_rwy->ils.avail)
+                    {
+                        yfs_rdio_ils_data(yfms, ndt_frequency_get(yfms->data.fpln.l_rwy->ils.freq), yfms->data.fpln.l_rwy->ils.course, 1); // ILS data to NAV1
+                    }
+                    yfms->data.fpln.l_ils = yfms->data.fpln.l_rwy;
+                }
+            }
+        }
+        // TODO: NEW CRZ ALT (may happen during either of CLB/CRZ), re-enter CLB if required
     }
-    // TODO: NEW CRZ ALT (may happen during either of CLB/CRZ), re-enter CLB if required
 
 vclb_vdes_vmax_auto:
     /* autopilot-related functions */

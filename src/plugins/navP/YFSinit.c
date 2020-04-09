@@ -290,8 +290,8 @@ static void yfs_flightplan_reinit(yfms_context *yfms, ndt_airport *src, ndt_airp
     if (yfms->data.init.ialized)
     {
         ndt_log("YFMS [debug]: phase change: yfs_flightplan_reinit: FMGS_PHASE_END\n");
+        yfms->data.fpln.l_ils = yfms->data.fpln.l_rwy = NULL;
         yfms->data.phase = FMGS_PHASE_END;
-        yfms->data.fpln.l_rwy = NULL;
         yfms->data.init.ialized = 0;
     }
     if (yfms->ndt.flp.arr)
