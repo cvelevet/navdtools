@@ -83,11 +83,13 @@ typedef struct
             {
                 float vol0;
                 float vol1;
+                float vol2;
             } pe;
             struct
             {
                 float vol0;
                 float vol1;
+                float vol2;
             } xb;
             struct
             {

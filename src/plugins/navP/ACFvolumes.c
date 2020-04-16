@@ -29,12 +29,15 @@
 
 #include "ACFvolumes.h"
 
+#define V0_DEFAULT_AL 0.50f
 #define V0_DEFAULT_PE 0.25f
-#define V1_DEFAULT_PE M_SQRT1_2
-#define V0_DEFAULT_XB M_SQRT1_2
-#define V1_DEFAULT_XB M_SQRT1_2
+#define V0_DEFAULT_XB 0.25f
 #define V1_DEFAULT_AL M_SQRT1_2
-#define V0_DEFAULT_AL sqrtf(volume)
+#define V1_DEFAULT_PE M_SQRT1_2
+#define V1_DEFAULT_XB M_SQRT1_2
+#define V2_DEFAULT_AL M_SQRT1_2
+#define V2_DEFAULT_PE M_SQRT1_2
+#define V2_DEFAULT_XB M_SQRT1_2
 
 static acf_volume_context *default_ctx = NULL;
 
@@ -88,8 +91,10 @@ acf_volume_context* acf_volume_ctx_get(void)
      */
     default_ctx->custom.atc.pe.vol0 = V0_DEFAULT_PE;
     default_ctx->custom.atc.pe.vol1 = V1_DEFAULT_PE;
+    default_ctx->custom.atc.pe.vol2 = V2_DEFAULT_PE;
     default_ctx->custom.atc.xb.vol0 = V0_DEFAULT_XB;
     default_ctx->custom.atc.xb.vol1 = V1_DEFAULT_XB;
+    default_ctx->custom.atc.xb.vol2 = V2_DEFAULT_XB;
 
     /* success */
     return default_ctx;
@@ -114,14 +119,14 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v1, ctx->custom.atc.pe.vol1);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v2, ctx->custom.atc.pe.vol1);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v1, ctx->custom.atc.pe.vol1);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.pe.vol1);
+            XPLMSetDataf(ctx->radio.vol.adf1,     ctx->custom.atc.pe.vol2);
+            XPLMSetDataf(ctx->radio.vol.adf2,     ctx->custom.atc.pe.vol2);
+            XPLMSetDataf(ctx->radio.vol.dme0,     ctx->custom.atc.pe.vol2);
+            XPLMSetDataf(ctx->radio.vol.mark,     ctx->custom.atc.pe.vol2);
+            XPLMSetDataf(ctx->radio.vol.nav1,     ctx->custom.atc.pe.vol2);
+            XPLMSetDataf(ctx->radio.vol.nav2,     ctx->custom.atc.pe.vol2);
             XPLMSetDataf(ctx->radio.vol.com1,     ctx->custom.atc.pe.vol1);
             XPLMSetDataf(ctx->radio.vol.com2,     ctx->custom.atc.pe.vol1);
-            XPLMSetDataf(ctx->radio.vol.nav1,     ctx->custom.atc.pe.vol1);
-            XPLMSetDataf(ctx->radio.vol.nav2,     ctx->custom.atc.pe.vol1);
-            XPLMSetDataf(ctx->radio.vol.adf1,     ctx->custom.atc.pe.vol1);
-            XPLMSetDataf(ctx->radio.vol.adf2,     ctx->custom.atc.pe.vol1);
-            XPLMSetDataf(ctx->radio.vol.mark,     ctx->custom.atc.pe.vol1);
-            XPLMSetDataf(ctx->radio.vol.dme0,     ctx->custom.atc.pe.vol1);
             XPLMSetDataf(ctx->radio.volume,       ctx->custom.atc.pe.vol0);
             XPLMSetDatai(ctx->radio.atctxt,                 volume > .01f); // Text-to-speech overlays
             int tx = XPLMGetDatai(ctx->radio.tx.comm);
@@ -142,15 +147,15 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v1, ctx->custom.atc.xb.vol1);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v2, ctx->custom.atc.xb.vol1);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v1, ctx->custom.atc.xb.vol1);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.xb.vol1);
-            XPLMSetDataf(ctx->radio.vol.com1,     ctx->custom.atc.xb.vol0);
-            XPLMSetDataf(ctx->radio.vol.com2,     ctx->custom.atc.xb.vol0);
-            XPLMSetDataf(ctx->radio.vol.nav1,     ctx->custom.atc.xb.vol1);
-            XPLMSetDataf(ctx->radio.vol.nav2,     ctx->custom.atc.xb.vol1);
-            XPLMSetDataf(ctx->radio.vol.adf1,     ctx->custom.atc.xb.vol1);
-            XPLMSetDataf(ctx->radio.vol.adf2,     ctx->custom.atc.xb.vol1);
-            XPLMSetDataf(ctx->radio.vol.mark,     ctx->custom.atc.xb.vol1);
-            XPLMSetDataf(ctx->radio.vol.dme0,     ctx->custom.atc.xb.vol1);
-            XPLMSetDataf(ctx->radio.volume,          fminf(volume, 0.25f));
+            XPLMSetDataf(ctx->radio.vol.adf1,     ctx->custom.atc.xb.vol2);
+            XPLMSetDataf(ctx->radio.vol.adf2,     ctx->custom.atc.xb.vol2);
+            XPLMSetDataf(ctx->radio.vol.dme0,     ctx->custom.atc.xb.vol2);
+            XPLMSetDataf(ctx->radio.vol.mark,     ctx->custom.atc.xb.vol2);
+            XPLMSetDataf(ctx->radio.vol.nav1,     ctx->custom.atc.xb.vol2);
+            XPLMSetDataf(ctx->radio.vol.nav2,     ctx->custom.atc.xb.vol2);
+            XPLMSetDataf(ctx->radio.vol.com1,     ctx->custom.atc.xb.vol1);
+            XPLMSetDataf(ctx->radio.vol.com2,     ctx->custom.atc.xb.vol1);
+            XPLMSetDataf(ctx->radio.volume,       ctx->custom.atc.xb.vol0);
             XPLMSetDatai(ctx->radio.atctxt,               (volume > .01f)); // Text-to-speech overlays
             int tx = XPLMGetDatai(ctx->radio.tx.comm);
             if (XPLMGetDatai(ctx->radio.rx.com1) == 1 &&
@@ -180,15 +185,15 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v1, V1_DEFAULT_AL);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v2, V1_DEFAULT_AL);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v1, V1_DEFAULT_AL);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, V1_DEFAULT_AL);
+            XPLMSetDataf(ctx->radio.vol.adf1,     V2_DEFAULT_AL);
+            XPLMSetDataf(ctx->radio.vol.adf2,     V2_DEFAULT_AL);
+            XPLMSetDataf(ctx->radio.vol.dme0,     V2_DEFAULT_AL);
+            XPLMSetDataf(ctx->radio.vol.mark,     V2_DEFAULT_AL);
+            XPLMSetDataf(ctx->radio.vol.nav1,     V2_DEFAULT_AL);
+            XPLMSetDataf(ctx->radio.vol.nav2,     V2_DEFAULT_AL);
             XPLMSetDataf(ctx->radio.vol.com1,     V1_DEFAULT_AL);
             XPLMSetDataf(ctx->radio.vol.com2,     V1_DEFAULT_AL);
-            XPLMSetDataf(ctx->radio.vol.nav1,     V1_DEFAULT_AL);
-            XPLMSetDataf(ctx->radio.vol.nav2,     V1_DEFAULT_AL);
-            XPLMSetDataf(ctx->radio.vol.adf1,     V1_DEFAULT_AL);
-            XPLMSetDataf(ctx->radio.vol.adf2,     V1_DEFAULT_AL);
-            XPLMSetDataf(ctx->radio.vol.mark,     V1_DEFAULT_AL);
-            XPLMSetDataf(ctx->radio.vol.dme0,     V1_DEFAULT_AL);
-            XPLMSetDataf(ctx->radio.volume,       sqrtf(volume));
+            XPLMSetDataf(ctx->radio.volume,       V0_DEFAULT_AL);
             XPLMSetDatai(ctx->radio.atctxt,       volume > .01f); // Text-to-speech overlays
             return (volume > .01f);
         }
@@ -223,8 +228,9 @@ float acf_atcvol_adj(acf_volume_context *ctx, float offset)
             {
                 return ctx->custom.atc.pe.vol0;
             }
+            return -1;
         }
-        else if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("vatsim.protodev.clients.xsquawkbox"))
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("vatsim.protodev.clients.xsquawkbox"))
         {
             if (fabsf(offset) > 0.5f) // offset is in "ticks" of 1/10th the default
             {
@@ -246,7 +252,9 @@ float acf_atcvol_adj(acf_volume_context *ctx, float offset)
             {
                 return ctx->custom.atc.xb.vol0;
             }
+            return -1;
         }
+        return -1;
     }
     return -1;
 }
