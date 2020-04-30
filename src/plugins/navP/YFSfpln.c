@@ -1776,9 +1776,24 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
         {
             return; // TODO
         }
-        ndt_restriction constraints = leg->constraints; int airspeed;
-        char *sufx = buf, *prefix = strsep(&sufx, "/");
-        if (prefix && strnlen(prefix, 1))
+        ndt_restriction constraints = leg->constraints;
+        ndt_restriction lcsdefaults = ndt_leg_const_init();
+        char *suffix = buf, *prefix = strsep(&suffix, "/"); int airspeed;
+        int clr_airspeed_constraint = (!strcmp(buf, "CLR") || (prefix && (!strcmp(prefix, "0") || !strcmp(prefix, "CLR"))));
+        int clr_altitude_constraint = (!strcmp(buf, "CLR") || (suffix && (!strcmp(suffix, "0") || !strcmp(suffix, "CLR"))));
+        if (clr_airspeed_constraint)
+        {
+            constraints.airspeed = lcsdefaults.airspeed;
+        }
+        if (clr_altitude_constraint)
+        {
+            constraints.altitude = lcsdefaults.altitude;
+        }
+        if (clr_airspeed_constraint && clr_altitude_constraint)
+        {
+            goto apply_constraints;
+        }
+        if (prefix && *prefix)
         {
             if (sscanf(prefix, "%d", &airspeed) != 1)
             {
@@ -1786,21 +1801,20 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             }
             if (airspeed)
             {
-                if (airspeed < 150 || airspeed > 300)
+                if (airspeed < 100 || airspeed > 400)
                 {
                     yfs_spad_reset(yfms, "ENTRY OUT OF RANGE", -1); return;
                 }
-                constraints.airspeed.max = ndt_airspeed_init(airspeed, NDT_SPDUNIT_KTS);
-                constraints.airspeed.acf = NDT_ACFTYPE_ALL;
-                constraints.airspeed.typ = NDT_RESTRICT_BL;
-            }
-            else
-            {
-                constraints.airspeed.acf = NDT_ACFTYPE_NON;
-                constraints.airspeed.typ = NDT_RESTRICT_NO;
+                else
+                {
+                    constraints.airspeed = lcsdefaults.airspeed;
+                    constraints.airspeed.max = ndt_airspeed_init(airspeed, NDT_SPDUNIT_KTS);
+                    constraints.airspeed.acf = NDT_ACFTYPE_ALL;
+                    constraints.airspeed.typ = NDT_RESTRICT_BL;
+                }
             }
         }
-        if (sufx && strnlen(sufx, 1))
+        if (suffix && *suffix)
         {
             if (ndt_distance_get(yfms->data.init.crz_alt, NDT_ALTUNIT_NA) == 0)
             {
@@ -1808,49 +1822,52 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
             }
             ndt_distance alti; ndt_distance max = yfms->data.init.crz_alt; int altitude; char tmp[2];
             ndt_distance min = ndt_distance_add(ndt_position_getaltitude(yfms->ndt.flp.rte->arr.apt->coordinates), ndt_distance_init(1000, NDT_ALTUNIT_FT));
-            if (sscanf(sufx, "%1[+]FL%3d", tmp, &altitude) == 2 ||
-                sscanf(sufx, "FL%3d%1[+]", &altitude, tmp) == 2)
+            if (sscanf(suffix, "%1[+]FL%3d", tmp, &altitude) == 2 ||
+                sscanf(suffix, "FL%3d%1[+]", &altitude, tmp) == 2)
             {
-                constraints.altitude.typ = NDT_RESTRICT_AB;
+                constraints.altitude = lcsdefaults.altitude; constraints.altitude.typ = NDT_RESTRICT_AB;
                 alti = ndt_distance_init(altitude, NDT_ALTUNIT_FL);
                 goto check_altitude;
             }
-            if (sscanf(sufx, "%1[-]FL%3d", tmp, &altitude) == 2 ||
-                sscanf(sufx, "FL%3d%1[-]", &altitude, tmp) == 2)
+            if (sscanf(suffix, "%1[-]FL%3d", tmp, &altitude) == 2 ||
+                sscanf(suffix, "FL%3d%1[-]", &altitude, tmp) == 2)
             {
-                constraints.altitude.typ = NDT_RESTRICT_BL;
+                constraints.altitude = lcsdefaults.altitude; constraints.altitude.typ = NDT_RESTRICT_BL;
                 alti = ndt_distance_init(altitude, NDT_ALTUNIT_FL);
                 goto check_altitude;
             }
-            if (sscanf(sufx, "FL%3d", &altitude) == 1 ||
-                sscanf(sufx, "FL%3d", &altitude) == 1)
+            if (sscanf(suffix, "FL%3d", &altitude) == 1 ||
+                sscanf(suffix, "FL%3d", &altitude) == 1)
             {
-                constraints.altitude.typ = NDT_RESTRICT_AT;
+                constraints.altitude = lcsdefaults.altitude; constraints.altitude.typ = NDT_RESTRICT_AT;
                 alti = ndt_distance_init(altitude, NDT_ALTUNIT_FL);
                 goto check_altitude;
             }
-            if (sscanf(sufx, "%1[+]%5d", tmp, &altitude) == 2 ||
-                sscanf(sufx, "%5d%1[+]", &altitude, tmp) == 2)
+            if (sscanf(suffix, "%1[+]%5d", tmp, &altitude) == 2 ||
+                sscanf(suffix, "%5d%1[+]", &altitude, tmp) == 2)
             {
-                constraints.altitude.typ = NDT_RESTRICT_AB;
+                constraints.altitude = lcsdefaults.altitude; constraints.altitude.typ = NDT_RESTRICT_AB;
                 alti = ndt_distance_init(altitude, NDT_ALTUNIT_FT);
                 goto check_altitude;
             }
-            if (sscanf(sufx, "%1[-]%5d", tmp, &altitude) == 2 ||
-                sscanf(sufx, "%5d%1[-]", &altitude, tmp) == 2)
+            if (sscanf(suffix, "%1[-]%5d", tmp, &altitude) == 2 ||
+                sscanf(suffix, "%5d%1[-]", &altitude, tmp) == 2)
             {
-                constraints.altitude.typ = NDT_RESTRICT_BL;
+                constraints.altitude = lcsdefaults.altitude; constraints.altitude.typ = NDT_RESTRICT_BL;
                 alti = ndt_distance_init(altitude, NDT_ALTUNIT_FT);
                 goto check_altitude;
             }
-            if (sscanf(sufx, "%5d", &altitude) == 1 ||
-                sscanf(sufx, "%5d", &altitude) == 1)
+            if (sscanf(suffix, "%5d", &altitude) == 1 ||
+                sscanf(suffix, "%5d", &altitude) == 1)
             {
-                constraints.altitude.typ = NDT_RESTRICT_AT;
+                constraints.altitude = lcsdefaults.altitude; constraints.altitude.typ = NDT_RESTRICT_AT;
                 alti = ndt_distance_init(altitude, NDT_ALTUNIT_FT);
                 goto check_altitude;
             }
-            yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+            else
+            {
+                yfs_spad_reset(yfms, "FORMAT ERROR", -1); return;
+            }
         check_altitude:
             if (ndt_distance_get(alti, NDT_ALTUNIT_NA))
             {
@@ -1862,11 +1879,8 @@ static void yfs_lsk_callback_fpln(yfms_context *yfms, int key[2], intptr_t refco
                 constraints.altitude.min = alti;
                 constraints.altitude.max = alti;
             }
-            else
-            {
-                constraints.altitude.typ = NDT_RESTRICT_NO;
-            }
         }
+    apply_constraints:
         if (ndt_route_leg_restrict(leg, constraints))
         {
             yfs_spad_reset(yfms, "UNKNOWN ERROR 4 B", COLR_IDX_ORANGE); return;
