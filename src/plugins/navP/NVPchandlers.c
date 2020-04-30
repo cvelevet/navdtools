@@ -1663,10 +1663,6 @@ int nvp_chandlers_update(void *inContext)
  */
 static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *inRefcon)
 {
-    if ((inFlags & (xplm_ShiftFlag|xplm_OptionAltFlag|xplm_ControlFlag)) != 0)
-    {
-        return 1; // pass through
-    }
     if (inRefcon == NULL)
     {
         return 1; // pass through
@@ -1675,11 +1671,15 @@ static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
     unsigned char invk = (unsigned char)inVirtualKey;
     if (invk == XPLM_VK_ESCAPE)
     {
-        if ((inFlags & (xplm_DownFlag)) != 0)
+        if ((inFlags & (xplm_OptionAltFlag|xplm_ControlFlag|xplm_ShiftFlag)) != 0)
         {
-            XPLMCommandOnce(tkb.c[2][0]);
+            if ((inFlags & (xplm_DownFlag)) != 0)
+            {
+                XPLMCommandOnce(tkb.c[2][0]);
+            }
+            return 0; // consume
         }
-        return 0; // consume
+        return 1; // pass through
     }
     int w[3], cdu0 = 0, cdu1 = 0, ext_v = 1;
     XPLMGetDatavi(tkb.datar[0], &w[0], 0, 2);
@@ -1697,6 +1697,24 @@ static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
     }
     if (ext_v || (!cdu0 && !cdu1)) // mouse must be over MCDU with internal view
     {
+        return 1; // pass through
+    }
+    if ((inFlags & (xplm_OptionAltFlag|xplm_ControlFlag)) != 0)
+    {
+        return 1; // pass through
+    }
+    if ((inFlags & (xplm_ShiftFlag)) != 0)
+    {
+        if ((inFlags & (xplm_DownFlag)) == 0)
+        {
+            return 1; // pass through
+        }
+        if (inChar != '/')
+        {
+            return 1; // pass through
+        }
+        if (cdu0) { XPLMCommandOnce(tkb.c[0][4]); return 0; }
+        if (cdu1) { XPLMCommandOnce(tkb.c[1][4]); return 0; }
         return 1; // pass through
     }
     if (w[2] < 1) // forward some keys (ISCS closed only)
