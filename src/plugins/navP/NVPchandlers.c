@@ -1672,7 +1672,7 @@ static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
     unsigned char invk = (unsigned char)inVirtualKey;
     if (invk == XPLM_VK_ESCAPE)
     {
-        if ((inFlags & (xplm_OptionAltFlag|xplm_ControlFlag|xplm_ShiftFlag)) != 0)
+        if ((inFlags & (xplm_OptionAltFlag|xplm_ControlFlag|xplm_ShiftFlag)) == 0)
         {
             if ((inFlags & (xplm_DownFlag)) != 0)
             {
