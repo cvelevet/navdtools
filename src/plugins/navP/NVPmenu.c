@@ -192,6 +192,8 @@ typedef struct
             XPWidgetID f_txtf_id;
             XPWidgetID p_txtf_id;
             XPWidgetID button_id;
+            XPWidgetID ovly_w_id;
+            XPWidgetID ovly_c_id;
             XPLMFlightLoop_f rfc;
         } refuel_dialg;
 
@@ -914,6 +916,26 @@ int nvp_menu_setup(void *_menu_context)
         }
         XPSetWidgetProperty(ctx->data.refuel_dialg.p_txtf_id,
                             xpProperty_TextFieldType, xpTextTranslucent);
+
+        /* translucent window/overlay for progress readout */
+        ctx->data.refuel_dialg.ovly_w_id = XPCreateWidget(0, 0, 0, 0, 0, "", 1, NULL,
+                                                          xpWidgetClass_MainWindow);
+        if (!ctx->data.refuel_dialg.ovly_w_id)
+        {
+            //fixme log
+            ctx->setupdone = -1; return -1;
+        }
+        ctx->data.refuel_dialg.ovly_c_id = XPCreateWidget(0, 0, 0, 0, 0, "", 0, ctx->data.refuel_dialg.ovly_w_id,
+                                                          xpWidgetClass_Caption);
+        if (!ctx->data.refuel_dialg.ovly_c_id)
+        {
+            //fixme log
+            ctx->setupdone = -1; return -1;
+        }
+        XPSetWidgetProperty(ctx->data.refuel_dialg.ovly_w_id, xpProperty_MainWindowType, xpMainWindowStyle_Translucent);
+        XPSetWidgetProperty(ctx->data.refuel_dialg.ovly_c_id, xpProperty_CaptionLit, 1);
+        XPSetWidgetGeometry(ctx->data.refuel_dialg.ovly_w_id, 00, 56, 64, 00);
+        XPSetWidgetGeometry(ctx->data.refuel_dialg.ovly_c_id, 12, 46, 56, 10);
 
         /* all done, we're good to go! */
         ctx->setupdone = 1; return 0;
