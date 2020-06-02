@@ -926,6 +926,47 @@ static int get_transponder_mode(yfms_context *yfms)
 
 static void set_transponder_mode(yfms_context *yfms, int mode)
 {
+    if (mode == XPDRCYCL)
+    {
+        switch (get_transponder_mode(yfms))
+        {
+            case XPDR_TAR:
+                mode = XPDR_OFF;
+                break;
+            case XPDR_TAO:
+                if (has_transponder_mode(yfms, XPDR_TAR))
+                {
+                    mode = XPDR_TAR;
+                    break;
+                }
+                mode = XPDR_OFF;
+                break;
+            case XPDR_ALT:
+                if (has_transponder_mode(yfms, XPDR_TAO))
+                {
+                    mode = XPDR_TAO;
+                    break;
+                }
+                mode = XPDR_OFF;
+                break;
+            case XPDR_AUT:
+                mode = XPDR_ALT;
+                break;
+            case XPDR_GND:
+            case XPDR_SBY:
+                if (has_transponder_mode(yfms, XPDR_AUT))
+                {
+                    mode = XPDR_AUT;
+                    break;
+                }
+                mode = XPDR_ALT;
+                break;
+            case XPDR_OFF:
+            default:
+                mode = XPDR_SBY;
+                break;
+        }
+    }
     if (mode == XPDRTOGL) // ground <-> flight toggle
     {
         switch (get_transponder_mode(yfms))
