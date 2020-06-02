@@ -1664,7 +1664,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         else
         {
-            set_transponder_mode(yfms, XPDRTOGL);
+            set_transponder_mode(yfms, XPDRCYCL);
             yfs_rad1_pageupdt(yfms); return;
         }
     }
