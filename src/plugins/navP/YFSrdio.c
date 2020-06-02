@@ -750,14 +750,15 @@ static void set_altimeter(yfms_context *yfms, int in[2])
 
 enum
 {
-    XPDR_OFF = 0,
-    XPDR_SBY = 1,
-    XPDR_AUT = 2,
-    XPDR_GND = 3,
-    XPDR_ALT = 4,
-    XPDR_TAO = 5,
-    XPDR_TAR = 6,
+    XPDR_OFF =  0,
+    XPDR_SBY =  1,
+    XPDR_AUT =  2,
+    XPDR_GND =  3,
+    XPDR_ALT =  4,
+    XPDR_TAO =  5,
+    XPDR_TAR =  6,
     XPDRTOGL = -1,
+    XPDRCYCL = -2,
     XPDR_MIN = XPDR_OFF,
     XPDR_MAX = XPDR_TAR,
 };
