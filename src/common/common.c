@@ -682,7 +682,7 @@ int ndt_position_calcpos4pbpd(ndt_position *out, ndt_position pos1, double trub,
     ndt_position tpos;
     double       diff;
     int  found = 0;
-    for (int i = 0; i < 360; i++)
+    for (int i = 1; i <= 360; i++)
     {
         if (!ndt_position_calcpos4pbpb(&tpos, pos1, trub, pos2, (double)i))
         {
@@ -691,27 +691,27 @@ int ndt_position_calcpos4pbpd(ndt_position *out, ndt_position pos1, double trub,
             double        tdif = fabs(tdis);
             if (!found || tdif < diff)
             {
-                diff   =  tdif;
-                posn   =  tpos;
-                found  = i + 1;
+                diff = tdif;
+                posn = tpos;
+                found = i;
             }
         }
     }
     if (found) // refine to reduce diff
     {
-        double rmin = ndt_mod((found - 1) - 1., 360.);
-        double rmax = ndt_mod((found - 1) + 1., 360.);
+        double rmin = (double)found - 1.; // 359 !< 001: cannot use ndt_mod here
+        double rmax = (double)found + 1.; // 359 !< 001: cannot use ndt_mod here
         for (double i = rmin; i < rmax; i += 2./360.)
         {
-            if (!ndt_position_calcpos4pbpb(&tpos, pos1, trub, pos2, i))
+            if (!ndt_position_calcpos4pbpb(&tpos, pos1, trub, pos2, ndt_mod(i, 360.)))
             {
                 ndt_distance p2tp = ndt_position_calcdistance(pos2, tpos);
                 double       tdis = ndt_distance_get(ndt_distance_rem(dist, p2tp), NDT_ALTUNIT_FT);
                 double       tdif = fabs(tdis);
-                if (diff  >  tdif)
+                if (tdif < diff)
                 {
-                    diff  =  tdif;
-                    posn  =  tpos;
+                    diff = tdif;
+                    posn = tpos;
                 }
             }
         }
