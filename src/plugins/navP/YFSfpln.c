@@ -1073,6 +1073,7 @@ void yfs_fpln_directto(yfms_context *yfms, int index, ndt_waypoint *toinsert)
     {
         t_p_wpt = ndt_waypoint_posn(ppos);
 #if 0 // sanity-check our code re: turn radius value
+      // http://www.csgnetwork.com/aircraftturninfocalc.html
         for (double i = 100.0; i < 501.0; i += 100.0)
         {
             double rate1 = 6.0;
