@@ -4833,6 +4833,10 @@ static int first_fcall_do(chandler_context *ctx)
                 switch (ctx->info->ac_type)
                 {
                     case ACF_TYP_A321_TL:
+                        if ((d_ref = XPLMFindDataRef("AirbusFBW/FuelOHPArray")))
+                        {
+                            int i[2] = { 0, 0, }; XPLMSetDatavi(d_ref, i, 2, 2);
+                        }
                         _DO(1, XPLMSetDatai, 2, "AirbusFBW/EngineType");        // CFM engines w/sharklets+web
 /*unwritable?*/         _DO(1, XPLMSetDatai, 0, "AirbusFBW/SatComObjInhibit");  // CFM engines w/sharklets+web
                         _DO(1, XPLMSetDatai, 1, "AirbusFBW/WingtipDeviceType"); // CFM engines w/sharklets+web
