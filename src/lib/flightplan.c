@@ -2987,7 +2987,7 @@ dummies:
          * Not sure how to use limdis, so let's just make is short as possible.
          * Calibrated for nicest short turn using FlightFactor/QPAC A350 v1.20.
          */
-        dist = ndt_distance_init(INT64_C(10000), NDT_ALTUNIT_FT); // turn diameter (TAS ~180 w/bank 30)
+        dist = ndt_distance_init(INT64_C(12500), NDT_ALTUNIT_FT); // turn diameter (TAS ~181 w/bank 25)
         brng = brng + leg->turn.tangle;
         if (!(wpt2 = ndt_waypoint_pbd(wpt1, brng, dist, wmm)))
         {
@@ -3002,7 +3002,7 @@ dummies:
         /*
          * Third segment, start turning back towards original outbound course.
          */
-        dist = ndt_distance_init(INT64_C(10000), NDT_ALTUNIT_FT); // turn diameter (TAS ~180 w/bank 30)
+        dist = ndt_distance_init(INT64_C(12500), NDT_ALTUNIT_FT); // turn diameter (TAS ~181 w/bank 25)
         brng = brng - leg->turn.tangle / 2.;
         if (!(wpt3 = ndt_waypoint_pbd(wpt1, brng, dist, wmm)))
         {
@@ -3278,7 +3278,8 @@ intc_drect:
         (src1 == leg->dst &&
          ndt_distance_get(dctd, NDT_ALTUNIT_FT) < INT64_C(660))) // 1 furlong
     {
-        dctd = ndt_distance_init(INT64_C(20000), NDT_ALTUNIT_FT); // turn diameter (TAS ~250 w/bank 30)
+        // http://www.csgnetwork.com/aircraftturninfocalc.html
+        dctd = ndt_distance_init(INT64_C(25000), NDT_ALTUNIT_FT); // turn diameter (TAS ~256 w/bank 25)
         if (!(wpt = ndt_waypoint_pbd(nxt->dst, brg1, dctd, wmm)))
         {
             err = ENOMEM;
@@ -3329,7 +3330,8 @@ intc_drect:
     }
     if (fabs(angl) > 120.)
     {
-        dctd = ndt_distance_init(INT64_C(20000), NDT_ALTUNIT_FT); // turn diameter (TAS ~250 w/bank 30)
+        // http://www.csgnetwork.com/aircraftturninfocalc.html
+        dctd = ndt_distance_init(INT64_C(25000), NDT_ALTUNIT_FT); // turn diameter (TAS ~256 w/bank 25)
         if (leg->constraints.waypoint == NDT_WPTCONST_FOV)
         {
             // TODO: update src1 accordingly
