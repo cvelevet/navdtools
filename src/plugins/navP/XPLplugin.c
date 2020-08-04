@@ -154,6 +154,9 @@ static int log_with_sdk(const char *format, va_list ap)
     int ret;
     char string[1024];
     ret = vsnprintf(string, sizeof(string), format, ap);
-    XPLMDebugString(string);
+    if (ret > 0) // output is NULL-terminated
+    {
+        XPLMDebugString(string);
+    }
     return ret;
 }
