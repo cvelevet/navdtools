@@ -1154,6 +1154,14 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
 
     if (itx->mivalue == MENUITEM_RESET_ALLSYS)
     {
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep") &&
+            XPLMIsPluginEnabled(XPLMFindPluginBySignature("com.simcoders.rep")) &&
+            XPLMFindCommand("simcoders/rep/systems/fix_all"))
+        {
+            XPLMCommandOnce(XPLMFindCommand("simcoders/rep/systems/fix_all"));
+            XPLMSpeakString("REP failures fixed");
+            return;
+        }
         XPLMCommandOnce(ctx->data.reset.all_sys_op);
         XPLMSpeakString("default failures fixed");
         return;
