@@ -6448,11 +6448,11 @@ static int first_fcall_do(chandler_context *ctx)
     }
     acf_volume_set(volume_context, 0.25f, ctx->info->ac_type);
 
-    /* Boost frame rates by disabling cloud drawing altogether */
-    if (ctx->menu_context)
-    {
-        nvp_menu_ckill(ctx->menu_context, xplm_Menu_Checked);
-    }
+//    /* Boost frame rates by disabling cloud drawing altogether */
+//    if (ctx->menu_context)
+//    {
+//        nvp_menu_ckill(ctx->menu_context, xplm_Menu_Checked);
+//    }
 #endif
 
     return (ctx->first_fcall = 0);
