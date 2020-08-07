@@ -154,6 +154,7 @@ typedef struct
         } xflts1;
         item_context reset_allsys;
         item_context callouts_sts;
+        item_context dummy_item_0;
         item_context speedbooster;
         item_context cloud_killer;
         item_context dummy_item_1;
@@ -604,10 +605,6 @@ void* nvp_menu_init(void)
     {
         goto fail;
     }
-    else
-    {
-        XPLMAppendMenuSeparator(ctx->id);
-    }
     if (get_dataref(&ctx->data.callouts_sts.park_brake, "navP/callouts/park_brake") ||
         get_dataref(&ctx->data.callouts_sts.speedbrake, "navP/callouts/speedbrake") ||
         get_dataref(&ctx->data.callouts_sts.flap_lever, "navP/callouts/flap_lever"))
@@ -618,6 +615,15 @@ void* nvp_menu_init(void)
     }
 
     /* toggle: speed boost on/off */
+    if (append_menu_item("", &ctx->items.dummy_item_0,
+                         MENUITEM_NOTHING_TODO, ctx->id))
+    {
+        goto fail;
+    }
+    else
+    {
+        XPLMAppendMenuSeparator(ctx->id);
+    }
     if (append_menu_item("Tachyon Enhancement", &ctx->items.speedbooster,
                          MENUITEM_SPEEDBOOSTER,  ctx->id))
     {
@@ -1006,6 +1012,8 @@ static void menu_rm_item(menu_context *ctx, int index)
         XPLMRemoveMenuItem(ctx->id, index);
         MENUITEM_UNDEF_VAL(ctx->items.callouts_sts);
         MENUITEM_CHECK_IDX(ctx->items.callouts_sts.id);
+        MENUITEM_UNDEF_VAL(ctx->items.dummy_item_0);
+        MENUITEM_CHECK_IDX(ctx->items.dummy_item_0.id);
         MENUITEM_UNDEF_VAL(ctx->items.speedbooster);
         MENUITEM_CHECK_IDX(ctx->items.speedbooster.id);
         MENUITEM_UNDEF_VAL(ctx->items.cloud_killer);
