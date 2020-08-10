@@ -4451,9 +4451,6 @@ static float flc_oatc_func(float inElapsedSinceLastCall,
     return 0;
 }
 
-#define GS_KT_MIN             (2.500f)
-#define GS_KT_MID             (26.25f)
-#define GS_KT_MAX             (50.00f)
 static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                            float inElapsedTimeSinceLastFlightLoop,
                            int   inCounter,
@@ -6413,8 +6410,5 @@ static void priv_setdata_f(void *inRefcon, float inValue)
 #undef A320T_HALF
 #undef A320T_IDLE
 #undef A320T_TAXI
-#undef GS_KT_MIN
-#undef GS_KT_MID
-#undef GS_KT_MAX
 #undef T_ZERO
 #undef _DO
