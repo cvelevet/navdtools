@@ -154,6 +154,7 @@ typedef struct
 typedef struct
 {
     void           *assert;
+    int  every_ten_seconds;
     XPLMDataRef ground_spd;
     XPLMDataRef auto_p_sts;
     XPLMDataRef auto_t_sts;
@@ -170,18 +171,6 @@ typedef struct
         float r_idle;
         int minimums;
     } idle;
-    struct
-    {
-        float show_thr_all;
-        float last_thr_all;
-        float check_4icing;
-        int   ice_detected;
-        int   thrt_changed;
-        char        buf[9];
-        XPWidgetID  wid[2];
-        XPLMDataRef ice[4]; // ice ratio (pitot, inlet, prop, wing)
-        XPLMDataRef ground;
-    } ovly;
     struct
     {
         XPLMDataRef vol_com0;
@@ -1079,35 +1068,6 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->ground.idle.preset, chandler_idleb, 0, &ctx->ground);
         ctx->bking.rc_brk.g_speed = ctx->ground.ground_spd;
     }
-    /* and icing cheat warning overlay data */
-    ctx->ground.ovly.ground = XPLMFindDataRef("sim/flightmodel/failures/onground_any");
-    ctx->ground.ovly.ice[0] = XPLMFindDataRef("sim/flightmodel/failures/pitot_ice");
-    ctx->ground.ovly.ice[1] = XPLMFindDataRef("sim/flightmodel/failures/inlet_ice");
-    ctx->ground.ovly.ice[2] = XPLMFindDataRef("sim/flightmodel/failures/prop_ice");
-    ctx->ground.ovly.ice[3] = XPLMFindDataRef("sim/flightmodel/failures/frm_ice");
-    if (!ctx->ground.ovly.ground ||
-        !ctx->ground.ovly.ice[0] ||
-        !ctx->ground.ovly.ice[1] ||
-        !ctx->ground.ovly.ice[2] ||
-        !ctx->ground.ovly.ice[3])
-    {
-        goto fail;
-    }
-    if (!(ctx->ground.ovly.wid[0] = XPCreateWidget(0, 0, 0, 0, 0, "", 1, NULL,
-                                                   xpWidgetClass_MainWindow)))
-    {
-        goto fail;
-    }
-    if (!(ctx->ground.ovly.wid[1] = XPCreateWidget(0, 0, 0, 0, 0, "", 0,
-                                                   ctx->ground.ovly.wid[0],
-                                                   xpWidgetClass_Caption)))
-    {
-        goto fail;
-    }
-    XPSetWidgetProperty(ctx->ground.ovly.wid[0], xpProperty_MainWindowType, xpMainWindowStyle_Translucent);
-    XPSetWidgetProperty(ctx->ground.ovly.wid[1], xpProperty_CaptionLit, 1);
-    XPSetWidgetGeometry(ctx->ground.ovly.wid[0], 00, 56, 64, 00);
-    XPSetWidgetGeometry(ctx->ground.ovly.wid[1], 12, 46, 56, 10);
 
     /* all good */
     return ctx;
@@ -4520,9 +4480,9 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             }
         }
 
-        if ((grndp->ovly.check_4icing += inElapsedSinceLastCall) >= 10.0f) // every ten seconds
-        {
 #if TIM_ONLY
+        if ((grndp->every_ten_seconds += inElapsedSinceLastCall) >= 10.0f)
+        {
             // place here: check every 10 seconds only
             // partial time sync: minutes/seconds only
             switch (XPLMGetDatai(grndp->time.view_type)) // skip if menu showing etc.
@@ -4561,80 +4521,9 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                 default:
                     break;
             }
+            grndp->every_ten_seconds = 0.0f;
+        }
 #endif
-            // main thing: we check for icing conditions
-            if (XPLMGetDataf(grndp->ovly.ice[0]) > 0.04f ||
-                XPLMGetDataf(grndp->ovly.ice[1]) > 0.04f ||
-                XPLMGetDataf(grndp->ovly.ice[2]) > 0.04f ||
-                XPLMGetDataf(grndp->ovly.ice[3]) > 0.04f)
-            {
-                if (grndp->ovly.ice_detected == 0)
-                {
-                    XPSetWidgetDescriptor(grndp->ovly.wid[1], "ICE");
-                    XPLMSpeakString("ice detected");
-                }
-                grndp->ovly.ice_detected = 1;
-                grndp->ovly.thrt_changed = 0;
-            }
-            else if (XPLMGetDataf(grndp->ovly.ice[0]) < 0.02f &&
-                     XPLMGetDataf(grndp->ovly.ice[1]) < 0.02f &&
-                     XPLMGetDataf(grndp->ovly.ice[2]) < 0.02f &&
-                     XPLMGetDataf(grndp->ovly.ice[3]) < 0.02f)
-            {
-                grndp->ovly.ice_detected = 0;
-            }
-            grndp->ovly.check_4icing = 0.0f;
-        }
-        if (fabsf(grndp->ovly.last_thr_all - thrott_cmd_all) > 0.02f) // 2.0%
-        {
-            grndp->ovly.thrt_changed = 1;
-            grndp->ovly.show_thr_all = 2.5f;
-            grndp->ovly.last_thr_all = thrott_cmd_all;
-        }
-        if (grndp->ovly.show_thr_all < T_ZERO ||
-            XPLMGetDatai(grndp->auto_t_sts)   ||
-            grndp->ovly.ice_detected)
-        {
-            grndp->ovly.thrt_changed = 0;
-            grndp->ovly.show_thr_all = 0.0f;
-        }
-        else
-        {
-            grndp->ovly.show_thr_all -= inElapsedSinceLastCall;
-        }
-        if (grndp->ovly.ice_detected || grndp->ovly.thrt_changed)
-        {
-            if (grndp->ovly.thrt_changed)
-            {
-                snprintf(grndp->ovly.buf, 9, "%5.3f", thrott_cmd_all);
-                XPSetWidgetDescriptor(grndp->ovly.wid[1], grndp->ovly.buf);
-            }
-            if (XPIsWidgetVisible(grndp->ovly.wid[1]) == 0)
-            {
-                XPShowWidget(grndp->ovly.wid[0]);
-                XPShowWidget(grndp->ovly.wid[1]);
-            }
-        }
-        else if (ground_spd_kts > GS_KT_MIN &&
-                 ground_spd_kts < GS_KT_MAX &&
-                 XPLMGetDatai(grndp->ovly.ground))
-        {
-            snprintf(grndp->ovly.buf, 9, "%2.0f kts", ground_spd_kts);
-            XPSetWidgetDescriptor(grndp->ovly.wid[1], grndp->ovly.buf);
-            if (XPIsWidgetVisible(grndp->ovly.wid[1]) == 0)
-            {
-                XPShowWidget(grndp->ovly.wid[0]);
-                XPShowWidget(grndp->ovly.wid[1]);
-            }
-        }
-        else
-        {
-            if (XPIsWidgetVisible(grndp->ovly.wid[1]) != 0)
-            {
-                XPHideWidget(grndp->ovly.wid[0]);
-                XPHideWidget(grndp->ovly.wid[1]);
-            }
-        }
 
         /* XXX: check whether we just connected to PilotEdge or VATSIM */
         if (grndp->oatc.pe_is_on)
@@ -4710,23 +4599,17 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         // its A/T never seems to auto-disconnect (unlike e.g. IXEG's 737), and will
         // command thrust to maintain speed even after touchdown unless auto-landing
 
-        // first, raise our throttles to a minimum idle if required
+        // raise our throttles to a minimum idle if required
         if (grndp->idle.minimums >= 2)
         {
             if (thrott_cmd_all < (grndp->idle.r_idle - T_ZERO))
             {
-                if (grndp->ovly.thrt_changed)
-                {
-                    snprintf(grndp->ovly.buf, 9, "%5.3f", grndp->idle.r_idle);
-                    XPSetWidgetDescriptor(grndp->ovly.wid[1], grndp->ovly.buf);
-                }
                 XPLMSetDataf(grndp->idle.throttle_all, grndp->idle.r_idle);
             }
         }
 
         // check whether we are still on the ground or flying
         int airborne = !XPLMGetDatai(grndp->idle.onground_any);
-        grndp->ovly.last_thr_all = thrott_cmd_all;
         return airborne ? 1.0f : 0.25f;
     }
     return 0;
@@ -6348,10 +6231,7 @@ static int first_fcall_do(chandler_context *ctx)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
     }
-    ctx->ground.ovly.ice_detected = 0;
-    ctx->ground.ovly.check_4icing = 0.0f;
-    ctx->ground.ovly.show_thr_all = 0.0f;
-    ctx->ground.ovly.last_thr_all = 0.0f;
+    ctx->ground.every_ten_seconds = 0.0f;
     XPLMRegisterFlightLoopCallback((ctx->ground.flc_g = &gnd_stab_hdlr), 1, &ctx->ground);
 
     /* mixture and prop pitch command handlers */
