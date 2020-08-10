@@ -154,8 +154,6 @@ typedef struct
 typedef struct
 {
     void           *assert;
-    float   nominal_roll_c;
-    XPLMDataRef acf_roll_c;
     XPLMDataRef ground_spd;
     XPLMDataRef auto_p_sts;
     XPLMDataRef auto_t_sts;
@@ -1050,7 +1048,6 @@ void* nvp_chandlers_init(void)
     }
 
     /* Custom ground stabilization system (via flight loop callback) */
-    ctx->ground.acf_roll_c          = XPLMFindDataRef  ("sim/aircraft/overflow/acf_roll_co");
     ctx->ground.ground_spd          = XPLMFindDataRef  ("sim/flightmodel/position/groundspeed");
     ctx->ground.auto_t_sts          = XPLMFindDataRef  ("sim/cockpit2/autopilot/autothrottle_enabled");
     ctx->ground.auto_p_sts          = XPLMFindDataRef  ("sim/cockpit2/autopilot/servos_on");
@@ -1063,8 +1060,7 @@ void* nvp_chandlers_init(void)
     ctx->ground.idle.onground_any   = XPLMFindDataRef  ("sim/flightmodel/failures/onground_any");
     ctx->ground.idle.throttle_all   = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/throttle_ratio_all");
     ctx->ground.idle.preset.command = XPLMCreateCommand("navP/thrust/idle_boost", "apply just a bit of throttle");
-    if (!ctx->ground.acf_roll_c         ||
-        !ctx->ground.ground_spd         ||
+    if (!ctx->ground.ground_spd         ||
         !ctx->ground.auto_t_sts         ||
         !ctx->ground.auto_p_sts         ||
         !ctx->ground.elev_m_agl         ||
@@ -1292,7 +1288,6 @@ int nvp_chandlers_reset(void *inContext)
     if (ctx->ground.flc_g)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
-        XPLMSetDataf(ctx->ground.acf_roll_c, ctx->ground.nominal_roll_c);
         ctx->ground.idle.thrott_array = NULL;
         ctx->ground.idle.minimums = 0;
         ctx->ground.flc_g = NULL;
@@ -1639,9 +1634,6 @@ int nvp_chandlers_update(void *inContext)
 
     /* for the reverse thrust commands */
      ctx->revrs.n_engines = ctx->info->engine_count;
-
-    /* Custom ground stabilization system (via flight loop callback) */
-    ctx->ground.nominal_roll_c = XPLMGetDataf(ctx->ground.acf_roll_c);
 
     /* check for presence of online ATC plugins */
     ctx->coatc.pe_plid = XPLMFindPluginBySignature("com.pilotedge.plugin.xplane");
@@ -4502,16 +4494,6 @@ static float flc_oatc_func(float inElapsedSinceLastCall,
 #define GS_KT_MIN             (2.500f)
 #define GS_KT_MID             (26.25f)
 #define GS_KT_MAX             (50.00f)
-#define ACF_ROLL_SET(_var, _gs, _base)                  \
-{                                                       \
-    {                                                   \
-        _var  = ((_gs - GS_KT_MIN) / 950.0f) + _base;   \
-    }                                                   \
-    if (_gs > GS_KT_MID)                                \
-    {                                                   \
-        _var -= ((_gs - GS_KT_MID) / 475.0f);           \
-    }                                                   \
-}
 static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                            float inElapsedTimeSinceLastFlightLoop,
                            int   inCounter,
@@ -4715,23 +4697,6 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             grndp->oatc.xb_was_connected = !!xb_is_connected;
         }
 
-#if 0
-        float gstest[] =
-        {
-            ((GS_KT_MIN)),
-            ((GS_KT_MID + GS_KT_MIN) / 2.0f),
-            ((GS_KT_MID)),
-            ((GS_KT_MID - GS_KT_MIN) * 1.5f) + GS_KT_MIN,
-            ((GS_KT_MAX)),
-        };
-        for (int i = 0; i < (sizeof(gstest) / sizeof(gstest[0])); i++)
-        {
-            ACF_ROLL_SET(acf_roll_c, gstest[i], grndp->nominal_roll_c);
-            ndt_log("navP [debug]: acf_roll_co[%5.2fkts]: %.4f (nominal %.4f) (difference %.4f)\n",
-                    gstest[i], acf_roll_c, grndp->nominal_roll_c, acf_roll_c - grndp->nominal_roll_c);
-        }
-#endif
-
         // without A/P on (otherwise auto-landing),
         // disable A/T and command idle at 50ft AGL
         if (XPLMGetDatai(grndp->auto_t_sts) >= 1 &&
@@ -4761,14 +4726,6 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 
         // check whether we are still on the ground or flying
         int airborne = !XPLMGetDatai(grndp->idle.onground_any);
-
-        // then, update ground roll friction coefficient as required
-        if (!airborne && ground_spd_kts > GS_KT_MIN && ground_spd_kts < GS_KT_MAX)
-        {
-            float arc; ACF_ROLL_SET(arc, ground_spd_kts, grndp->nominal_roll_c);
-            XPLMSetDataf(grndp->acf_roll_c, arc); return -1; // should be smooth
-        }
-        XPLMSetDataf(grndp->acf_roll_c, grndp->nominal_roll_c);
         grndp->ovly.last_thr_all = thrott_cmd_all;
         return airborne ? 1.0f : 0.25f;
     }
@@ -6572,7 +6529,6 @@ static void priv_setdata_f(void *inRefcon, float inValue)
 #undef CALLOUT_SPEEDBRAK
 #undef CALLOUT_FLAPLEVER
 #undef CALLOUT_GEARLEVER
-#undef ACF_ROLL_SET
 #undef A320T_CLMB
 #undef A320T_HALF
 #undef A320T_IDLE
