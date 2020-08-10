@@ -6280,7 +6280,7 @@ static int first_fcall_do(chandler_context *ctx)
         XPLMSpeakString("default volume error");
         return -1;
     }
-    acf_volume_set(volume_context, 0.25f, ctx->info->ac_type);
+    acf_volume_set(volume_context, 0.10f, ctx->info->ac_type);
 
 //    /* Boost frame rates by disabling cloud drawing altogether */
 //    if (ctx->menu_context)
