@@ -340,11 +340,11 @@ void acf_volume_set(acf_volume_context *ctx, float volume, acf_type type)
                 else
                 {
                     XPLMSetDataf(ctx->sound.xp10.eng, volume / 1.25f);
-                    XPLMSetDataf(ctx->sound.xp10.prp, volume / 1.25f);
-                    XPLMSetDataf(ctx->sound.xp10.wxr, volume / 1.25f);
-                    XPLMSetDataf(ctx->sound.xp10.wrn, volume / 1.25f);
-                    XPLMSetDataf(ctx->sound.xp10.grd, volume / 1.25f);
                     XPLMSetDataf(ctx->sound.xp10.fan, volume / 1.25f);
+                    XPLMSetDataf(ctx->sound.xp10.grd, volume / 1.25f);
+                    XPLMSetDataf(ctx->sound.xp10.prp, volume / 1.25f);
+                    XPLMSetDataf(ctx->sound.xp10.wrn, volume / 1.25f);
+                    XPLMSetDataf(ctx->sound.xp10.wxr, volume / 1.25f);
                 }
                 break;
 
@@ -356,11 +356,11 @@ void acf_volume_set(acf_volume_context *ctx, float volume, acf_type type)
                 else
                 {
                     XPLMSetDataf(ctx->sound.xp10.eng, volume);
-                    XPLMSetDataf(ctx->sound.xp10.prp, volume);
-                    XPLMSetDataf(ctx->sound.xp10.wxr, volume);
-                    XPLMSetDataf(ctx->sound.xp10.wrn, volume);
-                    XPLMSetDataf(ctx->sound.xp10.grd, volume);
                     XPLMSetDataf(ctx->sound.xp10.fan, volume);
+                    XPLMSetDataf(ctx->sound.xp10.grd, volume);
+                    XPLMSetDataf(ctx->sound.xp10.prp, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wrn, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wxr, volume);
                 }
                 XPLMSetDataf(ctx->custom.a350.volume, volume);
                 break;
@@ -377,11 +377,11 @@ void acf_volume_set(acf_volume_context *ctx, float volume, acf_type type)
                 else
                 {
                     XPLMSetDataf(ctx->sound.xp10.eng, volume);
-                    XPLMSetDataf(ctx->sound.xp10.prp, volume);
-                    XPLMSetDataf(ctx->sound.xp10.wxr, volume);
-                    XPLMSetDataf(ctx->sound.xp10.wrn, volume);
-                    XPLMSetDataf(ctx->sound.xp10.grd, volume);
                     XPLMSetDataf(ctx->sound.xp10.fan, volume);
+                    XPLMSetDataf(ctx->sound.xp10.grd, volume);
+                    XPLMSetDataf(ctx->sound.xp10.prp, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wrn, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wxr, volume);
                 }
                 XPLMSetDataf(ctx->custom.fsts.volume, volume * 0.5f);
                 break;
@@ -394,11 +394,11 @@ void acf_volume_set(acf_volume_context *ctx, float volume, acf_type type)
                 else
                 {
                     XPLMSetDataf(ctx->sound.xp10.eng, volume);
-                    XPLMSetDataf(ctx->sound.xp10.prp, volume);
-                    XPLMSetDataf(ctx->sound.xp10.wxr, volume);
-                    XPLMSetDataf(ctx->sound.xp10.wrn, volume);
-                    XPLMSetDataf(ctx->sound.xp10.grd, volume);
                     XPLMSetDataf(ctx->sound.xp10.fan, volume);
+                    XPLMSetDataf(ctx->sound.xp10.grd, volume);
+                    XPLMSetDataf(ctx->sound.xp10.prp, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wrn, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wxr, volume);
                 }
                 XPLMSetDataf(ctx->custom.fft7.ambien, volume * 1.0f);
                 XPLMSetDataf(ctx->custom.fft7.cllout, volume * 1.5f);
@@ -414,11 +414,11 @@ void acf_volume_set(acf_volume_context *ctx, float volume, acf_type type)
                 else
                 {
                     XPLMSetDataf(ctx->sound.xp10.eng, volume);
-                    XPLMSetDataf(ctx->sound.xp10.prp, volume);
-                    XPLMSetDataf(ctx->sound.xp10.wxr, volume);
-                    XPLMSetDataf(ctx->sound.xp10.wrn, volume);
-                    XPLMSetDataf(ctx->sound.xp10.grd, volume);
                     XPLMSetDataf(ctx->sound.xp10.fan, volume);
+                    XPLMSetDataf(ctx->sound.xp10.grd, volume);
+                    XPLMSetDataf(ctx->sound.xp10.prp, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wrn, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wxr, volume);
                 }
                 XPLMSetDataf(ctx->custom.ddnn.volext, (0.25f));
                 XPLMSetDatai(ctx->custom.ddnn.volmut, (0.01f > volume));
@@ -439,11 +439,11 @@ void acf_volume_set(acf_volume_context *ctx, float volume, acf_type type)
                 else
                 {
                     XPLMSetDataf(ctx->sound.xp10.eng, volume);
-                    XPLMSetDataf(ctx->sound.xp10.prp, volume);
-                    XPLMSetDataf(ctx->sound.xp10.wxr, volume);
-                    XPLMSetDataf(ctx->sound.xp10.wrn, volume);
-                    XPLMSetDataf(ctx->sound.xp10.grd, volume);
                     XPLMSetDataf(ctx->sound.xp10.fan, volume);
+                    XPLMSetDataf(ctx->sound.xp10.grd, volume);
+                    XPLMSetDataf(ctx->sound.xp10.prp, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wrn, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wxr, volume);
                     if (ctx->custom.absk.volume && ctx->custom.absk.mtrack &&
                         fabsf(XPLMGetDataf(ctx->custom.absk.mtrack)) > 0.001f)
                     {
