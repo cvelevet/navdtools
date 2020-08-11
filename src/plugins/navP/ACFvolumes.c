@@ -159,6 +159,15 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.pe.vol1);
             {
                 XPLMSetDatai(ctx->radio.rx.com1, 1);
             }
+            if (ctx->x_plane_v11)
+            {
+                float radio = 2.0f * XPLMGetDataf(ctx->radio.volume);
+                if (radio > 1.000f)
+                {
+                    radio = 1.0f;
+                }
+                XPLMSetDataf(ctx->radio.volume, radio);
+            }
             return 1;
         }
         else if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("vatsim.protodev.clients.xsquawkbox"))
@@ -197,6 +206,15 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.xb.vol1);
             {
                 XPLMSetDatai(ctx->radio.rx.com1, 1);
             }
+            if (ctx->x_plane_v11)
+            {
+                float radio = 2.0f * XPLMGetDataf(ctx->radio.volume);
+                if (radio > 1.000f)
+                {
+                    radio = 1.0f;
+                }
+                XPLMSetDataf(ctx->radio.volume, radio);
+            }
             return 1;
         }
         else
@@ -215,6 +233,15 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, V1_DEFAULT_AL);
             XPLMSetDataf(ctx->radio.vol.com2,     V1_DEFAULT_AL);
             XPLMSetDataf(ctx->radio.volume,       sqrtf(volume));
             XPLMSetDatai(ctx->radio.atctxt,       volume > .01f); // Text-to-speech overlays
+            if (ctx->x_plane_v11)
+            {
+                float radio = 2.0f * XPLMGetDataf(ctx->radio.volume);
+                if (radio > 1.000f)
+                {
+                    radio = 1.0f;
+                }
+                XPLMSetDataf(ctx->radio.volume, radio);
+            }
             return (volume > .01f);
         }
     }
