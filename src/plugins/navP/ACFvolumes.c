@@ -318,6 +318,10 @@ void acf_volume_set(acf_volume_context *ctx, float volume, acf_type type)
         {
             volume = 1.00f;
         }
+        if (volume > 0.50f && ctx->x_plane_v11)
+        {
+            volume = 0.50f;
+        }
         ctx->last_volume = volume;
 
         /* non-ATC */
@@ -325,88 +329,127 @@ void acf_volume_set(acf_volume_context *ctx, float volume, acf_type type)
         {
             case ACF_TYP_A319_TL:
             case ACF_TYP_A321_TL:
-                // ToLiSS A319's defaults:
-                // - engine volume     25%
-                // - system volume     25%
-                // - cockpit sounds    75%
-                // - environmental     25%
-                // - ground contact    25%
-                // - aural alert       25%
-                // - external ratio    50%
-                // we calibrate the A329's master volume so its external
-                // volume matches "volume" at our default setting of 25%
-//              XPLMSetDataf(ctx->sound. xp10.   eng,          0.0f);
-                XPLMSetDataf(ctx->sound. xp10.   prp,          0.0f);
-//              XPLMSetDataf(ctx->sound. xp10.   wxr,          0.0f);
-//              XPLMSetDataf(ctx->sound. xp10.   wrn,          0.0f);
-//              XPLMSetDataf(ctx->sound. xp10.   grd,          0.0f);
-//              XPLMSetDataf(ctx->sound. xp10.   fan,          0.0f);
                 XPLMSetDataf(ctx->custom.tlss.master, sqrtf(volume));
                 break;
+
             case ACF_TYP_A320_FF:
-                XPLMSetDataf(ctx->sound.xp10.eng, volume / 1.25f);
-                XPLMSetDataf(ctx->sound.xp10.prp, volume / 1.25f);
-                XPLMSetDataf(ctx->sound.xp10.wxr, volume / 1.25f);
-                XPLMSetDataf(ctx->sound.xp10.wrn, volume / 1.25f);
-                XPLMSetDataf(ctx->sound.xp10.grd, volume / 1.25f);
-                XPLMSetDataf(ctx->sound.xp10.fan, volume / 1.25f);
+                if (ctx->x_plane_v11)
+                {
+                    //fixme
+                }
+                else
+                {
+                    XPLMSetDataf(ctx->sound.xp10.eng, volume / 1.25f);
+                    XPLMSetDataf(ctx->sound.xp10.prp, volume / 1.25f);
+                    XPLMSetDataf(ctx->sound.xp10.wxr, volume / 1.25f);
+                    XPLMSetDataf(ctx->sound.xp10.wrn, volume / 1.25f);
+                    XPLMSetDataf(ctx->sound.xp10.grd, volume / 1.25f);
+                    XPLMSetDataf(ctx->sound.xp10.fan, volume / 1.25f);
+                }
                 break;
+
             case ACF_TYP_A350_FF:
-                XPLMSetDataf(ctx->sound. xp10.   eng, volume);
-                XPLMSetDataf(ctx->sound. xp10.   prp, volume);
-                XPLMSetDataf(ctx->sound. xp10.   wxr, volume);
-                XPLMSetDataf(ctx->sound. xp10.   wrn, volume);
-                XPLMSetDataf(ctx->sound. xp10.   grd, volume);
-                XPLMSetDataf(ctx->sound. xp10.   fan, volume);
+                if (ctx->x_plane_v11)
+                {
+                    //fixme
+                }
+                else
+                {
+                    XPLMSetDataf(ctx->sound.xp10.eng, volume);
+                    XPLMSetDataf(ctx->sound.xp10.prp, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wxr, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wrn, volume);
+                    XPLMSetDataf(ctx->sound.xp10.grd, volume);
+                    XPLMSetDataf(ctx->sound.xp10.fan, volume);
+                }
                 XPLMSetDataf(ctx->custom.a350.volume, volume);
                 break;
+
             case ACF_TYP_B737_XG:
                 break;
+
             case ACF_TYP_B757_FF:
             case ACF_TYP_B767_FF:
-                XPLMSetDataf(ctx->sound. xp10.   eng, volume * 1.0f);
-                XPLMSetDataf(ctx->sound. xp10.   prp, volume * 1.0f);
-                XPLMSetDataf(ctx->sound. xp10.   wxr, volume * 1.0f);
-                XPLMSetDataf(ctx->sound. xp10.   wrn, volume * 1.0f);
-                XPLMSetDataf(ctx->sound. xp10.   grd, volume * 1.0f);
-                XPLMSetDataf(ctx->sound. xp10.   fan, volume * 1.0f);
+                if (ctx->x_plane_v11)
+                {
+                    //fixme
+                }
+                else
+                {
+                    XPLMSetDataf(ctx->sound.xp10.eng, volume);
+                    XPLMSetDataf(ctx->sound.xp10.prp, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wxr, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wrn, volume);
+                    XPLMSetDataf(ctx->sound.xp10.grd, volume);
+                    XPLMSetDataf(ctx->sound.xp10.fan, volume);
+                }
                 XPLMSetDataf(ctx->custom.fsts.volume, volume * 0.5f);
                 break;
+
             case ACF_TYP_B777_FF:
-                XPLMSetDataf(ctx->sound. xp10.   eng, volume * 1.0f);
-                XPLMSetDataf(ctx->sound. xp10.   prp, volume * 1.0f);
-                XPLMSetDataf(ctx->sound. xp10.   wxr, volume * 1.0f);
-                XPLMSetDataf(ctx->sound. xp10.   wrn, volume * 1.0f);
-                XPLMSetDataf(ctx->sound. xp10.   grd, volume * 1.0f);
-                XPLMSetDataf(ctx->sound. xp10.   fan, volume * 1.0f);
+                if (ctx->x_plane_v11)
+                {
+                    //fixme
+                }
+                else
+                {
+                    XPLMSetDataf(ctx->sound.xp10.eng, volume);
+                    XPLMSetDataf(ctx->sound.xp10.prp, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wxr, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wrn, volume);
+                    XPLMSetDataf(ctx->sound.xp10.grd, volume);
+                    XPLMSetDataf(ctx->sound.xp10.fan, volume);
+                }
                 XPLMSetDataf(ctx->custom.fft7.ambien, volume * 1.0f);
                 XPLMSetDataf(ctx->custom.fft7.cllout, volume * 1.5f);
                 XPLMSetDataf(ctx->custom.fft7.engine, volume * 1.0f);
                 XPLMSetDataf(ctx->custom.fft7.volume, volume * 0.5f);
                 break;
+
             case ACF_TYP_CL30_DD:
-                XPLMSetDataf(ctx->sound.xp10.eng,      volume);
-                XPLMSetDataf(ctx->sound.xp10.prp,      volume);
-                XPLMSetDataf(ctx->sound.xp10.wxr,      volume);
-                XPLMSetDataf(ctx->sound.xp10.wrn,      volume);
-                XPLMSetDataf(ctx->sound.xp10.grd,      volume);
-                XPLMSetDataf(ctx->sound.xp10.fan,      volume);
+                if (ctx->x_plane_v11)
+                {
+                    //fixme
+                }
+                else
+                {
+                    XPLMSetDataf(ctx->sound.xp10.eng, volume);
+                    XPLMSetDataf(ctx->sound.xp10.prp, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wxr, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wrn, volume);
+                    XPLMSetDataf(ctx->sound.xp10.grd, volume);
+                    XPLMSetDataf(ctx->sound.xp10.fan, volume);
+                }
                 XPLMSetDataf(ctx->custom.ddnn.volext, (0.25f));
                 XPLMSetDatai(ctx->custom.ddnn.volmut, (0.01f > volume));
                 XPLMSetDatai(ctx->custom.ddnn.volume, (int)roundf(2200.0f * sqrtf(volume)));
                 break;
+
             default:
-                XPLMSetDataf(ctx->sound.xp10.eng, volume);
-                XPLMSetDataf(ctx->sound.xp10.prp, volume);
-                XPLMSetDataf(ctx->sound.xp10.wxr, volume);
-                XPLMSetDataf(ctx->sound.xp10.wrn, volume);
-                XPLMSetDataf(ctx->sound.xp10.grd, volume);
-                XPLMSetDataf(ctx->sound.xp10.fan, volume);
-                if (ctx->custom.absk.volume && ctx->custom.absk.mtrack &&
-                    fabsf(XPLMGetDataf(ctx->custom.absk.mtrack)) > 0.001f)
+                if (ctx->x_plane_v11)
                 {
-                    XPLMSetDataf(ctx->sound.xp10.eng, volume / 2.0f);
-                    XPLMSetDataf(ctx->custom.absk.volume, volume);
+                    //fixme
+                    if (ctx->custom.absk.volume && ctx->custom.absk.mtrack &&
+                        fabsf(XPLMGetDataf(ctx->custom.absk.mtrack)) > 0.001f)
+                    {
+//                        XPLMSetDataf(ctx->sound.xp11.eng, volume / 2.0f);
+                        XPLMSetDataf(ctx->custom.absk.volume, volume);
+                    }
+                }
+                else
+                {
+                    XPLMSetDataf(ctx->sound.xp10.eng, volume);
+                    XPLMSetDataf(ctx->sound.xp10.prp, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wxr, volume);
+                    XPLMSetDataf(ctx->sound.xp10.wrn, volume);
+                    XPLMSetDataf(ctx->sound.xp10.grd, volume);
+                    XPLMSetDataf(ctx->sound.xp10.fan, volume);
+                    if (ctx->custom.absk.volume && ctx->custom.absk.mtrack &&
+                        fabsf(XPLMGetDataf(ctx->custom.absk.mtrack)) > 0.001f)
+                    {
+                        XPLMSetDataf(ctx->sound.xp10.eng, volume / 2.0f);
+                        XPLMSetDataf(ctx->custom.absk.volume, volume);
+                    }
                 }
                 break;
         }
