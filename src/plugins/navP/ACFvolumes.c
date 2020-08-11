@@ -29,7 +29,6 @@
 
 #include "ACFvolumes.h"
 
-#define V0_DEFAULT_AL 0.50f
 #define V0_DEFAULT_PE 0.25f
 #define V0_DEFAULT_XB 0.25f
 #define V1_DEFAULT_AL M_SQRT1_2
@@ -214,7 +213,7 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, V1_DEFAULT_AL);
             XPLMSetDataf(ctx->radio.vol.nav2,     V2_DEFAULT_AL);
             XPLMSetDataf(ctx->radio.vol.com1,     V1_DEFAULT_AL);
             XPLMSetDataf(ctx->radio.vol.com2,     V1_DEFAULT_AL);
-            XPLMSetDataf(ctx->radio.volume,       V0_DEFAULT_AL);
+            XPLMSetDataf(ctx->radio.volume,       sqrtf(volume));
             XPLMSetDatai(ctx->radio.atctxt,       volume > .01f); // Text-to-speech overlays
             return (volume > .01f);
         }
@@ -420,3 +419,12 @@ void acf_volume_set(acf_volume_context *ctx, float volume, acf_type type)
         XPLMSetDatai(ctx->sound.speech, !!enabled);
     }
 }
+
+#undef V0_DEFAULT_PE
+#undef V0_DEFAULT_XB
+#undef V1_DEFAULT_AL
+#undef V1_DEFAULT_PE
+#undef V1_DEFAULT_XB
+#undef V2_DEFAULT_AL
+#undef V2_DEFAULT_PE
+#undef V2_DEFAULT_XB
