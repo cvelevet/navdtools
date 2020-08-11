@@ -525,8 +525,8 @@ void acf_volume_set(acf_volume_context *ctx, float volume, acf_type type)
                     if (ctx->custom.absk.volume && ctx->custom.absk.mtrack &&
                         fabsf(XPLMGetDataf(ctx->custom.absk.mtrack)) > 0.001f)
                     {
-                        XPLMSetDataf(ctx->sound.xp11.eng, 0.2500000f);
                         XPLMSetDataf(ctx->custom.absk.volume, volume);
+                        XPLMSetDataf(ctx->sound.xp11.eng, 0.25f);
                     }
                 }
                 else
