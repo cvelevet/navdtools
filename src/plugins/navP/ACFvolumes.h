@@ -28,6 +28,7 @@
 
 typedef struct
 {
+    int   x_plane_v11;
     float last_volume;
     struct
     {
@@ -61,15 +62,26 @@ typedef struct
             struct
             {
                 XPLMDataRef eng;
-                XPLMDataRef prp;
-                XPLMDataRef grd;
-                XPLMDataRef wxr;
-                XPLMDataRef wrn;
                 XPLMDataRef fan;
+                XPLMDataRef grd;
+                XPLMDataRef prp;
+                XPLMDataRef wrn;
+                XPLMDataRef wxr;
             } xp10;
             struct
             {
-                // TODO: future
+                XPLMDataRef mas;
+                XPLMDataRef cop;
+                XPLMDataRef eng;
+                XPLMDataRef env;
+                XPLMDataRef ext;
+                XPLMDataRef fan;
+                XPLMDataRef grd;
+                XPLMDataRef inn;
+                XPLMDataRef prp;
+                XPLMDataRef uiv;
+                XPLMDataRef wxr;
+                XPLMDataRef wrn;
             } xp11;
         };
         XPLMDataRef nabled;

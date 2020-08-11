@@ -52,6 +52,9 @@ acf_volume_context* acf_volume_ctx_get(void)
         goto fail;
     }
 
+    /* are we X-Plane 11??? */
+    default_ctx->x_plane_v11 = (NULL != XPLMFindDataRef("sim/version/xplane_internal_version"));
+
     /* default X-Plane datarefs */
     if (NULL == (default_ctx->sound.  nabled = XPLMFindDataRef("sim/operation/sound/sound_on"                       )) ||
         NULL == (default_ctx->radio.  atctxt = XPLMFindDataRef("sim/operation/prefs/text_out"                       )) ||
@@ -72,8 +75,26 @@ acf_volume_context* acf_volume_ctx_get(void)
         goto fail;
     }
 
-    /* X-Plane 10 sound datarefs */
-    if (1) // TODO check version
+    /* Version-specific things */
+    if (default_ctx->x_plane_v11)
+    {
+        if (NULL == (default_ctx->sound.xp11.uiv = XPLMFindDataRef("sim/operation/sound/ui_volume_ratio"            )) ||
+            NULL == (default_ctx->sound.xp11.fan = XPLMFindDataRef("sim/operation/sound/fan_volume_ratio"           )) ||
+            NULL == (default_ctx->sound.xp11.prp = XPLMFindDataRef("sim/operation/sound/prop_volume_ratio"          )) ||
+            NULL == (default_ctx->sound.xp11.eng = XPLMFindDataRef("sim/operation/sound/engine_volume_ratio"        )) ||
+            NULL == (default_ctx->sound.xp11.env = XPLMFindDataRef("sim/operation/sound/enviro_volume_ratio"        )) ||
+            NULL == (default_ctx->sound.xp11.grd = XPLMFindDataRef("sim/operation/sound/ground_volume_ratio"        )) ||
+            NULL == (default_ctx->sound.xp11.mas = XPLMFindDataRef("sim/operation/sound/master_volume_ratio"        )) ||
+            NULL == (default_ctx->sound.xp11.cop = XPLMFindDataRef("sim/operation/sound/copilot_volume_ratio"       )) ||
+            NULL == (default_ctx->sound.xp11.wrn = XPLMFindDataRef("sim/operation/sound/warning_volume_ratio"       )) ||
+            NULL == (default_ctx->sound.xp11.wxr = XPLMFindDataRef("sim/operation/sound/weather_volume_ratio"       )) ||
+            NULL == (default_ctx->sound.xp11.ext = XPLMFindDataRef("sim/operation/sound/exterior_volume_ratio"      )) ||
+            NULL == (default_ctx->sound.xp11.inn = XPLMFindDataRef("sim/operation/sound/interior_volume_ratio"      )))
+        {
+            goto fail;
+        }
+    }
+    else
     {
         if (NULL == (default_ctx->sound.xp10.fan = XPLMFindDataRef("sim/operation/sound/fan_volume_ratio"           )) ||
             NULL == (default_ctx->sound.xp10.prp = XPLMFindDataRef("sim/operation/sound/prop_volume_ratio"          )) ||
