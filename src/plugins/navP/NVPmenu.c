@@ -613,16 +613,16 @@ void* nvp_menu_init(void)
         // default dataref/checkbox values can't be set here (no else clause).
         goto fail;
     }
+    else
+    {
+        XPLMAppendMenuSeparator(ctx->id);
+    }
 
     /* toggle: speed boost on/off */
     if (append_menu_item("", &ctx->items.dummy_item_0,
                          MENUITEM_NOTHING_TODO, ctx->id))
     {
         goto fail;
-    }
-    else
-    {
-        XPLMAppendMenuSeparator(ctx->id);
     }
     if (append_menu_item("Tachyon Enhancement", &ctx->items.speedbooster,
                          MENUITEM_SPEEDBOOSTER,  ctx->id))
