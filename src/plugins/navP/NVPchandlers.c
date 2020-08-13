@@ -4111,9 +4111,9 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 {
                     // reset relevant datarefs to preferred size/location and show both MCDUs
                     //                    { CDU1, CDU2, PFD1, PFD2, ND#1, ND#2, ECAM, ECAM, };
-                    float PopUpScale[8] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, }; XPLMSetDatavf(cdu->dataref[1], PopUpScale, 0, 8);
-                    int   PopUpXArry[8] = {    0,  448,    0, 2000,  500, 1500, 1000, 1000, }; XPLMSetDatavi(cdu->dataref[2], PopUpXArry, 0, 8);
-                    int   PopUpYArry[8] = {    0,    0,  940,  940,  940,  940,  940,  440, }; XPLMSetDatavi(cdu->dataref[3], PopUpYArry, 0, 8);
+                    float PopUpScale[9] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, }; XPLMSetDatavf(cdu->dataref[1], PopUpScale, 0, 9);
+                    int   PopUpXArry[9] = {    0,  448,    0, 1292, 1292, 1292,  646,  646,  473, }; XPLMSetDatavi(cdu->dataref[2], PopUpXArry, 0, 9);
+                    int   PopUpYArry[9] = {    0,    0,  620,    0,  620,  620,  620,    0,  460, }; XPLMSetDatavi(cdu->dataref[3], PopUpYArry, 0, 9);
                     XPLMCommandOnce(cdu->command[0]);
                     XPLMCommandOnce(cdu->command[1]);
                     return 0;
