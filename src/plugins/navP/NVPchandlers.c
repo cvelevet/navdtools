@@ -101,11 +101,11 @@ typedef struct
 {
     int              ready;
     chandler_callback mwcb;
-    XPLMCommandRef   iscst;
+    XPLMDataRef    popup_x;
+    XPLMDataRef    popup_y;
     int            toaltbr;
     int            tolbctr;
     XPLMDataRef    tolb[3];
-    XPLMDataRef    gpws[4];
     XPLMDataRef    pkb_ref;
     XPLMCommandRef h_b_max;
     XPLMCommandRef h_b_reg;
@@ -4224,16 +4224,18 @@ static int chandler_32atd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_31isc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    if (inPhase == xplm_CommandBegin) // before any other processing takes place
+    if (inPhase == xplm_CommandBegin && inRefcon) // before any other processing takes place
     {
-        if (XPLMGetDataf(((refcon_qpacfbw*)inRefcon)->gpws[0]) < 0.5f &&
-            XPLMGetDataf(((refcon_qpacfbw*)inRefcon)->gpws[1]) < 0.5f &&
-            XPLMGetDataf(((refcon_qpacfbw*)inRefcon)->gpws[2]) < 0.5f &&
-            XPLMGetDataf(((refcon_qpacfbw*)inRefcon)->gpws[3]) < 0.5f)
+        int x; XPLMGetDatavi(((refcon_qpacfbw*)inRefcon)->popup_x, &x, 9, 1);
+        int y; XPLMGetDatavi(((refcon_qpacfbw*)inRefcon)->popup_y, &y, 9, 1);
+        if (((x >=   1 || y >=   1) &&
+             (x != 768 && y != 352)))
         {
-            XPLMCommandOnce(((refcon_qpacfbw*)inRefcon)->iscst);
-            return 0; // bypass the ToLiSS plugin (and X-Plane)
+            x = 768; XPLMSetDatavi(((refcon_qpacfbw*)inRefcon)->popup_x, &x, 9, 1);
+            y = 352; XPLMSetDatavi(((refcon_qpacfbw*)inRefcon)->popup_y, &y, 9, 1);
+            return 1;
         }
+        return 1;
     }
     return 1;
 }
@@ -6296,16 +6298,11 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
 {
     if (fbw && fbw->ready == 0)
     {
-        if ((fbw->mwcb.command = XPLMFindCommand("AirbusFBW/GPWSMute")) &&
-            (fbw->iscst        = XPLMFindCommand("toliss_airbus/iscs_open")))
+        if ((fbw->mwcb.command = XPLMFindCommand(   "toliss_airbus/iscs_open")) &&
+            (fbw->popup_x      = XPLMFindDataRef("AirbusFBW/PopUpXCoordArray")) &&
+            (fbw->popup_y      = XPLMFindDataRef("AirbusFBW/PopUpYCoordArray")))
         {
-            if ((fbw->gpws[0] = XPLMFindDataRef("ckpt/lamp/205")) &&
-                (fbw->gpws[1] = XPLMFindDataRef("ckpt/lamp/206")) &&
-                (fbw->gpws[2] = XPLMFindDataRef("ckpt/lamp/221")) &&
-                (fbw->gpws[3] = XPLMFindDataRef("ckpt/lamp/222")))
-            {
-                REGISTER_CHANDLER(fbw->mwcb, chandler_31isc, 1/*before ToLiSS plugin*/, fbw);
-            }
+            REGISTER_CHANDLER(fbw->mwcb, chandler_31isc, 1/*before ToLiSS plugin*/, fbw);
         }
         if ((fbw->pkb_ref = XPLMFindDataRef("1-sim/parckBrake")))
         {
