@@ -155,7 +155,7 @@ typedef struct
         item_context reset_allsys;
         item_context callouts_sts;
         item_context dummy_item_0;
-        item_context speedbooster;
+//      item_context speedbooster;
         item_context cloud_killer;
         item_context dummy_item_1;
         item_context refuel_dialg;
@@ -637,11 +637,11 @@ void* nvp_menu_init(void)
     {
         goto fail;
     }
-    if (append_menu_item("Tachyon Enhancement", &ctx->items.speedbooster,
-                         MENUITEM_SPEEDBOOSTER,  ctx->id))
-    {
-        goto fail;
-    }
+//  if (append_menu_item("Tachyon Enhancement", &ctx->items.speedbooster,
+//                       MENUITEM_SPEEDBOOSTER,  ctx->id))
+//  {
+//      goto fail;
+//  }
     if (append_menu_item("Disable cloud draw", &ctx->items.cloud_killer,
                          MENUITEM_CLOUD_KILLER, ctx->id))
     {
@@ -856,7 +856,7 @@ int nvp_menu_setup(void *_menu_context)
             ctx->data.speedbooster.df_det_tex = XPLMGetDatai(ctx->data.speedbooster.dr_det_tex);
         }
         XPLMCheckMenuItem(ctx->id, ctx->items.cloud_killer.id, xplm_Menu_NoCheck);
-        XPLMCheckMenuItem(ctx->id, ctx->items.speedbooster.id, xplm_Menu_NoCheck);
+//      XPLMCheckMenuItem(ctx->id, ctx->items.speedbooster.id, xplm_Menu_NoCheck);
         ndt_log          (   "navP [info]: clouds on, Tachyon Enhancement off\n");
 
         /* custom brake brake and speedbrake callouts */
@@ -1073,8 +1073,8 @@ static void menu_rm_item(menu_context *ctx, int index)
         MENUITEM_CHECK_IDX(ctx->items.callouts_sts.id);
         MENUITEM_UNDEF_VAL(ctx->items.dummy_item_0);
         MENUITEM_CHECK_IDX(ctx->items.dummy_item_0.id);
-        MENUITEM_UNDEF_VAL(ctx->items.speedbooster);
-        MENUITEM_CHECK_IDX(ctx->items.speedbooster.id);
+//      MENUITEM_UNDEF_VAL(ctx->items.speedbooster);
+//      MENUITEM_CHECK_IDX(ctx->items.speedbooster.id);
         MENUITEM_UNDEF_VAL(ctx->items.cloud_killer);
         MENUITEM_CHECK_IDX(ctx->items.cloud_killer.id);
         MENUITEM_UNDEF_VAL(ctx->items.dummy_item_1);
@@ -1295,7 +1295,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
     if (itx->mivalue == MENUITEM_SPEEDBOOSTER || itx->mivalue == MENUITEM_CLOUD_KILLER)
     {
         XPLMMenuCheck speedb = xplm_Menu_Checked, cloudk = xplm_Menu_Checked;
-        XPLMCheckMenuItemState(ctx->id, ctx->items.speedbooster.id, &speedb);
+//      XPLMCheckMenuItemState(ctx->id, ctx->items.speedbooster.id, &speedb);
         XPLMCheckMenuItemState(ctx->id, ctx->items.cloud_killer.id, &cloudk);
         int speedbooster_enabled = speedb == xplm_Menu_Checked;
         int cloud_killer_enabled = cloudk == xplm_Menu_Checked;
@@ -1313,9 +1313,9 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
                 (speedbooster_enabled = 0); // toggle
             }
         }
-        if (speedbooster_enabled)
+        /*if (speedbooster_enabled)
         {
-            XPLMCheckMenuItem(ctx->id, ctx->items.speedbooster.id, xplm_Menu_Checked);
+//          XPLMCheckMenuItem(ctx->id, ctx->items.speedbooster.id, xplm_Menu_Checked);
             SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_frstr3d, 3.00f);
             SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_lastr3d, 3.00f);
             SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_plotrad, 0.60f);
@@ -1330,7 +1330,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         }
         else
         {
-            XPLMCheckMenuItem(ctx->id, ctx->items.speedbooster.id, xplm_Menu_NoCheck);
+//          XPLMCheckMenuItem(ctx->id, ctx->items.speedbooster.id, xplm_Menu_NoCheck);
             SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_frstr3d, df_frstr3d);
             SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_lastr3d, df_lastr3d);
             SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_plotrad, df_plotrad);
@@ -1342,7 +1342,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_disprep, df_disprep);
             SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_disrcam, df_disrcam);
             ndt_log(    "navP [info]: disabling Tachyon Enhancement\n");
-        }
+        }*/
         if (cloud_killer_enabled)
         {
             XPLMCheckMenuItem(ctx->id, ctx->items.cloud_killer.id, xplm_Menu_Checked);
@@ -1568,10 +1568,10 @@ void nvp_menu_tachy(void *_menu_context, int set_state)
     if (ctx)
     {
         XPLMMenuCheck state = xplm_Menu_Checked;
-        XPLMCheckMenuItemState(ctx->id, ctx->items.speedbooster.id, &state);
+//      XPLMCheckMenuItemState(ctx->id, ctx->items.speedbooster.id, &state);
         if (state != set_state)
         {
-            return menu_handler(ctx, &ctx->items.speedbooster);
+//          return menu_handler(ctx, &ctx->items.speedbooster);
         }
     }
     return;
