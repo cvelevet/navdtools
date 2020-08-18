@@ -6284,6 +6284,15 @@ static int first_fcall_do(chandler_context *ctx)
     }
     acf_volume_set(volume_context, 0.10f, ctx->info->ac_type);
 
+    /* XP v11 experimental tweaks */
+    if (volume_context->x_plane_v11)
+    {
+        _DO(1, XPLMSetDatai, 0, "sim/private/controls/reno/draw_fft_water");
+//      _DO(1, XPLMSetDatai, TDFDRFOR, "sim/private/controls/reno/draw_for_05");
+//      _DO(1, XPLMSetDatai, TDFDRCAR, "sim/private/controls/reno/draw_cars_05");
+        _DO(1, XPLMSetDatai, TDFDRVEC, "sim/private/controls/reno/draw_vecs_03");
+    }
+
 //    /* Boost frame rates by disabling cloud drawing altogether */
 //    if (ctx->menu_context)
 //    {
