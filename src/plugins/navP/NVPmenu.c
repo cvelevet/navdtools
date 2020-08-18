@@ -237,6 +237,19 @@ typedef struct
             float       df_disprep;
             XPLMDataRef dr_disrcam; // sim/private/controls/perf/disable_reflection_cam
             float       df_disrcam;
+
+            // X-Plane 11.41
+            XPLMDataRef dr_x_i_ver; // sim/version/xplane_internal_version
+            XPLMDataRef dr_drw_car; // sim/private/controls/reno/draw_cars_05
+            int         df_drw_car;
+            XPLMDataRef dr_drw_for; // sim/private/controls/reno/draw_for_05
+            int         df_drw_for;
+            XPLMDataRef dr_drw_vec; // sim/private/controls/reno/draw_vecs_03
+            int         df_drw_vec;
+            XPLMDataRef dr_use_bmp; // sim/private/controls/reno/use_bump_maps
+            int         df_use_bmp;
+            XPLMDataRef dr_det_tex; // sim/private/controls/reno/use_detail_textures
+            int         df_det_tex;
         } speedbooster;
 
         struct
@@ -727,6 +740,12 @@ int nvp_menu_setup(void *_menu_context)
         ctx->data.speedbooster.dr_use_csm = get_dataref2("sim/private/controls/caps/use_csm"               );
         ctx->data.speedbooster.dr_disprep = get_dataref2("sim/private/controls/perf/disable_shadow_prep"   );
         ctx->data.speedbooster.dr_disrcam = get_dataref2("sim/private/controls/perf/disable_reflection_cam");
+        ctx->data.speedbooster.dr_x_i_ver = get_dataref2("sim/version/xplane_internal_version"             );
+        ctx->data.speedbooster.dr_drw_car = get_dataref2("sim/private/controls/reno/draw_cars_05"          );
+        ctx->data.speedbooster.dr_drw_for = get_dataref2("sim/private/controls/reno/draw_for_05"           );
+        ctx->data.speedbooster.dr_drw_vec = get_dataref2("sim/private/controls/reno/draw_vecs_03"          );
+        ctx->data.speedbooster.dr_use_bmp = get_dataref2("sim/private/controls/reno/use_bump_maps"         );
+        ctx->data.speedbooster.dr_det_tex = get_dataref2("sim/private/controls/reno/use_detail_textures"   );
         if (XPLM_NO_PLUGIN_ID != (skyMaxxPro = XPLMFindPluginBySignature("SilverLiningV2.Clouds")) ||
             XPLM_NO_PLUGIN_ID != (skyMaxxPro = XPLMFindPluginBySignature("SilverLiningV3.Clouds")) ||
             XPLM_NO_PLUGIN_ID != (skyMaxxPro = XPLMFindPluginBySignature("SilverLiningV4.Clouds")))
@@ -803,6 +822,38 @@ int nvp_menu_setup(void *_menu_context)
         if (ctx->data.speedbooster.dr_disrcam)
         {
             ctx->data.speedbooster.df_disrcam = XPLMGetDataf(ctx->data.speedbooster.dr_disrcam);
+        }
+        if (ctx->data.speedbooster.dr_drw_car)
+        {
+#if TIM_ONLY
+            ctx->data.speedbooster.df_drw_car = TDFDRCAR;
+#else
+            ctx->data.speedbooster.df_drw_car = XPLMGetDatai(ctx->data.speedbooster.dr_drw_car);
+#endif
+        }
+        if (ctx->data.speedbooster.dr_drw_for)
+        {
+#if TIM_ONLY
+            ctx->data.speedbooster.df_drw_for = TDFDRFOR;
+#else
+            ctx->data.speedbooster.df_drw_for = XPLMGetDatai(ctx->data.speedbooster.dr_drw_for);
+#endif
+        }
+        if (ctx->data.speedbooster.dr_drw_vec)
+        {
+#if TIM_ONLY
+            ctx->data.speedbooster.df_drw_vec = TDFDRVEC;
+#else
+            ctx->data.speedbooster.df_drw_vec = XPLMGetDatai(ctx->data.speedbooster.dr_drw_vec);
+#endif
+        }
+        if (ctx->data.speedbooster.dr_use_bmp)
+        {
+            ctx->data.speedbooster.df_use_bmp = XPLMGetDatai(ctx->data.speedbooster.dr_use_bmp);
+        }
+        if (ctx->data.speedbooster.dr_det_tex)
+        {
+            ctx->data.speedbooster.df_det_tex = XPLMGetDatai(ctx->data.speedbooster.dr_det_tex);
         }
         XPLMCheckMenuItem(ctx->id, ctx->items.cloud_killer.id, xplm_Menu_NoCheck);
         XPLMCheckMenuItem(ctx->id, ctx->items.speedbooster.id, xplm_Menu_NoCheck);
@@ -987,6 +1038,14 @@ int nvp_menu_close(void **_menu_context)
     SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_skpdraw,      0.00f);
     SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_k3drain,      0.00f);
     ndt_log(          "navP [info]: enabling default clouds\n");
+    if (NULL != ctx->data.speedbooster.dr_x_i_ver) // lazy XP11+ detection
+    {
+        SPEEDBOOSTER_DEFAULTV(XPLMSetDatai, dr_drw_car, df_drw_car);
+        SPEEDBOOSTER_DEFAULTV(XPLMSetDatai, dr_drw_for, df_drw_for);
+        SPEEDBOOSTER_DEFAULTV(XPLMSetDatai, dr_drw_vec, df_drw_vec);
+//      SPEEDBOOSTER_DEFAULTV(XPLMSetDatai, dr_use_bmp, df_use_bmp);
+//      SPEEDBOOSTER_DEFAULTV(XPLMSetDatai, dr_det_tex, df_det_tex);
+    }
 
     /* all good */
     free(ctx);
@@ -1292,6 +1351,14 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_skpdraw, 1.00f);
             SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_k3drain, 1.00f);
             ndt_log(    "navP [info]: disabling default clouds\n");
+            if (NULL != ctx->data.speedbooster.dr_x_i_ver) // lazy XP11+ detection
+            {
+                SPEEDBOOSTER_SETVALUE(XPLMSetDatai, dr_drw_car, 0);
+                SPEEDBOOSTER_SETVALUE(XPLMSetDatai, dr_drw_for, 0);
+                SPEEDBOOSTER_SETVALUE(XPLMSetDatai, dr_drw_vec, 0);
+//              SPEEDBOOSTER_SETVALUE(XPLMSetDatai, dr_use_bmp, 0);
+//              SPEEDBOOSTER_SETVALUE(XPLMSetDatai, dr_det_tex, 0);
+            }
         }
         else
         {
@@ -1301,6 +1368,14 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_skpdraw, 0.00f);
             SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_k3drain, 0.00f);
             ndt_log(     "navP [info]: enabling default clouds\n");
+            if (NULL != ctx->data.speedbooster.dr_x_i_ver) // lazy XP11+ detection
+            {
+                SPEEDBOOSTER_DEFAULTV(XPLMSetDatai, dr_drw_car, df_drw_car);
+                SPEEDBOOSTER_DEFAULTV(XPLMSetDatai, dr_drw_for, df_drw_for);
+                SPEEDBOOSTER_DEFAULTV(XPLMSetDatai, dr_drw_vec, df_drw_vec);
+//              SPEEDBOOSTER_DEFAULTV(XPLMSetDatai, dr_use_bmp, df_use_bmp);
+//              SPEEDBOOSTER_DEFAULTV(XPLMSetDatai, dr_det_tex, df_det_tex);
+            }
         }
         return;
     }
