@@ -1377,6 +1377,7 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.disc.cc.name = "toliss_airbus/ap_disc_left_stick";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             ctx->otto.conn.cc.name = "toliss_airbus/ap1_push";
+            ctx->throt.throtall = ctx->ground.idle.thrott_array;
             break;
 
         case ACF_TYP_A320_QP:
@@ -1388,6 +1389,7 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.conn.cc.name = "airbus_qpac/ap1_push";
             if (ctx->info->ac_type == ACF_TYP_A350_FF)
             {
+                ctx->throt.throtall = ctx->ground.idle.thrott_array;
                 ctx->bking.rc_brk.use_pkb = 0;
             }
             break;
@@ -3304,7 +3306,20 @@ static inline int custom_throttle_all(XPLMDataRef throttle, int acf_type, float 
     }
     if (next < 0.0f) next = 0.0f;
     if (next > 1.0f) next = 1.0f;
-    XPLMSetDataf(throttle, next);
+    switch (acf_type)
+    {
+        case ACF_TYP_A319_TL:
+        case ACF_TYP_A321_TL:
+        case ACF_TYP_A350_FF:
+        {
+            float l[2]; l[0] = l[1] = next;
+            XPLMSetDatavf(throttle, l, 0, 2);
+            break;
+        }
+        default:
+            XPLMSetDataf(throttle, next);
+            break;
+    }
     return 0;
 }
 
@@ -3315,12 +3330,27 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         refcon_thrust *t = inRefcon;
         if (t->throtall)
         {
-            float curr = XPLMGetDataf(t->throtall);
-            if (curr < 0.251f) // increased precision when closer to idle
+            float avrg_throttle;
+            switch (t->acf_type)
             {
-                return custom_throttle_all(t->throtall, t->acf_type, curr, 0.025f, 0);
+                case ACF_TYP_A319_TL:
+                case ACF_TYP_A321_TL:
+                case ACF_TYP_A350_FF:
+                {
+                    float l[2];
+                    XPLMGetDatavf(t->throtall, l, 0, 2);
+                    avrg_throttle = ((l[0] + l[1]) / 2.0f);
+                    break;
+                }
+                default:
+                    avrg_throttle = XPLMGetDataf(t->throtall);
+                    break;
             }
-            return custom_throttle_all(t->throtall, t->acf_type, curr, 0.05f, 0);
+            if (avrg_throttle < 0.251f) // increased precision when closer to idle
+            {
+                return custom_throttle_all(t->throtall, t->acf_type, avrg_throttle, 0.025f, 0);
+            }
+            return custom_throttle_all(t->throtall, t->acf_type, avrg_throttle, 0.05f, 0);
         }
         XPLMCommandOnce(t->thrdn);
         return 0;
@@ -3335,12 +3365,27 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         refcon_thrust *t = inRefcon;
         if (t->throtall)
         {
-            float curr = XPLMGetDataf(t->throtall);
-            if (curr < 0.249f) // increased precision when closer to idle
+            float avrg_throttle;
+            switch (t->acf_type)
             {
-                return custom_throttle_all(t->throtall, t->acf_type, curr, 0.025f, 1);
+                case ACF_TYP_A319_TL:
+                case ACF_TYP_A321_TL:
+                case ACF_TYP_A350_FF:
+                {
+                    float l[2];
+                    XPLMGetDatavf(t->throtall, l, 0, 2);
+                    avrg_throttle = ((l[0] + l[1]) / 2.0f);
+                    break;
+                }
+                default:
+                    avrg_throttle = XPLMGetDataf(t->throtall);
+                    break;
             }
-            return custom_throttle_all(t->throtall, t->acf_type, curr, 0.05f, 1);
+            if (avrg_throttle < 0.249f) // increased precision when closer to idle
+            {
+                return custom_throttle_all(t->throtall, t->acf_type, avrg_throttle, 0.025f, 1);
+            }
+            return custom_throttle_all(t->throtall, t->acf_type, avrg_throttle, 0.05f, 1);
         }
         XPLMCommandOnce(t->thrup);
         return 0;
@@ -3355,7 +3400,23 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         refcon_thrust *t = inRefcon;
         if (t->throtall)
         {
-            return custom_throttle_all(t->throtall, t->acf_type, XPLMGetDataf(t->throtall), 0.125f, 1);
+            float avrg_throttle;
+            switch (t->acf_type)
+            {
+                case ACF_TYP_A319_TL:
+                case ACF_TYP_A321_TL:
+                case ACF_TYP_A350_FF:
+                {
+                    float l[2];
+                    XPLMGetDatavf(t->throtall, l, 0, 2);
+                    avrg_throttle = ((l[0] + l[1]) / 2.0f);
+                    break;
+                }
+                default:
+                    avrg_throttle = XPLMGetDataf(t->throtall);
+                    break;
+            }
+            return custom_throttle_all(t->throtall, t->acf_type, avrg_throttle, 0.125f, 1);
         }
         switch (t->acf_type)
         {
