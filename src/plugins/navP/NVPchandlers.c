@@ -3231,6 +3231,85 @@ static int chandler_rpmdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 }
 
 #define T_ZERO (.0001f)
+static inline int custom_detents_cl30(XPLMDataRef throttle, float curr, int up)
+{
+    if (up)
+    {
+        if (curr > 0.900f) // TO -> APR
+        {
+            XPLMSetDataf(throttle, 1.0f);
+            return 1;
+        }
+        if (curr > 0.850f) // CLB -> TO
+        {
+            XPLMSetDataf(throttle, 2.8f/3.0f);
+            return 1;
+        }
+        if (curr > 0.825f) // CRZ -> CLB
+        {
+            XPLMSetDataf(throttle, 2.6f/3.0f);
+            return 1;
+        }
+        if (curr > 0.775f) // -> CRZ
+        {
+            XPLMSetDataf(throttle, 2.5f/3.0f);
+            return 1;
+        }
+        return 0;
+    }
+    if (curr > 0.950f) // APR -> TO
+    {
+        XPLMSetDataf(throttle, 2.8f/3.0f);
+        return 1;
+    }
+    if (curr > 0.900f) // TO -> CLB
+    {
+        XPLMSetDataf(throttle, 2.6f/3.0f);
+        return 1;
+    }
+    if (curr > 0.850f) // CLB -> CRZ
+    {
+        XPLMSetDataf(throttle, 2.4f/3.0f);
+        return 1;
+    }
+    return 0;
+}
+
+static inline int custom_dn_all(XPLMDataRef throttle, float curr, float step)
+{
+    float next = roundf(curr * (1.0f / step)) * step;
+    if ((0.00f - T_ZERO) < (next - curr))
+    {
+        next -= step;
+    }
+    if (next < 0.0f) next = 0.0f;
+    if (next > 1.0f) next = 1.0f;
+    XPLMSetDataf(throttle, next);
+    return 0;
+}
+
+static inline int custom_up_all(XPLMDataRef throttle, float curr, float step)
+{
+    float next = roundf(curr * (1.0f / step)) * step;
+    if ((0.00f + T_ZERO) > (next - curr))
+    {
+        next += step;
+    }
+    if (next < 0.0f) next = 0.0f;
+    if (next > 1.0f) next = 1.0f;
+    XPLMSetDataf(throttle, next);
+    return 0;
+}
+
+static inline int custom_throttle_all(XPLMDataRef throttle, int acf_type, float curr, float step, int up)
+{
+    if (acf_type == ACF_TYP_CL30_DD && custom_detents_cl30(throttle, curr, up))
+    {
+        return 0;
+    }
+    return up ? custom_up_all(throttle, curr, step) : custom_dn_all(throttle, curr, step);
+}
+
 static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandEnd)
@@ -3238,47 +3317,12 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         refcon_thrust *t = inRefcon;
         if (t->throtall)
         {
-            float next, curr = XPLMGetDataf(t->throtall), fact = 20.0f, step = 0.05f;
-            if (0.0f >= curr)
+            float curr = XPLMGetDataf(t->throtall);
+            if (curr > 0.251f) // increased precision when closer to idle
             {
-                XPLMSetDataf(t->throtall, 0.0f);
-                return 0;
+                return custom_throttle_all(t->throtall, t->acf_type, curr, 0.025f, 0);
             }
-            else
-            {
-                if (curr < 0.251f) // increased precision when closer to idle
-                {
-                    fact = 40.00f;
-                    step = 0.025f;
-                }
-                next = roundf(curr * fact) * step;
-            }
-            if (t->acf_type == ACF_TYP_CL30_DD) // custom detents
-            {
-                if (curr > 0.950f) // APR -> TO
-                {
-                    XPLMSetDataf(t->throtall, 2.8f/3.0f);
-                    return 0;
-                }
-                if (curr > 0.900f) // TO -> CLB
-                {
-                    XPLMSetDataf(t->throtall, 2.6f/3.0f);
-                    return 0;
-                }
-                if (curr > 0.850f) // CLB -> CRZ
-                {
-                    XPLMSetDataf(t->throtall, 2.4f/3.0f);
-                    return 0;
-                }
-            }
-            if ((0.00f - T_ZERO) < (next - curr))
-            {
-                next -= step;
-            }
-            if (next < 0.0f) next = 0.0f;
-            if (next > 1.0f) next = 1.0f;
-            XPLMSetDataf(t->throtall, next);
-            return 0;
+            return custom_throttle_all(t->throtall, t->acf_type, curr, 0.05f, 0);
         }
         XPLMCommandOnce(t->thrdn);
         return 0;
@@ -3293,52 +3337,12 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         refcon_thrust *t = inRefcon;
         if (t->throtall)
         {
-            float next, curr = XPLMGetDataf(t->throtall), fact = 20.0f, step = 0.05f;
-            if (1.0f <= curr)
+            float curr = XPLMGetDataf(t->throtall);
+            if (curr < 0.249f) // increased precision when closer to idle
             {
-                XPLMSetDataf(t->throtall, 1.0f);
-                return 0;
+                return custom_throttle_all(t->throtall, t->acf_type, curr, 0.025f, 1);
             }
-            else
-            {
-                if (curr < 0.249f) // increased precision when closer to idle
-                {
-                    fact = 40.00f;
-                    step = 0.025f;
-                }
-                next = roundf(curr * fact) * step;
-            }
-            if (t->acf_type == ACF_TYP_CL30_DD) // custom detents
-            {
-                if (curr > 0.900f) // TO -> APR
-                {
-                    XPLMSetDataf(t->throtall, 1.0f);
-                    return 0;
-                }
-                if (curr > 0.850f) // CLB -> TO
-                {
-                    XPLMSetDataf(t->throtall, 2.8f/3.0f);
-                    return 0;
-                }
-                if (curr > 0.825f) // CRZ -> CLB
-                {
-                    XPLMSetDataf(t->throtall, 2.6f/3.0f);
-                    return 0;
-                }
-                if (curr > 0.775f) // -> CRZ
-                {
-                    XPLMSetDataf(t->throtall, 2.5f/3.0f);
-                    return 0;
-                }
-            }
-            if ((0.00f + T_ZERO) > (next - curr))
-            {
-                next += step;
-            }
-            if (next < 0.0f) next = 0.0f;
-            if (next > 1.0f) next = 1.0f;
-            XPLMSetDataf(t->throtall, next);
-            return 0;
+            return custom_throttle_all(t->throtall, t->acf_type, curr, 0.05f, 1);
         }
         XPLMCommandOnce(t->thrup);
         return 0;
