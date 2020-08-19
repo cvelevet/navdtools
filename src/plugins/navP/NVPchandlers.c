@@ -3281,39 +3281,31 @@ static inline int custom_detents_cl30(XPLMDataRef throttle, float curr, int up)
     return 0;
 }
 
-static inline int custom_dn_all(XPLMDataRef throttle, float curr, float step)
-{
-    float next = roundf(curr * (1.0f / step)) * step;
-    if ((0.00f - T_ZERO) < (next - curr))
-    {
-        next -= step;
-    }
-    if (next < 0.0f) next = 0.0f;
-    if (next > 1.0f) next = 1.0f;
-    XPLMSetDataf(throttle, next);
-    return 0;
-}
-
-static inline int custom_up_all(XPLMDataRef throttle, float curr, float step)
-{
-    float next = roundf(curr * (1.0f / step)) * step;
-    if ((0.00f + T_ZERO) > (next - curr))
-    {
-        next += step;
-    }
-    if (next < 0.0f) next = 0.0f;
-    if (next > 1.0f) next = 1.0f;
-    XPLMSetDataf(throttle, next);
-    return 0;
-}
-
 static inline int custom_throttle_all(XPLMDataRef throttle, int acf_type, float curr, float step, int up)
 {
     if (acf_type == ACF_TYP_CL30_DD && custom_detents_cl30(throttle, curr, up))
     {
         return 0;
     }
-    return up ? custom_up_all(throttle, curr, step) : custom_dn_all(throttle, curr, step);
+    float next = roundf(curr * (1.0f / step)) * step;
+    if (up)
+    {
+        if ((0.00f + T_ZERO) > (next - curr))
+        {
+            next += step;
+        }
+    }
+    else
+    {
+        if ((0.00f - T_ZERO) < (next - curr))
+        {
+            next -= step;
+        }
+    }
+    if (next < 0.0f) next = 0.0f;
+    if (next > 1.0f) next = 1.0f;
+    XPLMSetDataf(throttle, next);
+    return 0;
 }
 
 static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
