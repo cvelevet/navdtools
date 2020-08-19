@@ -91,6 +91,7 @@ typedef struct
     XPLMCommandRef thrdn;
 
     chandler_callback up;
+    chandler_callback ul;
     XPLMCommandRef thrup;
 
     XPLMDataRef throtall;
@@ -616,6 +617,7 @@ static int chandler_mixdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_rpmdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_sview(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_qlprv(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -851,12 +853,14 @@ void* nvp_chandlers_init(void)
     ctx->throt.  mixratio = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/mixture_ratio_all");
     ctx->throt.dn.command = XPLMCreateCommand("navP/thrust/dn_once", "throttle down once");
     ctx->throt.up.command = XPLMCreateCommand("navP/thrust/up_once", "throttle up once");
+    ctx->throt.ul.command = XPLMCreateCommand("navP/thrust/up_lots", "throttle up 12pc");
     ctx->throt.mi.command = XPLMFindCommand  ("sim/engines/mixture_down");
     ctx->throt.rp.command = XPLMFindCommand  ("sim/engines/prop_down");
     ctx->throt.     thrdn = XPLMFindCommand  ("sim/engines/throttle_down");
     ctx->throt.     thrup = XPLMFindCommand  ("sim/engines/throttle_up");
     if (!ctx->throt.dn.command || !ctx->throt.thrdn || !ctx->throt.mi.command || !ctx->throt.mixratio ||
-        !ctx->throt.up.command || !ctx->throt.thrup || !ctx->throt.rp.command || !ctx->throt.rpmratio)
+        !ctx->throt.up.command || !ctx->throt.thrup || !ctx->throt.rp.command || !ctx->throt.rpmratio ||
+        !ctx->throt.ul.command)
     {
         goto fail;
     }
@@ -864,6 +868,7 @@ void* nvp_chandlers_init(void)
     {
         REGISTER_CHANDLER(ctx->throt.dn, chandler_thrdn, 0, &ctx->throt);
         REGISTER_CHANDLER(ctx->throt.up, chandler_thrup, 0, &ctx->throt);
+        REGISTER_CHANDLER(ctx->throt.ul, chandler_thrul, 0, &ctx->throt);
     }
 
     /* Custom commands: quick look views */
@@ -1106,6 +1111,7 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->throt.       rp);
     UNREGSTR_CHANDLER(ctx->throt.       dn);
     UNREGSTR_CHANDLER(ctx->throt.       up);
+    UNREGSTR_CHANDLER(ctx->throt.       ul);
     UNREGSTR_CHANDLER(ctx->asrt.   ap_conn);
     UNREGSTR_CHANDLER(ctx->asrt.   ap_disc);
     UNREGSTR_CHANDLER(ctx->asrt.   at_disc);
@@ -3344,6 +3350,24 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             return custom_throttle_all(t->throtall, t->acf_type, curr, 0.05f, 1);
         }
+        XPLMCommandOnce(t->thrup);
+        return 0;
+    }
+    return 0;
+}
+
+static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        refcon_thrust *t = inRefcon;
+        if (t->throtall)
+        {
+            return custom_throttle_all(t->throtall, t->acf_type, XPLMGetDataf(t->throtall), 0.125f, 1);
+        }
+        // 3x e.g. ToLiSs 0.120f
+        XPLMCommandOnce(t->thrup);
+        XPLMCommandOnce(t->thrup);
         XPLMCommandOnce(t->thrup);
         return 0;
     }
