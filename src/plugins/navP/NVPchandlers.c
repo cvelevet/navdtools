@@ -3318,7 +3318,7 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (t->throtall)
         {
             float curr = XPLMGetDataf(t->throtall);
-            if (curr > 0.251f) // increased precision when closer to idle
+            if (curr < 0.251f) // increased precision when closer to idle
             {
                 return custom_throttle_all(t->throtall, t->acf_type, curr, 0.025f, 0);
             }
