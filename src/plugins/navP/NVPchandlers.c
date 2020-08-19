@@ -3365,10 +3365,22 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             return custom_throttle_all(t->throtall, t->acf_type, XPLMGetDataf(t->throtall), 0.125f, 1);
         }
-        // 3x e.g. ToLiSs 0.120f
-        XPLMCommandOnce(t->thrup);
-        XPLMCommandOnce(t->thrup);
-        XPLMCommandOnce(t->thrup);
+        switch (t->acf_type)
+        {
+            case ACF_TYP_A319_TL:
+            case ACF_TYP_A321_TL:
+            case ACF_TYP_A350_FF:
+                XPLMCommandOnce(t->thrup);
+                XPLMCommandOnce(t->thrup);
+                return 0;
+
+            case ACF_TYP_A320_FF:
+            default:
+                XPLMCommandOnce(t->thrup);
+                XPLMCommandOnce(t->thrup);
+                XPLMCommandOnce(t->thrup);
+                return 0;
+        }
         return 0;
     }
     return 0;
