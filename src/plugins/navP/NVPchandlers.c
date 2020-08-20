@@ -1377,7 +1377,7 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.disc.cc.name = "toliss_airbus/ap_disc_left_stick";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             ctx->otto.conn.cc.name = "toliss_airbus/ap1_push";
-            ctx->throt.throtall = ctx->ground.idle.thrott_array;
+            ctx->throt.throtall = XPLMFindDataRef("AirbusFBW/throttle_input");
             break;
 
         case ACF_TYP_A320_QP:
@@ -1389,7 +1389,7 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.conn.cc.name = "airbus_qpac/ap1_push";
             if (ctx->info->ac_type == ACF_TYP_A350_FF)
             {
-                ctx->throt.throtall = ctx->ground.idle.thrott_array;
+                ctx->throt.throtall = XPLMFindDataRef("AirbusFBW/throttle_input");;
                 ctx->bking.rc_brk.use_pkb = 0;
             }
             break;
@@ -3238,70 +3238,190 @@ static int chandler_rpmdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
-#define T_ZERO (.0001f)
-static inline int custom_detents_cl30(XPLMDataRef throttle, float curr, int up)
+#define T_ZERO        (.0001f)
+#define T_CL30_APR      (1.0f) // 1.000
+#define T_CL30_TOF (2.8f/3.0f) // 0.933
+#define T_CL30_CLB (2.6f/3.0f) // 0.866
+#define T_CL30_CRZ (2.5f/3.0f) // 0.833
+#define T_CL30_MAN      (0.8f) // 0.800
+static inline int custom_detents_cl30(XPLMDataRef throttle, float curr, float step)
 {
-    if (up)
+    if (step > 0.0f)
     {
-        if (curr > 0.900f) // TO -> APR
+        if (curr > (T_CL30_TOF - T_ZERO)) // TO -> APR
         {
-            XPLMSetDataf(throttle, 1.0f);
+            XPLMSetDataf(throttle, T_CL30_APR);
             return 1;
         }
-        if (curr > 0.850f) // CLB -> TO
+        if (curr > (T_CL30_CLB - T_ZERO)) // CLB -> TO
         {
-            XPLMSetDataf(throttle, 2.8f/3.0f);
+            XPLMSetDataf(throttle, T_CL30_TOF);
             return 1;
         }
-        if (curr > 0.825f) // CRZ -> CLB
+        if (curr > (T_CL30_CRZ - T_ZERO)) // CRZ -> CLB
         {
-            XPLMSetDataf(throttle, 2.6f/3.0f);
+            XPLMSetDataf(throttle, T_CL30_CLB);
             return 1;
         }
-        if (curr > 0.775f) // -> CRZ
+        float next = step * roundf(curr * (1.0f / step));
+        if (((next - curr) < (0.0f + T_ZERO)))
         {
-            XPLMSetDataf(throttle, 2.5f/3.0f);
+            ((next += step));
+        }
+        if (((next > (T_CL30_MAN + T_ZERO)))) // -> CRZ
+        {
+            XPLMSetDataf(throttle, T_CL30_CRZ);
             return 1;
         }
         return 0;
     }
-    if (curr > 0.950f) // APR -> TO
+    if (step < 0.0f)
     {
-        XPLMSetDataf(throttle, 2.8f/3.0f);
-        return 1;
+        if (curr > (T_CL30_TOF + T_ZERO)) // APR -> TO
+        {
+            XPLMSetDataf(throttle, T_CL30_TOF);
+            return 1;
+        }
+        if (curr > (T_CL30_CLB + T_ZERO)) // TO -> CLB
+        {
+            XPLMSetDataf(throttle, T_CL30_CLB);
+            return 1;
+        }
+        if (curr > (T_CL30_CRZ + T_ZERO)) // CLB -> CRZ
+        {
+            XPLMSetDataf(throttle, T_CL30_CRZ);
+            return 1;
+        }
+        if (curr > (T_CL30_MAN + T_ZERO)) // CRZ ->
+        {
+            XPLMSetDataf(throttle, T_CL30_MAN);
+            return 1;
+        }
+        return 0;
     }
-    if (curr > 0.900f) // TO -> CLB
+    return 0;
+}
+#undef T_CL30_APR
+#undef T_CL30_TOF
+#undef T_CL30_CLB
+#undef T_CL30_CRZ
+#undef T_CL30_MAN
+
+static inline int toliss_throttle_set(XPLMDataRef throttle, int acf_type, float next)
+{
+    switch (acf_type)
     {
-        XPLMSetDataf(throttle, 2.6f/3.0f);
-        return 1;
+        case ACF_TYP_A319_TL:
+        case ACF_TYP_A321_TL:
+            XPLMSetDatavf(throttle, &next, 4, 1);
+            break;
+
+        case ACF_TYP_A350_FF:
+        default:
+        {
+            float l[2]; l[0] = l[1] = next;
+            XPLMSetDatavf(throttle, l, 0, 2);
+            break;
+        }
     }
-    if (curr > 0.850f) // CLB -> CRZ
+    return 0;
+}
+
+static inline int custom_detents_toli(XPLMDataRef throttle, int acf_type, float curr, float step)
+{
+    /*
+     * ToLiSS "detents" vary based on whether thrust is going up or down :-(
+     *
+     * FLEX: 0.875 (up, A32-)
+     * FLEX: 0.870 (dn, A32-)
+     * FLEX: 0.870 (up, A35+)
+     * FLEX: 0.865 (dn, A35+)
+     *
+     * CLB: 00.695 (up, both)
+     * CLB: 00.690 (dn, both)
+     */
+    if (step > 0.0f)
     {
-        XPLMSetDataf(throttle, 2.4f/3.0f);
-        return 1;
+        if (curr > (.865f - T_ZERO)) // FLEX (0.865..0.875) -> TOGA
+        {
+            toliss_throttle_set(throttle, acf_type, 1.0f);
+            return 1;
+        }
+        if (curr > (0.69f - T_ZERO)) // CLMB (0.690..0.695) -> FLEX
+        {
+            toliss_throttle_set(throttle, acf_type, .875f);
+            return 1;
+        }
+        float next = step * roundf(curr * (1.0f / step));
+        if (((next - curr) < (0.0f + T_ZERO)))
+        {
+            ((next += step));
+        }
+        if (((next > (0.65f + T_ZERO)))) // -> CLMB
+        {
+            toliss_throttle_set(throttle, acf_type, .695f);
+            return 1;
+        }
+        return 0;
+    }
+    if (step < 0.0f)
+    {
+        if (curr > (.875f + T_ZERO)) // TOGA -> FLEX (0.875..0.865)
+        {
+            toliss_throttle_set(throttle, acf_type, .865f);
+            return 1;
+        }
+        if (curr > (.695f + T_ZERO)) // FLEX -> CLMB (0.695..0.690)
+        {
+            toliss_throttle_set(throttle, acf_type, 0.69f);
+            return 1;
+        }
+        if (curr > (0.65f + T_ZERO)) // CLMB ->
+        {
+            toliss_throttle_set(throttle, acf_type, 0.65f);
+            return 1;
+        }
+        return 0;
     }
     return 0;
 }
 
 static inline int custom_throttle_all(XPLMDataRef throttle, int acf_type, float curr, float step, int up)
 {
-    if (acf_type == ACF_TYP_CL30_DD && custom_detents_cl30(throttle, curr, up))
+    switch (acf_type)
     {
-        return 0;
+        case ACF_TYP_CL30_DD:
+            if (custom_detents_cl30(throttle, curr, (up ? step : -step)))
+            {
+                return 0;
+            }
+            break;
+
+        case ACF_TYP_A319_TL:
+        case ACF_TYP_A321_TL:
+        case ACF_TYP_A350_FF:
+            if (custom_detents_toli(throttle, acf_type, curr, (up ? step : -step)))
+            {
+                return 0;
+            }
+            break;
+
+        default:
+            break;
     }
-    float next = roundf(curr * (1.0f / step)) * step;
+    float next = step * roundf(curr * (1.0f / step));
     if (up)
     {
-        if ((0.00f + T_ZERO) > (next - curr))
+        if ((next - curr) < (0.00f + T_ZERO))
         {
-            next += step;
+            (next += step);
         }
     }
     else
     {
-        if ((0.00f - T_ZERO) < (next - curr))
+        if ((next - curr) > (0.00f - T_ZERO))
         {
-            next -= step;
+            (next -= step);
         }
     }
     if (next < 0.0f) next = 0.0f;
@@ -3311,15 +3431,12 @@ static inline int custom_throttle_all(XPLMDataRef throttle, int acf_type, float 
         case ACF_TYP_A319_TL:
         case ACF_TYP_A321_TL:
         case ACF_TYP_A350_FF:
-        {
-            float l[2]; l[0] = l[1] = next;
-            XPLMSetDatavf(throttle, l, 0, 2);
-            break;
-        }
+            return toliss_throttle_set(throttle, acf_type, next);
+
         default:
-            XPLMSetDataf(throttle, next);
             break;
     }
+    XPLMSetDataf(throttle, next);
     return 0;
 }
 
@@ -3420,19 +3537,13 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         switch (t->acf_type)
         {
-            case ACF_TYP_A319_TL:
-            case ACF_TYP_A321_TL:
-            case ACF_TYP_A350_FF:
-                XPLMCommandOnce(t->thrup);
-                XPLMCommandOnce(t->thrup);
-                return 0;
-
             case ACF_TYP_A320_FF:
-            default:
                 XPLMCommandOnce(t->thrup);
                 XPLMCommandOnce(t->thrup);
                 XPLMCommandOnce(t->thrup);
                 return 0;
+            default:
+                break;
         }
         return 0;
     }
