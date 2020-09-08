@@ -310,14 +310,15 @@ acf_info_context* acf_type_info_update()
             global_info->assert.initialized = 0;
             break;
         }
-        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(         "QPAC.airbus.fbw") ||
-            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(    "QPAC.A380.airbus.fbw") ||
-            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(   "ToLiSs.Airbus.systems") ||
-            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(     "ToLiss.A319.systems") ||
-            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("XP10.ToLiss.A319.systems") ||
-            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("XP11.ToLiss.A319.systems") ||
-            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("XP10.ToLiss.A321.systems") ||
-            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("XP11.ToLiss.A321.systems"))
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(           "QPAC.airbus.fbw") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(      "QPAC.A380.airbus.fbw") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(     "ToLiSs.Airbus.systems") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("XP11.ToLiss.Airbus.systems") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(       "ToLiss.A319.systems") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(  "XP10.ToLiss.A319.systems") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(  "XP11.ToLiss.A319.systems") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(  "XP10.ToLiss.A321.systems") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(  "XP11.ToLiss.A321.systems"))
         {
             if (!STRN_CASECMP_AUTO(global_info->descrp, "A319") &&
                 !STRN_CASECMP_AUTO(global_info->icaoid, "A319"))
@@ -341,8 +342,9 @@ acf_info_context* acf_type_info_update()
                 global_info->ac_type = ACF_TYP_A330_RW;
                 break;
             }
-            if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("FFSTSmousehandler") ||   // 1.3.x or earlier
-                XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("ru.ffsts.mousehandler")) // 1.4.x or later
+            if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(    "FFSTSmousehandler") || // 1.3.x or earlier
+                XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("ru.ffsts.mousehandler") || // 1.4.x or later
+                XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("ru.stsff.mousehandler"))   // 1.6.x or later
             {
                 global_info->ac_type = ACF_TYP_A350_FF;
                 break;
