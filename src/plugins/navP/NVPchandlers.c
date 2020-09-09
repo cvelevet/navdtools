@@ -1380,18 +1380,20 @@ int nvp_chandlers_update(void *inContext)
             ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
             break;
 
+        case ACF_TYP_A350_FF:
+//          ctx->otto.disc.cc.name = "airbus_qpac/ap_disc_left_stick"; // only exists in version 1.6 or later
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+            ctx->otto.conn.cc.name = "airbus_qpac/ap1_push";
+            ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");;
+            break;
+
         case ACF_TYP_A320_QP:
         case ACF_TYP_A330_RW:
-        case ACF_TYP_A350_FF:
         case ACF_TYP_A380_PH:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             ctx->otto.conn.cc.name = "airbus_qpac/ap1_push";
-            if (ctx->info->ac_type == ACF_TYP_A350_FF)
-            {
-                ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");;
-                ctx->bking.rc_brk.use_pkb = 0;
-            }
             break;
 
         case ACF_TYP_B737_EA:
@@ -5232,6 +5234,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,      1, "1-sim/options/Time");                     // preferred default settings
             _DO(1, XPLMSetDatai,      0, "1-sim/options/XFMC");                     // preferred default settings
             _DO(1, XPLMSetDatai,      0, "1-sim/options/side");                     // preferred default settings
+            _DO(0, XPLMSetDatai,      1, "AirbusFBW/PopupType");                    // default settings (v1.6.x+)
             _DO(1, XPLMSetDataf,   0.0f, "1-sim/fms/perf/toCG");                    // 1.4.8: reset perf settings
             _DO(1, XPLMSetDatai,      0, "1-sim/fms/init/crzFL");                   // 1.4.8: reset perf settings
             _DO(1, XPLMSetDatai,      2, "1-sim/fms/perf/toThrust");                // 1.4.8: reset perf settings
