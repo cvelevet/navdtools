@@ -1156,10 +1156,6 @@ static void wb_handler(menu_context *ctx)
         {
             (ctx->data.refuel_dialg.fuel_rate_kg_s = LOAD_MINIMUM_RATE);
         }
-        if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A320_QP)
-        {
-            (ctx->data.refuel_dialg.fuel_rate_kg_s = 80.0f); // QPAC plugin resets fuel if it varies too little
-        }
     }
     switch (ctx->data.refuel_dialg.ic->ac_type)
     {

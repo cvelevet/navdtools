@@ -332,16 +332,6 @@ acf_info_context* acf_type_info_update()
                 global_info->ac_type = ACF_TYP_A321_TL;
                 break;
             }
-            if (!STRN_CASECMP_AUTO(global_info->author, "QualityPark"))
-            {
-                global_info->ac_type = ACF_TYP_A320_QP;
-                break;
-            }
-            if (!STRN_CASECMP_AUTO(global_info->descrp, "A330-300"))
-            {
-                global_info->ac_type = ACF_TYP_A330_RW;
-                break;
-            }
             if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(    "FFSTSmousehandler") || // 1.3.x or earlier
                 XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("ru.ffsts.mousehandler") || // 1.4.x or later
                 XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("ru.stsff.mousehandler"))   // 1.6.x or later
@@ -349,14 +339,9 @@ acf_info_context* acf_type_info_update()
                 global_info->ac_type = ACF_TYP_A350_FF;
                 break;
             }
-            if (!STRN_CASECMP_AUTO(global_info->descrp, "Airbus A380"))
-            {
-                global_info->ac_type = ACF_TYP_A380_PH;
-                break;
-            }
             ndt_log("acf_type [warning]: no aircraft type match despite plugin (AirbusFBW)\n");
-            global_info->ac_type = ACF_TYP_A319_TL;
-            break; // still QPAC-based variant
+            global_info->ac_type = ACF_TYP_GENERIC;
+            break;
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("bs.x737.plugin"))
         {
@@ -422,35 +407,6 @@ acf_info_context* acf_type_info_update()
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim.sasl"))
         {
-            if (!STRN_CASECMP_AUTO(global_info->author, "JARDESIGN") &&
-                !STRN_CASECMP_AUTO(global_info->descrp, "Airbus A320"))
-            {
-                global_info->ac_type = ACF_TYP_A320_JD;
-                break;
-            }
-            if (!STRN_CASECMP_AUTO(global_info->author, "JARDESIGN") &&
-                !STRN_CASECMP_AUTO(global_info->descrp, "Airbus A330"))
-            {
-                global_info->ac_type = ACF_TYP_A330_JD;
-                break;
-            }
-            if (!STRN_CASECMP_AUTO(global_info->author, "FlyJsim") &&
-                !strcasecmp       (global_info->icaoid, "B732"))
-            {
-                global_info->ac_type = ACF_TYP_B737_FJ;
-                break;
-            }
-            if (!STRN_CASECMP_AUTO(global_info->descrp, "Dash 8 Q400"))
-            {
-                global_info->ac_type = ACF_TYP_DH8D_FJ;
-                break;
-            }
-            if (!STRN_CASECMP_AUTO(global_info->author, "Daniel Klaue") &&
-                !STRN_CASECMP_AUTO(global_info->descrp, "ERJ-140"))
-            {
-                global_info->ac_type = ACF_TYP_ERJ1_4D;
-                break;
-            }
             if (!STRN_CASECMP_AUTO(global_info->author, "Marko Mamula"))
             {
                 if (!STRN_CASECMP_AUTO(global_info->descrp, "Embraer E175") ||
@@ -459,11 +415,6 @@ acf_info_context* acf_type_info_update()
                     global_info->ac_type = ACF_TYP_EMBE_XC;
                     break;
                 }
-            }
-            if (!STRN_CASECMP_AUTO(global_info->descrp, "Sukhoy SuperJet"))
-            {
-                global_info->ac_type = ACF_TYP_SSJ1_RZ;
-                break;
             }
             if (!STRN_CASECMP_AUTO(global_info->author, "Rob Wilson") &&
                 !STRN_CASECMP_AUTO(global_info->descrp, "Hawker 4000"))
@@ -498,17 +449,11 @@ acf_info_context* acf_type_info_update()
     char new_icao[sizeof(global_info->icaoid)] = "";
     switch (global_info->ac_type)
     {
-        case ACF_TYP_A330_RW:
-            sprintf(new_icao, "%.4s", "A333");
-            break;
         case ACF_TYP_A350_FF:
             sprintf(new_icao, "%.4s", "A359");
             break;
         case ACF_TYP_HA4T_RW:
             sprintf(new_icao, "%.4s", "HA4T");
-            break;
-        case ACF_TYP_SSJ1_RZ:
-            sprintf(new_icao, "%.4s", "SU95");
             break;
         case ACF_TYP_GENERIC:
             if (!STRN_CASECMP_AUTO(global_info->descrp, "A-10 Warthog"))
