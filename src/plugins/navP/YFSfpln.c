@@ -522,10 +522,6 @@ void yfs_fpln_pageupdt(yfms_context *yfms)
         {
             if (set > 0 && yfms->data.fpln.xplm_info[i].legindex > s)
             {
-                if (yfms->xpl.atyp != YFS_ATYP_Q380) // A380 legs may not always be synced
-                {
-                    XPLMSetDisplayedFMSEntry(set);
-                }
                 break;
             }
             if (yfms->data.fpln.xplm_info[i].legindex >= s)
@@ -712,7 +708,7 @@ void yfs_fpln_fplnsync(yfms_context *yfms)
     if (yfms->data.init.ialized)
     {
         // our XPLMNavigation sync will break Peter's direct-tos (in the A380-800)
-        if (yfms->xpl.atyp != YFS_ATYP_Q380 || yfms->data.phase <= FMGS_PHASE_PRE)
+        if (yfms->data.phase <= FMGS_PHASE_PRE)
         {
             if (yfms->data.fpln.xplm_last != XPLMCountFMSEntries() - 1)
             {

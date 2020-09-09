@@ -344,7 +344,7 @@ void yfs_rad1_pageopen(yfms_context *yfms)
     {
         return;
     }
-    if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
+    if (yfms->xpl.atyp == YFS_ATYP_TOLI)
     {
         XPLMCommandOnce(yfms->xpl.qpac.VHF1Capt);
         XPLMCommandOnce(yfms->xpl.qpac.VHF2Co);
@@ -486,14 +486,6 @@ static void get_altimeter(yfms_context *yfms, int out[3])
     {
         out[2] = XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt    ) ? BARO_STD : BARO_SET; return;
     }
-    if (yfms->xpl.atyp == YFS_ATYP_QPAC) // aircraft has dedicated STD mode
-    {
-        out[2] = XPLMGetDatai(yfms->xpl.qpac.BaroStdCapt    ) ? BARO_STD : BARO_SET; return;
-    }
-    if (yfms->xpl.atyp == YFS_ATYP_Q380) // aircraft has dedicated STD mode
-    {
-        out[2] = XPLMGetDatai(yfms->xpl.q380.BaroStdCapt    ) ? BARO_STD : BARO_SET; return;
-    }
     if (yfms->xpl.atyp == YFS_ATYP_Q350) // aircraft has dedicated STD mode
     {
         out[2] = XPLMGetDatai(yfms->xpl.q350.pressLeftButton) ? BARO_STD : BARO_SET; return;
@@ -560,15 +552,10 @@ static void set_altimeter(yfms_context *yfms, int in[2])
                             hundred_inhg = (float)in[0];
                             break;
                     }
-                    if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
+                    if (yfms->xpl.atyp == YFS_ATYP_TOLI)
                     {
                         XPLMSetDatai(yfms->xpl.qpac.BaroUnitCapt,   !!yfms->ndt.alt.unit);
                         XPLMSetDatai(yfms->xpl.qpac.BaroUnitFO,     !!yfms->ndt.alt.unit);
-                    }
-                    if (yfms->xpl.atyp == YFS_ATYP_Q380)
-                    {
-                        XPLMSetDatai(yfms->xpl.q380.BaroUnitCapt,   !!yfms->ndt.alt.unit);
-                        XPLMSetDatai(yfms->xpl.q380.BaroUnitFO,     !!yfms->ndt.alt.unit);
                     }
                     if (yfms->xpl.atyp == YFS_ATYP_Q350)
                     {
@@ -591,15 +578,10 @@ static void set_altimeter(yfms_context *yfms, int in[2])
                     lunit = !lunit; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_lunit, &lunit);
                     return          yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.baro.id_u32_runit, &lunit);
                 }
-                if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
+                if (yfms->xpl.atyp == YFS_ATYP_TOLI)
                 {
                     XPLMSetDatai(yfms->xpl.qpac.BaroUnitCapt,   !yfms->ndt.alt.unit);
                     XPLMSetDatai(yfms->xpl.qpac.BaroUnitFO,     !yfms->ndt.alt.unit);
-                }
-                if (yfms->xpl.atyp == YFS_ATYP_Q380)
-                {
-                    XPLMSetDatai(yfms->xpl.q380.BaroUnitCapt,   !yfms->ndt.alt.unit);
-                    XPLMSetDatai(yfms->xpl.q380.BaroUnitFO,     !yfms->ndt.alt.unit);
                 }
                 if (yfms->xpl.atyp == YFS_ATYP_Q350)
                 {
@@ -715,7 +697,7 @@ static void set_altimeter(yfms_context *yfms, int in[2])
         XPLMSetDataf(yfms->xpl.fb76.baroRotary_right, baro_rotary_value);
         return;
     }
-    if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
+    if (yfms->xpl.atyp == YFS_ATYP_TOLI)
     {
         if (in[0] == -1) // dedicated STD pressure mode toggle
         {
@@ -726,18 +708,6 @@ static void set_altimeter(yfms_context *yfms, int in[2])
         }
         XPLMSetDatai(yfms->xpl.qpac.BaroStdCapt, 0); // disable STD mode
         XPLMSetDatai(yfms->xpl.qpac.BaroStdFO,   0); // disable STD mode
-    }
-    if (yfms->xpl.atyp == YFS_ATYP_Q380)
-    {
-        if (in[0] == -1) // dedicated STD pressure mode toggle
-        {
-            int std = XPLMGetDatai(yfms->xpl.q380.BaroStdCapt);
-            XPLMSetDatai    (yfms->xpl.q380.BaroStdCapt, !std);
-            XPLMSetDatai    (yfms->xpl.q380.BaroStdFO,   !std);
-            return;
-        }
-        XPLMSetDatai(yfms->xpl.q380.BaroStdCapt, 0); // disable STD mode
-        XPLMSetDatai(yfms->xpl.q380.BaroStdFO,   0); // disable STD mode
     }
     if (yfms->xpl.atyp == YFS_ATYP_IXEG)
     {
@@ -777,15 +747,13 @@ static int has_transponder_mode(yfms_context *yfms, int mode)
 
         case XPDR_AUT:
             return (yfms->xpl.atyp == YFS_ATYP_ASRT ||
-                    yfms->xpl.atyp == YFS_ATYP_IXEG ||
-                    yfms->xpl.atyp == YFS_ATYP_QPAC);
+                    yfms->xpl.atyp == YFS_ATYP_IXEG);
 
         case XPDR_GND:
             return (yfms->xpl.atyp == YFS_ATYP_ASRT ||
                     yfms->xpl.atyp == YFS_ATYP_FB76 ||
                     yfms->xpl.atyp == YFS_ATYP_FB77 ||
-                    yfms->xpl.atyp == YFS_ATYP_TOLI ||
-                    yfms->xpl.atyp == YFS_ATYP_QPAC);
+                    yfms->xpl.atyp == YFS_ATYP_TOLI);
 
         default:
             break;
@@ -899,18 +867,6 @@ static int get_transponder_mode(yfms_context *yfms)
                 return XPDR_SBY;
             default:
                 return XPDR_ALT;
-        }
-    }
-    if (yfms->xpl.atyp == YFS_ATYP_QPAC)
-    {
-        switch (XPLMGetDatai(yfms->xpl.qpac.XPDRPower))
-        {
-            case 1:
-                return XPDR_AUT;
-            case 0:
-                return XPLMGetDatai(yfms->xpl.qpac.XPDRAltitude) ? XPDR_SBY : XPDR_OFF;
-            default:
-                return XPLMGetDatai(yfms->xpl.qpac.XPDRAltitude) ? XPDR_ALT : XPDR_GND;
         }
     }
     switch (XPLMGetDatai(yfms->xpl.transponder_mode))
@@ -1100,30 +1056,6 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
         XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 0);
         return;
     }
-    if (yfms->xpl.atyp == YFS_ATYP_QPAC)
-    {
-        switch (mode)
-        {
-            case XPDR_OFF:
-            case XPDR_SBY:
-                XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 0); // STBY
-                XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, mode != XPDR_OFF);
-                break;
-            case XPDR_AUT:
-                XPLMSetDatai(yfms->xpl.qpac.XPDRPower,    1); // AUTO
-                XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1); // ON
-                break;
-            case XPDR_TAO:
-            case XPDR_TAR:
-            case XPDR_GND:
-            case XPDR_ALT:
-            default:
-                XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 2); // ON
-                XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, mode != XPDR_GND);
-                break;
-        }
-        return;
-    }
     if (yfms->xpl.atyp == YFS_ATYP_FB76)
     {
         switch (mode)
@@ -1204,7 +1136,7 @@ static void set_transponder_code(yfms_context *yfms, int code)
     {
         uint32_t u32_code = code; yfms->xpl.asrt.api.ValueSet(yfms->xpl.asrt.xpdr.id_u32_code, &u32_code); return;
     }
-    if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
+    if (yfms->xpl.atyp == YFS_ATYP_TOLI)
     {
         int xpdr[4];
         xpdr[0] = (code / 1000); code = (code % 1000);
@@ -1251,7 +1183,7 @@ static void yfs_rad1_pageupdt(yfms_context *yfms)
     yfs_printf_lft(yfms, 2, 0, COLR_IDX_GREEN, "%03d.%03d", XPLMGetDatai(yfms->xpl.com1_frequency_Mhz), XPLMGetDatai(yfms->xpl.com1_frequency_khz));
     yfs_printf_rgt(yfms, 2, 0, COLR_IDX_GREEN, "%03d.%03d", XPLMGetDatai(yfms->xpl.com2_frequency_Mhz), XPLMGetDatai(yfms->xpl.com2_frequency_khz));
     /* line 4: standby frequencies (blue) */
-    if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
+    if (yfms->xpl.atyp == YFS_ATYP_TOLI)
     {
         yfs_printf_lft(yfms, 4, 0, COLR_IDX_BLUE,  "%07.3lf", ((double)yfms->xpl.qpac.com1_sby_hz_833) / 1000.);
         yfs_printf_rgt(yfms, 4, 0, COLR_IDX_BLUE,  "%07.3lf", ((double)yfms->xpl.qpac.com2_sby_hz_833) / 1000.);
@@ -1510,7 +1442,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
     {
         return; // callback not applicable to current page
     }
-    if (key[1] == 0 && (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC))
+    if (key[1] == 0 && yfms->xpl.atyp == YFS_ATYP_TOLI)
     {
         int new_activ_com_frequency_hz_833;
         switch (key[0])
@@ -1576,7 +1508,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (key[0] == 0)
         {
-            if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
+            if (yfms->xpl.atyp == YFS_ATYP_TOLI)
             {
                 yfs_spad_clear(yfms);
                 yfms->xpl.qpac.com1_sby_hz_833 = hz8;
@@ -1588,7 +1520,7 @@ static void yfs_lsk_callback_rad1(yfms_context *yfms, int key[2], intptr_t refco
         }
         if (key[0] == 1)
         {
-            if (yfms->xpl.atyp == YFS_ATYP_TOLI || yfms->xpl.atyp == YFS_ATYP_QPAC)
+            if (yfms->xpl.atyp == YFS_ATYP_TOLI)
             {
                 yfs_spad_clear(yfms);
                 yfms->xpl.qpac.com2_sby_hz_833 = hz8;

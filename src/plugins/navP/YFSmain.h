@@ -528,9 +528,7 @@ typedef struct
             YFS_ATYP_NSET =  0,
             YFS_ATYP_XPLN =  1,
             YFS_ATYP_TOLI = 31,
-            YFS_ATYP_QPAC = 32,
             YFS_ATYP_Q350 = 35,
-            YFS_ATYP_Q380 = 38,
             YFS_ATYP_IXEG = 73,
             YFS_ATYP_FB76 = 76,
             YFS_ATYP_FB77 = 77,
@@ -576,20 +574,6 @@ typedef struct
             XPLMDataRef pressRightRotary;
         }
         q350;
-        struct
-        {
-            XPLMDataRef BaroUnitCapt;
-            XPLMDataRef BaroStdCapt;
-            XPLMDataRef BaroUnitFO;
-            XPLMDataRef BaroStdFO;
-            XPLMDataRef PeterCRZ;
-            XPLMDataRef PeterFLX;
-            XPLMDataRef PeterCI;
-            XPLMDataRef PeterV1;
-            XPLMDataRef PeterV2;
-            XPLMDataRef PeterVR;
-        }
-        q380;
         struct
         {
             XPLMDataRef systemMode;

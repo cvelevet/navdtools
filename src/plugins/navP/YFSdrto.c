@@ -68,7 +68,7 @@ void yfs_drto_pageupdt(yfms_context *yfms)
     {
         yfs_main_rline(yfms, i, -1);
     }
-    if (yfms->xpl.has_custom_navigation || yfms->xpl.atyp == YFS_ATYP_Q380)
+    if (yfms->xpl.has_custom_navigation)
     {
         yfms->mwindow.screen.redraw = 1;
         /* Peter sets override_fms_advance each loop breaking our DIRTO */

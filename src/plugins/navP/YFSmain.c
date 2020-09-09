@@ -997,16 +997,6 @@ static void toggle_main_window(yfms_context *yfms)
             yfms->xpl.q350.pressLeftRotary        = XPLMFindDataRef("1-sim/pres/pressLeftRotary"                );
             yfms->xpl.q350.pressRightButton       = XPLMFindDataRef("1-sim/pres/pressRightButton"               );
             yfms->xpl.q350.pressRightRotary       = XPLMFindDataRef("1-sim/pres/pressRightRotary"               );
-            yfms->xpl.q380.BaroUnitCapt           = XPLMFindDataRef("com/petersaircraft/airbus/BaroUnitCapt"    );
-            yfms->xpl.q380.BaroStdCapt            = XPLMFindDataRef("com/petersaircraft/airbus/BaroStdCapt"     );
-            yfms->xpl.q380.BaroUnitFO             = XPLMFindDataRef("com/petersaircraft/airbus/BaroUnitFO"      );
-            yfms->xpl.q380.BaroStdFO              = XPLMFindDataRef("com/petersaircraft/airbus/BaroStdFO"       );
-            yfms->xpl.q380.PeterCRZ               = XPLMFindDataRef("com/petersaircraft/airbus/CruiseFL"        );
-            yfms->xpl.q380.PeterFLX               = XPLMFindDataRef("com/petersaircraft/airbus/FlexTemp"        );
-            yfms->xpl.q380.PeterCI                = XPLMFindDataRef("com/petersaircraft/airbus/CostIndex"       );
-            yfms->xpl.q380.PeterV1                = XPLMFindDataRef("com/petersaircraft/airbus/V1Setting"       );
-            yfms->xpl.q380.PeterV2                = XPLMFindDataRef("com/petersaircraft/airbus/V2Setting"       );
-            yfms->xpl.q380.PeterVR                = XPLMFindDataRef("com/petersaircraft/airbus/VRSetting"       );
             yfms->xpl.fb76.systemMode             = XPLMFindDataRef("1-sim/transponder/systemMode"              );
             yfms->xpl.fb76.baroRotary_stby        = XPLMFindDataRef("1-sim/gauges/baroRotary_stby"              );
             yfms->xpl.fb76.baroRotary_left        = XPLMFindDataRef("1-sim/gauges/baroRotary_left"              );
@@ -1118,18 +1108,6 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.has_custom_nav_radios= yfms->xpl.has_custom_navigation = 1;
                 yfms->xpl.atyp = YFS_ATYP_TOLI; break;
             }
-            if (yfms->xpl.qpac.XPDR[0]      && yfms->xpl.qpac.XPDR[1]      &&
-                yfms->xpl.qpac.XPDR[2]      && yfms->xpl.qpac.XPDR[3]      &&
-                yfms->xpl.qpac.XPDRPower    && yfms->xpl.qpac.XPDRAltitude &&
-                yfms->xpl.qpac.BaroUnitCapt && yfms->xpl.qpac.BaroStdCapt  &&
-                yfms->xpl.qpac.BaroUnitFO   && yfms->xpl.qpac.BaroStdFO    &&
-                yfms->xpl.qpac.VHF1Capt     && yfms->xpl.qpac.VHF2Co)
-            {
-                yfms->xpl.qpac.com1_sby_hz_833 = XPLMGetDatai(yfms->xpl.com1_standby_frequency_hz_833);
-                yfms->xpl.qpac.com2_sby_hz_833 = XPLMGetDatai(yfms->xpl.com2_standby_frequency_hz_833);
-                yfms->xpl.has_custom_nav_radios= yfms->xpl.has_custom_navigation = 1;
-                yfms->xpl.atyp = YFS_ATYP_QPAC; break;
-            }
             if (yfms->xpl.q350.pressModeLeft    && yfms->xpl.q350.pressModeRight  &&
                 yfms->xpl.q350.pressLeftButton  && yfms->xpl.q350.pressLeftRotary &&
                 yfms->xpl.q350.pressRightButton && yfms->xpl.q350.pressRightRotary)
@@ -1137,14 +1115,6 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.has_custom_nav_radios = 1;
                 yfms->xpl.has_custom_navigation = 1;
                 yfms->xpl.atyp = YFS_ATYP_Q350; break;
-            }
-            if (yfms->xpl.q380.PeterV1      && yfms->xpl.q380.PeterV2   &&
-                yfms->xpl.q380.PeterVR      && yfms->xpl.q380.PeterCI   &&
-                yfms->xpl.q380.PeterCRZ     && yfms->xpl.q380.PeterFLX  &&
-                yfms->xpl.q380.BaroUnitFO   && yfms->xpl.q380.BaroStdFO &&
-                yfms->xpl.q380.BaroUnitCapt && yfms->xpl.q380.BaroStdCapt)
-            {
-                yfms->xpl.atyp = YFS_ATYP_Q380; break;
             }
             if (yfms->xpl.fb76.systemMode      && yfms->xpl.fb76.baroRotary_stby   &&
                 yfms->xpl.fb76.baroRotary_left && yfms->xpl.fb76.baroRotary_right  &&
