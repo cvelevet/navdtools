@@ -120,6 +120,7 @@ int acf_type_info_reset()
         global_info->tailnb[0] = '\0'; global_info->icaoid[0] = '\0';
         global_info->ac_type = ACF_TYP_GENERIC;
         global_info->assert.initialized = 0;
+        global_info->flap_detents = 0;
         global_info->up_to_date = 0;
     }
     return 0;
@@ -182,6 +183,12 @@ acf_info_context* acf_type_info_update()
         uf_dref_string_read(global_info->dric, global_info->icaoid, sizeof(global_info->icaoid));
     }
     XPLMGetNthAircraftModel(XPLM_USER_AIRCRAFT, global_info->afname, global_info->afpath);
+
+    /* how many flap detents? */
+    if ((tmp = XPLMFindDataRef("sim/aircraft/controls/acf_flap_detents")))
+    {
+        global_info->flap_detents = XPLMGetDatai(tmp);
+    }
 
     /* get engine count and type */
     if ((tmp = XPLMFindDataRef("sim/aircraft/engine/acf_num_engines")))
