@@ -510,6 +510,7 @@ static const char* _flap_names_C130[10] = {    "up",     "1",     "2",    "3",  
 static const char* _flap_names_C340[10] = {    "up",    "15",    "45",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_CSNA[10] = {    "up",    "10",    "20", "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_DC10[10] = {    "up",     "5",    "15",   "25",   "30",   "35",   "40",   NULL,   NULL,   NULL, };
+static const char* _flap_names_NO18[10] = {    "up",     "9",    "22",   "45",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_EMB1[10] = {    "up",     "9",    "18",   "22",   "45",   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_EMB2[10] = {    "up",     "1",     "2",    "3",    "4",    "5", "full",   NULL,   NULL,   NULL, };
 static const char* _flap_names_FA7X[10] = {    "up",     "1",     "2",    "3",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
@@ -1424,6 +1425,7 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case ACF_TYP_EMBE_XC:
+        case ACF_TYP_LEGA_XC:
         case ACF_TYP_HA4T_RW:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
@@ -3627,6 +3629,14 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             case ACF_TYP_EMBE_XC:
                 flap_callout_setst(_flap_names_EMB2, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
+            case ACF_TYP_LEGA_XC:
+                if (ctx->info->flap_detents == 3) // X-Crafts disables position 18 in their ERJ/Legacy
+                {
+                    flap_callout_setst(_flap_names_NO18, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                flap_callout_setst(_flap_names_EMB1, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                break;
             default:
                 if (!strcasecmp(ctx->info->icaoid, "A10"))
                 {
@@ -3946,6 +3956,39 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     cdu->i_disabled = 0; return 0; // here first from turnaround
                 }
 
+                case ACF_TYP_LEGA_XC:
+                {
+                    if (XPLM_NO_PLUGIN_ID != (plugin = XPLMFindPluginBySignature("ERJ_Functions")))
+                    {
+                        for (int i = 0; i < XPLMCountHotKeys(); i++)
+                        {
+                            XPLMPluginID outp_id; char outp_descr[513];
+                            XPLMHotKeyID hot_key = XPLMGetNthHotKey(i);
+                            if (hot_key == NULL)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                XPLMGetHotKeyInfo(hot_key, NULL, NULL, outp_descr, &outp_id);
+                            }
+                            if (outp_id == plugin)
+                            {
+                                // set combination to a key almost guaranteed to be unused
+                                XPLMSetHotKeyCombination(hot_key, XPLM_VK_F24, xplm_UpFlag);
+                                continue;
+                            }
+                            continue;
+                        }
+                    }
+                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("XCrafts/menu/FMS_popup")) ||
+                        NULL == (cdu->command[0] = XPLMFindCommand("sim/FMS/CDU_popup")))
+                    {
+                        cdu->i_disabled = 1; break; // check for YFMS presence
+                    }
+                    cdu->i_disabled = 0; return 0; // here first from turnaround
+                }
+
                 case ACF_TYP_HA4T_RW:
                 {
                     if (XPLM_NO_PLUGIN_ID != (plugin = XPLMFindPluginBySignature("Tekton_Functions")))
@@ -4239,6 +4282,14 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMSetDatavi(cdu->dataref[1], &ione, 14, 1); // hide yoke left
                 XPLMSetDatavi(cdu->dataref[1], &ione, 15, 1); // hide yoke right
                 XPLMSetDatavi(cdu->dataref[1], &ione, 20, 1); // show toggle buttons
+                return 0;
+            }
+
+            case ACF_TYP_LEGA_XC:
+            {
+                int popup_on = (XPLMGetDataf(cdu->dataref[0]) > 0.5f);
+                XPLMSetDataf(cdu->dataref[0], popup_on ? 0.0f : 1.0f);
+                XPLMCommandOnce(cdu->command[0]);
                 return 0;
             }
 
@@ -5503,6 +5554,33 @@ static int first_fcall_do(chandler_context *ctx)
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
             }
+            break;
+
+        case ACF_TYP_LEGA_XC:
+            if (ctx->mcdu.rc.i_disabled == -1)
+            {
+                chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc);  // XXX: remap hotkeys
+            }
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/generic_lights_switch")))
+            {
+                float generic_lights_switch[1] = { 1.0f, };
+                XPLMSetDatavf(d_ref, &generic_lights_switch[0], 26, 1); // hide yoke L
+                XPLMSetDatavf(d_ref, &generic_lights_switch[0], 27, 1); // hide yoke R
+            }
+            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
+            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
+            _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+            if (acf_type_is_engine_running() == 0)
+            {
+                float load = 250.0f, fuel = 1587.5f;
+                acf_type_load_set(ctx->info, &load);
+                acf_type_fuel_set(ctx->info, &fuel);
+            }
+//          XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 8.5f); // initial CLB pitch
             break;
 
         case ACF_TYP_HA4T_RW:
