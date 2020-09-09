@@ -3653,6 +3653,8 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     !strcasecmp(ctx->info->icaoid, "C404") ||
                     !strcasecmp(ctx->info->icaoid, "COL4") ||
                     !strcasecmp(ctx->info->icaoid, "DA40") ||
+                    !strcasecmp(ctx->info->icaoid, "DA42") ||
+                    !strcasecmp(ctx->info->icaoid, "DA62") ||
                     !strcasecmp(ctx->info->icaoid, "EA50") ||
                     !strcasecmp(ctx->info->icaoid, "EPIC") ||
                     !strcasecmp(ctx->info->icaoid, "EVIC") ||
