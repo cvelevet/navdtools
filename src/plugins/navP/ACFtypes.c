@@ -405,23 +405,28 @@ acf_info_context* acf_type_info_update()
             global_info->ac_type = ACF_TYP_MD80_RO; // still a Rotate addon
             break;
         }
-        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim.sasl"))
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("ERJ_Functions") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("Tekton_Functions"))
         {
-            if (!STRN_CASECMP_AUTO(global_info->author, "Marko Mamula"))
+            if (!STRN_CASECMP_AUTO(global_info->icaoid, "E175") ||
+                !STRN_CASECMP_AUTO(global_info->icaoid, "E195"))
             {
-                if (!STRN_CASECMP_AUTO(global_info->descrp, "Embraer E175") ||
-                    !STRN_CASECMP_AUTO(global_info->descrp, "Embraer E195"))
-                {
-                    global_info->ac_type = ACF_TYP_EMBE_XC;
-                    break;
-                }
+                global_info->ac_type = ACF_TYP_EMBE_XC;
+                break;
             }
-            if (!STRN_CASECMP_AUTO(global_info->author, "Rob Wilson") &&
-                !STRN_CASECMP_AUTO(global_info->descrp, "Hawker 4000"))
+            if (!STRN_CASECMP_AUTO(global_info->icaoid, "E35L"))
+            {
+                global_info->ac_type = ACF_TYP_LEGA_XC;
+                break;
+            }
+            if (!STRN_CASECMP_AUTO(global_info->descrp, "Hawker 4000"))
             {
                 global_info->ac_type = ACF_TYP_HA4T_RW;
                 break;
             }
+        }
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim.sasl"))
+        {
             if (!STRN_CASECMP_AUTO(global_info->author, "Denis 'ddenn' Krupin") &&
                 !STRN_CASECMP_AUTO(global_info->descrp, "Bombardier Challenger 300"))
             {
