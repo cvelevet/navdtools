@@ -3862,7 +3862,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 return 1;
         }
-        XPLMSetFlightLoopCallbackInterval(ctx->callouts.flc_flaps, 1.0f, 1, NULL);
+        XPLMSetFlightLoopCallbackInterval(ctx->callouts.flc_flaps, 1.5f, 1, NULL);
     }
     return 1;
 }
