@@ -1425,11 +1425,18 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case ACF_TYP_EMBE_XC:
-        case ACF_TYP_LEGA_XC:
         case ACF_TYP_HA4T_RW:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             ctx->athr.toga.cc.name = "sim/autopilot/autothrottle_on";
+            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
+            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            break;
+
+        case ACF_TYP_LEGA_XC:
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+            ctx->athr.toga.cc.name = "XCrafts/ERJ/TOGA";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
