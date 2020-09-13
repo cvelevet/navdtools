@@ -3972,7 +3972,8 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             continue;
                         }
                     }
-                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("XCrafts/menu/FMS_popup")) ||
+                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("sim/cockpit2/switches/generic_lights_switch")) ||
+                        NULL == (cdu->dataref[1] = XPLMFindDataRef("XCrafts/menu/FMS_popup")) ||
                         NULL == (cdu->command[0] = XPLMFindCommand("sim/FMS/CDU_popup")))
                     {
                         cdu->i_disabled = 1; break; // check for YFMS presence
@@ -4278,9 +4279,36 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
             case ACF_TYP_LEGA_XC:
             {
-                int popup_on = (XPLMGetDataf(cdu->dataref[0]) > 0.5f);
-                XPLMSetDataf(cdu->dataref[0], popup_on ? 0.0f : 1.0f);
-                XPLMCommandOnce(cdu->command[0]);
+                // cycle: off, all no PFD, PFD only, off…
+                float eins = 1.0f, zero = 0.0f, pfd, tek;
+                XPLMGetDatavf(cdu->dataref[0], &pfd, 16, 1);
+                if (pfd < 0.5f) // is PF display popup down?
+                {
+                    XPLMGetDatavf(cdu->dataref[0], &tek, 52, 1);
+                    if (tek < 0.5f) // is Tekton FMS popup down?
+                    {
+                        XPLMSetDatavf(cdu->dataref[0], &zero, 16, 1); // PFD
+                        XPLMSetDatavf(cdu->dataref[0], &eins, 17, 1); // ND
+                        XPLMSetDatavf(cdu->dataref[0], &eins, 18, 1); // EICAS
+                        XPLMSetDatavf(cdu->dataref[0], &eins, 50, 1); // radio
+                        XPLMSetDatavf(cdu->dataref[0], &eins, 51, 1); // thrust
+                        XPLMSetDatavf(cdu->dataref[0], &eins, 52, 1); // Tekton
+                        return 0;
+                    }
+                    XPLMSetDatavf(cdu->dataref[0], &eins, 16, 1); // PFD
+                    XPLMSetDatavf(cdu->dataref[0], &zero, 17, 1); // ND
+                    XPLMSetDatavf(cdu->dataref[0], &zero, 18, 1); // EICAS
+                    XPLMSetDatavf(cdu->dataref[0], &zero, 50, 1); // radio
+                    XPLMSetDatavf(cdu->dataref[0], &zero, 51, 1); // thrust
+                    XPLMSetDatavf(cdu->dataref[0], &zero, 52, 1); // Tekton
+                    return 0;
+                }
+                XPLMSetDatavf(cdu->dataref[0], &zero, 16, 1); // PFD
+                XPLMSetDatavf(cdu->dataref[0], &zero, 17, 1); // ND
+                XPLMSetDatavf(cdu->dataref[0], &zero, 18, 1); // EICAS
+                XPLMSetDatavf(cdu->dataref[0], &zero, 50, 1); // radio
+                XPLMSetDatavf(cdu->dataref[0], &zero, 51, 1); // thrust
+                XPLMSetDatavf(cdu->dataref[0], &zero, 52, 1); // Tekton
                 return 0;
             }
 
@@ -5557,6 +5585,7 @@ static int first_fcall_do(chandler_context *ctx)
                 float generic_lights_switch[1] = { 1.0f, };
                 XPLMSetDatavf(d_ref, &generic_lights_switch[0], 26, 1); // hide yoke L
                 XPLMSetDatavf(d_ref, &generic_lights_switch[0], 27, 1); // hide yoke R
+                XPLMSetDatavf(d_ref, &generic_lights_switch[0], 56, 1); // reflec. off
             }
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
