@@ -5618,7 +5618,22 @@ static int first_fcall_do(chandler_context *ctx)
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
             }
-//          XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 8.5f); // initial CLB pitch
+            if ((d_ref = XPLMFindDataRef("sim/aircraft/bodies/acf_fuse_cd")))
+            {
+                if (fabsf(XPLMGetDataf(d_ref) - 0.12f) > 0.005f)
+                {
+                    ndt_log("navP [error]: \"%s\" is not %.4f (%.4f)\n", "sim/aircraft/bodies/acf_fuse_cd", 0.12f, XPLMGetDataf(d_ref));
+                    XPLMSpeakString("turn around fail");
+                    return (ctx->first_fcall = 0) - 1;
+                }
+                XPLMSetDataf(d_ref, 0.196875f);
+            }
+            else
+            {
+                ndt_log("navP [error]: dataref not found: \"%s\"\n", "sim/aircraft/bodies/acf_fuse_cd");
+                XPLMSpeakString("turn around fail");
+                return (ctx->first_fcall = 0) - 1;
+            }
             break;
 
         case ACF_TYP_HA4T_RW:
