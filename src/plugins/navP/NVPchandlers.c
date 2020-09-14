@@ -4279,28 +4279,28 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
             case ACF_TYP_LEGA_XC:
             {
-                // cycle: off, all no PFD, PFD only, off…
-                float eins = 1.0f, zero = 0.0f, pfd, tek;
-                XPLMGetDatavf(cdu->dataref[0], &pfd, 16, 1);
-                if (pfd < 0.5f) // is PF display popup down?
+                // cycle: off, PFD-ND-EICAS, no PFD, off…
+                float ones = 1.0f, zero = 0.0f, tek, pfd;
+                XPLMGetDatavf(cdu->dataref[0], &tek, 52, 1);
+                if (tek < 0.5f) // is Tekton FMS popup down?
                 {
-                    XPLMGetDatavf(cdu->dataref[0], &tek, 52, 1);
-                    if (tek < 0.5f) // is Tekton FMS popup down?
+                    XPLMGetDatavf(cdu->dataref[0], &pfd, 16, 1);
+                    if (pfd < 0.5f) // is PF display popup down?
                     {
-                        XPLMSetDatavf(cdu->dataref[0], &zero, 16, 1); // PFD
-                        XPLMSetDatavf(cdu->dataref[0], &eins, 17, 1); // ND
-                        XPLMSetDatavf(cdu->dataref[0], &eins, 18, 1); // EICAS
-                        XPLMSetDatavf(cdu->dataref[0], &eins, 50, 1); // radio
-                        XPLMSetDatavf(cdu->dataref[0], &eins, 51, 1); // thrust
-                        XPLMSetDatavf(cdu->dataref[0], &eins, 52, 1); // Tekton
+                        XPLMSetDatavf(cdu->dataref[0], &ones, 16, 1); // PFD
+                        XPLMSetDatavf(cdu->dataref[0], &ones, 17, 1); // ND
+                        XPLMSetDatavf(cdu->dataref[0], &ones, 18, 1); // EICAS
+                        XPLMSetDatavf(cdu->dataref[0], &zero, 50, 1); // radio
+                        XPLMSetDatavf(cdu->dataref[0], &zero, 51, 1); // thrust
+                        XPLMSetDatavf(cdu->dataref[0], &zero, 52, 1); // Tekton
                         return 0;
                     }
-                    XPLMSetDatavf(cdu->dataref[0], &eins, 16, 1); // PFD
-                    XPLMSetDatavf(cdu->dataref[0], &zero, 17, 1); // ND
-                    XPLMSetDatavf(cdu->dataref[0], &zero, 18, 1); // EICAS
-                    XPLMSetDatavf(cdu->dataref[0], &zero, 50, 1); // radio
-                    XPLMSetDatavf(cdu->dataref[0], &zero, 51, 1); // thrust
-                    XPLMSetDatavf(cdu->dataref[0], &zero, 52, 1); // Tekton
+                    XPLMSetDatavf(cdu->dataref[0], &zero, 16, 1); // PFD
+                    XPLMSetDatavf(cdu->dataref[0], &ones, 17, 1); // ND
+                    XPLMSetDatavf(cdu->dataref[0], &ones, 18, 1); // EICAS
+                    XPLMSetDatavf(cdu->dataref[0], &ones, 50, 1); // radio
+                    XPLMSetDatavf(cdu->dataref[0], &ones, 51, 1); // thrust
+                    XPLMSetDatavf(cdu->dataref[0], &ones, 52, 1); // Tekton
                     return 0;
                 }
                 XPLMSetDatavf(cdu->dataref[0], &zero, 16, 1); // PFD
