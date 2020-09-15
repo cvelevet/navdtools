@@ -2348,6 +2348,15 @@ adjust_done:
                     XPLMSetDataf(ctx->data.refuel_dialg.ic->weight.gwcgz_m, (((zfw_cgz + offset) - 20.0f) / 29.4125f));
                 }
                 break;
+
+            case ACF_TYP_LEGA_XC:
+                {
+                    srand(time(NULL)); // -0.25f to +0.25f (28.45 to 30.56% MAC)
+                    float rand_gwcgz = -0.25f + 0.5f * rand() / (float)RAND_MAX;
+                    XPLMSetDataf(ctx->data.refuel_dialg.ic->weight.gwcgz_m, rand_gwcgz);
+                }
+                break;
+
             default:
                 break;
         }

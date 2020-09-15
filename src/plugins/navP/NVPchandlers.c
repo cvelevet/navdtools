@@ -1433,10 +1433,10 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case ACF_TYP_LEGA_XC:
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
-            ctx->athr.toga.cc.name = "XCrafts/ERJ/TOGA";
+            ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
+            ctx->athr.toga.cc.name = "XCrafts/ERJ/TOGA";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
 
@@ -1479,7 +1479,14 @@ int nvp_chandlers_update(void *inContext)
                 ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
                 ctx->athr.toga.cc.name = "sim/autopilot/autothrottle_on";
             }
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
+            {
+                ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
+            }
+            else
+            {
+                ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            }
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
@@ -3972,6 +3979,19 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             continue;
                         }
                     }
+                    /*
+                     * future: auto-set AviTab location preferences???
+                     *
+                     * if (2 == XPLMGetDadai(XPLMGetDataref("XCrafts/ERJ/avitab_location"))
+                     * {
+                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_x_pos"), 0.50375f);
+                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_x_axis"),    0.0f);
+                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_y_pos"), 0.45875f);
+                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_y_axis"),    0.0f);
+                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_z_pos"),     0.0f);
+                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_z_axis"),    0.0f);
+                     * }
+                     */
                     if (NULL == (cdu->dataref[0] = XPLMFindDataRef("sim/cockpit2/switches/generic_lights_switch")) ||
                         NULL == (cdu->dataref[1] = XPLMFindDataRef("XCrafts/menu/FMS_popup")) ||
                         NULL == (cdu->command[0] = XPLMFindCommand("sim/FMS/CDU_popup")))
@@ -4279,7 +4299,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
             case ACF_TYP_LEGA_XC:
             {
-                // cycle: off, PFD-ND-EICAS, no PFD, off…
+                // cycle: off, PFD-ND, ND-EICAS-etc, off…
                 float ones = 1.0f, zero = 0.0f, tek, pfd;
                 XPLMGetDatavf(cdu->dataref[0], &tek, 52, 1);
                 if (tek < 0.5f) // is Tekton FMS popup down?
@@ -4289,7 +4309,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     {
                         XPLMSetDatavf(cdu->dataref[0], &ones, 16, 1); // PFD
                         XPLMSetDatavf(cdu->dataref[0], &ones, 17, 1); // ND
-                        XPLMSetDatavf(cdu->dataref[0], &ones, 18, 1); // EICAS
+                        XPLMSetDatavf(cdu->dataref[0], &zero, 18, 1); // EICAS
                         XPLMSetDatavf(cdu->dataref[0], &zero, 50, 1); // radio
                         XPLMSetDatavf(cdu->dataref[0], &zero, 51, 1); // thrust
                         XPLMSetDatavf(cdu->dataref[0], &zero, 52, 1); // Tekton
@@ -5594,11 +5614,13 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
             _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+            _DO(1, XPLMSetDatai, 1, "XCrafts/ERJ/weight_units");
             if (acf_type_is_engine_running() == 0)
             {
                 float load = 250.0f, fuel = 1587.5f;
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
+                _DO(0, XPLMSetDataf, 0.0f, "sim/flightmodel/misc/cgz_ref_to_default");
             }
             if ((d_ref = XPLMFindDataRef("sim/aircraft/bodies/acf_fuse_cd")))
             {
