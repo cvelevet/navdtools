@@ -4299,7 +4299,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
             case ACF_TYP_LEGA_XC:
             {
-                // cycle: off, PFD-ND, ND-EICAS-etc, off…
+                // cycle: off, PFD-ND, EICAS-Tekton, off…
                 float ones = 1.0f, zero = 0.0f, tek, pfd;
                 XPLMGetDatavf(cdu->dataref[0], &tek, 52, 1);
                 if (tek < 0.5f) // is Tekton FMS popup down?
@@ -4316,7 +4316,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         return 0;
                     }
                     XPLMSetDatavf(cdu->dataref[0], &zero, 16, 1); // PFD
-                    XPLMSetDatavf(cdu->dataref[0], &ones, 17, 1); // ND
+                    XPLMSetDatavf(cdu->dataref[0], &zero, 17, 1); // ND
                     XPLMSetDatavf(cdu->dataref[0], &ones, 18, 1); // EICAS
                     XPLMSetDatavf(cdu->dataref[0], &ones, 50, 1); // radio
                     XPLMSetDatavf(cdu->dataref[0], &ones, 51, 1); // thrust
@@ -5622,22 +5622,22 @@ static int first_fcall_do(chandler_context *ctx)
                 acf_type_fuel_set(ctx->info, &fuel);
                 _DO(0, XPLMSetDataf, 0.0f, "sim/flightmodel/misc/cgz_ref_to_default");
             }
-            if ((d_ref = XPLMFindDataRef("sim/aircraft/bodies/acf_fuse_cd")))
-            {
-                if (fabsf(XPLMGetDataf(d_ref) - 0.12f) > 0.005f)
-                {
-                    ndt_log("navP [error]: \"%s\" is not %.4f (%.4f)\n", "sim/aircraft/bodies/acf_fuse_cd", 0.12f, XPLMGetDataf(d_ref));
-                    XPLMSpeakString("turn around fail");
-                    return (ctx->first_fcall = 0) - 1;
-                }
-                XPLMSetDataf(d_ref, 0.196875f);
-            }
-            else
-            {
-                ndt_log("navP [error]: dataref not found: \"%s\"\n", "sim/aircraft/bodies/acf_fuse_cd");
-                XPLMSpeakString("turn around fail");
-                return (ctx->first_fcall = 0) - 1;
-            }
+//            if ((d_ref = XPLMFindDataRef("sim/aircraft/bodies/acf_fuse_cd")))
+//            {
+//                if (fabsf(XPLMGetDataf(d_ref) - 0.12f) > 0.005f)
+//                {
+//                    ndt_log("navP [error]: \"%s\" is not %.4f (%.4f)\n", "sim/aircraft/bodies/acf_fuse_cd", 0.12f, XPLMGetDataf(d_ref));
+//                    XPLMSpeakString("turn around fail");
+//                    return (ctx->first_fcall = 0) - 1;
+//                }
+//                XPLMSetDataf(d_ref, 0.196875f);
+//            }
+//            else
+//            {
+//                ndt_log("navP [error]: dataref not found: \"%s\"\n", "sim/aircraft/bodies/acf_fuse_cd");
+//                XPLMSpeakString("turn around fail");
+//                return (ctx->first_fcall = 0) - 1;
+//            }
             break;
 
         case ACF_TYP_HA4T_RW:
