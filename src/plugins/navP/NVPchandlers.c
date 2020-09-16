@@ -1436,7 +1436,7 @@ int nvp_chandlers_update(void *inContext)
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            ctx->athr.toga.cc.name = "XCrafts/ERJ/TOGA";
+            ctx->athr.toga.cc.name = "navP/switches/ap_clmb";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
 
@@ -3984,12 +3984,12 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                      *
                      * if (2 == XPLMGetDadai(XPLMGetDataref("XCrafts/ERJ/avitab_location"))
                      * {
-                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_x_pos"), 0.50375f);
-                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_x_axis"),    0.0f);
-                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_y_pos"), 0.45875f);
-                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_y_axis"),    0.0f);
-                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_z_pos"),     0.0f);
-                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_z_axis"),    0.0f);
+                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_x_pos"), 0.5175f);
+                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_x_axis"),   0.0f);
+                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_y_pos"), 0.4575f);
+                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_y_axis"),   0.0f);
+                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_z_pos"),    0.0f);
+                     *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_z_axis"),   0.0f);
                      * }
                      */
                     if (NULL == (cdu->dataref[0] = XPLMFindDataRef("sim/cockpit2/switches/generic_lights_switch")) ||
@@ -5638,6 +5638,10 @@ static int first_fcall_do(chandler_context *ctx)
 //                XPLMSpeakString("turn around fail");
 //                return (ctx->first_fcall = 0) - 1;
 //            }
+             // initial climb paramaters; V2(MTOW) is 139, +20 -> 160 KIAS
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/autopilot/airspeed_is_mach");
+            _DO(0, XPLMSetDataf, 10.0f, "sim/cockpit2/autopilot/TOGA_pitch_deg");
+            _DO(0, XPLMSetDataf, 160.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
             break;
 
         case ACF_TYP_HA4T_RW:
