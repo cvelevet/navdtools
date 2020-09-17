@@ -5241,7 +5241,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,      1, "1-sim/options/Difficulty");               // preferred default settings
             _DO(1, XPLMSetDatai,      1, "1-sim/options/Draw Lines");               // preferred default settings
             _DO(1, XPLMSetDatai,      0, "1-sim/options/ScreenGlow");               // preferred default settings
-            _DO(1, XPLMSetDatai,      1, "1-sim/options/ILS Align");                // preferred default settings
+            _DO(1, XPLMSetDatai,      0, "1-sim/options/ILS Align");                // preferred default settings
             _DO(1, XPLMSetDatai,      1, "1-sim/options/Flashing");                 // preferred default settings
             _DO(1, XPLMSetDatai,      0, "1-sim/options/Pilots");                   // preferred default settings
             _DO(1, XPLMSetDatai,      0, "1-sim/options/Popups");                   // preferred default settings
