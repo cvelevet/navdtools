@@ -5215,11 +5215,11 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,      1, "1-sim/air/crossBeedSwitch");              // Air panel: c.b. selec. (auto)
             _DO(1, XPLMSetDataf,   0.4f, "1-sim/air/ckptSettingRotery");            // Air panel: cock. temp. (purser)
             _DO(1, XPLMSetDataf,   0.4f, "1-sim/air/cabinSettingRotery");           // Air panel: cabin temp. (purser)
-            _DO(1, XPLMSetDatai,   7000, "1-sim/options/Transition Altitude");      // preferred default settings
+            _DO(1, XPLMSetDatai,  18000, "1-sim/options/Transition Altitude");      // preferred default settings
             _DO(1, XPLMSetDatai,      0, "1-sim/options/autoreverse");              // preferred default settings
             _DO(1, XPLMSetDatai,      0, "1-sim/options/Auto Helper");              // preferred default settings
             _DO(1, XPLMSetDatai,      0, "1-sim/options/Auto Pause");               // preferred default settings
-            _DO(1, XPLMSetDatai,      1, "1-sim/options/Real Limits");              // preferred default settings
+            _DO(1, XPLMSetDatai,      0, "1-sim/options/Real Limits");              // preferred default settings
             _DO(1, XPLMSetDatai,      0, "1-sim/options/Baro Units");               // preferred default settings
             _DO(1, XPLMSetDatai,      1, "1-sim/options/Difficulty");               // preferred default settings
             _DO(1, XPLMSetDatai,      1, "1-sim/options/Draw Lines");               // preferred default settings
