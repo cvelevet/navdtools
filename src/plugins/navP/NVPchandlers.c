@@ -3958,7 +3958,6 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             {
                                 if (!STRN_CASECMP_AUTO(outp_descr, "Console"))
                                 {
-                                    // F5 defaults to mixture_down and is free on Apple's KBs
                                     XPLMSetHotKeyCombination(hot_key, XPLM_VK_ESCAPE, xplm_UpFlag);
                                     continue;
                                 }
