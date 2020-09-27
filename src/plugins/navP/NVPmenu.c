@@ -1347,6 +1347,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_skpdraw, 1.00f);
             SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_k3drain, 1.00f);
             ndt_log(    "navP [info]: disabling default clouds\n");
+            XPLMSpeakString(         "disabling default clouds\n");
             if (NULL != ctx->data.speedbooster.dr_x_i_ver) // lazy XP11+ detection
             {
                 SPEEDBOOSTER_SETVALUE(XPLMSetDatai, dr_drw_car, 0);
@@ -1364,6 +1365,7 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
             SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_skpdraw, 0.00f);
             SPEEDBOOSTER_SETVALUE(XPLMSetDataf, dr_k3drain, 0.00f);
             ndt_log(     "navP [info]: enabling default clouds\n");
+            XPLMSpeakString(          "enabling default clouds\n");
             if (NULL != ctx->data.speedbooster.dr_x_i_ver) // lazy XP11+ detection
             {
                 SPEEDBOOSTER_DEFAULTV(XPLMSetDatai, dr_drw_car, df_drw_car);
@@ -1548,9 +1550,9 @@ void nvp_menu_ckill(void *_menu_context, int set_state)
     menu_context *ctx = _menu_context;
     if (ctx)
     {
-        XPLMMenuCheck state = xplm_Menu_Checked;
+        XPLMMenuCheck state = xplm_Menu_Unchecked;
         XPLMCheckMenuItemState(ctx->id, ctx->items.cloud_killer.id, &state);
-        if (state != set_state)
+        if (state != xplm_Menu_Unchecked && state != set_state)
         {
             return menu_handler(ctx, &ctx->items.cloud_killer);
         }
