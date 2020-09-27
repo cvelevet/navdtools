@@ -155,7 +155,11 @@ typedef struct
 typedef struct
 {
     void           *assert;
-    int  every_ten_seconds;
+    void         *nvp_menu;
+    int  last_cycle_number;
+    float curr_period_durr;
+    float elapsed_fr_reset;
+    float every_ten_secnds;
     XPLMDataRef ground_spd;
     XPLMDataRef auto_p_sts;
     XPLMDataRef auto_t_sts;
@@ -186,6 +190,7 @@ typedef struct
     } oatc;
     struct
     {
+        XPLMDataRef     sim_pause;
         XPLMDataRef     view_type;
         XPLMDataRef zulu_time_sec;
     } time;
@@ -718,6 +723,7 @@ void* nvp_chandlers_init(void)
         !ctx->callouts.ref_flap_lever ||
         !ctx->callouts.ref_gear_lever)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: could not create dataref\n");
         goto fail;
     }
 
@@ -725,6 +731,7 @@ void* nvp_chandlers_init(void)
     if ((ctx->fov.nonp = XPLMFindDataRef("sim/graphics/settings/non_proportional_vertical_FOV")) == NULL ||
         (ctx->fov.data = XPLMFindDataRef(                "sim/graphics/view/field_of_view_deg")) == NULL)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: dataref not found\n");
         goto fail;
     }
 
@@ -751,6 +758,7 @@ void* nvp_chandlers_init(void)
                                                          &ctx->bking.rc_brk.flt_var);
     if (!ctx->bking.rc_brk.p_b_int || !ctx->bking.rc_brk.p_b_flt)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: dataref not found\n");
         goto fail;
     }
 
@@ -773,6 +781,7 @@ void* nvp_chandlers_init(void)
         !ctx->bking.rc_brk.l_b_rat || !XPLMCanWriteDataRef(ctx->bking.rc_brk.l_b_rat) ||
         !ctx->bking.rc_brk.a_b_lev || !XPLMCanWriteDataRef(ctx->bking.rc_brk.a_b_lev) || !ctx->bking.rc_brk.abto)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: command or dataref not found\n");
         goto fail;
     }
     else
@@ -793,6 +802,7 @@ void* nvp_chandlers_init(void)
     if (!ctx->spbrk.ext.cb.command || !ctx->spbrk.ret.cb.command ||
         !ctx->spbrk.sext || !ctx->spbrk.sret || !ctx->spbrk.srat)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: command or dataref not found\n");
         goto fail;
     }
     else
@@ -821,6 +831,7 @@ void* nvp_chandlers_init(void)
         !ctx->trims.rud.lt.cb.command || !ctx->trims.rud.lt.cd ||
         !ctx->trims.rud.rt.cb.command || !ctx->trims.rud.rt.cd)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: command not found or created\n");
         goto fail;
     }
     else
@@ -841,6 +852,7 @@ void* nvp_chandlers_init(void)
     if (!ctx->revrs.fwd.cb.command || !ctx->revrs.rev.cb.command ||
         !ctx->revrs.prop_mode      || !ctx->revrs.propto)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: command or dataref not found\n");
         goto fail;
     }
     else
@@ -863,6 +875,7 @@ void* nvp_chandlers_init(void)
         !ctx->throt.up.command || !ctx->throt.thrup || !ctx->throt.rp.command || !ctx->throt.rpmratio ||
         !ctx->throt.ul.command)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: command not found or created\n");
         goto fail;
     }
     else
@@ -887,6 +900,7 @@ void* nvp_chandlers_init(void)
     {
         if (!ctx->views.cbs[i].command)
         {
+            ndt_log("navP [error]: nvp_chandlers_init: command not found\n");
             goto fail;
         }
         else
@@ -904,6 +918,7 @@ void* nvp_chandlers_init(void)
                                                       var_ql_idx_get(), var_ql_idx_get());
     if (!ref_ql_idx)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: dataref not found\n");
         goto fail;
     }
     else
@@ -914,6 +929,7 @@ void* nvp_chandlers_init(void)
     ctx->views.next.cb.command = XPLMCreateCommand("navP/views/quick_look_next",     "next quick look view preset");
     if (!ctx->views.prev.cb.command || !ctx->views.next.cb.command)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: could not create command\n");
         goto fail;
     }
     else
@@ -948,6 +964,7 @@ void* nvp_chandlers_init(void)
         !ctx->otto.clmb.rc.to_pclb ||
         !ctx->otto.clmb.rc.ap_pmod)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: could not create command or dataref not found\n");
         goto fail;
     }
     else
@@ -971,6 +988,7 @@ void* nvp_chandlers_init(void)
         !ctx->callouts.cb_flapd.command ||
         !ctx->callouts.ref_flap_ratio)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: command or dataref not found\n");
         goto fail;
     }
     else
@@ -992,6 +1010,7 @@ void* nvp_chandlers_init(void)
         !ctx->gear.gear_handle_down            ||
         !ctx->gear.acf_gear_retract)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: command or dataref not found\n");
         goto fail;
     }
     else
@@ -1013,6 +1032,7 @@ void* nvp_chandlers_init(void)
         !ctx->apd.at_ref      ||
         !ctx->apd.fd_ref)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: command or dataref not found\n");
         goto fail;
     }
 
@@ -1028,6 +1048,7 @@ void* nvp_chandlers_init(void)
         !ctx->vvi.pu.command || !ctx->vvi.pd.command || !ctx->vvi.ot_vs_on ||
         !ctx->vvi.vs_dn      || !ctx->vvi.vs_up)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: command or dataref not found\n");
         goto fail;
     }
 
@@ -1035,6 +1056,7 @@ void* nvp_chandlers_init(void)
     ctx->mcdu.cb.command = XPLMCreateCommand("navP/switches/cdu_toggle", "CDU pop-up/down");
     if (!ctx->mcdu.cb.command)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: could not create command\n");
         goto fail;
     }
     else
@@ -1048,6 +1070,7 @@ void* nvp_chandlers_init(void)
     ctx->ground.auto_p_sts          = XPLMFindDataRef  ("sim/cockpit2/autopilot/servos_on");
     ctx->ground.elev_m_agl          = XPLMFindDataRef  ("sim/flightmodel/position/y_agl");
     ctx->ground.time.view_type      = XPLMFindDataRef  ("sim/graphics/view/view_type");
+    ctx->ground.time.sim_pause      = XPLMFindDataRef  ("sim/time/paused");
     ctx->ground.time.zulu_time_sec  = XPLMFindDataRef  ("sim/time/zulu_time_sec");
     ctx->ground.oatc.vol_com0       = XPLMFindDataRef  ("sim/operation/sound/radio_volume_ratio");
     ctx->ground.oatc.vol_com1       = XPLMFindDataRef  ("sim/cockpit2/radios/actuators/audio_volume_com1");
@@ -1060,6 +1083,7 @@ void* nvp_chandlers_init(void)
         !ctx->ground.auto_p_sts         ||
         !ctx->ground.elev_m_agl         ||
         !ctx->ground.time.view_type     ||
+        !ctx->ground.time.sim_pause     ||
         !ctx->ground.time.zulu_time_sec ||
         !ctx->ground.oatc.vol_com0      ||
         !ctx->ground.oatc.vol_com1      ||
@@ -1067,6 +1091,7 @@ void* nvp_chandlers_init(void)
         !ctx->ground.idle.throttle_all  ||
         !ctx->ground.idle.preset.command)
     {
+        ndt_log("navP [error]: nvp_chandlers_init: command or dataref not found\n");
         goto fail;
     }
     else
@@ -1079,6 +1104,7 @@ void* nvp_chandlers_init(void)
     return ctx;
 
 fail:
+    ndt_log("navP [error]: nvp_chandlers_init: fail path reached\n");
     nvp_chandlers_close((void**)&ctx);
     return NULL;
 }
@@ -1290,7 +1316,7 @@ void nvp_chandlers_setmnu(void *inContext, void *inMenu)
     chandler_context *ctx = inContext;
     if (ctx)
     {
-        ctx->menu_context = inMenu;
+        ctx->menu_context = ctx->ground.nvp_menu = inMenu;
     }
 }
 
@@ -4753,47 +4779,152 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         }
 
 #if TIM_ONLY
-        if ((grndp->every_ten_seconds += inElapsedSinceLastCall) >= 10.0f)
+        if (grndp->last_cycle_number < 0)
         {
-            // place here: check every 10 seconds only
-            // partial time sync: minutes/seconds only
+            // first call from (re-)registration
+            grndp->last_cycle_number = inCounter;
+            grndp->curr_period_durr = 5.0f;
+            grndp->elapsed_fr_reset = 0.0f;
+        }
+        else if (XPLMGetDatai(grndp->time.sim_pause) > 0)
+        {
+            grndp->last_cycle_number = inCounter;
+            grndp->curr_period_durr = 5.0f;
+            grndp->elapsed_fr_reset = 0.0f;
+        }
+        else
+        {
             switch (XPLMGetDatai(grndp->time.view_type)) // skip if menu showing etc.
             {
                 case 1000: // 2D w/panel
-                case 1017: // ext. chase
                 case 1023: // 2D w/heads
                 case 1026: // 3D cockpit
-                case 1031: // ext. along
+                    if ((grndp->elapsed_fr_reset += inElapsedSinceLastCall) > grndp->curr_period_durr)
                     {
-                        ndt_date datenow = ndt_date_now();
-                        float minsec_new = (float)datenow.minutes * 60.0f + (float)datenow.seconds * 1.0f;
-                        float time_currt = XPLMGetDataf(grndp->time.zulu_time_sec);
-                        float minsec_cur = fmodf(time_currt, 3600.0f);
-                        if (minsec_cur >   15.0f && // hours change
-                            minsec_cur < 3585.0f && // don't resync
-                            fabsf(minsec_cur - minsec_new) > 15.0f)
+                        /*
+                         * reset + compute average fps during last period
+                         *
+                         * XPLM_API int XPLMGetCycleNumber(void);
+                         * This routine returns a counter starting at zero
+                         * for each sim cycle computed/video frame rendered.
+                         *
+                         * Note: test results:
+                         * - XPLMGetCycleNumber() == inCounter
+                         * - average framerate calculated this
+                         *   way appears unaffected by however
+                         *   many flitemodels p/frame are set:
+                         *   avg(fps) == cycles / duration / 2
+                         * - tested with X-Plane 10.51r2 (macOS)
+                         * - +verified w/X-Plane 11.41r1 (macOS)
+                         */
+                        float ncycles = roundf(inCounter - grndp->last_cycle_number);
+                        float avg_fps = ncycles / grndp->curr_period_durr / 2.0f;
+//                      ndt_log("navP [debug]: XPLMGetCycleNumber() %d\n"
+//                              "              inCounter            %d\n", XPLMGetCycleNumber(), inCounter);
+//                      ndt_log("navP [debug]: cycle number inccreased by %.0f in last %.1f seconds\n"
+//                              "             (average cycles per second %.1f, half %.1f)\n",
+//                              ncycles,  grndp->curr_period_durr,
+//                              ncycles / grndp->curr_period_durr,
+//                              ncycles / grndp->curr_period_durr / 2.0f);
+                        if (grndp->nvp_menu)
                         {
-#if 0
-                            float hh = floorf(time_currt / 3600.0f);
-                            float mc = floorf(minsec_cur /   60.0f);
-                            float mn = floorf(minsec_new /   60.0f);
-                            float sc = fmodf (minsec_cur,    60.0f);
-                            float sn = fmodf (minsec_new,    60.0f);
-                            float nh = datenow.hours, nm = datenow.minutes, ns = datenow.seconds;
-                            ndt_log("navP [info]: time: resync: difference: %lf\n", fabsf(minsec_cur-minsec_new));
-                            ndt_log("navP [info]: time: resync: irl: now: %02.0lf:%02.0lf:%02.0lf\n", nh, nm, ns);
-                            ndt_log("navP [info]: time: resync: sim: old: %02.0lf:%02.0lf:%02.0lf\n", hh, mc, sc);
-                            ndt_log("navP [info]: time: resync: sim: new: %02.0lf:%02.0lf:%02.0lf\n", hh, mn, sn);
-#endif
-                            XPLMSetDataf(grndp->time.zulu_time_sec, time_currt - minsec_cur + minsec_new);
+                            float low_fps = 24000.0f / 1001.0f;
+                            float vhi_fps = 60000.0f / 1001.0f;
+                            if (avg_fps < low_fps)
+                            {
+                                XPLMDataRef cloud_skip = XPLMFindDataRef("sim/private/controls/clouds/skip_draw");
+                                if (cloud_skip && XPLMGetDataf(cloud_skip) < 0.5f) // clouds showing
+                                {
+                                    ndt_log("navP [info]: fps %.3f < %.3f (%.1f s), "
+                                            "disabling clouds for better sim speed\n",
+                                            avg_fps, low_fps, grndp->curr_period_durr);
+                                }
+                                nvp_menu_ckill(grndp->nvp_menu, xplm_Menu_Checked);
+                                grndp->last_cycle_number = inCounter;
+                                grndp->curr_period_durr = 30.0f;
+                                grndp->elapsed_fr_reset = 0.0f;
+                            }
+                            else if (avg_fps > vhi_fps)
+                            {
+                                XPLMDataRef cloud_skip = XPLMFindDataRef("sim/private/controls/clouds/skip_draw");
+                                if (cloud_skip && XPLMGetDataf(cloud_skip) > 0.5f) // clouds hidden
+                                {
+                                    ndt_log("navP [info]: fps %.3f > %.3f (%.1f s), "
+                                            "enabling clouds for increased realism\n",
+                                            avg_fps, vhi_fps, grndp->curr_period_durr);
+                                }
+                                nvp_menu_ckill(grndp->nvp_menu, xplm_Menu_NoCheck);
+                                grndp->last_cycle_number = inCounter;
+                                grndp->curr_period_durr = 15.0f;
+                                grndp->elapsed_fr_reset = 0.0f;
+                            }
+                            else
+                            {
+                                grndp->last_cycle_number = inCounter;
+                                grndp->curr_period_durr = 15.0f;
+                                grndp->elapsed_fr_reset = 0.0f;
+                            }
+                        }
+                        else
+                        {
+                            grndp->last_cycle_number = inCounter;
+                            grndp->curr_period_durr = 15.0f;
+                            grndp->elapsed_fr_reset = 0.0f;
                         }
                     }
                     break;
 
                 default:
+                    grndp->last_cycle_number = inCounter;
+                    grndp->curr_period_durr = 5.0f;
+                    grndp->elapsed_fr_reset = 0.0f;
                     break;
             }
-            grndp->every_ten_seconds = 0.0f;
+        }
+        if ((grndp->every_ten_secnds += inElapsedSinceLastCall) >= 10.0f)
+        {
+            if (!XPLMGetDatai(grndp->time.sim_pause))
+            {
+                // place here: check every 10 seconds only
+                // partial time sync: minutes/seconds only
+                switch (XPLMGetDatai(grndp->time.view_type)) // skip if menu showing etc.
+                {
+                    case 1000: // 2D w/panel
+                    case 1017: // ext. chase
+                    case 1023: // 2D w/heads
+                    case 1026: // 3D cockpit
+                    case 1031: // ext. along
+                        {
+                            ndt_date datenow = ndt_date_now();
+                            float minsec_new = (float)datenow.minutes * 60.0f + (float)datenow.seconds * 1.0f;
+                            float time_currt = XPLMGetDataf(grndp->time.zulu_time_sec);
+                            float minsec_cur = fmodf(time_currt, 3600.0f);
+                            if (minsec_cur >   15.0f && // hours change
+                                minsec_cur < 3585.0f && // don't resync
+                                fabsf(minsec_cur - minsec_new) > 15.0f)
+                            {
+#if 0
+                                float hh = floorf(time_currt / 3600.0f);
+                                float mc = floorf(minsec_cur /   60.0f);
+                                float mn = floorf(minsec_new /   60.0f);
+                                float sc = fmodf (minsec_cur,    60.0f);
+                                float sn = fmodf (minsec_new,    60.0f);
+                                float nh = datenow.hours, nm = datenow.minutes, ns = datenow.seconds;
+                                ndt_log("navP [info]: time: resync: difference: %lf\n", fabsf(minsec_cur-minsec_new));
+                                ndt_log("navP [info]: time: resync: irl: now: %02.0lf:%02.0lf:%02.0lf\n", nh, nm, ns);
+                                ndt_log("navP [info]: time: resync: sim: old: %02.0lf:%02.0lf:%02.0lf\n", hh, mc, sc);
+                                ndt_log("navP [info]: time: resync: sim: new: %02.0lf:%02.0lf:%02.0lf\n", hh, mn, sn);
+#endif
+                                XPLMSetDataf(grndp->time.zulu_time_sec, time_currt - minsec_cur + minsec_new);
+                            }
+                        }
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+            grndp->every_ten_secnds = 0.0f;
         }
 #endif
 
@@ -6346,7 +6477,8 @@ static int first_fcall_do(chandler_context *ctx)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
     }
-    ctx->ground.every_ten_seconds = 0.0f;
+    ctx->ground.last_cycle_number = -1;
+    ctx->ground.every_ten_secnds = 0.0f;
     XPLMRegisterFlightLoopCallback((ctx->ground.flc_g = &gnd_stab_hdlr), 1, &ctx->ground);
 
     /* mixture and prop pitch command handlers */
@@ -6408,12 +6540,6 @@ static int first_fcall_do(chandler_context *ctx)
 //      _DO(1, XPLMSetDatai, TDFDRCAR, "sim/private/controls/reno/draw_cars_05");
         _DO(1, XPLMSetDatai, TDFDRVEC, "sim/private/controls/reno/draw_vecs_03");
     }
-
-//    /* Boost frame rates by disabling cloud drawing altogether */
-//    if (ctx->menu_context)
-//    {
-//        nvp_menu_ckill(ctx->menu_context, xplm_Menu_Checked);
-//    }
 #endif
 
     return (ctx->first_fcall = 0);
