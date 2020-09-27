@@ -4783,13 +4783,19 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         {
             // first call from (re-)registration
             grndp->last_cycle_number = inCounter;
-            grndp->curr_period_durr = 5.0f;
+            if (grndp->curr_period_durr < 18.75f)
+            {
+                grndp->curr_period_durr = 7.5f;
+            }
             grndp->elapsed_fr_reset = 0.0f;
         }
         else if (XPLMGetDatai(grndp->time.sim_pause) > 0)
         {
             grndp->last_cycle_number = inCounter;
-            grndp->curr_period_durr = 5.0f;
+            if (grndp->curr_period_durr < 18.75f)
+            {
+                grndp->curr_period_durr = 7.5f;
+            }
             grndp->elapsed_fr_reset = 0.0f;
         }
         else
@@ -4841,7 +4847,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                                 }
                                 nvp_menu_ckill(grndp->nvp_menu, xplm_Menu_Checked);
                                 grndp->last_cycle_number = inCounter;
-                                grndp->curr_period_durr = 30.0f;
+                                grndp->curr_period_durr = 60.0f;
                                 grndp->elapsed_fr_reset = 0.0f;
                             }
                             else if (avg_fps > vhi_fps)
@@ -4855,7 +4861,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                                 }
                                 nvp_menu_ckill(grndp->nvp_menu, xplm_Menu_NoCheck);
                                 grndp->last_cycle_number = inCounter;
-                                grndp->curr_period_durr = 15.0f;
+                                grndp->curr_period_durr = 22.5f;
                                 grndp->elapsed_fr_reset = 0.0f;
                             }
                             else
@@ -4876,7 +4882,10 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 
                 default:
                     grndp->last_cycle_number = inCounter;
-                    grndp->curr_period_durr = 5.0f;
+                    if (grndp->curr_period_durr < 18.75f)
+                    {
+                        grndp->curr_period_durr = 7.5f;
+                    }
                     grndp->elapsed_fr_reset = 0.0f;
                     break;
             }
