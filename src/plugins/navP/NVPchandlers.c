@@ -4765,18 +4765,15 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         {
             // first call from (re-)registration
             grndp->last_cycle_number = inCounter;
-            if (grndp->curr_period_durr < 18.75f)
-            {
-                grndp->curr_period_durr = 7.5f;
-            }
+            grndp->curr_period_durr = 10.0f;
             grndp->elapsed_fr_reset = 0.0f;
         }
         else if (XPLMGetDatai(grndp->time.sim_pause) > 0)
         {
             grndp->last_cycle_number = inCounter;
-            if (grndp->curr_period_durr < 18.75f)
+            if ((grndp->curr_period_durr -= 7.5f) < 7.6f)
             {
-                grndp->curr_period_durr = 7.5f;
+                (grndp->curr_period_durr = (7.5f));
             }
             grndp->elapsed_fr_reset = 0.0f;
         }
@@ -4864,9 +4861,9 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 
                 default:
                     grndp->last_cycle_number = inCounter;
-                    if (grndp->curr_period_durr < 18.75f)
+                    if ((grndp->curr_period_durr -= 7.5f) < 7.6f)
                     {
-                        grndp->curr_period_durr = 7.5f;
+                        (grndp->curr_period_durr = (7.5f));
                     }
                     grndp->elapsed_fr_reset = 0.0f;
                     break;
