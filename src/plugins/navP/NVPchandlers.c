@@ -4806,14 +4806,14 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                          * - +verified w/X-Plane 11.41r1 (macOS)
                          */
                         float ncycles = roundf(inCounter - grndp->last_cycle_number);
-                        float avg_fps = ncycles / grndp->curr_period_durr / 2.0f;
+                        float avg_fps = ncycles / grndp->elapsed_fr_reset / 2.0f;
 //                      ndt_log("navP [debug]: XPLMGetCycleNumber() %d\n"
 //                              "              inCounter            %d\n", XPLMGetCycleNumber(), inCounter);
 //                      ndt_log("navP [debug]: cycle number inccreased by %.0f in last %.1f seconds\n"
 //                              "             (average cycles per second %.1f, half %.1f)\n",
-//                              ncycles,  grndp->curr_period_durr,
-//                              ncycles / grndp->curr_period_durr,
-//                              ncycles / grndp->curr_period_durr / 2.0f);
+//                              ncycles,  grndp->elapsed_fr_reset,
+//                              ncycles / grndp->elapsed_fr_reset,
+//                              ncycles / grndp->elapsed_fr_reset / 2.0f);
                         if (grndp->nvp_menu)
                         {
                             float low_fps = 24000.0f / 1001.0f;
@@ -4825,7 +4825,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                                 {
                                     ndt_log("navP [info]: fps %.3f < %.3f (%.1f s), "
                                             "disabling clouds for better sim speed\n",
-                                            avg_fps, low_fps, grndp->curr_period_durr);
+                                            avg_fps, low_fps, grndp->elapsed_fr_reset);
                                 }
                                 nvp_menu_ckill(grndp->nvp_menu, xplm_Menu_Checked);
                                 grndp->last_cycle_number = inCounter;
@@ -4839,7 +4839,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                                 {
                                     ndt_log("navP [info]: fps %.3f > %.3f (%.1f s), "
                                             "enabling clouds for increased realism\n",
-                                            avg_fps, vhi_fps, grndp->curr_period_durr);
+                                            avg_fps, vhi_fps, grndp->elapsed_fr_reset);
                                 }
                                 nvp_menu_ckill(grndp->nvp_menu, xplm_Menu_NoCheck);
                                 grndp->last_cycle_number = inCounter;
