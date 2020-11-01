@@ -1495,18 +1495,36 @@ int nvp_chandlers_update(void *inContext)
 
         case ACF_TYP_A319_TL:
         case ACF_TYP_A321_TL:
-            ctx->otto.disc.cc.name = "toliss_airbus/ap_disc_left_stick";
-            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             ctx->otto.conn.cc.name = "toliss_airbus/ap1_push";
+            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+            ctx->otto.disc.cc.name = "toliss_airbus/ap_disc_left_stick";
+            ctx->ttca.en1r.cc.name = "toliss_airbus/engcommands/Master1On";
+            ctx->ttca.en2r.cc.name = "toliss_airbus/engcommands/Master2On";
+            ctx->ttca.en1c.cc.name = "toliss_airbus/engcommands/Master1Off";
+            ctx->ttca.en2c.cc.name = "toliss_airbus/engcommands/Master2Off";
             ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
+            ctx->ttca.enrm.cc.name = "toliss_airbus/engcommands/EngineModeSwitchToNorm";
+            ctx->ttca.ecrk.cc.name = "toliss_airbus/engcommands/EngineModeSwitchToCrank";
+            ctx->ttca.eign.cc.name = "toliss_airbus/engcommands/EngineModeSwitchToStart";
             break;
 
         case ACF_TYP_A350_FF:
-//          ctx->otto.disc.cc.name = "airbus_qpac/ap_disc_left_stick"; // only exists in version 1.6 or later
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             ctx->otto.conn.cc.name = "airbus_qpac/ap1_push";
-            ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");;
+            ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
+            if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // v1.6+ for XP11
+            {
+                ctx->otto.disc.cc.name = "airbus_qpac/ap_disc_left_stick";
+                ctx->ttca.en1r.cc.name = "airbus_qpac/engcommands/Master1On";
+                ctx->ttca.en2r.cc.name = "airbus_qpac/engcommands/Master2On";
+                ctx->ttca.en1c.cc.name = "airbus_qpac/engcommands/Master1Off";
+                ctx->ttca.en2c.cc.name = "airbus_qpac/engcommands/Master2Off";
+                ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
+                ctx->ttca.enrm.cc.name = "airbus_qpac/engcommands/EngineModeSwitchToNorm";
+                ctx->ttca.ecrk.cc.name = "airbus_qpac/engcommands/EngineModeSwitchToCrank";
+                ctx->ttca.eign.cc.name = "airbus_qpac/engcommands/EngineModeSwitchToStart";
+            }
             break;
 
         case ACF_TYP_B737_EA:
@@ -1623,6 +1641,12 @@ int nvp_chandlers_update(void *inContext)
 
         default: // not generic but no usable commands
             break;
+    }
+    if (ctx->ttca.enbl.cc.name == NULL &&
+        ctx->ttca.enbr.cc.name == NULL)
+    {
+        ctx->ttca.enbl.cc.name = "sim/annunciator/clear_master_warning"; // cf. ToLiSs simulation manual
+        ctx->ttca.enbr.cc.name = "sim/annunciator/clear_master_caution"; // cf. ToLiSs simulation manual
     }
     // new addon type: clear refs
     ctx->otto.conn.cc.xpcr = NULL;
