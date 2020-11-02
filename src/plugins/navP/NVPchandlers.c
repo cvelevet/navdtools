@@ -59,6 +59,12 @@ typedef struct
 
 typedef struct
 {
+    const char    *name[2];
+    XPLMCommandRef xpcr[2];
+} chandler_doublec;
+
+typedef struct
+{
     void        *assert;
     float       rtio[3];
     float       flt_var;
@@ -475,43 +481,43 @@ typedef struct
         struct
         {
             chandler_callback cb;
-            chandler_command  cc;
+            chandler_doublec  dc;
         } en1r;
 
-        struct
-        {
-            chandler_callback cb;
-            chandler_command  cc;
-        } en1c;
+//        struct
+//        {
+//            chandler_callback cb;
+//            chandler_command  cc;
+//        } en1c;
 
         struct
         {
             chandler_callback cb;
-            chandler_command  cc;
+            chandler_doublec  dc;
         } en2r;
 
-        struct
-        {
-            chandler_callback cb;
-            chandler_command  cc;
-        } en2c;
+//        struct
+//        {
+//            chandler_callback cb;
+//            chandler_command  cc;
+//        } en2c;
 
         struct
         {
             chandler_callback cb;
-            chandler_command  cc;
+            chandler_doublec  dc;
         } ecrk;
 
-        struct
-        {
-            chandler_callback cb;
-            chandler_command  cc;
-        } enrm;
+//        struct
+//        {
+//            chandler_callback cb;
+//            chandler_command  cc;
+//        } enrm;
 
         struct
         {
             chandler_callback cb;
-            chandler_command  cc;
+            chandler_doublec  dc;
         } eign;
 
         struct
@@ -664,6 +670,7 @@ static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_twosw(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_apclb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -1005,11 +1012,11 @@ void* nvp_chandlers_init(void)
     ctx->athr.disc.cb.command = XPLMCreateCommand( "navP/switches/at_disc", "A/T disconnect");
     ctx->athr.toga.cb.command = XPLMCreateCommand( "navP/switches/at_toga", "A/T takeoff/GA");
     ctx->ttca.en1r.cb.command = XPLMCreateCommand( "navP/tca/engine/l/run", "engi. 1 to run");
-    ctx->ttca.en1c.cb.command = XPLMCreateCommand( "navP/tca/engine/l/off", "engi. 1 cutoff");
+//  ctx->ttca.en1c.cb.command = XPLMCreateCommand( "navP/tca/engine/l/off", "engi. 1 cutoff");
     ctx->ttca.en2r.cb.command = XPLMCreateCommand( "navP/tca/engine/2/run", "engi. 2 to run");
-    ctx->ttca.en2c.cb.command = XPLMCreateCommand( "navP/tca/engine/2/off", "engi. 2 cutoff");
+//  ctx->ttca.en2c.cb.command = XPLMCreateCommand( "navP/tca/engine/2/off", "engi. 2 cutoff");
     ctx->ttca.ecrk.cb.command = XPLMCreateCommand( "navP/tca/eng/mode/crk", "en. mode crank");
-    ctx->ttca.enrm.cb.command = XPLMCreateCommand( "navP/tca/eng/mode/nrm", "en. mode norm.");
+//  ctx->ttca.enrm.cb.command = XPLMCreateCommand( "navP/tca/eng/mode/nrm", "en. mode norm.");
     ctx->ttca.eign.cb.command = XPLMCreateCommand( "navP/tca/eng/mode/ign", "en. mode start");
     ctx->ttca.enbl.cb.command = XPLMCreateCommand( "navP/tca/eng/button/l", "en. button (l)");
     ctx->ttca.enbr.cb.command = XPLMCreateCommand( "navP/tca/eng/button/r", "en. button (r)");
@@ -1026,11 +1033,11 @@ void* nvp_chandlers_init(void)
         !ctx->athr.disc.cb.command ||
         !ctx->athr.toga.cb.command ||
         !ctx->ttca.en1r.cb.command ||
-        !ctx->ttca.en1c.cb.command ||
+//      !ctx->ttca.en1c.cb.command ||
         !ctx->ttca.en2r.cb.command ||
-        !ctx->ttca.en2c.cb.command ||
+//      !ctx->ttca.en2c.cb.command ||
         !ctx->ttca.ecrk.cb.command ||
-        !ctx->ttca.enrm.cb.command ||
+//      !ctx->ttca.enrm.cb.command ||
         !ctx->ttca.eign.cb.command ||
         !ctx->ttca.enbl.cb.command ||
         !ctx->ttca.enbr.cb.command ||
@@ -1052,13 +1059,13 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->otto.disc.cb, chandler_swtch, 0, &ctx->otto.disc.cc);
         REGISTER_CHANDLER(ctx->athr.disc.cb, chandler_swtch, 0, &ctx->athr.disc.cc);
         REGISTER_CHANDLER(ctx->athr.toga.cb, chandler_swtch, 0, &ctx->athr.toga.cc);
-        REGISTER_CHANDLER(ctx->ttca.en1r.cb, chandler_swtch, 0, &ctx->ttca.en1r.cc);
-        REGISTER_CHANDLER(ctx->ttca.en1c.cb, chandler_swtch, 0, &ctx->ttca.en1c.cc);
-        REGISTER_CHANDLER(ctx->ttca.en2r.cb, chandler_swtch, 0, &ctx->ttca.en2r.cc);
-        REGISTER_CHANDLER(ctx->ttca.en2c.cb, chandler_swtch, 0, &ctx->ttca.en2c.cc);
-        REGISTER_CHANDLER(ctx->ttca.ecrk.cb, chandler_swtch, 0, &ctx->ttca.ecrk.cc);
-        REGISTER_CHANDLER(ctx->ttca.enrm.cb, chandler_swtch, 0, &ctx->ttca.enrm.cc);
-        REGISTER_CHANDLER(ctx->ttca.eign.cb, chandler_swtch, 0, &ctx->ttca.eign.cc);
+        REGISTER_CHANDLER(ctx->ttca.en1r.cb, chandler_twosw, 0, &ctx->ttca.en1r.dc);
+//      REGISTER_CHANDLER(ctx->ttca.en1c.cb, chandler_swtch, 0, &ctx->ttca.en1c.cc);
+        REGISTER_CHANDLER(ctx->ttca.en2r.cb, chandler_twosw, 0, &ctx->ttca.en2r.dc);
+//      REGISTER_CHANDLER(ctx->ttca.en2c.cb, chandler_swtch, 0, &ctx->ttca.en2c.cc);
+        REGISTER_CHANDLER(ctx->ttca.ecrk.cb, chandler_twosw, 0, &ctx->ttca.ecrk.dc);
+//      REGISTER_CHANDLER(ctx->ttca.enrm.cb, chandler_swtch, 0, &ctx->ttca.enrm.cc);
+        REGISTER_CHANDLER(ctx->ttca.eign.cb, chandler_twosw, 0, &ctx->ttca.eign.dc);
         REGISTER_CHANDLER(ctx->ttca.enbl.cb, chandler_swtch, 0, &ctx->ttca.enbl.cc);
         REGISTER_CHANDLER(ctx->ttca.enbr.cb, chandler_swtch, 0, &ctx->ttca.enbr.cc);
     }
@@ -1231,11 +1238,11 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->athr.   disc.cb);
     UNREGSTR_CHANDLER(ctx->athr.   toga.cb);
     UNREGSTR_CHANDLER(ctx->ttca.   en1r.cb);
-    UNREGSTR_CHANDLER(ctx->ttca.   en1c.cb);
+//  UNREGSTR_CHANDLER(ctx->ttca.   en1c.cb);
     UNREGSTR_CHANDLER(ctx->ttca.   en2r.cb);
-    UNREGSTR_CHANDLER(ctx->ttca.   en2c.cb);
+//  UNREGSTR_CHANDLER(ctx->ttca.   en2c.cb);
     UNREGSTR_CHANDLER(ctx->ttca.   ecrk.cb);
-    UNREGSTR_CHANDLER(ctx->ttca.   enrm.cb);
+//  UNREGSTR_CHANDLER(ctx->ttca.   enrm.cb);
     UNREGSTR_CHANDLER(ctx->ttca.   eign.cb);
     UNREGSTR_CHANDLER(ctx->ttca.   enbl.cb);
     UNREGSTR_CHANDLER(ctx->ttca.   enbr.cb);
@@ -1355,13 +1362,17 @@ int nvp_chandlers_reset(void *inContext)
     ctx->otto.disc.cc.   name = NULL;
     ctx->athr.disc.cc.   name = NULL;
     ctx->athr.toga.cc.   name = NULL;
-    ctx->ttca.en1r.cc.   name = NULL;
-    ctx->ttca.en1c.cc.   name = NULL;
-    ctx->ttca.en2r.cc.   name = NULL;
-    ctx->ttca.en2c.cc.   name = NULL;
-    ctx->ttca.ecrk.cc.   name = NULL;
-    ctx->ttca.enrm.cc.   name = NULL;
-    ctx->ttca.eign.cc.   name = NULL;
+    ctx->ttca.en1r.dc.name[0] = NULL;
+    ctx->ttca.en1r.dc.name[1] = NULL;
+//  ctx->ttca.en1c.cc.   name = NULL;
+    ctx->ttca.en2r.dc.name[0] = NULL;
+    ctx->ttca.en2r.dc.name[1] = NULL;
+//  ctx->ttca.en2c.cc.   name = NULL;
+    ctx->ttca.ecrk.dc.name[0] = NULL;
+    ctx->ttca.ecrk.dc.name[1] = NULL;
+//  ctx->ttca.enrm.cc.   name = NULL;
+    ctx->ttca.eign.dc.name[0] = NULL;
+    ctx->ttca.eign.dc.name[1] = NULL;
     ctx->ttca.enbl.cc.   name = NULL;
     ctx->ttca.enbr.cc.   name = NULL;
     ctx->bking.rc_brk.rg.name = NULL;
@@ -1497,14 +1508,15 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.conn.cc.name = "toliss_airbus/ap1_push";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             ctx->otto.disc.cc.name = "toliss_airbus/ap_disc_left_stick";
-            ctx->ttca.en1r.cc.name = "toliss_airbus/engcommands/Master1On";
-            ctx->ttca.en2r.cc.name = "toliss_airbus/engcommands/Master2On";
-            ctx->ttca.en1c.cc.name = "toliss_airbus/engcommands/Master1Off";
-            ctx->ttca.en2c.cc.name = "toliss_airbus/engcommands/Master2Off";
             ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
-            ctx->ttca.enrm.cc.name = "toliss_airbus/engcommands/EngineModeSwitchToNorm";
-            ctx->ttca.ecrk.cc.name = "toliss_airbus/engcommands/EngineModeSwitchToCrank";
-            ctx->ttca.eign.cc.name = "toliss_airbus/engcommands/EngineModeSwitchToStart";
+            ctx->ttca.en1r.dc.name[0] = "toliss_airbus/engcommands/Master1On";
+            ctx->ttca.en1r.dc.name[1] = "toliss_airbus/engcommands/Master1Off";
+            ctx->ttca.en2r.dc.name[0] = "toliss_airbus/engcommands/Master2On";
+            ctx->ttca.en2r.dc.name[1] = "toliss_airbus/engcommands/Master2Off";
+            ctx->ttca.ecrk.dc.name[0] = "toliss_airbus/engcommands/EngineModeSwitchToCrank";
+            ctx->ttca.ecrk.dc.name[1] = "toliss_airbus/engcommands/EngineModeSwitchToNorm";
+            ctx->ttca.eign.dc.name[0] = "toliss_airbus/engcommands/EngineModeSwitchToStart";
+            ctx->ttca.eign.dc.name[1] = "toliss_airbus/engcommands/EngineModeSwitchToNorm";
             break;
 
         case ACF_TYP_A350_FF:
@@ -1515,14 +1527,15 @@ int nvp_chandlers_update(void *inContext)
             if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // v1.6+ for XP11
             {
                 ctx->otto.disc.cc.name = "airbus_qpac/ap_disc_left_stick";
-                ctx->ttca.en1r.cc.name = "airbus_qpac/engcommands/Master1On";
-                ctx->ttca.en2r.cc.name = "airbus_qpac/engcommands/Master2On";
-                ctx->ttca.en1c.cc.name = "airbus_qpac/engcommands/Master1Off";
-                ctx->ttca.en2c.cc.name = "airbus_qpac/engcommands/Master2Off";
                 ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
-                ctx->ttca.enrm.cc.name = "airbus_qpac/engcommands/EngineModeSwitchToNorm";
-                ctx->ttca.ecrk.cc.name = "airbus_qpac/engcommands/EngineModeSwitchToCrank";
-                ctx->ttca.eign.cc.name = "airbus_qpac/engcommands/EngineModeSwitchToStart";
+                ctx->ttca.en1r.dc.name[0] = "airbus_qpac/engcommands/Master1On";
+                ctx->ttca.en1r.dc.name[1] = "airbus_qpac/engcommands/Master1Off";
+                ctx->ttca.en2r.dc.name[0] = "airbus_qpac/engcommands/Master2On";
+                ctx->ttca.en2r.dc.name[1] = "airbus_qpac/engcommands/Master2Off";
+                ctx->ttca.ecrk.dc.name[0] = "airbus_qpac/engcommands/EngineModeSwitchToCrank";
+                ctx->ttca.ecrk.dc.name[1] = "airbus_qpac/engcommands/EngineModeSwitchToNorm";
+                ctx->ttca.eign.dc.name[0] = "airbus_qpac/engcommands/EngineModeSwitchToStart";
+                ctx->ttca.eign.dc.name[1] = "airbus_qpac/engcommands/EngineModeSwitchToNorm";
             }
             break;
 
@@ -1647,20 +1660,24 @@ int nvp_chandlers_update(void *inContext)
         ctx->ttca.enbl.cc.name = "sim/annunciator/clear_master_warning"; // cf. ToLiSs simulation manual
         ctx->ttca.enbr.cc.name = "sim/annunciator/clear_master_caution"; // cf. ToLiSs simulation manual
     }
-    // new addon type: clear refs
-    ctx->otto.conn.cc.xpcr = NULL;
-    ctx->otto.disc.cc.xpcr = NULL;
-    ctx->athr.disc.cc.xpcr = NULL;
-    ctx->athr.toga.cc.xpcr = NULL;
-    ctx->ttca.en1r.cc.xpcr = NULL;
-    ctx->ttca.en1c.cc.xpcr = NULL;
-    ctx->ttca.en2r.cc.xpcr = NULL;
-    ctx->ttca.en2c.cc.xpcr = NULL;
-    ctx->ttca.ecrk.cc.xpcr = NULL;
-    ctx->ttca.enrm.cc.xpcr = NULL;
-    ctx->ttca.eign.cc.xpcr = NULL;
-    ctx->ttca.enbl.cc.xpcr = NULL;
-    ctx->ttca.enbr.cc.xpcr = NULL;
+    // new addon type: clear datarefs
+    ctx->otto.conn.cc.   xpcr = NULL;
+    ctx->otto.disc.cc.   xpcr = NULL;
+    ctx->athr.disc.cc.   xpcr = NULL;
+    ctx->athr.toga.cc.   xpcr = NULL;
+    ctx->ttca.en1r.dc.xpcr[0] = NULL;
+    ctx->ttca.en1r.dc.xpcr[1] = NULL;
+//  ctx->ttca.en1c.cc.   xpcr = NULL;
+    ctx->ttca.en2r.dc.xpcr[0] = NULL;
+    ctx->ttca.en2r.dc.xpcr[1] = NULL;
+//  ctx->ttca.en2c.cc.   xpcr = NULL;
+    ctx->ttca.ecrk.dc.xpcr[0] = NULL;
+    ctx->ttca.ecrk.dc.xpcr[1] = NULL;
+//  ctx->ttca.enrm.cc.   xpcr = NULL;
+    ctx->ttca.eign.dc.xpcr[0] = NULL;
+    ctx->ttca.eign.dc.xpcr[1] = NULL;
+    ctx->ttca.enbl.cc.   xpcr = NULL;
+    ctx->ttca.enbr.cc.   xpcr = NULL;
 
     /* plane-specific braking ratios */
     if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
@@ -3755,7 +3772,52 @@ static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
             }
             XPLMCommandOnce(cc->xpcr);
+            return 0;
         }
+        return 0;
+    }
+    return 0;
+}
+
+static int chandler_twosw(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandBegin)
+    {
+        chandler_doublec *dc = inRefcon;
+        if (dc->name[0])
+        {
+            if (dc->xpcr[0] == NULL)
+            {
+                if ((dc->xpcr[0] = XPLMFindCommand(dc->name[0])) == NULL)
+                {
+                    ndt_log("navP [error]: command not found: \"%s\"\n", dc->name[0]);
+                    XPLMSpeakString("failed to resolve command");
+                    dc->name[0] = NULL; return 0;
+                }
+            }
+            XPLMCommandOnce(dc->xpcr[0]);
+            return 0;
+        }
+        return 0;
+    }
+    if (inPhase == xplm_CommandEnd)
+    {
+        chandler_doublec *dc = inRefcon;
+        if (dc->name[1])
+        {
+            if (dc->xpcr[1] == NULL)
+            {
+                if ((dc->xpcr[1] = XPLMFindCommand(dc->name[1])) == NULL)
+                {
+                    ndt_log("navP [error]: command not found: \"%s\"\n", dc->name[1]);
+                    XPLMSpeakString("failed to resolve command");
+                    dc->name[1] = NULL; return 0;
+                }
+            }
+            XPLMCommandOnce(dc->xpcr[1]);
+            return 0;
+        }
+        return 0;
     }
     return 0;
 }
@@ -6355,13 +6417,13 @@ static int first_fcall_do(chandler_context *ctx)
         &ctx->otto.disc.cc,
         &ctx->athr.disc.cc,
         &ctx->athr.toga.cc,
-        &ctx->ttca.en1r.cc,
-        &ctx->ttca.en1c.cc,
-        &ctx->ttca.en2r.cc,
-        &ctx->ttca.en2c.cc,
-        &ctx->ttca.ecrk.cc,
-        &ctx->ttca.enrm.cc,
-        &ctx->ttca.eign.cc,
+//      &ctx->ttca.en1r.cc,
+//      &ctx->ttca.en1c.cc,
+//      &ctx->ttca.en2r.cc,
+//      &ctx->ttca.en2c.cc,
+//      &ctx->ttca.ecrk.cc,
+//      &ctx->ttca.enrm.cc,
+//      &ctx->ttca.eign.cc,
         &ctx->ttca.enbl.cc,
         &ctx->ttca.enbr.cc,
         &ctx->bking.rc_brk.rg,
