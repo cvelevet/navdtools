@@ -3781,7 +3781,7 @@ static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_twosw(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    if (inPhase == xplm_CommandBegin)
+    if (inPhase == xplm_CommandBegin /* || inPhase == XPLMCommandContinue */)
     {
         chandler_doublec *dc = inRefcon;
         if (dc->name[0])
