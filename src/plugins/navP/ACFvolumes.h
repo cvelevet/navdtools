@@ -137,6 +137,8 @@ typedef struct
         struct
         {
             XPLMDataRef master;
+            XPLMDataRef animc1;
+            XPLMDataRef animc2;
         } tlss;
         struct
         {
