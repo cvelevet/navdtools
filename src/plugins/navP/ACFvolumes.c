@@ -172,22 +172,23 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.pe.vol1);
         }
         else if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("vatsim.protodev.clients.xsquawkbox"))
         {
-SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v1,          sqrt(ctx->custom.atc.xb.vol1));
-SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v2,          sqrt(ctx->custom.atc.xb.vol1));
-SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v1,          sqrt(ctx->custom.atc.xb.vol1));
-SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2,          sqrt(ctx->custom.atc.xb.vol1));
-SETDR_CHECK(XPLMSetDataf,ctx->custom.tlss.animc1, 270.0f * sqrt(ctx->custom.atc.xb.vol1));
-SETDR_CHECK(XPLMSetDataf,ctx->custom.tlss.animc2, 270.0f * sqrt(ctx->custom.atc.xb.vol2));
-            XPLMSetDataf(ctx->radio.vol.adf1,                    ctx->custom.atc.xb.vol2);
-            XPLMSetDataf(ctx->radio.vol.adf2,                    ctx->custom.atc.xb.vol2);
-            XPLMSetDataf(ctx->radio.vol.dme0,                    ctx->custom.atc.xb.vol2);
-            XPLMSetDataf(ctx->radio.vol.mark,                    ctx->custom.atc.xb.vol2);
-            XPLMSetDataf(ctx->radio.vol.nav1,                    ctx->custom.atc.xb.vol2);
-            XPLMSetDataf(ctx->radio.vol.nav2,                    ctx->custom.atc.xb.vol2);
-            XPLMSetDataf(ctx->radio.vol.com1,              sqrt(ctx->custom.atc.xb.vol1));
-            XPLMSetDataf(ctx->radio.vol.com2,              sqrt(ctx->custom.atc.xb.vol1));
-            XPLMSetDataf(ctx->radio.volume,                      ctx->custom.atc.xb.vol0);
-            XPLMSetDatai(ctx->radio.atctxt,                              (volume > .01f)); // Text-to-speech overlays
+            float atc_controller_volume = sqrtf(7.0f / 8.0f); // (VATSIM: ~93.5%)
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v1,          atc_controller_volume);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v2,          atc_controller_volume);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v1,          atc_controller_volume);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2,          atc_controller_volume);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.tlss.animc1, 270.0f * atc_controller_volume);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.tlss.animc2, 270.0f * atc_controller_volume);
+            XPLMSetDataf(ctx->radio.vol.adf1,            ctx->custom.atc.xb.vol2);
+            XPLMSetDataf(ctx->radio.vol.adf2,            ctx->custom.atc.xb.vol2);
+            XPLMSetDataf(ctx->radio.vol.dme0,            ctx->custom.atc.xb.vol2);
+            XPLMSetDataf(ctx->radio.vol.mark,            ctx->custom.atc.xb.vol2);
+            XPLMSetDataf(ctx->radio.vol.nav1,            ctx->custom.atc.xb.vol2);
+            XPLMSetDataf(ctx->radio.vol.nav2,            ctx->custom.atc.xb.vol2);
+            XPLMSetDataf(ctx->radio.vol.com1,              atc_controller_volume);
+            XPLMSetDataf(ctx->radio.vol.com2,              atc_controller_volume);
+            XPLMSetDataf(ctx->radio.volume,              ctx->custom.atc.xb.vol0);
+            XPLMSetDatai(ctx->radio.atctxt,                      (volume > .01f)); // Text-to-speech overlays
             int tx = XPLMGetDatai(ctx->radio.tx.comm);
             if (XPLMGetDatai(ctx->radio.rx.com1) == 1 &&
                 XPLMGetDatai(ctx->radio.rx.com2) == 1 && tx == 0)
