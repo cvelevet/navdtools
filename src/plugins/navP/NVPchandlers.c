@@ -165,7 +165,7 @@ typedef struct
     int  last_cycle_number;
     float curr_period_durr;
     float elapsed_fr_reset;
-    float every_ten_secnds;
+    float every_sixty_secs;
     XPLMDataRef ground_spd;
     XPLMDataRef auto_p_sts;
     XPLMDataRef auto_t_sts;
@@ -5083,52 +5083,18 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                     break;
             }
         }
-        if ((grndp->every_ten_secnds += inElapsedSinceLastCall) >= 10.0f)
+        if ((grndp->every_sixty_secs += inElapsedSinceLastCall) >= 60.0f)
         {
-            if (!XPLMGetDatai(grndp->time.sim_pause))
-            {
-                // place here: check every 10 seconds only
-                // partial time sync: minutes/seconds only
-                switch (XPLMGetDatai(grndp->time.view_type)) // skip if menu showing etc.
-                {
-                    case 1000: // 2D w/panel
-                    case 1017: // ext. chase
-                    case 1023: // 2D w/heads
-                    case 1026: // 3D cockpit
-                    case 1031: // ext. along
-                        {
-                            ndt_date datenow = ndt_date_now();
-                            float minsec_new = (float)datenow.minutes * 60.0f + (float)datenow.seconds * 1.0f;
-                            float time_currt = XPLMGetDataf(grndp->time.zulu_time_sec);
-                            float minsec_cur = fmodf(time_currt, 3600.0f);
-                            if (minsec_cur >   15.0f && // hours change
-                                minsec_cur < 3585.0f && // don't resync
-                                fabsf(minsec_cur - minsec_new) > 15.0f)
-                            {
-#if 0
-                                float hh = floorf(time_currt / 3600.0f);
-                                float mc = floorf(minsec_cur /   60.0f);
-                                float mn = floorf(minsec_new /   60.0f);
-                                float sc = fmodf (minsec_cur,    60.0f);
-                                float sn = fmodf (minsec_new,    60.0f);
-                                float nh = datenow.hours, nm = datenow.minutes, ns = datenow.seconds;
-                                ndt_log("navP [info]: time: resync: difference: %lf\n", fabsf(minsec_cur-minsec_new));
-                                ndt_log("navP [info]: time: resync: irl: now: %02.0lf:%02.0lf:%02.0lf\n", nh, nm, ns);
-                                ndt_log("navP [info]: time: resync: sim: old: %02.0lf:%02.0lf:%02.0lf\n", hh, mc, sc);
-                                ndt_log("navP [info]: time: resync: sim: new: %02.0lf:%02.0lf:%02.0lf\n", hh, mn, sn);
-#endif
-                                XPLMSetDataf(grndp->time.zulu_time_sec, time_currt - minsec_cur + minsec_new);
-                            }
-                        }
-                        break;
-
-                    default:
-                        break;
-                }
+            ndt_date now = ndt_date_now();
+            if ((0 < now.minutes) && (now.minutes < 59))
+            { // avoid accidentally switching time zones
+                float xptime = XPLMGetDataf(grndp->time.zulu_time_sec);
+                float minsec = (float)now.minutes * 60.0f + (float)now.seconds * 1.0f;
+                XPLMSetDataf(grndp->time.zulu_time_sec, xptime - fmodf(xptime, 3600.0f) + minsec);
             }
-            grndp->every_ten_secnds = 0.0f;
+            grndp->every_sixty_secs = 0.0f;
         }
-#endif
+#endif//TIM_ONLY
 
         /* XXX: check whether we just connected to PilotEdge or VATSIM */
         if (grndp->oatc.pe_is_on)
@@ -6489,19 +6455,19 @@ static int first_fcall_do(chandler_context *ctx)
      * Partial time and date sync: sync date with today, sync
      * minutes and seconds; however, we don't set hour of day.
      */
-    if ((d_ref = XPLMFindDataRef("sim/time/local_date_days")))
-    {
-        ndt_date today_now = ndt_date_now(); // note: XP doesn't know 02/29 (easier :-)
-        int month2days[12] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, };
-        int xplm_date_days = month2days[today_now.month - 1] + today_now.day - 1;
-        XPLMSetDatai(d_ref, xplm_date_days);
-    }
     if (ctx->ground.time.zulu_time_sec)
     {
-        ndt_date datenow = ndt_date_now();
-        float time_currt = XPLMGetDataf(ctx->ground.time.zulu_time_sec);
-        float minsec_new = (float)datenow.minutes * 60.0f + (float)datenow.seconds * 1.0f;
-        XPLMSetDataf(ctx->ground.time.zulu_time_sec, time_currt - fmodf(time_currt, 3600.0f) + minsec_new);
+        ndt_date now = ndt_date_now();
+        float xptime = XPLMGetDataf(ctx->ground.time.zulu_time_sec);
+        float minsec = (float)now.minutes * 60.0f + (float)now.seconds * 1.0f;
+        XPLMSetDataf(ctx->ground.time.zulu_time_sec, xptime - fmodf(xptime, 3600.0f) + minsec);
+        if ((d_ref = XPLMFindDataRef("sim/time/local_date_days")))
+        {
+            // note: X-Plane doesn't seem to know 02/29 (makes our job that much easier :-)
+            int month2days[12] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, };
+            int xplm_date_days = month2days[now.month - 1] + now.day - 1;
+            XPLMSetDatai(d_ref, xplm_date_days);
+        }
     }
 #endif
 
@@ -6689,7 +6655,7 @@ static int first_fcall_do(chandler_context *ctx)
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
     }
     ctx->ground.last_cycle_number = -1;
-    ctx->ground.every_ten_secnds = 0.0f;
+    ctx->ground.every_sixty_secs = 0.0f;
     XPLMRegisterFlightLoopCallback((ctx->ground.flc_g = &gnd_stab_hdlr), 1, &ctx->ground);
 
     /* mixture and prop pitch command handlers */
