@@ -4994,28 +4994,42 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         ndt_date now = ndt_date_now();
         if (grndp->last_second_index != 30 && now.seconds == 30)
         {
+            int xphrs = XPLMGetDatai(grndp->time.zulu_time_hrs);
             int xpmin = XPLMGetDatai(grndp->time.zulu_time_min);
             int skip1 = xpmin == 59 && now.minutes == 0; // don't go backwards
             int skip2 = xpmin == 0 && now.minutes == 59; // nor forward either
             if (skip1 == 0 && skip2 == 0)
             {
-#if 1
-                ndt_log("navP [info]: time: re: sync: %02d : %02d : %02d -> %02d : %02d : %02d\n",
-                        XPLMGetDatai(grndp->time.zulu_time_hrs),
-                        XPLMGetDatai(grndp->time.zulu_time_min),
-                        XPLMGetDatai(grndp->time.zulu_time_sec),
-                        XPLMGetDatai(grndp->time.zulu_time_hrs),
-                        now.minutes, now.seconds);
-#endif
                 if (xpmin != now.minutes)
                 {
-                    if (0) // TODO: if (difference > seconds(150))
+                    int m = XPLMGetDatai(grndp->time.zulu_time_min);
+                    int s = XPLMGetDatai(grndp->time.zulu_time_sec);
+                    int d = (60 * now.minutes + now.seconds) - (60 * m + s);
+                    if (d > +1800)
                     {
-                        // TODO: update hour as required (round to closest???)
+                        xphrs = (xphrs - 1) % 24; // increase by over 30 minutes -> decrease by under 30 minutes
                     }
+                    if (d < -1800)
+                    {
+                        xphrs = (xphrs + 1) % 24; // descrese by over 30 minutes -> increase by under 30 minutes
+                    }
+                    if (abs(d) > 90)
+                    {
+                        ndt_log("navP [info]: zulu time resync: %02d:%02d:%02d -> %02d:%02d:%02d at %02d:%02d:%02d\n",
+                                XPLMGetDatai(grndp->time.zulu_time_hrs), m, s, xphrs,
+                                now.minutes, now.seconds, now.hours, now.minutes, now.seconds);
+                    }
+                    XPLMSetDataf(grndp->time.zulu_time_xpl, (float)(3600 * xphrs + 60 * now.minutes + now.seconds));
                 }
-                int h = XPLMGetDatai(grndp->time.zulu_time_hrs), m = now.minutes, s = now.seconds;
-                XPLMSetDataf(grndp->time.zulu_time_xpl, (float)h * 3600.0f + (float)m * 60.0f + (float)s);
+                else
+                {
+#if 0
+                    ndt_log("navP [debug]: zulu time resync: %02d:%02d:%02d -> %02d:%02d:%02d at %02d:%02d:%02d\n",
+                            xphrs, XPLMGetDatai(grndp->time.zulu_time_min), XPLMGetDatai(grndp->time.zulu_time_sec),
+                            xphrs, now.minutes, now.seconds, now.hours, now.minutes, now.seconds);
+#endif
+                    XPLMSetDataf(grndp->time.zulu_time_xpl, (float)(3600 * xphrs + 60 * now.minutes + now.seconds));
+                }
             }
         }
         grndp->last_second_index = now.seconds;
@@ -6496,6 +6510,7 @@ static int first_fcall_do(chandler_context *ctx)
     if (ctx->ground.time.zulu_time_xpl)
     {
         ndt_date now = ndt_date_now();
+        int xphrs = XPLMGetDatai(ctx->ground.time.zulu_time_hrs);
         if ((d_ref = XPLMFindDataRef("sim/time/local_date_days")))
         {
             // note: X-Plane doesn't seem to know 02/29 (makes our job that much easier :-)
@@ -6503,9 +6518,33 @@ static int first_fcall_do(chandler_context *ctx)
             int xplm_date_days = month2days[now.month - 1] + now.day - 1;
             XPLMSetDatai(d_ref, xplm_date_days);
         }
-        // TODO: update hour as required (round to closest???)
-        int h = XPLMGetDatai(ctx->ground.time.zulu_time_hrs), m = now.minutes, s = now.seconds;
-        XPLMSetDataf(ctx->ground.time.zulu_time_xpl, (float)h * 3600.0f + (float)m * 60.0f + (float)s);
+        int m = XPLMGetDatai(ctx->ground.time.zulu_time_min);
+        int s = XPLMGetDatai(ctx->ground.time.zulu_time_sec);
+        int d = (60 * now.minutes + now.seconds) - (60 * m + s);
+        if (d > +1800)
+        {
+            xphrs = (xphrs - 1) % 24; // increase by over 30 minutes -> decrease by under 30 minutes
+        }
+        if (d < -1800)
+        {
+            xphrs = (xphrs + 1) % 24; // descrese by over 30 minutes -> increase by under 30 minutes
+        }
+        if (abs(d) > 90)
+        {
+            ndt_log("navP [info]: zulu time resync: %02d:%02d:%02d -> %02d:%02d:%02d at %02d:%02d:%02d\n",
+                    XPLMGetDatai(ctx->ground.time.zulu_time_hrs), m, s, xphrs,
+                    now.minutes, now.seconds, now.hours, now.minutes, now.seconds);
+        }
+#if 0
+        else
+        {
+            ndt_log("navP [debug]: zulu time resync: %02d:%02d:%02d -> %02d:%02d:%02d at %02d:%02d:%02d (%d -> %d, d  == %d)\n",
+                    xphrs, XPLMGetDatai(ctx->ground.time.zulu_time_min), XPLMGetDatai(ctx->ground.time.zulu_time_sec),
+                    xphrs, now.minutes, now.seconds, now.hours, now.minutes, now.seconds,
+                    60 * now.minutes + now.seconds, 60 * m + s, d);
+        }
+#endif
+        XPLMSetDataf(ctx->ground.time.zulu_time_xpl, (float)(3600 * xphrs + 60 * now.minutes + now.seconds));
     }
 #endif
 
