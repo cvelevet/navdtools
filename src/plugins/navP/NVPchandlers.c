@@ -162,9 +162,9 @@ typedef struct
     void           *assert;
     void         *nvp_menu;
     int  last_cycle_number;
+    int  last_second_index;
     float curr_period_durr;
     float elapsed_fr_reset;
-    float every_sixty_secs;
     XPLMDataRef ground_spd;
     XPLMDataRef auto_p_sts;
     XPLMDataRef auto_t_sts;
@@ -197,7 +197,10 @@ typedef struct
     {
         XPLMDataRef     sim_pause;
         XPLMDataRef     view_type;
+        XPLMDataRef zulu_time_xpl;
         XPLMDataRef zulu_time_sec;
+        XPLMDataRef zulu_time_min;
+        XPLMDataRef zulu_time_hrs;
     } time;
 } refcon_ground;
 
@@ -1161,7 +1164,10 @@ void* nvp_chandlers_init(void)
     ctx->ground.elev_m_agl          = XPLMFindDataRef  ("sim/flightmodel/position/y_agl");
     ctx->ground.time.view_type      = XPLMFindDataRef  ("sim/graphics/view/view_type");
     ctx->ground.time.sim_pause      = XPLMFindDataRef  ("sim/time/paused");
-    ctx->ground.time.zulu_time_sec  = XPLMFindDataRef  ("sim/time/zulu_time_sec");
+    ctx->ground.time.zulu_time_xpl  = XPLMFindDataRef  ("sim/time/zulu_time_sec");
+    ctx->ground.time.zulu_time_hrs  = XPLMFindDataRef  ("sim/cockpit2/clock_timer/zulu_time_hours");
+    ctx->ground.time.zulu_time_min  = XPLMFindDataRef  ("sim/cockpit2/clock_timer/zulu_time_minutes");
+    ctx->ground.time.zulu_time_sec  = XPLMFindDataRef  ("sim/cockpit2/clock_timer/zulu_time_seconds");
     ctx->ground.oatc.vol_com0       = XPLMFindDataRef  ("sim/operation/sound/radio_volume_ratio");
     ctx->ground.oatc.vol_com1       = XPLMFindDataRef  ("sim/cockpit2/radios/actuators/audio_volume_com1");
     ctx->ground.oatc.vol_com2       = XPLMFindDataRef  ("sim/cockpit2/radios/actuators/audio_volume_com2");
@@ -1174,6 +1180,9 @@ void* nvp_chandlers_init(void)
         !ctx->ground.elev_m_agl         ||
         !ctx->ground.time.view_type     ||
         !ctx->ground.time.sim_pause     ||
+        !ctx->ground.time.zulu_time_xpl ||
+        !ctx->ground.time.zulu_time_hrs ||
+        !ctx->ground.time.zulu_time_min ||
         !ctx->ground.time.zulu_time_sec ||
         !ctx->ground.oatc.vol_com0      ||
         !ctx->ground.oatc.vol_com1      ||
@@ -4957,6 +4966,46 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         }
 
 #if TIM_ONLY
+        /*
+         * Partial time sync: minutes/seconds.
+         * We overwrite once every IRL second.
+         *
+         * We don't overwrite if the time is within one minute of the hour
+         * changeover to avoid accidentally going back/forward by one hour.
+         */
+        ndt_date now = ndt_date_now();
+        if (grndp->last_second_index != 30 && now.seconds == 30)
+        {
+            int xpmin = XPLMGetDatai(grndp->time.zulu_time_min);
+            int skip1 = xpmin == 59 && now.minutes == 0; // don't go backwards
+            int skip2 = xpmin == 0 && now.minutes == 59; // nor forward either
+            if (skip1 == 0 && skip2 == 0)
+            {
+#if 1
+                ndt_log("navP [info]: time: re: sync: %02d : %02d : %02d -> %02d : %02d : %02d\n",
+                        XPLMGetDatai(grndp->time.zulu_time_hrs),
+                        XPLMGetDatai(grndp->time.zulu_time_min),
+                        XPLMGetDatai(grndp->time.zulu_time_sec),
+                        XPLMGetDatai(grndp->time.zulu_time_hrs),
+                        now.minutes, now.seconds);
+#endif
+                if (xpmin != now.minutes)
+                {
+                    if (0) // TODO: if (difference > seconds(150))
+                    {
+                        // TODO: update hour as required (round to closest???)
+                    }
+                }
+                int h = XPLMGetDatai(grndp->time.zulu_time_hrs), m = now.minutes, s = now.seconds;
+                XPLMSetDataf(grndp->time.zulu_time_xpl, (float)h * 3600.0f + (float)m * 60.0f + (float)s);
+            }
+        }
+        grndp->last_second_index = now.seconds;
+
+        /*
+         * Auto-enable/disable sim clouds based
+         * on self-measured average frame rate.
+         */
         if (grndp->last_cycle_number < 0)
         {
             // first call from (re-)registration
@@ -5064,17 +5113,6 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                     grndp->elapsed_fr_reset = 0.0f;
                     break;
             }
-        }
-        if ((grndp->every_sixty_secs += inElapsedSinceLastCall) >= 60.0f)
-        {
-            ndt_date now = ndt_date_now();
-            if ((0 < now.minutes) && (now.minutes < 59))
-            { // avoid accidentally switching time zones
-                float xptime = XPLMGetDataf(grndp->time.zulu_time_sec);
-                float minsec = (float)now.minutes * 60.0f + (float)now.seconds * 1.0f;
-                XPLMSetDataf(grndp->time.zulu_time_sec, xptime - fmodf(xptime, 3600.0f) + minsec);
-            }
-            grndp->every_sixty_secs = 0.0f;
         }
 #endif//TIM_ONLY
 
@@ -6437,12 +6475,9 @@ static int first_fcall_do(chandler_context *ctx)
      * Partial time and date sync: sync date with today, sync
      * minutes and seconds; however, we don't set hour of day.
      */
-    if (ctx->ground.time.zulu_time_sec)
+    if (ctx->ground.time.zulu_time_xpl)
     {
         ndt_date now = ndt_date_now();
-        float xptime = XPLMGetDataf(ctx->ground.time.zulu_time_sec);
-        float minsec = (float)now.minutes * 60.0f + (float)now.seconds * 1.0f;
-        XPLMSetDataf(ctx->ground.time.zulu_time_sec, xptime - fmodf(xptime, 3600.0f) + minsec);
         if ((d_ref = XPLMFindDataRef("sim/time/local_date_days")))
         {
             // note: X-Plane doesn't seem to know 02/29 (makes our job that much easier :-)
@@ -6450,6 +6485,9 @@ static int first_fcall_do(chandler_context *ctx)
             int xplm_date_days = month2days[now.month - 1] + now.day - 1;
             XPLMSetDatai(d_ref, xplm_date_days);
         }
+        // TODO: update hour as required (round to closest???)
+        int h = XPLMGetDatai(ctx->ground.time.zulu_time_hrs), m = now.minutes, s = now.seconds;
+        XPLMSetDataf(ctx->ground.time.zulu_time_xpl, (float)h * 3600.0f + (float)m * 60.0f + (float)s);
     }
 #endif
 
@@ -6637,7 +6675,6 @@ static int first_fcall_do(chandler_context *ctx)
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
     }
     ctx->ground.last_cycle_number = -1;
-    ctx->ground.every_sixty_secs = 0.0f;
     XPLMRegisterFlightLoopCallback((ctx->ground.flc_g = &gnd_stab_hdlr), 1, &ctx->ground);
 
     /* mixture and prop pitch command handlers */
