@@ -26,6 +26,7 @@ int   nvp_chandlers_reset (void   *chandler_context);
 int   nvp_chandlers_update(void   *chandler_context);
 int   nvp_chandlers_close (void **_chandler_context);
 void  nvp_chandlers_onload(void   *chandler_context);
+void  nvp_chandlers_scload(void   *chandler_context);
 void  nvp_chandlers_setmnu(void   *chandler_context, void *menu_context);
 
 #endif /* NVP_CHANDLERS_H */

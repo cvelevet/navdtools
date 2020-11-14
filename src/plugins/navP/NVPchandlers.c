@@ -1474,6 +1474,19 @@ void nvp_chandlers_onload(void *inContext)
     }
 }
 
+void nvp_chandlers_scload(void *chandler_context_in)
+{
+    if (chandler_context_in)
+    {
+        // reset fps computation when new scenery loads
+        chandler_context *ctx = chandler_context_in;
+        refcon_ground *grndp = &ctx->ground;
+        grndp->last_cycle_number = -1;
+        return;
+    }
+    return;
+}
+
 static void print_aircft_info(acf_info_context *info)
 {
     ndt_log("navP [info]: %s (\"%s\", \"%s\", \"%s\", \"%s\", \"%s\")\n",
@@ -5058,9 +5071,12 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         {
             switch (XPLMGetDatai(grndp->time.view_type)) // skip if menu showing etc.
             {
-                case 1000: // 2D w/panel
-                case 1023: // 2D w/heads
+                case 1000: // panel
+                case 1017: // chase
+                case 1018: // circle
+                case 1023: // 2D w/HUD
                 case 1026: // 3D cockpit
+                case 1031: // ride-along
                     if ((grndp->elapsed_fr_reset += inElapsedSinceLastCall) > grndp->curr_period_durr)
                     {
                         /*
