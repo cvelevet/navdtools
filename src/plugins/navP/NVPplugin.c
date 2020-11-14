@@ -129,6 +129,7 @@ void nvp_plugin_message(XPLMPluginID inFromWho,
 
         case XPLM_MSG_SCENERY_LOADED:
             nvp_menu_reset(navpmenu_context);
+            nvp_chandlers_scload(chandler_context);
             break;
 
         case XPLM_MSG_AIRPLANE_COUNT_CHANGED:
