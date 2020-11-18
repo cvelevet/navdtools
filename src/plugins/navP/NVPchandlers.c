@@ -4286,7 +4286,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     /*
                      * future: auto-set AviTab location preferences???
                      *
-                     * if (2 == XPLMGetDadai(XPLMGetDataref("XCrafts/ERJ/avitab_location"))
+                     * if (2 == XPLMGetDatai(XPLMGetDataref("XCrafts/ERJ/avitab_location"))
                      * {
                      *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_x_pos"), 0.5175f);
                      *     XPLMSetDataf(XPLMGetDataRef("XCrafts/ERJ/avitab_x_axis"),   0.0f);
@@ -6146,9 +6146,10 @@ static int first_fcall_do(chandler_context *ctx)
             XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 10.0f); // initial CLB pitch
             break;
 
-        case ACF_TYP_GENERIC:
-            // note: this path is always non-verbose (never warn for unapplicable datarefs)
-            // datarefs: Aerobask
+        case ACF_TYP_GENERIC: // note: path is never verbose (don't warn for unapplicable datarefs)
+            /*
+             * Aerobask
+             */
             _DO(0, XPLMSetDatai, 1, "sim/har/reflets");                             // LEG2: refl. off
             _DO(0, XPLMSetDatai, 0, "sim/har/pitchservo");                          // LEG2: 500ft/min
             _DO(0, XPLMSetDatai, 0, "aerobask/E1000/flags_on");                     // EPIC
@@ -6169,7 +6170,32 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 0, "aerobask/panthera/reflections_windshield_on"); // PIPA
             _DO(0,XPLMSetDataf,0.0f,"aerobask/panthera/reflections_EFIS");          // PIPA
             _DO(0,XPLMSetDataf,0.0f,"aerobask/panthera/reflections_annunciators");  // PIPA
-            // datarefs: Alabeo, Carenado, SimCoders REP
+            /*
+             * Aerobask: Epic Victory G1000 Edition
+             */
+            if ((d_ref = XPLMFindDataRef("aerobask/hide_static")) &&
+                (cr = XPLMFindCommand("aerobask/toggle_static")))
+            {
+                if (XPLMGetDatai(d_ref) == 0)
+                {
+                    XPLMCommandOnce(cr);
+                }
+                if ((d_ref = XPLMFindDataRef("sim/graphics/view/hide_yoke")) &&
+                    (cr = XPLMFindCommand("sim/operation/toggle_yoke")))
+                {
+                    if (XPLMGetDatai(d_ref) != 0)
+                    {
+                        XPLMCommandOnce(cr);
+                    }
+                }
+                if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
+                {
+                    XPLMCommandOnce(cr);
+                }
+            }
+            /*
+             * Alabeo/Carenado, SimCoders REP
+             */
             _DO(0, XPLMSetDatai, 1, "com/dkmp/HideYokeL");                          // various aircraft
             _DO(0, XPLMSetDatai, 1, "com/dkmp/HideYokeR");                          // various aircraft
             _DO(0, XPLMSetDatai, 0, "thranda/views/InstRefl");                      // various aircraft
@@ -6246,7 +6272,9 @@ static int first_fcall_do(chandler_context *ctx)
                 _DO(0, XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideL");
                 _DO(0, XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideR");
             }
-            // datarefs: X-Plane default
+            /*
+             * X-Plane default
+             */
             _DO(0, XPLMSetDataf, 0.8f, "sim/cockpit/electrical/instrument_brightness"); // set all at once
             switch (ctx->info->engine_type1) // engine-specific takeoff pitch
             {
@@ -6260,6 +6288,9 @@ static int first_fcall_do(chandler_context *ctx)
                     XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 7.0f);
                     break;
             }
+            /*
+             * Aircraft-specific
+             */
             if (ctx->info->author[0] && ctx->info->descrp[0])
             {
                 if (!STRN_CASECMP_AUTO(ctx->info->author, "After"))
@@ -6334,22 +6365,34 @@ static int first_fcall_do(chandler_context *ctx)
                 {
                     if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Pipistrel Panthera"))
                     {
-                        skview = 1;
+                        if (NULL != XPLMFindDataRef("aerobask/panthera/reflections_skyview_on"))
+                        {
+                            skview = 1;
+                        }
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
                         _DO(0, XPLMSetDataf, 120.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
                     }
                     if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Epic E1000") ||
                         !STRN_CASECMP_AUTO(ctx->info->descrp, "Epic Victory"))
                     {
-                        skview = 1;
-                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
-                        _DO(0, XPLMSetDataf, 150.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
-                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
-                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/ice/ice_pitot_heat_on_copilot");
-                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
-                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/EFIS/EFIS_weather_on");
-                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/EFIS/EFIS_tcas_on");
-                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/ice/ice_detect_on");
+                        if (NULL != XPLMFindDataRef("aerobask/E1000/reflections_skyview_on") ||
+                            NULL != XPLMFindDataRef("aerobask/victory/reflections_skyview_on"))
+                        {
+                            skview = 1;
+                            _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
+                            _DO(0, XPLMSetDataf, 150.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+                        }
+                        else // Victory G1000 Edition (Performance_Guidelines.pdf)
+                        {
+                            _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
+                            _DO(0, XPLMSetDataf, 190.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+                        }
+                        _DO(0, XPLMSetDatai, 0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
+                        _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_copilot");
+                        _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
+                        _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_weather_on");
+                        _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_tcas_on");
+                        _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_detect_on");
                     }
                     if (!strcasecmp(ctx->info->icaoid, "EA50"))
                     {
