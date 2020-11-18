@@ -4414,11 +4414,19 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     // fall through
                 default:
                 {
-                    if (*cdu->auth && *cdu->desc)
+                    if (*cdu->auth || *cdu->desc) // we may see "" description
                     {
                         if (!STRN_CASECMP_AUTO(cdu->auth, "Aerobask") ||
                             !STRN_CASECMP_AUTO(cdu->auth, "Stephane Buon"))
                         {
+                            if ((cdu->command[0] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
+                                (cdu->command[1] = XPLMFindCommand("sim/GPS/g1000n3_popup")) &&
+                                (cdu->dataref[0] = XPLMFindDataRef("aerobask/md302/sw_knob_p")))
+                            {
+                                cdu->i_cycle_id = 0;
+                                cdu->i_aerobask = 1; // MD-302 + GFC700 + G1000 (x2)
+                                cdu->i_disabled = 0; break; // Aerobask G1000 (DA62)
+                            }
                             if ((cdu->command[0] = XPLMFindCommand("aerobask/gfc700_popup_toggle")) &&
                                 (cdu->command[1] = XPLMFindCommand("aerobask/gcu477_popup_toggle")) &&
                                 (cdu->command[2] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
@@ -4664,6 +4672,27 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 // fall through
             default:
+                if (cdu->i_aerobask == 1)
+                {
+                    switch (cdu->i_cycle_id)
+                    {
+                        case 0:
+                            XPLMCommandOnce(cdu->command[0]); // G1000: Lt display (show)
+                            cdu->i_cycle_id = 1;
+                            break;
+                        case 1:
+                            XPLMCommandOnce(cdu->command[0]); // G1000: Lt display (hide)
+                            XPLMCommandOnce(cdu->command[1]); // G1000: Ct display (show)
+                            cdu->i_cycle_id = 2;
+                            break;
+                        case 2:
+                        default:
+                            XPLMCommandOnce(cdu->command[1]); // G1000: Ct display (hide)
+                            cdu->i_cycle_id = 0;
+                            break;
+                    }
+                    return 0;
+                }
                 if (cdu->i_aerobask == 2)
                 {
                     switch (cdu->i_cycle_id)
@@ -4680,6 +4709,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             XPLMCommandOnce(cdu->command[1]); // GCU-477: keyboard (show)
                             cdu->i_cycle_id = 2;
                             break;
+                        case 2:
                         default:
                             XPLMCommandOnce(cdu->command[3]); // G1000: Ct display (hide)
                             XPLMCommandOnce(cdu->command[1]); // GCU-477: keyboard (hide)
@@ -6311,7 +6341,7 @@ static int first_fcall_do(chandler_context *ctx)
             /*
              * Aircraft-specific
              */
-            if (ctx->info->author[0] && ctx->info->descrp[0])
+            if (ctx->info->author[0] || ctx->info->descrp[0]) // we may see "" description
             {
                 if (!STRN_CASECMP_AUTO(ctx->info->author, "After"))
                 {
@@ -6392,8 +6422,8 @@ static int first_fcall_do(chandler_context *ctx)
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
                         _DO(0, XPLMSetDataf, 120.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
                     }
-                    if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Epic E1000") ||
-                        !STRN_CASECMP_AUTO(ctx->info->descrp, "Epic Victory"))
+                    else if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Epic E1000") ||
+                             !STRN_CASECMP_AUTO(ctx->info->descrp, "Epic Victory"))
                     {
                         if (NULL != XPLMFindDataRef("aerobask/E1000/reflections_skyview_on") ||
                             NULL != XPLMFindDataRef("aerobask/victory/reflections_skyview_on"))
@@ -6414,7 +6444,12 @@ static int first_fcall_do(chandler_context *ctx)
                         _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_tcas_on");
                         _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_detect_on");
                     }
-                    if (!strcasecmp(ctx->info->icaoid, "EA50"))
+                    else if (!strcasecmp(ctx->info->icaoid, "DA62"))
+                    {
+                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
+                        _DO(0, XPLMSetDataf, 100.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+                    }
+                    else if (!strcasecmp(ctx->info->icaoid, "EA50"))
                     {
                         if (!STRN_CASECMP_AUTO(ctx->info->descrp, "The Eclipse 550"))
                         {
