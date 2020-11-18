@@ -4437,23 +4437,6 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         if (!STRN_CASECMP_AUTO(cdu->auth, "Aerobask") ||
                             !STRN_CASECMP_AUTO(cdu->auth, "Stephane Buon"))
                         {
-                            if ((cdu->command[0] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
-                                (cdu->command[1] = XPLMFindCommand("sim/GPS/g1000n3_popup")) &&
-                                (cdu->dataref[0] = XPLMFindDataRef("aerobask/md302/sw_knob_p")))
-                            {
-                                cdu->i_cycle_id = 0;
-                                cdu->i_aerobask = 1; // MD-302 + GFC700 + G1000 (x2)
-                                cdu->i_disabled = 0; break; // Aerobask G1000 (DA62)
-                            }
-                            if ((cdu->command[0] = XPLMFindCommand("aerobask/gfc700_popup_toggle")) &&
-                                (cdu->command[1] = XPLMFindCommand("aerobask/gcu477_popup_toggle")) &&
-                                (cdu->command[2] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
-                                (cdu->command[3] = XPLMFindCommand("sim/GPS/g1000n3_popup")))
-                            {
-                                cdu->i_cycle_id = 0;
-                                cdu->i_aerobask = 2; // GCU477 + GFC700 + G1000 (x3)
-                                cdu->i_disabled = 0; break; // Aerobask G1000 (EVIC)
-                            }
                             if ((cdu->command[0] = XPLMFindCommand("aerobask/gtn650/Popup")) &&
                                 (cdu->command[1] = XPLMFindCommand("aerobask/skyview/toggle_left")))
                             {
@@ -4462,6 +4445,24 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             if ((cdu->command[0] = XPLMFindCommand("aerobask/skyview/toggle_left")))
                             {
                                 cdu->i_disabled = 0; break; // Aerobask SkyView
+                            }
+                            if ((cdu->command[0] = XPLMFindCommand("aerobask/gfc700_popup_toggle")) &&
+                                (cdu->command[1] = XPLMFindCommand("aerobask/gcu477_popup_toggle")) &&
+                                (cdu->command[2] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
+                                (cdu->command[3] = XPLMFindCommand("sim/GPS/g1000n3_popup")) &&
+                                (cdu->dataref[0] = XPLMFindDataRef("aerobask/tablet/deployed")))
+                            {
+                                cdu->i_cycle_id = 0;
+                                cdu->i_aerobask = 2; // GCU477 + GFC700 + G1000 (x3)
+                                cdu->i_disabled = 0; break; // Aerobask G1000 (EVIC)
+                            }
+                            if ((cdu->command[0] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
+                                (cdu->command[1] = XPLMFindCommand("sim/GPS/g1000n3_popup")) &&
+                                (cdu->command[2] = XPLMFindCommand("aerobask/md302/knob_l")))
+                            {
+                                cdu->i_cycle_id = 0;
+                                cdu->i_aerobask = 1; // MD-302 + GFC700 + G1000 (x2)
+                                cdu->i_disabled = 0; break; // Aerobask G1000 (DA62)
                             }
                             if ((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup")) &&
                                 (cdu->command[1] = XPLMFindCommand("sim/GPS/g430n2_popup")))
@@ -4734,6 +4735,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             cdu->i_cycle_id = 0;
                             break;
                     }
+                    XPLMSetDatai(cdu->dataref[0], 1);
                     return 0;
                 }
                 if (cdu->command[0]) XPLMCommandOnce(cdu->command[0]);
@@ -6221,6 +6223,8 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 0, "aerobask/E1000/flags_on");                     // EPIC
             _DO(0, XPLMSetDatai, 1, "aerobask/E1000/yokeL_hidden");                 // EPIC
             _DO(0, XPLMSetDatai, 1, "aerobask/E1000/yokeR_hidden");                 // EPIC
+            _DO(0, XPLMSetDatai, 0, "aerobask/flags_on");                           // DA62
+            _DO(0, XPLMSetDatai, 0, "aerobask/reflections");                        // DA62
             _DO(0, XPLMSetDatai, 0, "aerobask/show_reflections_windows");           // G.1K
             _DO(0, XPLMSetDatai, 0, "aerobask/show_reflections_instruments");       // G.1K
             _DO(0, XPLMSetDatai, 0, "aerobask/E1000/reflections_skyview_on");       // EPIC
@@ -6464,6 +6468,8 @@ static int first_fcall_do(chandler_context *ctx)
                     }
                     else if (!strcasecmp(ctx->info->icaoid, "DA62"))
                     {
+                        _DO(0, XPLMSetDataf,           0.0f, "aerobask/tablet/anim_x");
+                        _DO(0, XPLMSetDataf, 73.0f / 150.0f, "aerobask/tablet/anim_z");
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
                         _DO(0, XPLMSetDataf, 100.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
                     }
