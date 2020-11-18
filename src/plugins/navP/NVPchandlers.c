@@ -151,6 +151,8 @@ typedef struct
     const char          *auth;
     const char          *desc;
     int                  atyp;
+    int            i_aerobask;
+    int            i_cycle_id;
     int            i_disabled;
     int            i_value[2];
     XPLMDataRef    dataref[4];
@@ -1786,6 +1788,7 @@ int nvp_chandlers_update(void *inContext)
             }
         }
     }
+    ctx->mcdu.rc.i_aerobask = 0;
     ctx->mcdu.rc.i_disabled = -1;
     ctx->mcdu.rc.auth = ctx->info->author;
     ctx->mcdu.rc.desc = ctx->info->descrp;
@@ -4416,6 +4419,15 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         if (!STRN_CASECMP_AUTO(cdu->auth, "Aerobask") ||
                             !STRN_CASECMP_AUTO(cdu->auth, "Stephane Buon"))
                         {
+                            if ((cdu->command[0] = XPLMFindCommand("aerobask/gfc700_popup_toggle")) &&
+                                (cdu->command[1] = XPLMFindCommand("aerobask/gcu477_popup_toggle")) &&
+                                (cdu->command[2] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
+                                (cdu->command[3] = XPLMFindCommand("sim/GPS/g1000n3_popup")))
+                            {
+                                cdu->i_cycle_id = 0;
+                                cdu->i_aerobask = 2; // GCU477 + GFC700 + G1000 (x3)
+                                cdu->i_disabled = 0; break; // Aerobask G1000 (EVIC)
+                            }
                             if ((cdu->command[0] = XPLMFindCommand("aerobask/gtn650/Popup")) &&
                                 (cdu->command[1] = XPLMFindCommand("aerobask/skyview/toggle_left")))
                             {
@@ -4652,6 +4664,30 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 // fall through
             default:
+                if (cdu->i_aerobask == 2)
+                {
+                    switch (cdu->i_cycle_id)
+                    {
+                        case 0:
+                            XPLMCommandOnce(cdu->command[2]); // G1000: Lt display (show)
+                            XPLMCommandOnce(cdu->command[0]); // GFC700: autopilot (show)
+                            cdu->i_cycle_id = 1;
+                            break;
+                        case 1:
+                            XPLMCommandOnce(cdu->command[2]); // G1000: Lt display (hide)
+                            XPLMCommandOnce(cdu->command[0]); // GFC700: autopilot (hide)
+                            XPLMCommandOnce(cdu->command[3]); // G1000: Ct display (show)
+                            XPLMCommandOnce(cdu->command[1]); // GCU-477: keyboard (show)
+                            cdu->i_cycle_id = 2;
+                            break;
+                        default:
+                            XPLMCommandOnce(cdu->command[3]); // G1000: Ct display (hide)
+                            XPLMCommandOnce(cdu->command[1]); // GCU-477: keyboard (hide)
+                            cdu->i_cycle_id = 0;
+                            break;
+                    }
+                    return 0;
+                }
                 if (cdu->command[0]) XPLMCommandOnce(cdu->command[0]);
                 if (cdu->command[1]) XPLMCommandOnce(cdu->command[1]);
                 if (cdu->command[2]) XPLMCommandOnce(cdu->command[2]);
@@ -6137,6 +6173,8 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 0, "aerobask/E1000/flags_on");                     // EPIC
             _DO(0, XPLMSetDatai, 1, "aerobask/E1000/yokeL_hidden");                 // EPIC
             _DO(0, XPLMSetDatai, 1, "aerobask/E1000/yokeR_hidden");                 // EPIC
+            _DO(0, XPLMSetDatai, 0, "aerobask/show_reflections_windows");           // G.1K
+            _DO(0, XPLMSetDatai, 0, "aerobask/show_reflections_instruments");       // G.1K
             _DO(0, XPLMSetDatai, 0, "aerobask/E1000/reflections_skyview_on");       // EPIC
             _DO(0, XPLMSetDatai, 0, "aerobask/E1000/reflections_windshield_on");    // EPIC
             _DO(0, XPLMSetDatai, 0, "aerobask/eclipse/flags_on");                   // EA50
