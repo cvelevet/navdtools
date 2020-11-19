@@ -150,6 +150,7 @@ typedef struct
 {
     const char          *auth;
     const char          *desc;
+    const char          *icao;
     int                  atyp;
     int            i_aerobask;
     int            i_cycle_id;
@@ -1792,6 +1793,7 @@ int nvp_chandlers_update(void *inContext)
     ctx->mcdu.rc.i_disabled = -1;
     ctx->mcdu.rc.auth = ctx->info->author;
     ctx->mcdu.rc.desc = ctx->info->descrp;
+    ctx->mcdu.rc.icao = ctx->info->icaoid;
     ctx->mcdu.rc.atyp = ctx->info->ac_type;
 
     /* for the gear handle callouts */
@@ -4419,6 +4421,30 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         if (!STRN_CASECMP_AUTO(cdu->auth, "Aerobask") ||
                             !STRN_CASECMP_AUTO(cdu->auth, "Stephane Buon"))
                         {
+                            if (!STRN_CASECMP_AUTO(cdu->icao, "DA62"))
+                            {
+                                if ((cdu->command[0] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
+                                    (cdu->command[1] = XPLMFindCommand("sim/GPS/g1000n3_popup")))
+                                {
+                                    cdu->i_cycle_id = 0;
+                                    cdu->i_aerobask = 1; // MD-302 + GFC700 + G1000 (x2)
+                                    cdu->i_disabled = 0; break; // Aerobask G1000 (DA62)
+                                }
+                            }
+                            if (!STRN_CASECMP_AUTO(cdu->icao, "EPIC") ||
+                                !STRN_CASECMP_AUTO(cdu->icao, "EVIC"))
+                            {
+                                if ((cdu->command[0] = XPLMFindCommand("aerobask/gfc700_popup_toggle")) &&
+                                    (cdu->command[1] = XPLMFindCommand("aerobask/gcu477_popup_toggle")) &&
+                                    (cdu->command[2] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
+                                    (cdu->command[3] = XPLMFindCommand("sim/GPS/g1000n3_popup")) &&
+                                    (cdu->dataref[0] = XPLMFindDataRef("aerobask/tablet/deployed")))
+                                {
+                                    cdu->i_cycle_id = 0;
+                                    cdu->i_aerobask = 2; // GCU477 + GFC700 + G1000 (x3)
+                                    cdu->i_disabled = 0; break; // Aerobask G1000 (EVIC)
+                                }
+                            }
                             if ((cdu->command[0] = XPLMFindCommand("aerobask/gtn650/Popup")) &&
                                 (cdu->command[1] = XPLMFindCommand("aerobask/skyview/toggle_left")))
                             {
@@ -4427,24 +4453,6 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             if ((cdu->command[0] = XPLMFindCommand("aerobask/skyview/toggle_left")))
                             {
                                 cdu->i_disabled = 0; break; // Aerobask SkyView
-                            }
-                            if ((cdu->command[0] = XPLMFindCommand("aerobask/gfc700_popup_toggle")) &&
-                                (cdu->command[1] = XPLMFindCommand("aerobask/gcu477_popup_toggle")) &&
-                                (cdu->command[2] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
-                                (cdu->command[3] = XPLMFindCommand("sim/GPS/g1000n3_popup")) &&
-                                (cdu->dataref[0] = XPLMFindDataRef("aerobask/tablet/deployed")))
-                            {
-                                cdu->i_cycle_id = 0;
-                                cdu->i_aerobask = 2; // GCU477 + GFC700 + G1000 (x3)
-                                cdu->i_disabled = 0; break; // Aerobask G1000 (EVIC)
-                            }
-                            if ((cdu->command[0] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
-                                (cdu->command[1] = XPLMFindCommand("sim/GPS/g1000n3_popup")) &&
-                                (cdu->command[2] = XPLMFindCommand("aerobask/md302/knob_l")))
-                            {
-                                cdu->i_cycle_id = 0;
-                                cdu->i_aerobask = 1; // MD-302 + GFC700 + G1000 (x2)
-                                cdu->i_disabled = 0; break; // Aerobask G1000 (DA62)
                             }
                             if ((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup")) &&
                                 (cdu->command[1] = XPLMFindCommand("sim/GPS/g430n2_popup")))
