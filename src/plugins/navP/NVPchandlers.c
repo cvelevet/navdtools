@@ -59,8 +59,10 @@ typedef struct
 
 typedef struct
 {
-    const char    *name[2];
+    chandler_callback   cb;
     XPLMCommandRef xpcr[2];
+    const char    *name[2];
+    int xplm_1150_behavior;
 } chandler_doublec;
 
 typedef struct
@@ -487,48 +489,6 @@ typedef struct
         struct
         {
             chandler_callback cb;
-            chandler_doublec  dc;
-        } en1r;
-
-//        struct
-//        {
-//            chandler_callback cb;
-//            chandler_command  cc;
-//        } en1c;
-
-        struct
-        {
-            chandler_callback cb;
-            chandler_doublec  dc;
-        } en2r;
-
-//        struct
-//        {
-//            chandler_callback cb;
-//            chandler_command  cc;
-//        } en2c;
-
-        struct
-        {
-            chandler_callback cb;
-            chandler_doublec  dc;
-        } ecrk;
-
-//        struct
-//        {
-//            chandler_callback cb;
-//            chandler_command  cc;
-//        } enrm;
-
-        struct
-        {
-            chandler_callback cb;
-            chandler_doublec  dc;
-        } eign;
-
-        struct
-        {
-            chandler_callback cb;
             chandler_command  cc;
         } enbl;
 
@@ -537,6 +497,8 @@ typedef struct
             chandler_callback cb;
             chandler_command  cc;
         } enbr;
+
+        chandler_doublec on01, off1, on02, off2, crnk, norm, igni;
     } ttca;
 
     struct
@@ -677,6 +639,7 @@ static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_twosw(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_twos2(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_apclb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -1017,13 +980,13 @@ void* nvp_chandlers_init(void)
     ctx->otto.disc.cb.command = XPLMCreateCommand( "navP/switches/ap_disc", "A/P disconnect");
     ctx->athr.disc.cb.command = XPLMCreateCommand( "navP/switches/at_disc", "A/T disconnect");
     ctx->athr.toga.cb.command = XPLMCreateCommand( "navP/switches/at_toga", "A/T takeoff/GA");
-    ctx->ttca.en1r.cb.command = XPLMCreateCommand( "navP/tca/engine/l/run", "engi. 1 to run");
-//  ctx->ttca.en1c.cb.command = XPLMCreateCommand( "navP/tca/engine/l/off", "engi. 1 cutoff");
-    ctx->ttca.en2r.cb.command = XPLMCreateCommand( "navP/tca/engine/2/run", "engi. 2 to run");
-//  ctx->ttca.en2c.cb.command = XPLMCreateCommand( "navP/tca/engine/2/off", "engi. 2 cutoff");
-    ctx->ttca.ecrk.cb.command = XPLMCreateCommand( "navP/tca/eng/mode/crk", "en. mode crank");
-//  ctx->ttca.enrm.cb.command = XPLMCreateCommand( "navP/tca/eng/mode/nrm", "en. mode norm.");
-    ctx->ttca.eign.cb.command = XPLMCreateCommand( "navP/tca/eng/mode/ign", "en. mode start");
+    ctx->ttca.on01.cb.command = XPLMCreateCommand( "navP/tca/engine/l/run", "engi. 1 to run");
+    ctx->ttca.on02.cb.command = XPLMCreateCommand( "navP/tca/engine/2/run", "engi. 2 to run");
+    ctx->ttca.off1.cb.command = XPLMCreateCommand( "navP/tca/engine/l/cut", "engi. 1 cutoff");
+    ctx->ttca.off2.cb.command = XPLMCreateCommand( "navP/tca/engine/2/cut", "engi. 2 cutoff");
+    ctx->ttca.crnk.cb.command = XPLMCreateCommand( "navP/tca/eng/mode/crk", "en. mode crank");
+    ctx->ttca.igni.cb.command = XPLMCreateCommand( "navP/tca/eng/mode/ign", "en. mode start");
+    ctx->ttca.norm.cb.command = XPLMCreateCommand( "navP/tca/eng/mode/nrm", "eng. mode norm");
     ctx->ttca.enbl.cb.command = XPLMCreateCommand( "navP/tca/eng/button/l", "en. button (l)");
     ctx->ttca.enbr.cb.command = XPLMCreateCommand( "navP/tca/eng/button/r", "en. button (r)");
     ctx->otto.clmb.rc.ap_pclb = XPLMFindDataRef("sim/cockpit2/autopilot/sync_hold_pitch_deg");
@@ -1038,13 +1001,13 @@ void* nvp_chandlers_init(void)
         !ctx->otto.disc.cb.command ||
         !ctx->athr.disc.cb.command ||
         !ctx->athr.toga.cb.command ||
-        !ctx->ttca.en1r.cb.command ||
-//      !ctx->ttca.en1c.cb.command ||
-        !ctx->ttca.en2r.cb.command ||
-//      !ctx->ttca.en2c.cb.command ||
-        !ctx->ttca.ecrk.cb.command ||
-//      !ctx->ttca.enrm.cb.command ||
-        !ctx->ttca.eign.cb.command ||
+        !ctx->ttca.on01.cb.command ||
+        !ctx->ttca.on02.cb.command ||
+        !ctx->ttca.off1.cb.command ||
+        !ctx->ttca.off2.cb.command ||
+        !ctx->ttca.crnk.cb.command ||
+        !ctx->ttca.igni.cb.command ||
+        !ctx->ttca.norm.cb.command ||
         !ctx->ttca.enbl.cb.command ||
         !ctx->ttca.enbr.cb.command ||
         !ctx->otto.clmb.rc.ap_pclb ||
@@ -1065,15 +1028,25 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->otto.disc.cb, chandler_swtch, 0, &ctx->otto.disc.cc);
         REGISTER_CHANDLER(ctx->athr.disc.cb, chandler_swtch, 0, &ctx->athr.disc.cc);
         REGISTER_CHANDLER(ctx->athr.toga.cb, chandler_swtch, 0, &ctx->athr.toga.cc);
-        REGISTER_CHANDLER(ctx->ttca.en1r.cb, chandler_twosw, 0, &ctx->ttca.en1r.dc);
-//      REGISTER_CHANDLER(ctx->ttca.en1c.cb, chandler_swtch, 0, &ctx->ttca.en1c.cc);
-        REGISTER_CHANDLER(ctx->ttca.en2r.cb, chandler_twosw, 0, &ctx->ttca.en2r.dc);
-//      REGISTER_CHANDLER(ctx->ttca.en2c.cb, chandler_swtch, 0, &ctx->ttca.en2c.cc);
-        REGISTER_CHANDLER(ctx->ttca.ecrk.cb, chandler_twosw, 0, &ctx->ttca.ecrk.dc);
-//      REGISTER_CHANDLER(ctx->ttca.enrm.cb, chandler_swtch, 0, &ctx->ttca.enrm.cc);
-        REGISTER_CHANDLER(ctx->ttca.eign.cb, chandler_twosw, 0, &ctx->ttca.eign.dc);
         REGISTER_CHANDLER(ctx->ttca.enbl.cb, chandler_swtch, 0, &ctx->ttca.enbl.cc);
         REGISTER_CHANDLER(ctx->ttca.enbr.cb, chandler_swtch, 0, &ctx->ttca.enbr.cc);
+        REGISTER_CHANDLER(ctx->ttca.on01.cb, chandler_twosw, 0,    &ctx->ttca.on01);
+        REGISTER_CHANDLER(ctx->ttca.on02.cb, chandler_twosw, 0,    &ctx->ttca.on02);
+        REGISTER_CHANDLER(ctx->ttca.off1.cb, chandler_twos2, 0,    &ctx->ttca.off1);
+        REGISTER_CHANDLER(ctx->ttca.off2.cb, chandler_twos2, 0,    &ctx->ttca.off2);
+        REGISTER_CHANDLER(ctx->ttca.crnk.cb, chandler_twosw, 0,    &ctx->ttca.crnk);
+        REGISTER_CHANDLER(ctx->ttca.igni.cb, chandler_twosw, 0,    &ctx->ttca.igni);
+        REGISTER_CHANDLER(ctx->ttca.norm.cb, chandler_twos2, 0,    &ctx->ttca.norm);
+        XPLMDataRef xp_ver = XPLMFindDataRef("sim/version/xplane_internal_version");
+        int xplm_1150_behavior = (xp_ver != NULL && XPLMGetDatai(xp_ver) >= 115000);
+        ctx->ttca.on01.xplm_1150_behavior = ctx->ttca.on02.xplm_1150_behavior =
+        ctx->ttca.off1.xplm_1150_behavior = ctx->ttca.off2.xplm_1150_behavior =
+        ctx->ttca.crnk.xplm_1150_behavior = ctx->ttca.igni.xplm_1150_behavior =
+        ctx->ttca.norm.xplm_1150_behavior = xplm_1150_behavior;
+        if (xplm_1150_behavior)
+        {
+            ndt_log("navP [info]: X-Plane 11.50 or later detected (%d > %d)\n", xp_ver ? XPLMGetDatai(xp_ver) : 0, 114999);
+        }
     }
 
     /* Default commands' handlers: flaps up or down */
@@ -1249,13 +1222,13 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->otto.   disc.cb);
     UNREGSTR_CHANDLER(ctx->athr.   disc.cb);
     UNREGSTR_CHANDLER(ctx->athr.   toga.cb);
-    UNREGSTR_CHANDLER(ctx->ttca.   en1r.cb);
-//  UNREGSTR_CHANDLER(ctx->ttca.   en1c.cb);
-    UNREGSTR_CHANDLER(ctx->ttca.   en2r.cb);
-//  UNREGSTR_CHANDLER(ctx->ttca.   en2c.cb);
-    UNREGSTR_CHANDLER(ctx->ttca.   ecrk.cb);
-//  UNREGSTR_CHANDLER(ctx->ttca.   enrm.cb);
-    UNREGSTR_CHANDLER(ctx->ttca.   eign.cb);
+    UNREGSTR_CHANDLER(ctx->ttca.   on01.cb);
+    UNREGSTR_CHANDLER(ctx->ttca.   on02.cb);
+    UNREGSTR_CHANDLER(ctx->ttca.   off1.cb);
+    UNREGSTR_CHANDLER(ctx->ttca.   off2.cb);
+    UNREGSTR_CHANDLER(ctx->ttca.   crnk.cb);
+    UNREGSTR_CHANDLER(ctx->ttca.   igni.cb);
+    UNREGSTR_CHANDLER(ctx->ttca.   norm.cb);
     UNREGSTR_CHANDLER(ctx->ttca.   enbl.cb);
     UNREGSTR_CHANDLER(ctx->ttca.   enbr.cb);
     UNREGSTR_CHANDLER(ctx->views.  prev.cb);
@@ -1363,6 +1336,22 @@ int nvp_chandlers_reset(void *inContext)
     ctx->gear.has_retractable_gear = -1; ctx->revrs.n_engines = -1; acf_type_info_reset();
 
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
+    chandler_doublec *dc[] =
+    {
+        &ctx->ttca.on01,
+        &ctx->ttca.on02,
+        &ctx->ttca.off1,
+        &ctx->ttca.off2,
+        &ctx->ttca.crnk,
+        &ctx->ttca.igni,
+        &ctx->ttca.norm,
+        NULL,
+    };
+    for (int i = 0; dc[i] != NULL; i++)
+    {
+        dc[i]->name[0] = NULL;
+        dc[i]->name[1] = NULL;
+    }
     ctx->bking.rc_brk.use_pkb = 1;
     ctx->acfspec.  qpac.ready = 0;
     ctx->acfspec.  i733.ready = 0;
@@ -1374,17 +1363,6 @@ int nvp_chandlers_reset(void *inContext)
     ctx->otto.disc.cc.   name = NULL;
     ctx->athr.disc.cc.   name = NULL;
     ctx->athr.toga.cc.   name = NULL;
-    ctx->ttca.en1r.dc.name[0] = NULL;
-    ctx->ttca.en1r.dc.name[1] = NULL;
-//  ctx->ttca.en1c.cc.   name = NULL;
-    ctx->ttca.en2r.dc.name[0] = NULL;
-    ctx->ttca.en2r.dc.name[1] = NULL;
-//  ctx->ttca.en2c.cc.   name = NULL;
-    ctx->ttca.ecrk.dc.name[0] = NULL;
-    ctx->ttca.ecrk.dc.name[1] = NULL;
-//  ctx->ttca.enrm.cc.   name = NULL;
-    ctx->ttca.eign.dc.name[0] = NULL;
-    ctx->ttca.eign.dc.name[1] = NULL;
     ctx->ttca.enbl.cc.   name = NULL;
     ctx->ttca.enbr.cc.   name = NULL;
     ctx->bking.rc_brk.rg.name = NULL;
@@ -1530,37 +1508,36 @@ int nvp_chandlers_update(void *inContext)
 
         case ACF_TYP_A319_TL:
         case ACF_TYP_A321_TL:
+            ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
             ctx->otto.conn.cc.name = "toliss_airbus/ap1_push";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             ctx->otto.disc.cc.name = "toliss_airbus/ap_disc_left_stick";
-            ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
-            ctx->ttca.en1r.dc.name[0] = "toliss_airbus/engcommands/Master1On";
-            ctx->ttca.en1r.dc.name[1] = "toliss_airbus/engcommands/Master1Off";
-            ctx->ttca.en2r.dc.name[0] = "toliss_airbus/engcommands/Master2On";
-            ctx->ttca.en2r.dc.name[1] = "toliss_airbus/engcommands/Master2Off";
-            ctx->ttca.ecrk.dc.name[0] = "toliss_airbus/engcommands/EngineModeSwitchToCrank";
-            ctx->ttca.ecrk.dc.name[1] = "toliss_airbus/engcommands/EngineModeSwitchToNorm";
-            ctx->ttca.eign.dc.name[0] = "toliss_airbus/engcommands/EngineModeSwitchToStart";
-            ctx->ttca.eign.dc.name[1] = "toliss_airbus/engcommands/EngineModeSwitchToNorm";
+            ctx->ttca.on01.name[0] = "toliss_airbus/engcommands/Master1On";
+            ctx->ttca.on01.name[1] = "toliss_airbus/engcommands/Master1Off";
+            ctx->ttca.on02.name[0] = "toliss_airbus/engcommands/Master2On";
+            ctx->ttca.on02.name[1] = "toliss_airbus/engcommands/Master2Off";
+            ctx->ttca.crnk.name[0] = "toliss_airbus/engcommands/EngineModeSwitchToCrank";
+            ctx->ttca.crnk.name[1] = "toliss_airbus/engcommands/EngineModeSwitchToNorm";
+            ctx->ttca.igni.name[0] = "toliss_airbus/engcommands/EngineModeSwitchToStart";
+            ctx->ttca.igni.name[1] = "toliss_airbus/engcommands/EngineModeSwitchToNorm";
             break;
 
         case ACF_TYP_A350_FF:
+            ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
             ctx->otto.conn.cc.name = "airbus_qpac/ap1_push";
             ctx->athr.disc.cc.name = "sim/autopilot/autothrottle_off";
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
             if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // v1.6+ for XP11
             {
                 ctx->otto.disc.cc.name = "airbus_qpac/ap_disc_left_stick";
-                ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
-                ctx->ttca.en1r.dc.name[0] = "airbus_qpac/engcommands/Master1On";
-                ctx->ttca.en1r.dc.name[1] = "airbus_qpac/engcommands/Master1Off";
-                ctx->ttca.en2r.dc.name[0] = "airbus_qpac/engcommands/Master2On";
-                ctx->ttca.en2r.dc.name[1] = "airbus_qpac/engcommands/Master2Off";
-                ctx->ttca.ecrk.dc.name[0] = "airbus_qpac/engcommands/EngineModeSwitchToCrank";
-                ctx->ttca.ecrk.dc.name[1] = "airbus_qpac/engcommands/EngineModeSwitchToNorm";
-                ctx->ttca.eign.dc.name[0] = "airbus_qpac/engcommands/EngineModeSwitchToStart";
-                ctx->ttca.eign.dc.name[1] = "airbus_qpac/engcommands/EngineModeSwitchToNorm";
+                ctx->ttca.on01.name[0] = "1-sim/comm/cutOnLeft";
+                ctx->ttca.on01.name[1] = "1-sim/comm/cutOffLeft";
+                ctx->ttca.on02.name[0] = "1-sim/comm/cutOnRight";
+                ctx->ttca.on02.name[1] = "1-sim/comm/cutOffRight";
+                ctx->ttca.crnk.name[0] = "1-sim/comm/startSwitchCrank";
+                ctx->ttca.crnk.name[1] = "1-sim/comm/startSwitchNorm";
+                ctx->ttca.igni.name[0] = "1-sim/comm/startSwitchStart";
+                ctx->ttca.igni.name[1] = "1-sim/comm/startSwitchNorm";
             }
             break;
 
@@ -1679,6 +1656,15 @@ int nvp_chandlers_update(void *inContext)
         default: // not generic but no usable commands
             break;
     }
+    if (ctx->ttca.on01.name[0])
+    {
+        ctx->ttca.off1.name[0] = ctx->ttca.on01.name[1];
+        ctx->ttca.off1.name[1] = ctx->ttca.on01.name[1];
+        ctx->ttca.off2.name[0] = ctx->ttca.on02.name[1];
+        ctx->ttca.off2.name[1] = ctx->ttca.on02.name[1];
+        ctx->ttca.norm.name[0] = ctx->ttca.crnk.name[1];
+        ctx->ttca.norm.name[1] = ctx->ttca.igni.name[1];
+    }
     if (ctx->ttca.enbl.cc.name == NULL &&
         ctx->ttca.enbr.cc.name == NULL)
     {
@@ -1686,23 +1672,28 @@ int nvp_chandlers_update(void *inContext)
         ctx->ttca.enbr.cc.name = "sim/annunciator/clear_master_caution"; // cf. ToLiSs simulation manual
     }
     // new addon type: clear datarefs
-    ctx->otto.conn.cc.   xpcr = NULL;
-    ctx->otto.disc.cc.   xpcr = NULL;
-    ctx->athr.disc.cc.   xpcr = NULL;
-    ctx->athr.toga.cc.   xpcr = NULL;
-    ctx->ttca.en1r.dc.xpcr[0] = NULL;
-    ctx->ttca.en1r.dc.xpcr[1] = NULL;
-//  ctx->ttca.en1c.cc.   xpcr = NULL;
-    ctx->ttca.en2r.dc.xpcr[0] = NULL;
-    ctx->ttca.en2r.dc.xpcr[1] = NULL;
-//  ctx->ttca.en2c.cc.   xpcr = NULL;
-    ctx->ttca.ecrk.dc.xpcr[0] = NULL;
-    ctx->ttca.ecrk.dc.xpcr[1] = NULL;
-//  ctx->ttca.enrm.cc.   xpcr = NULL;
-    ctx->ttca.eign.dc.xpcr[0] = NULL;
-    ctx->ttca.eign.dc.xpcr[1] = NULL;
-    ctx->ttca.enbl.cc.   xpcr = NULL;
-    ctx->ttca.enbr.cc.   xpcr = NULL;
+    ctx->otto.conn.cc.xpcr = NULL;
+    ctx->otto.disc.cc.xpcr = NULL;
+    ctx->athr.disc.cc.xpcr = NULL;
+    ctx->athr.toga.cc.xpcr = NULL;
+    ctx->ttca.enbl.cc.xpcr = NULL;
+    ctx->ttca.enbr.cc.xpcr = NULL;
+    chandler_doublec *dc[] =
+    {
+        &ctx->ttca.on01,
+        &ctx->ttca.on02,
+        &ctx->ttca.off1,
+        &ctx->ttca.off2,
+        &ctx->ttca.crnk,
+        &ctx->ttca.igni,
+        &ctx->ttca.norm,
+        NULL,
+    };
+    for (int i = 0; dc[i] != NULL; i++)
+    {
+        dc[i]->xpcr[0] = NULL;
+        dc[i]->xpcr[1] = NULL;
+    }
 
     /* plane-specific braking ratios */
     if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
@@ -3806,42 +3797,84 @@ static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
-static int chandler_twosw(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+static int dc_ready(chandler_doublec *dc)
 {
-    if (inPhase == xplm_CommandBegin /* || inPhase == XPLMCommandContinue */)
+    if (dc)
     {
-        chandler_doublec *dc = inRefcon;
         if (dc->name[0])
         {
             if (dc->xpcr[0] == NULL)
             {
-                if ((dc->xpcr[0] = XPLMFindCommand(dc->name[0])) == NULL)
+                if ((dc->xpcr[0] = XPLMFindCommand(dc->name[0])) == NULL ||
+                    (dc->xpcr[1] = XPLMFindCommand(dc->name[1])) == NULL)
                 {
-                    ndt_log("navP [error]: command not found: \"%s\"\n", dc->name[0]);
-                    XPLMSpeakString("failed to resolve command");
-                    dc->name[0] = NULL; return 0;
+                    ndt_log("navP [error]: command not found: \"%s\"\n", !dc->xpcr[0] ? dc->name[0] : dc->name[1]);
+                    dc->name[0] = dc->name[1] = NULL;
+                    dc->xpcr[0] = dc->xpcr[1] = NULL;
+                    return 0;
                 }
+                return 1;
             }
-            XPLMCommandOnce(dc->xpcr[0]);
+            return 1;
+        }
+        return 0;
+    }
+    return 0;
+}
+
+static int chandler_twosw(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inRefcon)
+    {
+        if (inPhase == xplm_CommandEnd)
+        {
+            chandler_doublec *dc = inRefcon;
+            if (dc_ready(dc))
+            {
+                if (dc->xplm_1150_behavior == 0)
+                {
+                    XPLMCommandOnce(dc->xpcr[1]);
+                    return 0;
+                }
+                XPLMCommandOnce(dc->xpcr[0]);
+                return 0;
+            }
+            return 0;
+        }
+        if (inPhase == xplm_CommandBegin /* || inPhase == XPLMCommandContinue */)
+        {
+            chandler_doublec *dc = inRefcon;
+            if (dc->xplm_1150_behavior == 0)
+            {
+                if (dc_ready(dc))
+                {
+                    XPLMCommandOnce(dc->xpcr[0]);
+                    return 0;
+                }
+                return 0;
+            }
             return 0;
         }
         return 0;
     }
-    if (inPhase == xplm_CommandEnd)
+    return 0;
+}
+
+static int chandler_twos2(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inRefcon)
     {
-        chandler_doublec *dc = inRefcon;
-        if (dc->name[1])
+        if (inPhase == xplm_CommandEnd)
         {
-            if (dc->xpcr[1] == NULL)
+            chandler_doublec *dc = inRefcon;
+            if (dc->xplm_1150_behavior != 0)
             {
-                if ((dc->xpcr[1] = XPLMFindCommand(dc->name[1])) == NULL)
+                if (dc_ready(dc))
                 {
-                    ndt_log("navP [error]: command not found: \"%s\"\n", dc->name[1]);
-                    XPLMSpeakString("failed to resolve command");
-                    dc->name[1] = NULL; return 0;
+                    XPLMCommandOnce(dc->xpcr[1]);
+                    return 0;
                 }
             }
-            XPLMCommandOnce(dc->xpcr[1]);
             return 0;
         }
         return 0;
@@ -6581,13 +6614,6 @@ static int first_fcall_do(chandler_context *ctx)
         &ctx->otto.disc.cc,
         &ctx->athr.disc.cc,
         &ctx->athr.toga.cc,
-//      &ctx->ttca.en1r.cc,
-//      &ctx->ttca.en1c.cc,
-//      &ctx->ttca.en2r.cc,
-//      &ctx->ttca.en2c.cc,
-//      &ctx->ttca.ecrk.cc,
-//      &ctx->ttca.enrm.cc,
-//      &ctx->ttca.eign.cc,
         &ctx->ttca.enbl.cc,
         &ctx->ttca.enbr.cc,
         &ctx->bking.rc_brk.rg,
