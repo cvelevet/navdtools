@@ -5329,14 +5329,14 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         // its A/T never seems to auto-disconnect (unlike e.g. IXEG's 737), and will
         // command thrust to maintain speed even after touchdown unless auto-landing
 
-        // raise our throttles to a minimum idle if required
-        if (grndp->idle.minimums >= 2)
-        {
-            if (thrott_cmd_all < (grndp->idle.r_idle - T_ZERO))
-            {
-                XPLMSetDataf(grndp->idle.throttle_all, grndp->idle.r_idle);
-            }
-        }
+//        // raise our throttles to a minimum idle if required
+//        if (grndp->idle.minimums >= 2)
+//        {
+//            if (thrott_cmd_all < (grndp->idle.r_idle - T_ZERO))
+//            {
+//                XPLMSetDataf(grndp->idle.throttle_all, grndp->idle.r_idle);
+//            }
+//        }
 
         // check whether we are still on the ground or flying
         int airborne = !XPLMGetDatai(grndp->idle.onground_any);
