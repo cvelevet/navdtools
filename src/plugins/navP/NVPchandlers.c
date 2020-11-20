@@ -4488,8 +4488,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                 if ((cdu->command[0] = XPLMFindCommand("aerobask/gfc700_popup_toggle")) &&
                                     (cdu->command[1] = XPLMFindCommand("aerobask/gcu477_popup_toggle")) &&
                                     (cdu->command[2] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
-                                    (cdu->command[3] = XPLMFindCommand("sim/GPS/g1000n3_popup")) &&
-                                    (cdu->dataref[0] = XPLMFindDataRef("aerobask/tablet/deployed")))
+                                    (cdu->command[3] = XPLMFindCommand("sim/GPS/g1000n3_popup")))
                                 {
                                     cdu->i_cycle_id = 0;
                                     cdu->i_aerobask = 2; // GCU477 + GFC700 + G1000 (x3)
@@ -4791,7 +4790,6 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             cdu->i_cycle_id = 0;
                             break;
                     }
-                    XPLMSetDatai(cdu->dataref[0], 1);
                     return 0;
                 }
                 if (cdu->i_aerobask == 3)
@@ -6618,6 +6616,7 @@ static int first_fcall_do(chandler_context *ctx)
                                 _DO(0, XPLMSetDatai, 0, "aerobask/panthera/fuel_position");
                                 _DO(0, XPLMSetDatai, 1, "aerobask/victory/fuel_position");
                                 _DO(0, XPLMSetDatai, 1, "aerobask/E1000/fuel_position");
+                                _DO(0, XPLMSetDatai, 1, "aerobask/fuel_selector");
                                 _DO(0, XPLMSetDatai, 0, "sim/har/fueltank");
                             }
                         }
