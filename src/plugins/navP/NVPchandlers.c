@@ -4478,10 +4478,25 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                     cdu->i_disabled = 0; break; // Aerobask G1000 (EVIC)
                                 }
                             }
-                            if ((cdu->command[0] = XPLMFindCommand("aerobask/gtn650/Popup")) &&
-                                (cdu->command[1] = XPLMFindCommand("aerobask/skyview/toggle_left")))
+                            if (!STRN_CASECMP_AUTO(cdu->icao, "EA50") ||
+                                !STRN_CASECMP_AUTO(cdu->icao, "PIPA"))
                             {
-                                cdu->i_disabled = 0; break; // Aerobask GTN
+                                if ((cdu->dataref[0] = XPLMFindDataRef("aerobask/eclipse/dynonL_Show")) &&
+                                    (cdu->dataref[1] = XPLMFindDataRef("aerobask/eclipse/gtn650_Show")) &&
+                                    (cdu->dataref[2] = XPLMFindDataRef("aerobask/eclipse/dynonR_Show")) &&
+                                    (cdu->dataref[3] = XPLMFindDataRef("aerobask/eclipse/gtn750_Show")))
+                                {
+                                    cdu->i_aerobask = 3; // GTN650 + GTN750 + Skyview (x2)
+                                    cdu->i_disabled = 0; break; // Aerobask double SkyView
+                                }
+                                if ((cdu->dataref[0] = XPLMFindDataRef("aerobask/panthera/dynonL_Show")) &&
+                                    (cdu->dataref[1] = XPLMFindDataRef("aerobask/panthera/gtn650_Show")) &&
+                                    (cdu->dataref[2] = XPLMFindDataRef("aerobask/panthera/dynonR_Show")) &&
+                                    (cdu->dataref[3] = XPLMFindDataRef("aerobask/panthera/gtn750_Show")))
+                                {
+                                    cdu->i_aerobask = 3; // GTN650 + GTN750 + Skyview (x2)
+                                    cdu->i_disabled = 0; break; // Aerobask double SkyView
+                                }
                             }
                             if ((cdu->command[0] = XPLMFindCommand("aerobask/skyview/toggle_left")))
                             {
@@ -4759,6 +4774,32 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             break;
                     }
                     XPLMSetDatai(cdu->dataref[0], 1);
+                    return 0;
+                }
+                if (cdu->i_aerobask == 3)
+                {
+                    if (XPLMGetDatai(cdu->dataref[0]) == 0 &&
+                        XPLMGetDatai(cdu->dataref[2]) == 0)
+                    {
+                        XPLMSetDatai(cdu->dataref[0], 1);
+                        XPLMSetDatai(cdu->dataref[1], 1);
+                        XPLMSetDatai(cdu->dataref[2], 0);
+                        XPLMSetDatai(cdu->dataref[3], 0);
+                        return 0;
+                    }
+                    if (XPLMGetDatai(cdu->dataref[0]) == 1 &&
+                        XPLMGetDatai(cdu->dataref[1]) == 1)
+                    {
+                        XPLMSetDatai(cdu->dataref[0], 0);
+                        XPLMSetDatai(cdu->dataref[1], 0);
+                        XPLMSetDatai(cdu->dataref[2], 1);
+                        XPLMSetDatai(cdu->dataref[3], 1);
+                        return 0;
+                    }
+                    XPLMSetDatai(cdu->dataref[0], 0);
+                    XPLMSetDatai(cdu->dataref[1], 0);
+                    XPLMSetDatai(cdu->dataref[2], 0);
+                    XPLMSetDatai(cdu->dataref[3], 0);
                     return 0;
                 }
                 if (cdu->command[0]) XPLMCommandOnce(cdu->command[0]);
