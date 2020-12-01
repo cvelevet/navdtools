@@ -98,6 +98,10 @@ typedef struct
     chandler_callback dn;
     XPLMCommandRef thrdn;
 
+    chandler_callback pt;
+    XPLMCommandRef thptt;
+    int atc_is_connected;
+
     chandler_callback up;
     chandler_callback ul;
     XPLMCommandRef thrup;
@@ -164,6 +168,7 @@ typedef struct
 
 typedef struct
 {
+    refcon_thrust      *pt;
     void           *assert;
     void         *nvp_menu;
     int  last_cycle_number;
@@ -656,6 +661,7 @@ static int chandler_rpmdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_thptt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_sview(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_qlprv(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -899,13 +905,14 @@ void* nvp_chandlers_init(void)
     ctx->throt.dn.command = XPLMCreateCommand("navP/thrust/dn_once", "throttle down once");
     ctx->throt.up.command = XPLMCreateCommand("navP/thrust/up_once", "throttle up once");
     ctx->throt.ul.command = XPLMCreateCommand("navP/thrust/up_lots", "throttle up 12pc");
+    ctx->throt.pt.command = XPLMCreateCommand("private/ptt/dn/once", "NOT TO BE USED");
     ctx->throt.mi.command = XPLMFindCommand  ("sim/engines/mixture_down");
     ctx->throt.rp.command = XPLMFindCommand  ("sim/engines/prop_down");
     ctx->throt.     thrdn = XPLMFindCommand  ("sim/engines/throttle_down");
     ctx->throt.     thrup = XPLMFindCommand  ("sim/engines/throttle_up");
     if (!ctx->throt.dn.command || !ctx->throt.thrdn || !ctx->throt.mi.command || !ctx->throt.mixratio ||
         !ctx->throt.up.command || !ctx->throt.thrup || !ctx->throt.rp.command || !ctx->throt.rpmratio ||
-        !ctx->throt.ul.command)
+        !ctx->throt.ul.command || !ctx->throt.pt.command)
     {
         ndt_log("navP [error]: nvp_chandlers_init: command not found or created\n");
         goto fail;
@@ -915,6 +922,8 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->throt.dn, chandler_thrdn, 0, &ctx->throt);
         REGISTER_CHANDLER(ctx->throt.up, chandler_thrup, 0, &ctx->throt);
         REGISTER_CHANDLER(ctx->throt.ul, chandler_thrul, 0, &ctx->throt);
+        REGISTER_CHANDLER(ctx->throt.pt, chandler_thptt, 0, &ctx->throt);
+        ctx->throt.thptt = NULL; ctx->throt.atc_is_connected = 0;
     }
 
     /* Custom commands: quick look views */
@@ -1173,6 +1182,7 @@ void* nvp_chandlers_init(void)
     {
         REGISTER_CHANDLER(ctx->ground.idle.preset, chandler_idleb, 0, &ctx->ground);
         ctx->bking.rc_brk.g_speed = ctx->ground.ground_spd;
+        ctx->ground.pt = &ctx->throt;
     }
 
     /* all good */
@@ -1251,6 +1261,10 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->vvi.                  pu);
     UNREGSTR_CHANDLER(ctx->mcdu.                 cb);
     UNREGSTR_CHANDLER(ctx->coatc.                cb);
+    UNREGSTR_CHANDLER(ctx->throt.                dn);
+    UNREGSTR_CHANDLER(ctx->throt.                up);
+    UNREGSTR_CHANDLER(ctx->throt.                ul);
+    UNREGSTR_CHANDLER(ctx->throt.                pt);
 
     /* …and all datarefs */
     if (ctx->bking.rc_brk.p_b_int)
@@ -1352,25 +1366,27 @@ int nvp_chandlers_reset(void *inContext)
         dc[i]->name[0] = NULL;
         dc[i]->name[1] = NULL;
     }
-    ctx->bking.rc_brk.use_pkb = 1;
-    ctx->acfspec.  qpac.ready = 0;
-    ctx->acfspec.  i733.ready = 0;
-    ctx->acfspec.  x738.ready = 0;
-    ctx->revrs.        propdn = NULL;
-    ctx->revrs.        propup = NULL;
-    ctx->otto.ffst.        dr = NULL;
-    ctx->otto.conn.cc.   name = NULL;
-    ctx->otto.disc.cc.   name = NULL;
-    ctx->athr.disc.cc.   name = NULL;
-    ctx->athr.toga.cc.   name = NULL;
-    ctx->ttca.enbl.cc.   name = NULL;
-    ctx->ttca.enbr.cc.   name = NULL;
-    ctx->bking.rc_brk.rg.name = NULL;
-    ctx->bking.rc_brk.mx.name = NULL;
-    ctx->bking.rc_brk.ro.name = NULL;
-    ctx->otto.clmb.rc.ap_arry = NULL;
-    ctx->throt.      throttle = NULL;
-    ctx->throt.      acf_type = ACF_TYP_GENERIC;
+    ctx->bking.rc_brk.  use_pkb = 1;
+    ctx->acfspec.qpac.    ready = 0;
+    ctx->acfspec.i733.    ready = 0;
+    ctx->acfspec.x738.    ready = 0;
+    ctx->throt.atc_is_connected = 0;
+    ctx->revrs.          propdn = NULL;
+    ctx->revrs.          propup = NULL;
+    ctx->otto.ffst.          dr = NULL;
+    ctx->otto.conn.cc.     name = NULL;
+    ctx->otto.disc.cc.     name = NULL;
+    ctx->athr.disc.cc.     name = NULL;
+    ctx->athr.toga.cc.     name = NULL;
+    ctx->ttca.enbl.cc.     name = NULL;
+    ctx->ttca.enbr.cc.     name = NULL;
+    ctx->bking.rc_brk.rg.  name = NULL;
+    ctx->bking.rc_brk.mx.  name = NULL;
+    ctx->bking.rc_brk.ro.  name = NULL;
+    ctx->otto.clmb.rc.  ap_arry = NULL;
+    ctx->throt.           thptt = NULL;
+    ctx->throt.        throttle = NULL;
+    ctx->throt.        acf_type = ACF_TYP_GENERIC;
 
     /* Reset some datarefs to match X-Plane's defaults at startup */
     _DO(1, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com1_power");
@@ -1791,7 +1807,7 @@ int nvp_chandlers_update(void *inContext)
     ctx->gear.callouts.atype = ctx->info->ac_type;
 
     /* for the reverse thrust commands */
-     ctx->revrs.n_engines = ctx->info->engine_count;
+    ctx->revrs.n_engines = ctx->info->engine_count;
 
     /* check for presence of online ATC plugins */
     ctx->coatc.pe_plid = XPLMFindPluginBySignature("com.pilotedge.plugin.xplane");
@@ -3747,6 +3763,35 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
+static int chandler_thptt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    refcon_thrust *pt = inRefcon;
+    if (pt)
+    {
+        if (inPhase == xplm_CommandBegin)
+        {
+            if (pt->atc_is_connected && pt->thptt)
+            {
+                XPLMCommandBegin(pt->thptt);
+                return 0;
+            }
+            return 0;
+        }
+        if (inPhase == xplm_CommandEnd)
+        {
+            if (pt->atc_is_connected && pt->thptt)
+            {
+                XPLMCommandEnd(pt->thptt);
+                return 0;
+            }
+            XPLMCommandOnce(pt->thrdn);
+            return 0;
+        }
+        return 0;
+    }
+    return 0;
+}
+
 static int chandler_apclb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandEnd)
@@ -5297,62 +5342,44 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         /* XXX: check whether we just connected to PilotEdge or VATSIM */
         if (grndp->oatc.pe_is_on)
         {
-            int pe_is_connected = XPLMGetDatai(grndp->oatc.pe_is_on);
-            if (pe_is_connected)
+            grndp->pt->atc_is_connected = !!XPLMGetDatai(grndp->oatc.pe_is_on);
+            if (grndp->pt->atc_is_connected)
             {
                 if (grndp->oatc.pe_was_connected < 1)
                 {
                     // something resets radios to silent right after connecting to PE, we work around it
-                    ndt_log("navP [info]: PilotEdge connection detected, acf_volume_reset in 3 seconds\n");
-                    XPLMSetFlightLoopCallbackInterval(grndp->oatc.flc, 3.0f, 1, grndp->oatc.aircraft_type);
-                }
-                else
-                {
-                    float radio_volume_ratio = XPLMGetDataf(grndp->oatc.vol_com0);
-                    if (0.1f > radio_volume_ratio) // global radio volume is zero
-                    {
-                        // assume PE has ATIS currently playing
-                        // turn com 1 and 2 off to stop XP ATIS
-                        // without it we hear the first message
-                        // note: maybe doesn't work but it also
-                        // doesn't seem to hurt either whatever
-                        XPLMSetDataf(grndp->oatc.vol_com1, 0.0f);
-                        XPLMSetDataf(grndp->oatc.vol_com2, 0.0f);
-                    }
-                    else if (0.1f > XPLMGetDataf(grndp->oatc.vol_com1) &&
-                             0.1f > XPLMGetDataf(grndp->oatc.vol_com2))
-                    {
-                        // radios are on but both com 1 and com 2 are off, reset
-                        acf_volume_context *volume_context = acf_volume_ctx_get();
-                        if (volume_context == NULL)
-                        {
-                            ndt_log("navP [error]: gnd_stab_hdlr: acf_volume_ctx_get() failed\n");
-                        }
-                        else
-                        {
-                            acf_volume_reset(volume_context, *grndp->oatc.aircraft_type);
-                        }
-                    }
+                    ndt_log("navP [info]: PilotEdge connection detected, acf_volume_reset in 9 seconds\n");
+                    XPLMSetFlightLoopCallbackInterval(grndp->oatc.flc, 9.0f, 1, grndp->oatc.aircraft_type);
+                    grndp->pt->thptt = XPLMFindCommand("sim/operation/contact_atc");
                 }
             }
-            grndp->oatc.pe_was_connected = !!pe_is_connected;
+            else
+            {
+                grndp->pt->thptt = NULL;
+            }
+            grndp->oatc.pe_was_connected = !!grndp->pt->atc_is_connected;
         }
         else if (grndp->oatc.xb_is_on)
         {
-            int xb_is_connected = XPLMGetDatai(grndp->oatc.xb_is_on);
-            if (xb_is_connected)
+            grndp->pt->atc_is_connected = XPLMGetDatai(grndp->oatc.xb_is_on);
+            if (grndp->pt->atc_is_connected)
             {
                 if (grndp->oatc.xb_was_connected < 1)
                 {
                     // not actually required, but we do the same as for PE above
-                    ndt_log("navP [info]: XSquawkBox connection detected acf_volume_reset in 3 seconds\n");
+                    ndt_log("navP [info]: XSquawkBox connection detected acf_volume_reset in 9 seconds\n");
 /*XXX:XSB-specific*/XPLMSetDatai(XPLMFindDataRef("sim/cockpit2/radios/actuators/audio_com_selection" ), 0);
 /*XXX:XSB-specific*/XPLMSetDatai(XPLMFindDataRef("sim/cockpit2/radios/actuators/audio_selection_com1"), 1);
 /*XXX:XSB-specific*/XPLMSetDatai(XPLMFindDataRef("sim/cockpit2/radios/actuators/audio_selection_com2"), 1);
-                    XPLMSetFlightLoopCallbackInterval(grndp->oatc.flc, 3.0f, 1, grndp->oatc.aircraft_type);
+                    XPLMSetFlightLoopCallbackInterval(grndp->oatc.flc, 9.0f, 1, grndp->oatc.aircraft_type);
+                    grndp->pt->thptt = XPLMFindCommand("xsquawkbox/voice/ptt");
                 }
             }
-            grndp->oatc.xb_was_connected = !!xb_is_connected;
+            else
+            {
+                grndp->pt->thptt = NULL;
+            }
+            grndp->oatc.xb_was_connected = !!grndp->pt->atc_is_connected;
         }
 
         // without A/P on (otherwise auto-landing),
