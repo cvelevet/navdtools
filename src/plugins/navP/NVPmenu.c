@@ -1880,33 +1880,56 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
         {
             float current_load; acf_type_load_get(ctx->data.refuel_dialg.ic, &current_load);
             float current_zfwt; acf_type_zfwt_get(ctx->data.refuel_dialg.ic, &current_zfwt);
-            if (ctx->data.refuel_dialg.payload_is_zfw)
+            if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A319_TL ||
+                ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A321_TL)
             {
-                float diff = target_zero_weight - current_zfwt;
-                target_load_weight = current_load + diff;
-            }
-            if (fabsf(target_load_weight - current_load) > LOAD_MINIMUM_DIFF)
-            {
-                if (target_load_weight > current_load)
+                if (fabsf(target_zero_weight - current_zfwt) > LOAD_MINIMUM_DIFF)
                 {
-                    ctx->data.refuel_dialg.brding_started = 0;
-                    ctx->data.refuel_dialg.load_rate_kg_s /= 2.0f;
-                    ctx->data.refuel_dialg.adjust_load = NVP_MENU_INCR;
+                    if (target_zero_weight > current_zfwt)
+                    {
+                        ctx->data.refuel_dialg.adjust_load = NVP_MENU_INCR;
+                    }
+                    else
+                    {
+                        ctx->data.refuel_dialg.adjust_load = NVP_MENU_DECR;
+                    }
+                    ctx->data.refuel_dialg.load_target_kg = target_zero_weight;
                 }
                 else
                 {
-                    ctx->data.refuel_dialg.brding_started = 0;
-                    ctx->data.refuel_dialg.adjust_load = NVP_MENU_DECR;
+                    ctx->data.refuel_dialg.adjust_load = NVP_MENU_DONE;
                 }
-                ctx->data.refuel_dialg.load_target_kg = target_load_weight;
             }
             else
             {
-                ctx->data.refuel_dialg.adjust_load = NVP_MENU_DONE;
-            }
-            if (ctx->data.refuel_dialg.load_target_kg < LOAD_MINIMUM_DIFF)
-            {
-                ctx->data.refuel_dialg.load_target_kg = 0.0f;
+                if (ctx->data.refuel_dialg.payload_is_zfw)
+                {
+                    float diff = target_zero_weight - current_zfwt;
+                    target_load_weight = current_load + diff;
+                }
+                if (fabsf(target_load_weight - current_load) > LOAD_MINIMUM_DIFF)
+                {
+                    if (target_load_weight > current_load)
+                    {
+                        ctx->data.refuel_dialg.brding_started = 0;
+                        ctx->data.refuel_dialg.load_rate_kg_s /= 2.0f;
+                        ctx->data.refuel_dialg.adjust_load = NVP_MENU_INCR;
+                    }
+                    else
+                    {
+                        ctx->data.refuel_dialg.brding_started = 0;
+                        ctx->data.refuel_dialg.adjust_load = NVP_MENU_DECR;
+                    }
+                    ctx->data.refuel_dialg.load_target_kg = target_load_weight;
+                }
+                else
+                {
+                    ctx->data.refuel_dialg.adjust_load = NVP_MENU_DONE;
+                }
+                if (ctx->data.refuel_dialg.load_target_kg < LOAD_MINIMUM_DIFF)
+                {
+                    ctx->data.refuel_dialg.load_target_kg = 0.0f;
+                }
             }
         }
         else
@@ -1949,95 +1972,29 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
             if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A319_TL ||
                 ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A321_TL)
             {
-                XPLMCommandRef tolissc;
-                XPLMDataRef    tolissd;
-                float          tolissf;
-                int            tolissi;
                 if (XPIsWidgetVisible(inWidget))
                 {
                     XPHideWidget(inWidget);
                 }
                 if (ctx->data.refuel_dialg.adjust_load != NVP_MENU_DONE)
                 {
-                    float c1[] = { 2268.0f, 4518.0f, 6786.0f, }, c2[] = { 5670.0f, 7167.0f, 12837.0f, };
-                    float *crg = ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A321_TL ?  c2 :  c1;
-                    int maxpax = ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A321_TL ? 224 : 145;
-                    if (maxpax < (tolissi = (int)(ctx->data.refuel_dialg.load_target_kg / 100.0f)))
+                    if (acf_type_zfwt_set(ctx->data.refuel_dialg.ic, &ctx->data.refuel_dialg.load_target_kg))
                     {
-                        tolissi = maxpax;
-                    }
-                    if (crg[2] < (tolissf = (ctx->data.refuel_dialg.load_target_kg - ((float)tolissi * 100.0f))))
-                    {
-                        tolissf = crg[2];
-                    }
-                    {
-                        ndt_log("navP [info]: load distributed: %.0f, pax: %d, cargo: %.0f, discarded: %.0f\n",
-                                ctx->data.refuel_dialg.load_target_kg, tolissi, tolissf,
-                                ctx->data.refuel_dialg.load_target_kg - ((float)tolissi * 100.0f) - tolissf);
-                    }
-                    if ((tolissd = XPLMFindDataRef("AirbusFBW/NoPax")))
-                    {
-                        XPLMSetDatai(tolissd, tolissi);
-                    }
-                    else
-                    {
-                        ndt_log("navP [error]: missing dataref \"%s\"\n", "AirbusFBW/NoPax");
+                        ndt_log("navP [error]: failed to set ZFW\n");
                         XPLMSpeakString("boarding failed");
                         return 1;
                     }
-                    if ((tolissd = XPLMFindDataRef("AirbusFBW/PaxDistrib")))
-                    {
-                        srand(time(NULL)); float distrib = 0.4375f + (0.75f - 0.4375f) * rand() / (float)RAND_MAX;
-                        XPLMSetDataf(tolissd, distrib); // "random" float value between 0.4375f and 0.750f
-                    }
                     else
                     {
-                        ndt_log("navP [error]: missing dataref \"%s\"\n", "AirbusFBW/PaxDistrib");
-                        XPLMSpeakString("boarding failed");
-                        return 1;
+                        ndt_log("navP [info]: set ZFW (%.0f)\n", ctx->data.refuel_dialg.load_target_kg);
                     }
-                    if ((tolissd = XPLMFindDataRef("AirbusFBW/FwdCargo")))
-                    {
-                        XPLMSetDataf(tolissd, tolissf * crg[0] / crg[2]);
-                    }
-                    else
-                    {
-                        ndt_log("navP [error]: missing dataref \"%s\"\n", "AirbusFBW/FwdCargo");
-                        XPLMSpeakString("boarding failed");
-                        return 1;
-                    }
-                    if ((tolissd = XPLMFindDataRef("AirbusFBW/AftCargo")))
-                    {
-                        XPLMSetDataf(tolissd, tolissf * crg[1] / crg[2]);
-                    }
-                    else
-                    {
-                        ndt_log("navP [error]: missing dataref \"%s\"\n", "AirbusFBW/AftCargo");
-                        XPLMSpeakString("boarding failed");
-                        return 1;
-                    }
-                    if ((tolissc = XPLMFindCommand("AirbusFBW/SetWeightAndCG")))
-                    {
-                        XPLMCommandOnce(tolissc);
-                    }
-                    else
-                    {
-                        ndt_log("navP [error]: missing command \"%s\"\n", "AirbusFBW/SetWeightAndCG");
-                        XPLMSpeakString("boarding failed");
-                        return 1;
-                    }
-                    ndt_log("navP [info]: set load (%.0f)\n", ctx->data.refuel_dialg.load_target_kg);
                 }
                 if (ctx->data.refuel_dialg.adjust_fuel != NVP_MENU_DONE)
                 {
-                    if ((tolissd = XPLMFindDataRef("AirbusFBW/WriteFOB")))
+                    if (acf_type_fuel_set(ctx->data.refuel_dialg.ic, &ctx->data.refuel_dialg.fuel_target_kg))
                     {
-                        XPLMSetDataf(tolissd, ctx->data.refuel_dialg.fuel_target_kg);
-                    }
-                    else
-                    {
-                        ndt_log("navP [error]: missing dataref \"%s\"\n", "AirbusFBW/WriteFOB");
-                        XPLMSpeakString("fueling failed");
+                        ndt_log("navP [error]: failed to set fuel\n");
+                        XPLMSpeakString("re-fueling failed");
                         return 1;
                     }
                     ndt_log("navP [info]: set fuel (%.0f)\n", ctx->data.refuel_dialg.fuel_target_kg);
