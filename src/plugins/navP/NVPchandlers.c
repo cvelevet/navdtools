@@ -5452,7 +5452,7 @@ static int first_fcall_do(chandler_context *ctx)
                 assert_context *rca = &ctx->info->assert;
                 if (acf_type_is_engine_running() == 0) // cold & dark
                 {
-                    int32_t request_true = 1; float p = 500.0f, f = 3175.0f;
+                    int32_t request_true = 1; float p = 756.0f, f = 4200.0f;
                     rca->api.ValueSet(rca->dat.id_s32_acft_request_chk, &request_true);
                     rca->api.ValueSet(rca->dat.id_s32_acft_request_gpu, &request_true);
                     acf_type_load_set(ctx->info, &p); acf_type_fuel_set(ctx->info, &f);
@@ -5487,6 +5487,27 @@ static int first_fcall_do(chandler_context *ctx)
         case ACF_TYP_A321_TL:
             if (acf_type_is_engine_running() == 0) // cold & dark
             {
+                switch (ctx->info->ac_type)
+                {
+                    case ACF_TYP_A319_TL:
+                    {
+                        float load = 677.00f; acf_type_load_set(ctx->info, &load);
+                        float fuel = 4200.0f; acf_type_fuel_set(ctx->info, &fuel);
+                        break;
+                    }
+                    case ACF_TYP_A321_TL:
+                    {
+                        float load = 720.00f; acf_type_load_set(ctx->info, &load);
+                        float fuel = 4200.0f; acf_type_fuel_set(ctx->info, &fuel);
+                        break;
+                    }
+                    default:
+                    {
+                        float load = 700.00f; acf_type_load_set(ctx->info, &load);
+                        float fuel = 4200.0f; acf_type_fuel_set(ctx->info, &fuel);
+                        break;
+                    }
+                }
                 _DO(1, XPLMSetDatai, 1, "AirbusFBW/EnableExternalPower");   // ensure we have ground power
                 _DO(1, XPLMSetDatai, 0, "AirbusFBW/GroundLPAir");           // lo pressure ground air: off
                 _DO(1, XPLMSetDatai, 0, "AirbusFBW/GroundHPAir");           // hi pressure ground air: off
@@ -5832,11 +5853,9 @@ static int first_fcall_do(chandler_context *ctx)
                     XPLMSetDatavi(d_ref, &door_open[0], 8, 1);                      // luggage FWD
                     XPLMSetDatavi(d_ref, &door_open[0], 9, 1);                      // luggage AFT
                 }
-                // grosswt: 334,000 lb == 151,500 kg
-                float fuel = 0.45359207f * 020000.0f;
-                float zwft = 0.45359207f * 314000.0f;
-                acf_type_zfwt_set(ctx->info,  &zwft);
-                acf_type_fuel_set(ctx->info,  &fuel);
+                float load = 1599.0f, fuel = 8400.0f;
+                acf_type_load_set (ctx->info, &load);
+                acf_type_fuel_set (ctx->info, &fuel);
             }
             if (ctx->a350kc.kc_is_registered)
             {
@@ -5925,9 +5944,9 @@ static int first_fcall_do(chandler_context *ctx)
             }
             if (acf_type_is_engine_running() == 0)
             {
-                float gas = 3175.0f, zfw = 33333.3f;
-                acf_type_fuel_set (ctx->info, &gas);
-                acf_type_zfwt_set (ctx->info, &zfw);
+                float load = 669.0f, fuel = 3350.0f;
+                acf_type_load_set(ctx->info, &load);
+                acf_type_fuel_set(ctx->info, &fuel);
             }
             break;
 
@@ -6179,7 +6198,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
             if (acf_type_is_engine_running() == 0)
             {
-                float load = 500.0f, fuel = 3175.0f;
+                float load = 541.0f, fuel = 3150.0f;
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
             }
@@ -6207,7 +6226,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 1, "XCrafts/ERJ/weight_units");
             if (acf_type_is_engine_running() == 0)
             {
-                float load = 250.0f, fuel = 1587.5f;
+                float load = 415.0f, fuel = 2625.0f;
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
                 _DO(0, XPLMSetDataf, 0.0f, "sim/flightmodel/misc/cgz_ref_to_default");
@@ -6257,7 +6276,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
             if (acf_type_is_engine_running() == 0)
             {
-                float load = 250.0f, fuel = 1587.5f;
+                float load = 340.0f, fuel = 2100.0f;
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
             }
@@ -6314,7 +6333,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 0, "cl300/gpu_mode");
             if (acf_type_is_engine_running() == 0)
             {
-                float load = 250.0f, fuel = 1587.5f;
+                float load = 327.0f, fuel = 2100.0f;
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
             }
@@ -6653,7 +6672,9 @@ static int first_fcall_do(chandler_context *ctx)
             if (acf_type_is_engine_running() == 0 && skview == 0 &&
                 XPLMFindPluginBySignature("com.simcoders.rep") == XPLM_NO_PLUGIN_ID)
             {
-                float load = 77.0f; acf_type_load_set(ctx->info, &load); //pilot
+                float fmax; acf_type_fmax_get(ctx->info, &fmax); // fuel capacity
+                float load = 77.0f; acf_type_load_set(ctx->info, &load); // PIC only
+                float fuel = fmax / 4.0f; acf_type_fuel_set(ctx->info, &fuel); // 25% fuel
             }
             break;
 
