@@ -110,6 +110,64 @@ acf_info_context* acf_type_info_get()
     return global_info;
 }
 
+static void toliss_info_reset(acf_info_context *info)
+{
+    if (info)
+    {
+        if (info->ac_type == ACF_TYP_A319_TL ||
+            info->ac_type == ACF_TYP_A321_TL)
+        {
+            info->toliss.initialized = 0;
+            info->toliss.npax = NULL;
+            info->toliss.paxd = NULL;
+            info->toliss.fcgo = NULL;
+            info->toliss.acgo = NULL;
+            info->toliss.wfob = NULL;
+            info->toliss.c = NULL;
+            return;
+        }
+        return;
+    }
+    return;
+}
+
+static int toliss_info_init(acf_info_context *info)
+{
+    if (info)
+    {
+        if (info->ac_type == ACF_TYP_A319_TL ||
+            info->ac_type == ACF_TYP_A321_TL)
+        {
+            if (info->toliss.initialized != 1)
+            {
+                if (info->toliss.initialized == 0)
+                {
+                    info->toliss.npax = XPLMFindDataRef("AirbusFBW/NoPax");
+                    info->toliss.wfob = XPLMFindDataRef("AirbusFBW/WriteFOB");
+                    info->toliss.fcgo = XPLMFindDataRef("AirbusFBW/FwdCargo");
+                    info->toliss.acgo = XPLMFindDataRef("AirbusFBW/AftCargo");
+                    info->toliss.paxd = XPLMFindDataRef("AirbusFBW/PaxDistrib");
+                    info->toliss.c = XPLMFindCommand("AirbusFBW/SetWeightAndCG");
+                    if (!info->toliss.npax || !info->toliss.wfob ||
+                        !info->toliss.fcgo || !info->toliss.acgo ||
+                        !info->toliss.paxd || !info->toliss.c)
+                    {
+                        ndt_log("navP [error]: toliss_info_init: missing dataref or command\n");
+                        info->toliss.initialized = -1;
+                        return -1;
+                    }
+                    info->toliss.initialized = 1;
+                    return 1;
+                }
+                return -1;
+            }
+            return 1;
+        }
+        return 0;
+    }
+    return -1;
+}
+
 int acf_type_info_reset()
 {
     if (global_info)
@@ -118,6 +176,7 @@ int acf_type_info_reset()
         global_info->afname[0] = '\0'; global_info->afpath[0] = '\0';
         global_info->author[0] = '\0'; global_info->descrp[0] = '\0';
         global_info->tailnb[0] = '\0'; global_info->icaoid[0] = '\0';
+        toliss_info_reset(global_info); // call before reset ac_type
         global_info->ac_type = ACF_TYP_GENERIC;
         global_info->assert.initialized = 0;
         global_info->flap_detents = 0;
@@ -331,12 +390,14 @@ acf_info_context* acf_type_info_update()
                 !STRN_CASECMP_AUTO(global_info->icaoid, "A319"))
             {
                 global_info->ac_type = ACF_TYP_A319_TL;
+                toliss_info_reset(global_info);
                 break;
             }
             if (!STRN_CASECMP_AUTO(global_info->descrp, "A321") &&
                 !STRN_CASECMP_AUTO(global_info->icaoid, "A321"))
             {
                 global_info->ac_type = ACF_TYP_A321_TL;
+                toliss_info_reset(global_info);
                 break;
             }
             if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(    "FFSTSmousehandler") || // 1.3.x or earlier
@@ -728,6 +789,10 @@ int acf_type_load_get(acf_info_context *info, float *weight)
     {
         return EINVAL;
     }
+    if (toliss_info_init(info) < 0)
+    {
+        return EINVAL;
+    }
     if (info->ac_type == ACF_TYP_A320_FF)
     {
         if (global_info->assert.initialized == 0)
@@ -755,6 +820,67 @@ int acf_type_load_set(acf_info_context *info, float *weight)
     {
         return ERANGE;
     }
+    if (toliss_info_init(info) < 0)
+    {
+        return EINVAL;
+    }
+    if (toliss_info_init(info) == 1)
+    {
+        float      load, pax_dist_zfcg;
+        int   max_pax_count, pax_count;
+        float max_cargo_fwd, cargo_fwd;
+        float max_cargo_aft, cargo_aft;
+        float max_cargo_all, cargo_all;
+        if ((load = *weight) < 0.0f)
+        {
+            (load = 0.0f);
+        }
+        /*
+         * We must distribute the load via the ISCS load manager.
+         */
+        switch (info->ac_type)
+        {
+            case ACF_TYP_A319_TL:
+                /*
+                 *  Pseudo-random value between 0.4375f (somewhat forward) and 0.6875f (somewhat aft).
+                 */
+                srand(time(NULL));
+                pax_dist_zfcg = 0.4375f + (0.6875f - 0.4375f) * rand() / (float)RAND_MAX;
+                max_cargo_fwd = 2268.0f;
+                max_cargo_aft = 4518.0f;
+                max_pax_count = 145;
+                break;
+            case ACF_TYP_A321_TL:
+                /*
+                 *  Pseudo-random value between 0.4375f (somewhat forward) and 0.6875f (somewhat aft).
+                 */
+                srand(time(NULL));
+                pax_dist_zfcg = 0.4375f + (0.6875f - 0.4375f) * rand() / (float)RAND_MAX;
+                max_cargo_fwd = 5670.0f;
+                max_cargo_aft = 7167.0f;
+                max_pax_count = 224;
+                break;
+            default:
+                return EINVAL;
+        }
+        if (max_pax_count < (pax_count = (int)(load / 100.0f)))
+        {
+            pax_count = max_pax_count;
+        }
+        if ((max_cargo_all = max_cargo_fwd + max_cargo_aft) < (cargo_all = (load - ((float)pax_count * 100.0f))))
+        {
+            cargo_all = max_cargo_all;
+        }
+        ndt_log("navP [info]: ToLiSs: payload: %.0f, pax: %d, cargo: %.0f, discarded: %.0f\n",
+                load, pax_count, cargo_all, load - ((float)pax_count * 100.0f) - cargo_all);
+        XPLMSetDataf(info->toliss.fcgo, cargo_all * max_cargo_fwd / max_cargo_all);
+        XPLMSetDataf(info->toliss.acgo, cargo_all * max_cargo_aft / max_cargo_all);
+        *weight = cargo_all + ((float)pax_count * 100.0f);
+        XPLMSetDataf(info->toliss.paxd, pax_dist_zfcg);
+        XPLMSetDatai(info->toliss.npax, pax_count);
+        XPLMCommandOnce(info->toliss.c);
+        return 0;
+    }
     if (info->ac_type == ACF_TYP_A320_FF)
     {
         if (global_info->assert.initialized == 0)
@@ -778,6 +904,15 @@ int acf_type_zfwt_get(acf_info_context *info, float *weight)
     if (info->up_to_date == 0)
     {
         return EINVAL;
+    }
+    if (toliss_info_init(info) < 0)
+    {
+        return EINVAL;
+    }
+    if (toliss_info_init(info) == 1)
+    {
+        *weight = XPLMGetDataf(info->weight.current) - XPLMGetDataf(info->fuel.current);
+        return 0;
     }
     if (info->ac_type == ACF_TYP_A320_FF)
     {
@@ -811,6 +946,36 @@ int acf_type_zfwt_set(acf_info_context *info, float *weight)
     {
         return ERANGE;
     }
+    if (toliss_info_init(info) < 0)
+    {
+        return EINVAL;
+    }
+    if (toliss_info_init(info) == 1)
+    {
+        /*
+         * We have a plugin-driven OEW, let's compute it.
+         */
+        XPLMSetDataf(info->toliss.fcgo, 0.0f);
+        XPLMSetDataf(info->toliss.acgo, 0.0f);
+        XPLMSetDatai(info->toliss.npax, 0);
+        XPLMCommandOnce(info->toliss.c);
+        float oew = XPLMGetDataf(info->weight.minimum) + XPLMGetDataf(info->weight.payload);
+        ndt_log("navP [info]: ToLiSs: actual OEW %.0f\n", oew);
+        /*
+         * Now let's compute the actual payload to match requested ZFW.
+         */
+        float load = *weight - oew;
+        /*
+         * Delegate actual laoding procedure.
+         */
+        int ret = acf_type_load_set(info, &load);
+        if (ret)
+        {
+            return ret;
+        }
+        *weight = oew + load;
+        return 0;
+    }
     float zfwt, load; int ret;
     if ((ret = acf_type_zfwt_get(info, &zfwt)) ||
         (ret = acf_type_load_get(info, &load)))
@@ -842,6 +1007,10 @@ int acf_type_oewt_get(acf_info_context *info, float *weight)
     {
         return EINVAL;
     }
+    if (toliss_info_init(info) < 0)
+    {
+        return EINVAL;
+    }
     if (info->ac_type == ACF_TYP_A320_FF)
     {
         if (global_info->assert.initialized == 0)
@@ -865,6 +1034,15 @@ int acf_type_grwt_get(acf_info_context *info, float *weight)
     if (info->up_to_date == 0)
     {
         return EINVAL;
+    }
+    if (toliss_info_init(info) < 0)
+    {
+        return EINVAL;
+    }
+    if (toliss_info_init(info) == 1)
+    {
+        *weight = XPLMGetDataf(info->weight.current);
+        return 0;
     }
     float oewt, load, fuel; int ret;
     if ((ret = acf_type_oewt_get(info, &oewt)) ||
@@ -892,6 +1070,10 @@ int acf_type_fmax_get(acf_info_context *info, float *weight)
         return ENOMEM;
     }
     if (info->up_to_date == 0)
+    {
+        return EINVAL;
+    }
+    if (toliss_info_init(info) < 0)
     {
         return EINVAL;
     }
@@ -1072,6 +1254,10 @@ int acf_type_fuel_get(acf_info_context *info, float *weight)
     {
         return EINVAL;
     }
+    if (toliss_info_init(info) < 0)
+    {
+        return EINVAL;
+    }
     if (info->ac_type == ACF_TYP_A320_FF)
     {
         if (global_info->assert.initialized == 0)
@@ -1104,6 +1290,20 @@ int acf_type_fuel_set(acf_info_context *info, float *weight)
     if (*weight < 0.0f)
     {
         return ERANGE;
+    }
+    if (toliss_info_init(info) < 0)
+    {
+        return EINVAL;
+    }
+    if (toliss_info_init(info) == 1)
+    {
+        float fmax = XPLMGetDataf(global_info->fuel.maximum);
+        if (*weight > (fmax - 40.0f))
+        {
+            *weight = (fmax - 40.0f);
+        }
+        XPLMSetDataf(info->toliss.wfob, *weight);
+        return acf_type_fuel_get (info,  weight);
     }
     if (info->ac_type == ACF_TYP_A320_FF)
     {

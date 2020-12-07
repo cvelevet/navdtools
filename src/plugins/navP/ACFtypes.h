@@ -187,8 +187,18 @@ typedef struct
     fuel;
     union
     {
-        assert_context assert;
+        struct
+        {
+            int  initialized;
+            XPLMDataRef npax;
+            XPLMDataRef paxd;
+            XPLMDataRef fcgo;
+            XPLMDataRef acgo;
+            XPLMDataRef wfob;
+            XPLMCommandRef c;
+        } toliss;
     };
+    assert_context assert;
 }
 acf_info_context;
 
