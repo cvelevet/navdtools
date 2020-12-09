@@ -848,7 +848,7 @@ int acf_type_load_set(acf_info_context *info, float *weight)
                 pax_dist_zfcg = 0.4375f + (0.6875f - 0.4375f) * rand() / (float)RAND_MAX;
                 max_cargo_fwd = 2268.0f;
                 max_cargo_aft = 4518.0f;
-                max_pax_count = 145;
+                max_pax_count = 110; // ceil((58,500 - 2200 - 4500 - 40,800) / 100)
                 break;
             case ACF_TYP_A321_TL:
                 /*
@@ -858,7 +858,8 @@ int acf_type_load_set(acf_info_context *info, float *weight)
                 pax_dist_zfcg = 0.4375f + (0.6875f - 0.4375f) * rand() / (float)RAND_MAX;
                 max_cargo_fwd = 5670.0f;
                 max_cargo_aft = 7167.0f;
-                max_pax_count = 200;
+//              max_pax_count = 170; // ceil((79,200 - 5600 - 7100 - 49,500) / 100)
+                max_pax_count = 174; // ceil((77,800 - 5600 - 7100 - 47,700) / 100)
                 break;
             default:
                 return EINVAL;
