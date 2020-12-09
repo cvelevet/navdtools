@@ -116,6 +116,7 @@ typedef struct
     chandler_callback mwcb;
     XPLMDataRef    popup_x;
     XPLMDataRef    popup_y;
+    XPLMDataRef    xpliver;
     int            toaltbr;
     int            tolbctr;
     XPLMDataRef    tolb[3];
@@ -4752,7 +4753,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 if (PopUpHeightArray[0] <= 0 && PopUpHeightArray[1] <= 0) // both popups hidden
                 {
                     // reset any relevant dataref to preferred size/location and show both MCDUs
-                    //                    { CDU1, CDU2, PFD1, PFD2, ND#1, ND#2, ECAM, ECAM, ISCS, };
+                    //                    { CDU1, CDU2, PFD1, PFD2, ND#1, ND#2, ECAM, ECAM, ISIS, };
                     float PopUpScale[9] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, }; XPLMSetDatavf(cdu->dataref[1], PopUpScale, 0, 9);
                     int   PopUpXArry[9] = {    0,  448,    0, 1292, 1292, 1292,  646,  646,  473, }; XPLMSetDatavi(cdu->dataref[2], PopUpXArry, 0, 9);
                     int   PopUpYArry[9] = {    0,    0,  620,    0,  620,  620,    0,  620,  460, }; XPLMSetDatavi(cdu->dataref[3], PopUpYArry, 0, 9);
@@ -4938,20 +4939,19 @@ static int chandler_32atd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_31isc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    if (inPhase == xplm_CommandBegin && inRefcon) // before any other processing takes place
+    if (inRefcon) // do it for all phases just in case
     {
-        int x; XPLMGetDatavi(((refcon_qpacfbw*)inRefcon)->popup_x, &x, 9, 1);
-        int y; XPLMGetDatavi(((refcon_qpacfbw*)inRefcon)->popup_y, &y, 9, 1);
-        if (((x >=   1 || y >=   1) &&
-             (x != 768 && y != 352)))
+        if (((refcon_qpacfbw*)inRefcon)->xpliver) // XP11+
         {
-            x = 768; XPLMSetDatavi(((refcon_qpacfbw*)inRefcon)->popup_x, &x, 9, 1);
-            y = 352; XPLMSetDatavi(((refcon_qpacfbw*)inRefcon)->popup_y, &y, 9, 1);
-            return 1;
+            int x = 758; XPLMSetDatavi(((refcon_qpacfbw*)inRefcon)->popup_x, &x, 9, 1);
+            int y = 284; XPLMSetDatavi(((refcon_qpacfbw*)inRefcon)->popup_y, &y, 9, 1);
+            return 1; // pass through
         }
-        return 1;
+        int x = 768; XPLMSetDatavi(((refcon_qpacfbw*)inRefcon)->popup_x, &x, 9, 1);
+        int y = 352; XPLMSetDatavi(((refcon_qpacfbw*)inRefcon)->popup_y, &y, 9, 1);
+        return 1; // pass through
     }
-    return 1;
+    return 1; // pass through
 }
 
 static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
@@ -7064,6 +7064,7 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
             (fbw->popup_x      = XPLMFindDataRef("AirbusFBW/PopUpXCoordArray")) &&
             (fbw->popup_y      = XPLMFindDataRef("AirbusFBW/PopUpYCoordArray")))
         {
+            fbw->xpliver = XPLMFindDataRef("sim/version/xplane_internal_version");
             REGISTER_CHANDLER(fbw->mwcb, chandler_31isc, 1/*before ToLiSS plugin*/, fbw);
         }
         if ((fbw->pkb_ref = XPLMFindDataRef("1-sim/parckBrake")))
