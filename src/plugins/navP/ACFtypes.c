@@ -858,7 +858,7 @@ int acf_type_load_set(acf_info_context *info, float *weight)
                 pax_dist_zfcg = 0.4375f + (0.6875f - 0.4375f) * rand() / (float)RAND_MAX;
                 max_cargo_fwd = 5670.0f;
                 max_cargo_aft = 7167.0f;
-                max_pax_count = 224;
+                max_pax_count = 200;
                 break;
             default:
                 return EINVAL;
