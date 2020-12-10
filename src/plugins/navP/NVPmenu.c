@@ -231,8 +231,8 @@ typedef struct
             float       df_ovrdctl;
 
             // advanced features
-            XPLMDataRef dr_use_csm; // sim/private/controls/caps/use_csm
-            float       df_use_csm;
+//          XPLMDataRef dr_use_csm; // sim/private/controls/caps/use_csm
+//          float       df_use_csm;
             XPLMDataRef dr_disprep; // sim/private/controls/perf/disable_shadow_prep
             float       df_disprep;
             XPLMDataRef dr_disrcam; // sim/private/controls/perf/disable_reflection_cam
@@ -737,7 +737,7 @@ int nvp_menu_setup(void *_menu_context)
         ctx->data.speedbooster.dr_limitfr = get_dataref2("sim/private/controls/clouds/limit_far"           );
         ctx->data.speedbooster.dr_difgain = get_dataref2("sim/private/controls/clouds/diffuse_gain"        );
         ctx->data.speedbooster.dr_ovrdctl = get_dataref2("sim/private/controls/clouds/overdraw_control"    );
-        ctx->data.speedbooster.dr_use_csm = get_dataref2("sim/private/controls/caps/use_csm"               );
+//      ctx->data.speedbooster.dr_use_csm = get_dataref2("sim/private/controls/caps/use_csm"               );
         ctx->data.speedbooster.dr_disprep = get_dataref2("sim/private/controls/perf/disable_shadow_prep"   );
         ctx->data.speedbooster.dr_disrcam = get_dataref2("sim/private/controls/perf/disable_reflection_cam");
         ctx->data.speedbooster.dr_x_i_ver = get_dataref2("sim/version/xplane_internal_version"             );
@@ -811,10 +811,10 @@ int nvp_menu_setup(void *_menu_context)
         {
             ctx->data.speedbooster.df_ovrdctl = XPLMGetDataf(ctx->data.speedbooster.dr_ovrdctl);
         }
-        if (ctx->data.speedbooster.dr_use_csm)
-        {
-            ctx->data.speedbooster.df_use_csm = XPLMGetDataf(ctx->data.speedbooster.dr_use_csm);
-        }
+//      if (ctx->data.speedbooster.dr_use_csm)
+//      {
+//          ctx->data.speedbooster.df_use_csm = XPLMGetDataf(ctx->data.speedbooster.dr_use_csm);
+//      }
         if (ctx->data.speedbooster.dr_disprep)
         {
             ctx->data.speedbooster.df_disprep = XPLMGetDataf(ctx->data.speedbooster.dr_disprep);
@@ -1029,7 +1029,7 @@ int nvp_menu_close(void **_menu_context)
     SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_limitfr, df_limitfr);
     SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_difgain, df_difgain);
     SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_ovrdctl, df_ovrdctl);
-    SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_use_csm, df_use_csm);
+//  SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_use_csm, df_use_csm);
     SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_disprep, df_disprep);
     SPEEDBOOSTER_DEFAULTV(XPLMSetDataf, dr_disrcam, df_disrcam);
     ndt_log(    "navP [info]: disabling Tachyon Enhancement\n");
