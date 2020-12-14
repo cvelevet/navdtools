@@ -5490,33 +5490,9 @@ static int first_fcall_do(chandler_context *ctx)
                         break;
                     }
                 }
-                _DO(1, XPLMSetDatai, 1, "AirbusFBW/EnableExternalPower");   // ensure we have ground power
-                _DO(1, XPLMSetDatai, 0, "AirbusFBW/GroundLPAir");           // lo pressure ground air: off
-                _DO(1, XPLMSetDatai, 0, "AirbusFBW/GroundHPAir");           // hi pressure ground air: off
-            }
-            switch (ctx->info->ac_type)
-            {
-                case ACF_TYP_A321_TL:
-                    if ((d_ref = XPLMFindDataRef("AirbusFBW/FuelOHPArray")))
-                    {
-                        int i[2] = { 0, 0, }; XPLMSetDatavi(d_ref, i, 2, 2);
-                    }
-                    _DO(1, XPLMSetDatai, 1, "params/wheel");                        // use scrollwheel
-                    _DO(1, XPLMSetDatai, 0, "AirbusFBW/ALT100_1000");               // FCU alt. sel. incre. (100ft)
-                    _DO(1, XPLMSetDatai, 2, "AirbusFBW/EngineType");                // CFM engines w/sharklets+web
-                    _DO(1, XPLMSetDatai, 0, "AirbusFBW/SatComObjInhibit");          // CFM engines w/sharklets+web
-                    _DO(1, XPLMSetDatai, 1, "AirbusFBW/WingtipDeviceType");         // CFM engines w/sharklets+web
-                    _DO(1, XPLMSetDatai, 2, "AirbusFBW/FuelNumExtraTanks");         // use 5 fuel tanks by default
-                    break;
-
-                case ACF_TYP_A319_TL:
-                default:
-                    _DO(1, XPLMSetDatai, 1, "params/wheel");                        // use scrollwheel
-                    _DO(1, XPLMSetDatai, 0, "AirbusFBW/ALT100_1000");               // FCU alt. sel. incre. (100ft)
-                    _DO(1, XPLMSetDatai, 1, "AirbusFBW/EngineType");                // IAE engines w/sharklets+web
-                    _DO(1, XPLMSetDatai, 0, "AirbusFBW/SatComObjInhibit");          // IAE engines w/sharklets+web
-                    _DO(1, XPLMSetDatai, 1, "AirbusFBW/WingtipDeviceType");         // IAE engines w/sharklets+web
-                    break;
+                _DO(1, XPLMSetDatai, 0, "AirbusFBW/GroundLPAir");                   // lo pressure ground air: off
+                _DO(1, XPLMSetDatai, 0, "AirbusFBW/GroundHPAir");                   // hi pressure ground air: off
+                _DO(1, XPLMSetDatai, 1, "AirbusFBW/EnableExternalPower");           // ensure we have ground power
             }
             if ((d_ref = XPLMFindDataRef("AirbusFBW/DUBrightness")))
             {
@@ -5528,6 +5504,8 @@ static int first_fcall_do(chandler_context *ctx)
                 _DO(1, XPLMSetDataf, 0.8f, "AirbusFBW/WXAlphaND1");                 // ND1 weather to 80%
                 _DO(1, XPLMSetDataf, 0.8f, "AirbusFBW/WXAlphaND2");                 // ND2 weather to 80%
             }
+            _DO(1, XPLMSetDatai, 1, "params/wheel");                                // use scrollwheel
+            _DO(1, XPLMSetDatai, 0, "AirbusFBW/ALT100_1000");                       // FCU alt. sel. incre. (100ft)
             _DO(1,XPLMSetDataf,1.0f,"AirbusFBW/AuralVolume");                       // Loudspeaker vol. (cap. side)
             _DO(1,XPLMSetDataf,1.0f,"AirbusFBW/AuralVolumeFO");                     // Loudspeaker vol. (f/o. side)
             _DO(1, XPLMSetDatai, 1, "AirbusFBW/RMP1Switch");                        // Radio management pan. 1 (on)
