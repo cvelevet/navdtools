@@ -6190,8 +6190,6 @@ static int first_fcall_do(chandler_context *ctx)
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/generic_lights_switch")))
             {
                 float generic_lights_switch[1] = { 1.0f, };
-                XPLMSetDatavf(d_ref, &generic_lights_switch[0], 26, 1); // hide yoke L
-                XPLMSetDatavf(d_ref, &generic_lights_switch[0], 27, 1); // hide yoke R
                 XPLMSetDatavf(d_ref, &generic_lights_switch[0], 56, 1); // reflec. off
             }
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
@@ -6200,6 +6198,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
+            _DO(1, XPLMSetDatai, 0, "sim/graphics/view/hide_yoke");
             _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
             _DO(1, XPLMSetDatai, 1, "XCrafts/ERJ/weight_units");
             if (acf_type_is_engine_running() == 0)
@@ -6209,22 +6208,6 @@ static int first_fcall_do(chandler_context *ctx)
                 acf_type_fuel_set(ctx->info, &fuel);
                 _DO(0, XPLMSetDataf, 0.0f, "sim/flightmodel/misc/cgz_ref_to_default");
             }
-//            if ((d_ref = XPLMFindDataRef("sim/aircraft/bodies/acf_fuse_cd")))
-//            {
-//                if (fabsf(XPLMGetDataf(d_ref) - 0.12f) > 0.005f)
-//                {
-//                    ndt_log("navP [error]: \"%s\" is not %.4f (%.4f)\n", "sim/aircraft/bodies/acf_fuse_cd", 0.12f, XPLMGetDataf(d_ref));
-//                    XPLMSpeakString("turn around fail");
-//                    return (ctx->first_fcall = 0) - 1;
-//                }
-//                XPLMSetDataf(d_ref, 0.196875f);
-//            }
-//            else
-//            {
-//                ndt_log("navP [error]: dataref not found: \"%s\"\n", "sim/aircraft/bodies/acf_fuse_cd");
-//                XPLMSpeakString("turn around fail");
-//                return (ctx->first_fcall = 0) - 1;
-//            }
              // initial climb paramaters; V2(MTOW) is 139, +20 -> 160 KIAS
             _DO(0, XPLMSetDatai, 0, "sim/cockpit2/autopilot/airspeed_is_mach");
             _DO(0, XPLMSetDataf, 10.0f, "sim/cockpit2/autopilot/TOGA_pitch_deg");
