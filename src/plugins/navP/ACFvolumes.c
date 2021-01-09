@@ -361,7 +361,23 @@ void acf_volume_set(acf_volume_context *ctx, float volume, acf_type type)
         {
             case ACF_TYP_A319_TL:
             case ACF_TYP_A321_TL:
-                XPLMSetDataf(ctx->custom.tlss.master, sqrtf(volume));
+                if (ctx->x_plane_v11)
+                {
+                    XPLMSetDataf(ctx->sound.xp11.mas, 2.0f * volume);
+                    XPLMSetDataf(ctx->sound.xp11.cop, 0.5f);
+                    XPLMSetDataf(ctx->sound.xp11.eng, 0.5f);
+                    XPLMSetDataf(ctx->sound.xp11.env, 0.5f);
+                    XPLMSetDataf(ctx->sound.xp11.ext, 0.5f);
+                    XPLMSetDataf(ctx->sound.xp11.fan, 0.5f);
+                    XPLMSetDataf(ctx->sound.xp11.grd, 0.5f);
+                    XPLMSetDataf(ctx->sound.xp11.inn, 0.5f);
+                    XPLMSetDataf(ctx->sound.xp11.prp, 0.5f);
+                    XPLMSetDataf(ctx->sound.xp11.uiv, 0.5f);
+                    XPLMSetDataf(ctx->sound.xp11.wrn, 0.5f);
+                    XPLMSetDataf(ctx->sound.xp11.wxr, 0.5f);
+                    break;
+                }
+                XPLMSetDataf(ctx->custom.tlss.master, sqrtf(sqrtf(volume)));
                 break;
 
             case ACF_TYP_A320_FF:
