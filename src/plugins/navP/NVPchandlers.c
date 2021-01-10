@@ -5429,6 +5429,23 @@ static int first_fcall_do(chandler_context *ctx)
     }
     switch (ctx->info->ac_type)
     {
+        case ACF_TYP_A319_TL:
+        case ACF_TYP_A320_FF:
+        case ACF_TYP_A321_TL:
+        case ACF_TYP_A350_FF:
+            _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_heading_augment");
+            _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_pitch_augment");
+            _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_roll_augment");
+            break;
+
+        default:
+            _DO(1, XPLMSetDataf, 0.5f, "sim/joystick/joystick_heading_augment");
+            _DO(1, XPLMSetDataf, 0.5f, "sim/joystick/joystick_pitch_augment");
+            _DO(1, XPLMSetDataf, 0.5f, "sim/joystick/joystick_roll_augment");
+            break;
+    }
+    switch (ctx->info->ac_type)
+    {
         case ACF_TYP_A320_FF:
             {
                 assert_context *rca = &ctx->info->assert;
