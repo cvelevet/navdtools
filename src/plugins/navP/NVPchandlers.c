@@ -5231,7 +5231,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
          *
          * Reset on pause or UI/menu activity.
          */
-        if ((flightLoopCallbackInterval - inElapsedSinceLastCall) > 1.0f || // triggered by e.g. UI/menu activity
+        if ((inElapsedSinceLastCall - flightLoopCallbackInterval) > 1.0f || // triggered by e.g. UI/menu activity
             (XPLMGetDatai(grndp->time.sim_pause) > 0))
         {
             grndp->last_cycle_number = -1; // reset, start counting again on next call
