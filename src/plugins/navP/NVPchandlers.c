@@ -5189,6 +5189,9 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             }
         }
 
+        // set default flight loop callback interval based on whether we're airborne or on ground
+        float flightLoopCallbackInterval = !XPLMGetDatai(grndp->idle.onground_any) ? 1.0f : 0.25f;
+
 #if TIM_ONLY
         /*
          * Partial time sync: minutes/seconds.
@@ -5243,21 +5246,19 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
         /*
          * Auto-enable/disable sim clouds based
          * on self-measured average frame rate.
+         *
+         * Reset on pause or UI/menu activity.
          */
-        if (grndp->last_cycle_number < 0)
+        if ((flightLoopCallbackInterval - inElapsedSinceLastCall) > 1.0f || // triggered by e.g. UI/menu activity
+            (XPLMGetDatai(grndp->time.sim_pause) > 0))
         {
-            // first call from (re-)registration
+            grndp->last_cycle_number = -1; // reset, start counting again on next call
+        }
+        else if (grndp->last_cycle_number < 0)
+        {
+            // callback re-registration or reset
             grndp->last_cycle_number = inCounter;
             grndp->curr_period_durr = 10.0f;
-            grndp->elapsed_fr_reset = 0.0f;
-        }
-        else if (XPLMGetDatai(grndp->time.sim_pause) > 0)
-        {
-            grndp->last_cycle_number = inCounter;
-            if ((grndp->curr_period_durr -= 7.5f) < 7.6f)
-            {
-                (grndp->curr_period_durr = (7.5f));
-            }
             grndp->elapsed_fr_reset = 0.0f;
         }
         else
@@ -5422,9 +5423,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 //            }
 //        }
 
-        // check whether we are still on the ground or flying
-        int airborne = !XPLMGetDatai(grndp->idle.onground_any);
-        return airborne ? 1.0f : 0.25f;
+        return flightLoopCallbackInterval;
     }
     return 0;
 }
