@@ -84,6 +84,7 @@ int nvp_plugin_enable(void)
 
 #if TIM_ONLY
     /* update date before custom scenery is loaded (e.g. SAM Seasons) */
+    // FIXME: we do this too early for XP11, or maybe too late???
     XPLMDataRef date_days = XPLMFindDataRef("sim/time/local_date_days");
     if (date_days)
     {
