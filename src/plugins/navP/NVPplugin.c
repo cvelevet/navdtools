@@ -82,6 +82,7 @@ int nvp_plugin_enable(void)
     nvp_menu_reset                        (navpmenu_context);
     nvp_chandlers_setmnu(chandler_context, navpmenu_context);
 
+#if 0 // could never get this code (or variations thereof) to work
 #if TIM_ONLY
     /* update date before custom scenery is loaded (e.g. SAM Seasons) */
     XPLMDataRef date_days = XPLMFindDataRef("sim/time/local_date_days");
@@ -93,6 +94,7 @@ int nvp_plugin_enable(void)
         int xplm_date_days = month2days[now.month - 1] + now.day - 1;
         XPLMSetDatai(date_days, xplm_date_days);
     }
+#endif
 #endif
 
     /* all good */
