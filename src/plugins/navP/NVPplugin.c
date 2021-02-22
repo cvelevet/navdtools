@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "XPLM/XPLMDataAccess.h"
 #include "XPLM/XPLMPlanes.h"
 #include "XPLM/XPLMPlugin.h"
 #include "XPLM/XPLMUtilities.h"
@@ -80,6 +81,19 @@ int nvp_plugin_enable(void)
     }
     nvp_menu_reset                        (navpmenu_context);
     nvp_chandlers_setmnu(chandler_context, navpmenu_context);
+
+#if TIM_ONLY
+    /* update date before custom scenery is loaded (e.g. SAM Seasons) */
+    XPLMDataRef date_days = XPLMFindDataRef("sim/time/local_date_days");
+    if (date_days)
+    {
+        ndt_date now = ndt_date_now();
+        // note: X-Plane doesn't seem to know 02/29 (makes our job that much easier :-)
+        int month2days[12] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, };
+        int xplm_date_days = month2days[now.month - 1] + now.day - 1;
+        XPLMSetDatai(date_days, xplm_date_days);
+    }
+#endif
 
     /* all good */
     XPLMDebugString("navP [info]: nvp_plugin_enable OK\n"); return 1;
