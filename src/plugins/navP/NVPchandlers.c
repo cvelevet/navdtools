@@ -59,14 +59,6 @@ typedef struct
 
 typedef struct
 {
-    chandler_callback   cb;
-    XPLMCommandRef xpcr[2];
-    const char    *name[2];
-    int xplm_1150_behavior;
-} chandler_doublec;
-
-typedef struct
-{
     void        *assert;
     float       rtio[3];
     float       flt_var;
@@ -3700,91 +3692,6 @@ static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
             }
             XPLMCommandOnce(cc->xpcr);
-            return 0;
-        }
-        return 0;
-    }
-    return 0;
-}
-
-static int dc_ready(chandler_doublec *dc)
-{
-    if (dc)
-    {
-        if (dc->name[0])
-        {
-            if (dc->xpcr[0] == NULL)
-            {
-                if ((dc->xpcr[0] = XPLMFindCommand(dc->name[0])) == NULL ||
-                    (dc->xpcr[1] = XPLMFindCommand(dc->name[1])) == NULL)
-                {
-                    ndt_log("navP [error]: command not found: \"%s\"\n", !dc->xpcr[0] ? dc->name[0] : dc->name[1]);
-                    dc->name[0] = dc->name[1] = NULL;
-                    dc->xpcr[0] = dc->xpcr[1] = NULL;
-                    return 0;
-                }
-                return 1;
-            }
-            return 1;
-        }
-        return 0;
-    }
-    return 0;
-}
-
-static int chandler_twosw(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
-{
-    if (inRefcon)
-    {
-        if (inPhase == xplm_CommandEnd)
-        {
-            chandler_doublec *dc = inRefcon;
-            if (dc_ready(dc))
-            {
-                if (dc->xplm_1150_behavior == 0)
-                {
-                    XPLMCommandOnce(dc->xpcr[1]);
-                    return 0;
-                }
-                XPLMCommandOnce(dc->xpcr[0]);
-                return 0;
-            }
-            return 0;
-        }
-        if (inPhase == xplm_CommandBegin /* || inPhase == XPLMCommandContinue */)
-        {
-            chandler_doublec *dc = inRefcon;
-            if (dc->xplm_1150_behavior == 0)
-            {
-                if (dc_ready(dc))
-                {
-                    XPLMCommandOnce(dc->xpcr[0]);
-                    return 0;
-                }
-                return 0;
-            }
-            return 0;
-        }
-        return 0;
-    }
-    return 0;
-}
-
-static int chandler_twos2(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
-{
-    if (inRefcon)
-    {
-        if (inPhase == xplm_CommandEnd)
-        {
-            chandler_doublec *dc = inRefcon;
-            if (dc->xplm_1150_behavior != 0)
-            {
-                if (dc_ready(dc))
-                {
-                    XPLMCommandOnce(dc->xpcr[1]);
-                    return 0;
-                }
-            }
             return 0;
         }
         return 0;
