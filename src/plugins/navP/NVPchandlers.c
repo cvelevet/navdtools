@@ -471,15 +471,6 @@ typedef struct
 
     struct
     {
-        struct
-        {
-            chandler_callback cb;
-            chandler_command  cc;
-        } toga;
-    } athr;
-
-    struct
-    {
         chandler_callback cb;
         refcon_cdu_pop    rc;
     } mcdu;
@@ -962,7 +953,6 @@ void* nvp_chandlers_init(void)
     ctx->otto.clmb.cb.command = XPLMCreateCommand( "navP/switches/ap_clmb", "A/P pitch: CLB");
     ctx->otto.conn.cb.command = XPLMCreateCommand( "navP/switches/ap_conn", "A/P engagement");
     ctx->otto.disc.cb.command = XPLMCreateCommand( "navP/switches/ap_disc", "A/P disconnect");
-    ctx->athr.toga.cb.command = XPLMCreateCommand( "navP/switches/at_toga", "A/T takeoff/GA");
     ctx->otto.clmb.rc.ap_pclb = XPLMFindDataRef("sim/cockpit2/autopilot/sync_hold_pitch_deg");
     ctx->otto.clmb.rc.to_pclb = XPLMFindDataRef(     "sim/cockpit2/autopilot/TOGA_pitch_deg");
     ctx->otto.clmb.rc.ap_pmod = XPLMFindDataRef(       "sim/cockpit2/autopilot/pitch_status");
@@ -972,7 +962,6 @@ void* nvp_chandlers_init(void)
         !ctx->otto.clmb.cb.command ||
         !ctx->otto.conn.cb.command ||
         !ctx->otto.disc.cb.command ||
-        !ctx->athr.toga.cb.command ||
         !ctx->otto.clmb.rc.ap_pclb ||
         !ctx->otto.clmb.rc.to_pclb ||
         !ctx->otto.clmb.rc.ap_pmod)
@@ -988,7 +977,6 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->otto.clmb.cb, chandler_apclb, 0, &ctx->otto.clmb.rc);
         REGISTER_CHANDLER(ctx->otto.conn.cb, chandler_swtch, 0, &ctx->otto.conn.cc);
         REGISTER_CHANDLER(ctx->otto.disc.cb, chandler_swtch, 0, &ctx->otto.disc.cc);
-        REGISTER_CHANDLER(ctx->athr.toga.cb, chandler_swtch, 0, &ctx->athr.toga.cc);
     }
 
     /* Default commands' handlers: flaps up or down */
@@ -1162,7 +1150,6 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->otto.   ffst.cb);
     UNREGSTR_CHANDLER(ctx->otto.   conn.cb);
     UNREGSTR_CHANDLER(ctx->otto.   disc.cb);
-    UNREGSTR_CHANDLER(ctx->athr.   toga.cb);
     UNREGSTR_CHANDLER(ctx->views.  prev.cb);
     UNREGSTR_CHANDLER(ctx->views.  next.cb);
     for (int i = 0; i < 10; i++)
@@ -1283,7 +1270,6 @@ int nvp_chandlers_reset(void *inContext)
     ctx->otto.ffst.          dr = NULL;
     ctx->otto.conn.cc.     name = NULL;
     ctx->otto.disc.cc.     name = NULL;
-    ctx->athr.toga.cc.     name = NULL;
     ctx->bking.rc_brk.rg.  name = NULL;
     ctx->bking.rc_brk.mx.  name = NULL;
     ctx->bking.rc_brk.ro.  name = NULL;
@@ -1444,7 +1430,6 @@ int nvp_chandlers_update(void *inContext)
 
         case ACF_TYP_B737_EA:
             ctx->otto.disc.cc.name = "x737/yoke/capt_AP_DISENG_BTN";
-            ctx->athr.toga.cc.name = "x737/mcp/TOGA_TOGGLE";
             ctx->otto.conn.cc.name = "x737/mcp/CMDA_TOGGLE";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
@@ -1452,7 +1437,6 @@ int nvp_chandlers_update(void *inContext)
         case ACF_TYP_B737_XG:
             ctx->otto.conn.cc.name = "ixeg/733/autopilot/AP_A_cmd_toggle";
             ctx->otto.disc.cc.name = "ixeg/733/autopilot/AP_disengage";
-            ctx->athr.toga.cc.name = "sim/engines/TOGA_power";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             ctx->bking.rc_brk.use_pkb = 0;
             break;
@@ -1462,14 +1446,12 @@ int nvp_chandlers_update(void *inContext)
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             ctx->otto.conn.cc.name = "private/ffsts/ap_cmdl";
             ctx->otto.disc.cc.name = "1-sim/comm/AP/ap_disc";
-            ctx->athr.toga.cc.name = "1-sim/comm/AP/at_toga";
             ctx->bking.rc_brk.use_pkb = 0;
             break;
 
         case ACF_TYP_B777_FF:
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             ctx->otto.disc.cc.name = "777/ap_disc";
-            ctx->athr.toga.cc.name = "777/at_toga";
             ctx->bking.rc_brk.use_pkb = 0;
             break;
 
@@ -1477,13 +1459,11 @@ int nvp_chandlers_update(void *inContext)
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             ctx->otto.conn.cc.name = "SSG/EJET/MCP/AP_COMM";
             ctx->otto.disc.cc.name = "SSG/EJET/MCP/AP_COMM";
-            ctx->athr.toga.cc.name = "SSG/EJET/MCP/Toga";
             break;
 
         case ACF_TYP_EMBE_XC:
         case ACF_TYP_HA4T_RW:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->athr.toga.cc.name = "sim/autopilot/autothrottle_on";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
@@ -1491,7 +1471,6 @@ int nvp_chandlers_update(void *inContext)
         case ACF_TYP_LEGA_XC:
             ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            ctx->athr.toga.cc.name = "navP/switches/ap_clmb";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
 
@@ -1506,7 +1485,6 @@ int nvp_chandlers_update(void *inContext)
                     ctx->bking.rc_brk.ro.name  = NULL;
                 }
             }
-            ctx->athr.toga.cc.name = "Rotate/md80/autopilot/to_ga_button";
             ctx->otto.disc.cc.name = "Rotate/md80/autopilot/ap_disc";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
@@ -1514,7 +1492,6 @@ int nvp_chandlers_update(void *inContext)
 
         case ACF_TYP_CL30_DD:
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->athr.toga.cc.name = "cl300/mach_hold"; // toggle
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
@@ -1525,10 +1502,6 @@ int nvp_chandlers_update(void *inContext)
             {
                 ctx->revrs.propdn = XPLMFindCommand("sim/engines/prop_down");
                 ctx->revrs.propup = XPLMFindCommand("sim/engines/prop_up");
-            }
-            if (ctx->info->has_auto_thr == 1)
-            {
-                ctx->athr.toga.cc.name = "sim/autopilot/autothrottle_on";
             }
             if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
             {
@@ -1550,7 +1523,6 @@ int nvp_chandlers_update(void *inContext)
     // new addon type: clear datarefs
     ctx->otto.conn.cc.xpcr = NULL;
     ctx->otto.disc.cc.xpcr = NULL;
-    ctx->athr.toga.cc.xpcr = NULL;
 
     /* plane-specific braking ratios */
     if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
@@ -6446,7 +6418,6 @@ static int first_fcall_do(chandler_context *ctx)
     {
         &ctx->otto.conn.cc,
         &ctx->otto.disc.cc,
-        &ctx->athr.toga.cc,
         &ctx->bking.rc_brk.rg,
         &ctx->bking.rc_brk.mx,
         NULL,
@@ -6468,13 +6439,22 @@ static int first_fcall_do(chandler_context *ctx)
     }
 
     /* Register custom autopilot disconnect handlers when applicable */
-    if (ctx->athr.toga.cc.xpcr && ctx->otto.disc.cc.xpcr)
+    if (ctx->info->has_auto_thr == 1 && ctx->otto.disc.cc.xpcr != NULL)
     {
-        if ((ctx->athr.toga.cc.xpcr == ctx->apd.at_cmd) &&
-            (ctx->otto.disc.cc.xpcr == ctx->apd.bef.command))
+        switch (ctx->info->ac_type)
         {
-            REGISTER_CHANDLER(ctx->apd.bef, chandler_apbef, 1, &ctx->apd);
-            REGISTER_CHANDLER(ctx->apd.aft, chandler_apaft, 0, &ctx->apd);
+            case ACF_TYP_EMBE_XC:
+            case ACF_TYP_HA4T_RW:
+            case ACF_TYP_GENERIC:
+                if (ctx->otto.disc.cc.xpcr == ctx->apd.bef.command)
+                {
+                    REGISTER_CHANDLER(ctx->apd.bef, chandler_apbef, 1, &ctx->apd);
+                    REGISTER_CHANDLER(ctx->apd.aft, chandler_apaft, 0, &ctx->apd);
+                }
+                break;
+
+            default:
+                break;
         }
     }
 
