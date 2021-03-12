@@ -6700,8 +6700,19 @@ static int first_fcall_do(chandler_context *ctx)
     XPLMRegisterFlightLoopCallback((ctx->ground.flc_g = &gnd_stab_hdlr), 1, &ctx->ground);
 
     /* mixture and prop pitch command handlers */
-    REGISTER_CHANDLER(ctx->throt.mi, chandler_mixdn, 1, ctx->throt.mixratio);
-    REGISTER_CHANDLER(ctx->throt.rp, chandler_rpmdn, 1, ctx->throt.rpmratio);
+    switch (ctx->info->engine_type1)
+    {
+        case 0: // piston (carburetor)
+        case 1: // piston (injection)
+            REGISTER_CHANDLER(ctx->throt.mi, chandler_mixdn, 1, ctx->throt.mixratio);
+            // fall through
+        case 2: // turbine (free)
+        case 8: // turbine (fixed)
+            REGISTER_CHANDLER(ctx->throt.rp, chandler_rpmdn, 1, ctx->throt.rpmratio);
+            break;
+        default:
+            break;
+    }
 
 #if TIM_ONLY
     if (ctx->coatc.cb.handler == NULL)
