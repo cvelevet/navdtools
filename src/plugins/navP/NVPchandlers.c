@@ -3515,7 +3515,9 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     avrg_throttle = XPLMGetDataf(t->throttle);
                     break;
             }
+            //fixme tbm9 (if direction==down, check curr t->throttle and/or trigger reverse toggle as required)
             return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_DN);
+            //fixme tbm9 (if direction==down, check range and next and/or limit lower thrust value as required)
         }
         XPLMCommandOnce(t->thrdn);
         return 0;
