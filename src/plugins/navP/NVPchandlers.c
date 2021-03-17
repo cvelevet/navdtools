@@ -102,7 +102,6 @@ typedef struct
     XPLMCommandRef thrup;
 
     XPLMDataRef tbm9erng;
-    XPLMDataRef tbm9rngt;
 
     XPLMDataRef throttle;
     int         acf_type;
@@ -420,6 +419,7 @@ typedef struct
         XPLMCommandRef propdn;
         XPLMCommandRef propup;
         XPLMCommandRef propto;
+        XPLMDataRef  tbm9erng;
     } revrs;
 
     struct
@@ -1525,13 +1525,12 @@ int nvp_chandlers_update(void *inContext)
 
     if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("hotstart.tbm900"))
     {
-        ctx->throt.tbm9rngt = XPLMFindCommand("sim/engines/thrust_reverse_toggle");
-        ctx->throt.tbm9erng = XPLMFindDataRef("tbm900/systems/engine/range");
+        ctx->revrs.tbm9erng = ctx->throt.tbm9erng = XPLMFindDataRef("tbm900/systems/engine/range");
+        ctx->throt.throttle = ctx->ground.idle.throttle_all;
     }
     else
     {
-        ctx->throt.tbm9rngt = NULL;
-        ctx->throt.tbm9erng = NULL;
+        ctx->revrs.tbm9erng = ctx->throt.tbm9erng = NULL;
     }
 
     // new addon type: clear datarefs
@@ -3099,6 +3098,8 @@ static int chandler_rt_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
+#define T_ZERO (.000001f)
+
 /*
  * action: stow or deploy thrust reversers.
  *
@@ -3107,6 +3108,15 @@ static int chandler_rt_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     chandler_context *ctx = inRefcon;
+    if (ctx->revrs.tbm9erng)
+    {
+        if (4 <= XPLMGetDatai(ctx->revrs.tbm9erng))
+        {
+            XPLMSetDataf(ctx->throt.throttle, T_ZERO + 0.35f);
+            return 0;
+        }
+        return 0;
+    }
     if (ctx->revrs.propup)
     {
         switch (inPhase)
@@ -3160,6 +3170,16 @@ static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     chandler_context *ctx = inRefcon;
+    if (ctx->revrs.tbm9erng)
+    {
+        if (3 == XPLMGetDatai(ctx->revrs.tbm9erng))
+        {
+            XPLMSetDataf(ctx->throt.throttle, 0.3f);
+            XPLMCommandOnce(ctx->revrs.propto);
+            return 0;
+        }
+        return 0;
+    }
     if (ctx->revrs.propdn)
     {
         switch (inPhase)
@@ -3237,12 +3257,45 @@ static int chandler_rpmdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
-#define T_ZERO (.0001f)
-
 enum
 {
     NVP_DIRECTION_DN,
     NVP_DIRECTION_UP,
+};
+
+static const float nvp_thrust_presets1_tbm9[] =
+{
+    0.05000f,
+    0.10000f,
+    0.15000f,
+    0.20000f,
+    0.25000f,
+    0.30000f,
+    0.35000f,
+    0.40000f,
+    0.45000f,
+    0.50000f,
+    0.56250f,
+    0.62500f,
+    0.68750f,
+    0.75000f,
+    0.81250f,
+    0.87500f,
+    0.90625f,
+    0.93750f,
+    0.96875f,
+    -1.0000f,
+};
+
+static const float nvp_thrust_presets2_tbm9[] =
+{
+    0.15000f,
+    0.35000f,
+    0.50000f,
+    0.62500f,
+    0.75000f,
+    0.87500f,
+    -1.0000f,
 };
 
 static const float nvp_thrust_presets1[] =
@@ -3511,7 +3564,7 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     avrg_throttle = XPLMGetDataf(t->throttle);
                     break;
             }
-            if (t->tbm9rngt && t->tbm9erng)
+            if (t->tbm9erng)
             {
                 int tbm9_systems_engine_range = XPLMGetDatai(t->tbm9erng);
                 if (tbm9_systems_engine_range < 3)
@@ -3519,22 +3572,12 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     XPLMSetDataf(t->throttle, 0.35f);
                     return 0;
                 }
-                if (tbm9_systems_engine_range == 3 && (0.35f + T_ZERO) >= avrg_throttle && avrg_throttle >= 0.3125f)
-                {
-                    XPLMSetDataf(t->throttle, 0.3125f);
-                    XPLMCommandOnce(t->tbm9rngt);
-                    return 0;
-                }
-                if (tbm9_systems_engine_range == 3 && 0.35f >= nvp_thrust_next(avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_DN))
+                if (tbm9_systems_engine_range == 3 && nvp_thrust_next(avrg_throttle, nvp_thrust_presets1_tbm9, NVP_DIRECTION_DN) < 0.35f)
                 {
                     XPLMSetDataf(t->throttle, 0.35f);
                     return 0;
                 }
-                if (0.15f < avrg_throttle && nvp_thrust_next(avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_DN) < 0.15f)
-                {
-                    XPLMSetDataf(t->throttle, 0.15f);
-                    return 0;
-                }
+                return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets1_tbm9, NVP_DIRECTION_DN);
             }
             return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_DN);
         }
@@ -3567,7 +3610,7 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     avrg_throttle = XPLMGetDataf(t->throttle);
                     break;
             }
-            if (t->tbm9rngt && t->tbm9erng)
+            if (t->tbm9erng)
             {
                 int tbm9_systems_engine_range = XPLMGetDatai(t->tbm9erng);
                 if (tbm9_systems_engine_range < 3)
@@ -3575,21 +3618,12 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     XPLMSetDataf(t->throttle, 0.35f);
                     return 0;
                 }
-                if (tbm9_systems_engine_range == 3 && nvp_thrust_next(avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_UP) < 0.35f)
+                if (tbm9_systems_engine_range == 3 && nvp_thrust_next(avrg_throttle, nvp_thrust_presets1_tbm9, NVP_DIRECTION_UP) < 0.35f)
                 {
                     XPLMSetDataf(t->throttle, 0.35f);
                     return 0;
                 }
-                if (0.35f > avrg_throttle && nvp_thrust_next(avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_UP) > 0.35f)
-                {
-                    XPLMSetDataf(t->throttle, 0.35f);
-                    return 0;
-                }
-                if (0.15f > avrg_throttle && nvp_thrust_next(avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_UP) > 0.15f)
-                {
-                    XPLMSetDataf(t->throttle, 0.15f);
-                    return 0;
-                }
+                return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets1_tbm9, NVP_DIRECTION_UP);
             }
             return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_UP);
         }
@@ -3622,7 +3656,7 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     avrg_throttle = XPLMGetDataf(t->throttle);
                     break;
             }
-            if (t->tbm9rngt && t->tbm9erng)
+            if (t->tbm9erng)
             {
                 int tbm9_systems_engine_range = XPLMGetDatai(t->tbm9erng);
                 if (tbm9_systems_engine_range < 3)
@@ -3630,21 +3664,12 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     XPLMSetDataf(t->throttle, 0.35f);
                     return 0;
                 }
-                if (tbm9_systems_engine_range == 3 && nvp_thrust_next(avrg_throttle, nvp_thrust_presets2, NVP_DIRECTION_UP) < 0.35f)
+                if (tbm9_systems_engine_range == 3 && nvp_thrust_next(avrg_throttle, nvp_thrust_presets2_tbm9, NVP_DIRECTION_UP) < 0.35f)
                 {
                     XPLMSetDataf(t->throttle, 0.35f);
                     return 0;
                 }
-                if (0.35f > avrg_throttle && nvp_thrust_next(avrg_throttle, nvp_thrust_presets2, NVP_DIRECTION_UP) > 0.35f)
-                {
-                    XPLMSetDataf(t->throttle, 0.35f);
-                    return 0;
-                }
-                if (0.15f > avrg_throttle && nvp_thrust_next(avrg_throttle, nvp_thrust_presets2, NVP_DIRECTION_UP) > 0.15f)
-                {
-                    XPLMSetDataf(t->throttle, 0.15f);
-                    return 0;
-                }
+                return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets2_tbm9, NVP_DIRECTION_UP);
             }
             return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets2, NVP_DIRECTION_UP);
         }
