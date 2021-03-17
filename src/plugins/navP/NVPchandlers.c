@@ -4077,7 +4077,8 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     flap_callout_setst(_flap_names_PIPA, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
-                if (!strcasecmp(ctx->info->icaoid, "TBM8"))
+                if (!strcasecmp(ctx->info->icaoid, "TBM8") ||
+                    !strcasecmp(ctx->info->icaoid, "TBM9"))
                 {
                     flap_callout_setst(_flap_names_TBM8, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
@@ -6260,6 +6261,10 @@ static int first_fcall_do(chandler_context *ctx)
                 _DO(0, XPLMSetDataf,  1.0f, "thranda/cockpit/actuators/VisorSwingR");
                 _DO(0, XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideL");
                 _DO(0, XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideR");
+            }
+            if (!strcasecmp(ctx->info->icaoid, "TBM9"))
+            {
+                _DO(1, XPLMSetDataf, 0.35f, "sim/cockpit2/engine/actuators/throttle_ratio_all"); // flight idle
             }
             /*
              * X-Plane default
