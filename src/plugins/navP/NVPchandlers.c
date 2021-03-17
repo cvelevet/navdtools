@@ -101,6 +101,9 @@ typedef struct
     chandler_callback ul;
     XPLMCommandRef thrup;
 
+    XPLMDataRef tbm9erng;
+    XPLMDataRef tbm9rngt;
+
     XPLMDataRef throttle;
     int         acf_type;
 } refcon_thrust;
@@ -1519,6 +1522,17 @@ int nvp_chandlers_update(void *inContext)
 
         default: // not generic but no usable commands
             break;
+    }
+
+    if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("hotstart.tbm900"))
+    {
+        ctx->throt.tbm9rngt = XPLMFindCommand("sim/engines/thrust_reverse_toggle");
+        ctx->throt.tbm9erng = XPLMFindDataRef("tbm900/systems/engine/range");
+    }
+    else
+    {
+        ctx->throt.tbm9rngt = NULL;
+        ctx->throt.tbm9erng = NULL;
     }
 
     // new addon type: clear datarefs
@@ -3515,9 +3529,32 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     avrg_throttle = XPLMGetDataf(t->throttle);
                     break;
             }
-            //fixme tbm9 (if direction==down, check curr t->throttle and/or trigger reverse toggle as required)
+            if (t->tbm9rngt && t->tbm9erng)
+            {
+                int tbm9_systems_engine_range = XPLMGetDatai(t->tbm9erng);
+                if (tbm9_systems_engine_range < 3)
+                {
+                    XPLMSetDataf(t->throttle, 0.35f);
+                    return 0;
+                }
+                if (tbm9_systems_engine_range == 3 && (0.35f + T_ZERO) >= avrg_throttle && avrg_throttle >= 0.3125f)
+                {
+                    XPLMSetDataf(t->throttle, 0.3125f);
+                    XPLMCommandOnce(t->tbm9rngt);
+                    return 0;
+                }
+                if (tbm9_systems_engine_range == 3 && 0.35f >= nvp_thrust_next(avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_DN))
+                {
+                    XPLMSetDataf(t->throttle, 0.35f);
+                    return 0;
+                }
+                if (0.15f < avrg_throttle && nvp_thrust_next(avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_DN) < 0.15f)
+                {
+                    XPLMSetDataf(t->throttle, 0.15f);
+                    return 0;
+                }
+            }
             return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_DN);
-            //fixme tbm9 (if direction==down, check range and next and/or limit lower thrust value as required)
         }
         XPLMCommandOnce(t->thrdn);
         return 0;
@@ -3547,6 +3584,30 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 default:
                     avrg_throttle = XPLMGetDataf(t->throttle);
                     break;
+            }
+            if (t->tbm9rngt && t->tbm9erng)
+            {
+                int tbm9_systems_engine_range = XPLMGetDatai(t->tbm9erng);
+                if (tbm9_systems_engine_range < 3)
+                {
+                    XPLMSetDataf(t->throttle, 0.35f);
+                    return 0;
+                }
+                if (tbm9_systems_engine_range == 3 && nvp_thrust_next(avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_UP) < 0.35f)
+                {
+                    XPLMSetDataf(t->throttle, 0.35f);
+                    return 0;
+                }
+                if (0.35f > avrg_throttle && nvp_thrust_next(avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_UP) > 0.35f)
+                {
+                    XPLMSetDataf(t->throttle, 0.35f);
+                    return 0;
+                }
+                if (0.15f > avrg_throttle && nvp_thrust_next(avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_UP) > 0.15f)
+                {
+                    XPLMSetDataf(t->throttle, 0.15f);
+                    return 0;
+                }
             }
             return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_UP);
         }
@@ -3578,6 +3639,30 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 default:
                     avrg_throttle = XPLMGetDataf(t->throttle);
                     break;
+            }
+            if (t->tbm9rngt && t->tbm9erng)
+            {
+                int tbm9_systems_engine_range = XPLMGetDatai(t->tbm9erng);
+                if (tbm9_systems_engine_range < 3)
+                {
+                    XPLMSetDataf(t->throttle, 0.35f);
+                    return 0;
+                }
+                if (tbm9_systems_engine_range == 3 && nvp_thrust_next(avrg_throttle, nvp_thrust_presets2, NVP_DIRECTION_UP) < 0.35f)
+                {
+                    XPLMSetDataf(t->throttle, 0.35f);
+                    return 0;
+                }
+                if (0.35f > avrg_throttle && nvp_thrust_next(avrg_throttle, nvp_thrust_presets2, NVP_DIRECTION_UP) > 0.35f)
+                {
+                    XPLMSetDataf(t->throttle, 0.35f);
+                    return 0;
+                }
+                if (0.15f > avrg_throttle && nvp_thrust_next(avrg_throttle, nvp_thrust_presets2, NVP_DIRECTION_UP) > 0.15f)
+                {
+                    XPLMSetDataf(t->throttle, 0.15f);
+                    return 0;
+                }
             }
             return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets2, NVP_DIRECTION_UP);
         }
