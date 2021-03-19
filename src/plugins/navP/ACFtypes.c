@@ -513,6 +513,11 @@ acf_info_context* acf_type_info_update()
             }
             // fall through
         }
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("hotstart.tbm900"))
+        {
+            global_info->ac_type = ACF_TYP_TBM9_HS;
+            break;
+        }
         global_info->ac_type = ACF_TYP_GENERIC;
         break;
     }
