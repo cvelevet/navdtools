@@ -1271,6 +1271,7 @@ int nvp_chandlers_reset(void *inContext)
     ctx->throt.atc_is_connected = 0;
     ctx->revrs.          propdn = NULL;
     ctx->revrs.          propup = NULL;
+    ctx->revrs.        tbm9erng = NULL;
     ctx->otto.ffst.          dr = NULL;
     ctx->otto.conn.cc.     name = NULL;
     ctx->otto.disc.cc.     name = NULL;
@@ -1280,6 +1281,7 @@ int nvp_chandlers_reset(void *inContext)
     ctx->otto.clmb.rc.  ap_arry = NULL;
     ctx->throt.           thptt = NULL;
     ctx->throt.        throttle = NULL;
+    ctx->throt.        tbm9erng = NULL;
     ctx->throt.        acf_type = ACF_TYP_GENERIC;
 
     /* Reset some datarefs to match X-Plane's defaults at startup */
@@ -1500,6 +1502,13 @@ int nvp_chandlers_update(void *inContext)
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
 
+        case ACF_TYP_TBM9_HS:
+            ctx->revrs.tbm9erng = ctx->throt.tbm9erng = XPLMFindDataRef("tbm900/systems/engine/range");
+            ctx->otto.disc.cc.name = "tbm900/actuators/ap/disc";
+            ctx->otto.conn.cc.name = "tbm900/actuators/ap/ap";
+            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            break;
+
         case ACF_TYP_GENERIC:
         {
             if (ctx->info->has_rvrs_thr == -1) // XXX: prop-driven w/out reverse
@@ -1522,16 +1531,6 @@ int nvp_chandlers_update(void *inContext)
 
         default: // not generic but no usable commands
             break;
-    }
-
-    if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("hotstart.tbm900"))
-    {
-        ctx->revrs.tbm9erng = ctx->throt.tbm9erng = XPLMFindDataRef("tbm900/systems/engine/range");
-        ctx->throt.throttle = ctx->ground.idle.throttle_all;
-    }
-    else
-    {
-        ctx->revrs.tbm9erng = ctx->throt.tbm9erng = NULL;
     }
 
     // new addon type: clear datarefs
@@ -3126,7 +3125,7 @@ static int chandler_rt_rt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     chandler_context *ctx = inRefcon;
-    if (ctx->revrs.tbm9erng)
+    if (ctx->info->ac_type == ACF_TYP_TBM9_HS && ctx->revrs.tbm9erng)
     {
         if (4 <= XPLMGetDatai(ctx->revrs.tbm9erng))
         {
@@ -3188,7 +3187,7 @@ static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     chandler_context *ctx = inRefcon;
-    if (ctx->revrs.tbm9erng)
+    if (ctx->info->ac_type == ACF_TYP_TBM9_HS && ctx->revrs.tbm9erng)
     {
         if (3 == XPLMGetDatai(ctx->revrs.tbm9erng))
         {
@@ -3582,7 +3581,7 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     avrg_throttle = XPLMGetDataf(t->throttle);
                     break;
             }
-            if (t->tbm9erng)
+            if (t->acf_type == ACF_TYP_TBM9_HS && t->tbm9erng)
             {
                 int tbm9_systems_engine_range = XPLMGetDatai(t->tbm9erng);
                 if (tbm9_systems_engine_range < 3)
@@ -3628,7 +3627,7 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     avrg_throttle = XPLMGetDataf(t->throttle);
                     break;
             }
-            if (t->tbm9erng)
+            if (t->acf_type == ACF_TYP_TBM9_HS && t->tbm9erng)
             {
                 int tbm9_systems_engine_range = XPLMGetDatai(t->tbm9erng);
                 if (tbm9_systems_engine_range < 3)
@@ -3674,7 +3673,7 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     avrg_throttle = XPLMGetDataf(t->throttle);
                     break;
             }
-            if (t->tbm9erng)
+            if (t->acf_type == ACF_TYP_TBM9_HS && t->tbm9erng)
             {
                 int tbm9_systems_engine_range = XPLMGetDatai(t->tbm9erng);
                 if (tbm9_systems_engine_range < 3)
@@ -6173,6 +6172,22 @@ static int first_fcall_do(chandler_context *ctx)
             XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 10.0f); // initial CLB pitch
             break;
 
+        case ACF_TYP_TBM9_HS:
+            _DO(0, XPLMSetDataf, 0.35f, "sim/cockpit2/engine/actuators/throttle_ratio_all"); // flight idle
+            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
+            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
+            _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
+            break;
+
         case ACF_TYP_GENERIC: // note: path is never verbose (don't warn for unapplicable datarefs)
             /*
              * Aerobask
@@ -6279,10 +6294,6 @@ static int first_fcall_do(chandler_context *ctx)
                 _DO(0, XPLMSetDataf,  1.0f, "thranda/cockpit/actuators/VisorSwingR");
                 _DO(0, XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideL");
                 _DO(0, XPLMSetDataf,  0.0f, "thranda/cockpit/actuators/VisorSlideR");
-            }
-            if (!strcasecmp(ctx->info->icaoid, "TBM9"))
-            {
-                _DO(1, XPLMSetDataf, 0.35f, "sim/cockpit2/engine/actuators/throttle_ratio_all"); // flight idle
             }
             /*
              * X-Plane default
