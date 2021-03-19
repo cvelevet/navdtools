@@ -24,6 +24,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if APL
+#include <CoreGraphics/CoreGraphics.h>
+#endif
+
 #include "Widgets/XPStandardWidgets.h"
 #include "Widgets/XPWidgets.h"
 #include "XPLM/XPLMDataAccess.h"
@@ -4334,6 +4338,18 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     }
                     cdu->i_disabled = 0; break;
 
+#if (APL) && (CGFLOAT_IS_DOUBLE)
+                case ACF_TYP_TBM9_HS:
+                    if (NULL == (cdu->command[0] = XPLMFindCommand("tbm900/popups/ap"        )) ||
+                        NULL == (cdu->command[1] = XPLMFindCommand("tbm900/popups/mfd"       )) ||
+                        NULL == (cdu->command[2] = XPLMFindCommand("tbm900/popups/pfd1"      )) ||
+                        NULL == (cdu->command[3] = XPLMFindCommand("tbm900/popups/mfd_keypad")))
+                    {
+                        cdu->i_disabled = 1; break; // check for YFMS presence
+                    }
+                    cdu->i_cycle_id = 0; cdu->i_disabled = 0; break;
+#endif
+
                 case ACF_TYP_B737_EA:
                     if (x737 != XPLM_NO_PLUGIN_ID)
                     {
@@ -4617,6 +4633,24 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             case ACF_TYP_B777_FF:
                 XPLMSetDatai(cdu->dataref[0], 1); // auto-reset
                 return 0;
+
+#if (APL) && (CGFLOAT_IS_DOUBLE)
+            case ACF_TYP_TBM9_HS:
+            {
+                CGRect rect = CGDisplayBounds(kCGDirectMainDisplay);
+                CGEventRef new_mouse_pos = CGEventCreateMouseEvent(NULL,
+                                                                   kCGEventMouseMoved,
+                                                                   CGPointMake(rect.origin.x + rect.size.width / 2, rect.origin.y + rect.size.height / 2),
+                                                                   kCGMouseButtonLeft);
+                if (new_mouse_pos) // TODO: cycle through commands, and trigger command(s) on next and subsequent flight loop(s) [use CGEventRef and XPLMCommandRef lists]
+                {
+                    CGEventPost(kCGHIDEventTap, new_mouse_pos);
+                    XPLMCommandOnce(cdu->command[3]);
+                    CFRelease(new_mouse_pos);
+                }
+                return 0;
+            }
+#endif
 
             case ACF_TYP_A350_FF:
                 cdu->i_value[1] = !XPLMGetDatai(cdu->dataref[2]);
