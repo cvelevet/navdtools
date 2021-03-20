@@ -156,6 +156,15 @@ typedef struct
 
 typedef struct
 {
+#if ((APL) && (CGFLOAT_IS_DOUBLE))
+    struct
+    {
+        int current_evnt_index;
+        CGEventRef     evnt[6];
+        XPLMCommandRef cmmd[6];
+        XPLMFlightLoop_f flc_t;
+    } tbm9;
+#endif
     const char          *auth;
     const char          *desc;
     const char          *icao;
@@ -165,7 +174,7 @@ typedef struct
     int            i_disabled;
     int            i_value[2];
     XPLMDataRef    dataref[4];
-    XPLMCommandRef command[4];
+    XPLMCommandRef command[6];
 } refcon_cdu_pop;
 
 typedef struct
@@ -652,6 +661,7 @@ static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static float flc_flap_func (                                        float, float, int, void*);
 static float flc_oatc_func (                                        float, float, int, void*);
 static float gnd_stab_hdlr (                                        float, float, int, void*);
+static float tbm9mousehdlr (                                        float, float, int, void*);
 static int   first_fcall_do(                                           chandler_context *ctx);
 static int   aibus_fbw_init(                                             refcon_qpacfbw *fbw);
 static int   boing_733_init(                                             refcon_ixeg733 *i33);
@@ -1238,6 +1248,14 @@ int nvp_chandlers_reset(void *inContext)
         return -1;
     }
 
+#if ((APL) && (CGFLOAT_IS_DOUBLE))
+    if (ctx->info->ac_type == ACF_TYP_TBM9_HS && ctx->mcdu.rc.tbm9.flc_t)
+    {
+        XPLMUnregisterFlightLoopCallback(ctx->mcdu.rc.tbm9.flc_t, &ctx->mcdu.rc);
+    }
+    ctx->mcdu.rc.tbm9.flc_t = NULL;
+#endif
+
     /* Unregister key sniffer for AirbusFBW */
     if (ctx->a319kc.kc_is_registered)
     {
@@ -1535,6 +1553,17 @@ int nvp_chandlers_update(void *inContext)
         default: // not generic but no usable commands
             break;
     }
+
+#if ((APL) && (CGFLOAT_IS_DOUBLE))
+    if (ctx->info->ac_type == ACF_TYP_TBM9_HS)
+    {
+        XPLMRegisterFlightLoopCallback((ctx->mcdu.rc.tbm9.flc_t = tbm9mousehdlr), 0, &ctx->mcdu.rc);
+    }
+    else
+    {
+        ctx->mcdu.rc.tbm9.flc_t = NULL;
+    }
+#endif
 
     // new addon type: clear datarefs
     ctx->otto.conn.cc.xpcr = NULL;
@@ -4093,6 +4122,39 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 1;
 }
 
+#if ((APL) && (CGFLOAT_IS_DOUBLE))
+static float tbm9mousehdlr(float inElapsedSinceLastCall,
+                           float inElapsedTimeSinceLastFlightLoop,
+                           int   inCounter,
+                           void *inRefcon)
+{
+    refcon_cdu_pop *cdu = inRefcon;
+    if (cdu && cdu->tbm9.current_evnt_index >= 0)
+    {
+        CGEventRef event = cdu->tbm9.evnt[cdu->tbm9.current_evnt_index];
+        XPLMCommandRef c = cdu->tbm9.cmmd[cdu->tbm9.current_evnt_index];
+        if (event)
+        {
+            cdu->tbm9.evnt[cdu->tbm9.current_evnt_index] = NULL;
+            CGEventPost(kCGHIDEventTap, event);
+            CFRelease(event);
+            return -1;
+        }
+        if (c)
+        {
+            cdu->tbm9.cmmd[cdu->tbm9.current_evnt_index] = NULL;
+            cdu->tbm9.current_evnt_index--;
+            XPLMCommandOnce(c);
+            return -1;
+        }
+        ndt_log("navP [error]: tbm9mousehdlr: CGEventRef AND XPLMCommandRef are NULL, disabling callback (index %d)\n", cdu->tbm9.current_evnt_index);
+        return 0;
+    }
+    ndt_log("navP [info]: tbm9mousehdlr: end of event queue, disabling callback\n");
+    return 0;
+}
+#endif
+
 static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandEnd)
@@ -4338,12 +4400,14 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     }
                     cdu->i_disabled = 0; break;
 
-#if (APL) && (CGFLOAT_IS_DOUBLE)
+#if ((APL) && (CGFLOAT_IS_DOUBLE))
                 case ACF_TYP_TBM9_HS:
                     if (NULL == (cdu->command[0] = XPLMFindCommand("tbm900/popups/ap"        )) ||
                         NULL == (cdu->command[1] = XPLMFindCommand("tbm900/popups/mfd"       )) ||
                         NULL == (cdu->command[2] = XPLMFindCommand("tbm900/popups/pfd1"      )) ||
-                        NULL == (cdu->command[3] = XPLMFindCommand("tbm900/popups/mfd_keypad")))
+                        NULL == (cdu->command[3] = XPLMFindCommand("tbm900/popups/tablet"    )) ||
+                        NULL == (cdu->command[4] = XPLMFindCommand("tbm900/popups/esi2000"   )) ||
+                        NULL == (cdu->command[5] = XPLMFindCommand("tbm900/popups/mfd_keypad")))
                     {
                         cdu->i_disabled = 1; break; // check for YFMS presence
                     }
@@ -4634,20 +4698,65 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMSetDatai(cdu->dataref[0], 1); // auto-reset
                 return 0;
 
-#if (APL) && (CGFLOAT_IS_DOUBLE)
+#if ((APL) && (CGFLOAT_IS_DOUBLE))
             case ACF_TYP_TBM9_HS:
             {
-                CGRect rect = CGDisplayBounds(kCGDirectMainDisplay);
-                CGEventRef new_mouse_pos = CGEventCreateMouseEvent(NULL,
-                                                                   kCGEventMouseMoved,
-                                                                   CGPointMake(rect.origin.x + rect.size.width / 2, rect.origin.y + rect.size.height / 2),
-                                                                   kCGMouseButtonLeft);
-                if (new_mouse_pos) // TODO: cycle through commands, and trigger command(s) on next and subsequent flight loop(s) [use CGEventRef and XPLMCommandRef lists]
+                /*
+                 * Default size of popup windows (1792 x 1120 "Retina"):
+                 *
+                 * ap:         1636 x _288 -> 1636 x _244 -> _818 x _122
+                 * mfd:        1792 x 1332 -> 1792 x 1288 -> _896 x _644
+                 * pfd1:       1792 x 1212 -> 1792 x 1168 -> _896 x _584
+                 * tablet:     1792 x 1252 -> 1792 x 1208 -> _896 x _604
+                 * esi2000:    _800 x _728 -> _800 x _684 -> _400 x _342
+                 * mfd_keypad: _984 x _796 -> _984 x _752 -> _492 x _376
+                 *
+                 * Note: units compatible w/display bounds for mouse moved events.
+                 */
+                double popupsizes[6][2] =
                 {
-                    CGEventPost(kCGHIDEventTap, new_mouse_pos);
-                    XPLMCommandOnce(cdu->command[3]);
-                    CFRelease(new_mouse_pos);
+                    { 818.0, 122.0, },
+                    { 896.0, 644.0, },
+                    { 896.0, 584.0, },
+                    { 896.0, 604.0, },
+                    { 400.0, 342.0, },
+                    { 492.0, 376.0, },
+                };
+                cdu->tbm9.current_evnt_index = -1;
+                CGRect r = CGDisplayBounds(kCGDirectMainDisplay);
+                if ((cdu->tbm9.evnt[cdu->tbm9.current_evnt_index + 1] = CGEventCreateMouseEvent(NULL, kCGEventMouseMoved, // mfd_keypad
+                                                                                                CGPointMake(r.origin.x + r.size.width                     - popupsizes[5][0] / 2.0, // full right
+                                                                                                            r.origin.y + r.size.height - popupsizes[1][1] - popupsizes[5][1] / 2.0), // above mfd
+                                                                                                kCGMouseButtonLeft)))
+                {
+                    cdu->tbm9.cmmd[cdu->tbm9.current_evnt_index + 1] = cdu->command[5]; // mfd_keypad
+                    cdu->tbm9.current_evnt_index++;
                 }
+                if ((cdu->tbm9.evnt[cdu->tbm9.current_evnt_index + 1] = CGEventCreateMouseEvent(NULL, kCGEventMouseMoved, // mfd
+                                                                                                CGPointMake(r.origin.x + r.size.width  - popupsizes[1][0] / 2.0, // full right
+                                                                                                            r.origin.y + r.size.height - popupsizes[1][1] / 2.0), // at bottom
+                                                                                                kCGMouseButtonLeft)))
+                {
+                    cdu->tbm9.cmmd[cdu->tbm9.current_evnt_index + 1] = cdu->command[1]; // mfd
+                    cdu->tbm9.current_evnt_index++;
+                }
+                if ((cdu->tbm9.evnt[cdu->tbm9.current_evnt_index + 1] = CGEventCreateMouseEvent(NULL, kCGEventMouseMoved, // pfd1
+                                                                                                CGPointMake(r.origin.x + r.size.width  - popupsizes[1][0] - popupsizes[2][0] / 2.0, // next 2 mfd
+                                                                                                            r.origin.y + r.size.height                    - popupsizes[2][1] / 2.0), // at bottom
+                                                                                                kCGMouseButtonLeft)))
+                {
+                    cdu->tbm9.cmmd[cdu->tbm9.current_evnt_index + 1] = cdu->command[2]; // pfd1
+                    cdu->tbm9.current_evnt_index++;
+                }
+                if ((cdu->tbm9.evnt[cdu->tbm9.current_evnt_index + 1] = CGEventCreateMouseEvent(NULL, kCGEventMouseMoved, // ap
+                                                                                                CGPointMake(r.origin.x + r.size.width  - popupsizes[1][0] - popupsizes[0][0] / 2.0, // next to mfd
+                                                                                                            r.origin.y + r.size.height - popupsizes[2][1] - popupsizes[0][1] / 2.0), // above pfd1
+                                                                                                kCGMouseButtonLeft)))
+                {
+                    cdu->tbm9.cmmd[cdu->tbm9.current_evnt_index + 1] = cdu->command[0]; // ap
+                    cdu->tbm9.current_evnt_index++;
+                }
+                XPLMSetFlightLoopCallbackInterval(cdu->tbm9.flc_t, -1, 1, cdu);
                 return 0;
             }
 #endif
