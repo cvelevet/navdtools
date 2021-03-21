@@ -890,7 +890,7 @@ void* nvp_chandlers_init(void)
     ctx->throt.  mixratio = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/mixture_ratio_all");
     ctx->throt.dd.command = XPLMCreateCommand("navP/thrust/dn_cont", "throttle down + once");
     ctx->throt.dn.command = XPLMCreateCommand("navP/thrust/dn_once", "throttle down once");
-    ctx->throt.uu.command = XPLMCreateCommand("navP/thrust/up_once", "throttle up + once");
+    ctx->throt.uu.command = XPLMCreateCommand("navP/thrust/up_cont", "throttle up + once");
     ctx->throt.up.command = XPLMCreateCommand("navP/thrust/up_once", "throttle up once");
     ctx->throt.ul.command = XPLMCreateCommand("navP/thrust/up_lots", "throttle up 12pc");
     ctx->throt.pt.command = XPLMCreateCommand("private/ptt/dn/once", "NOT TO BE USED");
