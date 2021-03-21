@@ -189,7 +189,6 @@ typedef struct
     int  last_second_index;
     float curr_period_durr;
     float elapsed_fr_reset;
-    XPLMDataRef ground_spd;
     XPLMDataRef auto_p_sts;
     XPLMDataRef auto_t_sts;
     XPLMDataRef elev_m_agl;
@@ -298,8 +297,6 @@ typedef struct
 
     struct
     {
-        int         var_park_brake;
-        XPLMDataRef ref_park_brake;
         int         var_speedbrake;
         XPLMDataRef ref_speedbrake;
         int         var_flap_lever;
@@ -323,33 +320,8 @@ typedef struct
 
     struct
     {
-        struct
-        {
-            chandler_callback cb;
-        } tur;
-
-        struct
-        {
-            chandler_callback cb;
-        } prk;
-
-        struct
-        {
-            chandler_callback cb;
-        } off;
-
-        struct
-        {
-            chandler_callback cb;
-        } max;
-
-        struct
-        {
-            chandler_callback cb;
-        } reg;
-
-        refcon_braking rc_brk;
-    } bking;
+        chandler_callback cb;
+    } turnaround;
 
     struct
     {
@@ -510,7 +482,6 @@ typedef struct
 } chandler_context;
 
 /* Callout default values */
-#define CALLOUT_PARKBRAKE (-1)
 #define CALLOUT_SPEEDBRAK (-1)
 #define CALLOUT_FLAPLEVER (-1)
 #define CALLOUT_GEARLEVER (-1)
@@ -620,10 +591,6 @@ static int          ref_ql_idx_val(void)
 static int tol_keysniffer(char inCh, XPLMKeyFlags inFlags, char inVirtualKey, void *inRefcon);
 static int a35_keysniffer(char inCh, XPLMKeyFlags inFlags, char inVirtualKey, void *inRefcon);
 static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_twosw(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_twos2(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -697,17 +664,6 @@ void* nvp_chandlers_init(void)
      *
      * Note: XPLMGet/SetDatai don't seem to work from XPluginStart().
      */
-    ctx->callouts.var_park_brake = CALLOUT_PARKBRAKE;
-    ctx->callouts.ref_park_brake = XPLMRegisterDataAccessor("navP/callouts/park_brake",
-                                                            xplmType_Int, 1,
-                                                            &priv_getdata_i, &priv_setdata_i,
-                                                            NULL, NULL,
-                                                            NULL, NULL,
-                                                            NULL, NULL,
-                                                            NULL, NULL,
-                                                            NULL, NULL,
-                                                            &ctx->callouts.var_park_brake,
-                                                            &ctx->callouts.var_park_brake);
     ctx->callouts.var_speedbrake = CALLOUT_SPEEDBRAK;
     ctx->callouts.ref_speedbrake = XPLMRegisterDataAccessor("navP/callouts/speedbrake",
                                                             xplmType_Int, 1,
@@ -741,8 +697,7 @@ void* nvp_chandlers_init(void)
                                                             NULL, NULL,
                                                             &ctx->callouts.var_gear_lever,
                                                             &ctx->callouts.var_gear_lever);
-    if (!ctx->callouts.ref_park_brake ||
-        !ctx->callouts.ref_speedbrake ||
+    if (!ctx->callouts.ref_speedbrake ||
         !ctx->callouts.ref_flap_lever ||
         !ctx->callouts.ref_gear_lever)
     {
@@ -758,62 +713,16 @@ void* nvp_chandlers_init(void)
         goto fail;
     }
 
-    /* Private datarefs: braking */
-    ctx->bking.rc_brk.p_b_int = XPLMRegisterDataAccessor("private/temp/integer/refcon_braking",
-                                                         xplmType_Int, 1,
-                                                         &priv_getdata_i, &priv_setdata_i,
-                                                         NULL, NULL,
-                                                         NULL, NULL,
-                                                         NULL, NULL,
-                                                         NULL, NULL,
-                                                         NULL, NULL,
-                                                         &ctx->bking.rc_brk.int_var,
-                                                         &ctx->bking.rc_brk.int_var);
-    ctx->bking.rc_brk.p_b_flt = XPLMRegisterDataAccessor("private/temp/floatpt/refcon_braking",
-                                                         xplmType_Float, 1,
-                                                         NULL, NULL,
-                                                         &priv_getdata_f, &priv_setdata_f,
-                                                         NULL, NULL,
-                                                         NULL, NULL,
-                                                         NULL, NULL,
-                                                         NULL, NULL,
-                                                         &ctx->bking.rc_brk.flt_var,
-                                                         &ctx->bking.rc_brk.flt_var);
-    if (!ctx->bking.rc_brk.p_b_int || !ctx->bking.rc_brk.p_b_flt)
-    {
-        ndt_log("navP [error]: nvp_chandlers_init: dataref not found\n");
-        goto fail;
-    }
-
-    /* Custom commands: braking */
-    ctx->bking.tur.cb.command = XPLMCreateCommand("navP/turnaround_set", "friendly cold & dark");
-    ctx->bking.prk.cb.command = XPLMCreateCommand("navP/brakes/parking", "apply max. park brake");
-    ctx->bking.off.cb.command = XPLMCreateCommand("navP/brakes/release", "release parking brake");
-    ctx->bking.max.cb.command = XPLMCreateCommand("navP/brakes/maximum", "maximum braking action");
-    ctx->bking.reg.cb.command = XPLMCreateCommand("navP/brakes/regular", "regular braking action");
-    ctx->bking.rc_brk.p_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/parking_brake_ratio");
-    ctx->bking.rc_brk.r_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/right_brake_ratio");
-    ctx->bking.rc_brk.l_b_rat = XPLMFindDataRef  ("sim/cockpit2/controls/left_brake_ratio");
-    ctx->bking.rc_brk.a_b_lev = XPLMFindDataRef  ("sim/cockpit2/switches/auto_brake_level");
-    ctx->bking.rc_brk.abto    = XPLMFindCommand  ("sim/flight_controls/brakes_toggle_auto");
-    if (!ctx->bking.tur.cb.command ||
-        !ctx->bking.prk.cb.command || !ctx->bking.off.cb.command ||
-        !ctx->bking.max.cb.command || !ctx->bking.reg.cb.command ||
-        !ctx->bking.rc_brk.p_b_rat || !XPLMCanWriteDataRef(ctx->bking.rc_brk.p_b_rat) ||
-        !ctx->bking.rc_brk.r_b_rat || !XPLMCanWriteDataRef(ctx->bking.rc_brk.r_b_rat) ||
-        !ctx->bking.rc_brk.l_b_rat || !XPLMCanWriteDataRef(ctx->bking.rc_brk.l_b_rat) ||
-        !ctx->bking.rc_brk.a_b_lev || !XPLMCanWriteDataRef(ctx->bking.rc_brk.a_b_lev) || !ctx->bking.rc_brk.abto)
+    /* Custom commands: automatic turnaround */
+    ctx->turnaround.cb.command = XPLMCreateCommand("navP/turnaround_set", "friendly cold & dark");
+    if (!ctx->turnaround.cb.command)
     {
         ndt_log("navP [error]: nvp_chandlers_init: command or dataref not found\n");
         goto fail;
     }
     else
     {
-        REGISTER_CHANDLER(ctx->bking.tur.cb, chandler_turna, 0, ctx);
-        REGISTER_CHANDLER(ctx->bking.prk.cb, chandler_p_max, 0, ctx);
-        REGISTER_CHANDLER(ctx->bking.off.cb, chandler_p_off, 0, ctx);
-        REGISTER_CHANDLER(ctx->bking.max.cb, chandler_b_max, 0, ctx);
-        REGISTER_CHANDLER(ctx->bking.reg.cb, chandler_b_reg, 0, ctx);
+        REGISTER_CHANDLER(ctx->turnaround.cb, chandler_turna, 0, ctx);
     }
 
     /* Custom commands: speedbrakes/spoilers */
@@ -1088,7 +997,6 @@ void* nvp_chandlers_init(void)
     }
 
     /* Custom ground stabilization system (via flight loop callback) */
-    ctx->ground.ground_spd          = XPLMFindDataRef  ("sim/flightmodel/position/groundspeed");
     ctx->ground.auto_t_sts          = XPLMFindDataRef  ("sim/cockpit2/autopilot/autothrottle_enabled");
     ctx->ground.auto_p_sts          = XPLMFindDataRef  ("sim/cockpit2/autopilot/servos_on");
     ctx->ground.elev_m_agl          = XPLMFindDataRef  ("sim/flightmodel/position/y_agl");
@@ -1104,8 +1012,7 @@ void* nvp_chandlers_init(void)
     ctx->ground.idle.onground_any   = XPLMFindDataRef  ("sim/flightmodel/failures/onground_any");
     ctx->ground.idle.throttle_all   = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/throttle_ratio_all");
     ctx->ground.idle.preset.command = XPLMCreateCommand("navP/thrust/idle_boost", "apply just a bit of throttle");
-    if (!ctx->ground.ground_spd         ||
-        !ctx->ground.auto_t_sts         ||
+    if (!ctx->ground.auto_t_sts         ||
         !ctx->ground.auto_p_sts         ||
         !ctx->ground.elev_m_agl         ||
         !ctx->ground.time.view_type     ||
@@ -1126,7 +1033,6 @@ void* nvp_chandlers_init(void)
     else
     {
         REGISTER_CHANDLER(ctx->ground.idle.preset, chandler_idleb, 0, &ctx->ground);
-        ctx->bking.rc_brk.g_speed = ctx->ground.ground_spd;
         ctx->ground.pt = &ctx->throt;
     }
 
@@ -1149,11 +1055,7 @@ int nvp_chandlers_close(void **_chandler_context)
     }
 
     /* unregister all handlers… */
-    UNREGSTR_CHANDLER(ctx->bking.   tur.cb);
-    UNREGSTR_CHANDLER(ctx->bking.   prk.cb);
-    UNREGSTR_CHANDLER(ctx->bking.   off.cb);
-    UNREGSTR_CHANDLER(ctx->bking.   max.cb);
-    UNREGSTR_CHANDLER(ctx->bking.   reg.cb);
+    UNREGSTR_CHANDLER(ctx->turnaround.  cb);
     UNREGSTR_CHANDLER(ctx->spbrk.   ext.cb);
     UNREGSTR_CHANDLER(ctx->spbrk.   ret.cb);
     UNREGSTR_CHANDLER(ctx->trims.pch.up.cb);
@@ -1202,21 +1104,6 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->throt.                uu);
 
     /* …and all datarefs */
-    if (ctx->bking.rc_brk.p_b_int)
-    {
-        XPLMUnregisterDataAccessor(ctx->bking.rc_brk.p_b_int);
-        ctx->bking.rc_brk.p_b_int = NULL;
-    }
-    if (ctx->bking.rc_brk.p_b_flt)
-    {
-        XPLMUnregisterDataAccessor(ctx->bking.rc_brk.p_b_flt);
-        ctx->bking.rc_brk.p_b_flt = NULL;
-    }
-    if (ctx->callouts.ref_park_brake)
-    {
-        XPLMUnregisterDataAccessor(ctx->callouts.ref_park_brake);
-        ctx->callouts.ref_park_brake = NULL;
-    }
     if (ctx->callouts.ref_speedbrake)
     {
         XPLMUnregisterDataAccessor(ctx->callouts.ref_speedbrake);
@@ -1289,11 +1176,11 @@ int nvp_chandlers_reset(void *inContext)
     }
 
     /* Reset aircraft properties (type, engine count, retractable gear, etc.) */
-    ctx->bking.rc_brk.assert = ctx->gear.assert = ctx->ground.assert = ctx->revrs.assert = NULL;
-    ctx->gear.has_retractable_gear = -1; ctx->revrs.n_engines = -1; acf_type_info_reset();
+    ctx->gear.assert = ctx->ground.assert = ctx->revrs.assert = NULL;
+    ctx->gear.has_retractable_gear = -1; ctx->revrs.n_engines = -1;
+    acf_type_info_reset();
 
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
-    ctx->bking.rc_brk.  use_pkb = 1;
     ctx->acfspec.qpac.    ready = 0;
     ctx->acfspec.i733.    ready = 0;
     ctx->acfspec.x738.    ready = 0;
@@ -1304,9 +1191,6 @@ int nvp_chandlers_reset(void *inContext)
     ctx->otto.ffst.          dr = NULL;
     ctx->otto.conn.cc.     name = NULL;
     ctx->otto.disc.cc.     name = NULL;
-    ctx->bking.rc_brk.rg.  name = NULL;
-    ctx->bking.rc_brk.mx.  name = NULL;
-    ctx->bking.rc_brk.ro.  name = NULL;
     ctx->otto.clmb.rc.  ap_arry = NULL;
     ctx->throt.           thptt = NULL;
     ctx->throt.        throttle = NULL;
@@ -1440,7 +1324,6 @@ int nvp_chandlers_update(void *inContext)
         case ACF_TYP_A320_FF:
             ctx->otto.conn.cc.name   = "private/ff320/ap_conn";
             ctx->otto.disc.cc.name   = "private/ff320/ap_disc";
-            ctx->bking.rc_brk.assert =
             ctx->gear.assert         =
             ctx->ground.assert       =
             ctx->revrs.assert        = &ctx->info->assert;
@@ -1473,7 +1356,6 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.conn.cc.name = "ixeg/733/autopilot/AP_A_cmd_toggle";
             ctx->otto.disc.cc.name = "ixeg/733/autopilot/AP_disengage";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
-            ctx->bking.rc_brk.use_pkb = 0;
             break;
 
         case ACF_TYP_B757_FF:
@@ -1481,13 +1363,11 @@ int nvp_chandlers_update(void *inContext)
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             ctx->otto.conn.cc.name = "private/ffsts/ap_cmdl";
             ctx->otto.disc.cc.name = "1-sim/comm/AP/ap_disc";
-            ctx->bking.rc_brk.use_pkb = 0;
             break;
 
         case ACF_TYP_B777_FF:
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             ctx->otto.disc.cc.name = "777/ap_disc";
-            ctx->bking.rc_brk.use_pkb = 0;
             break;
 
         case ACF_TYP_EMBE_SS:
@@ -1510,16 +1390,6 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case ACF_TYP_MD80_RO:
-            if ((ctx->bking.rc_brk.protate = XPLMFindDataRef("Rotate/md80/systems/parking_brake_toggle_clicked")))
-            {
-                // special case: no need for deferred initialization with this command
-                (ctx->bking.rc_brk.ro.name = "Rotate/md80/systems/parking_brake_toggle");
-                (ctx->bking.rc_brk.ro.xpcr = XPLMFindCommand(ctx->bking.rc_brk.ro.name));
-                if (ctx->bking.rc_brk.ro.xpcr == NULL)
-                {
-                    ctx->bking.rc_brk.ro.name  = NULL;
-                }
-            }
             ctx->otto.disc.cc.name = "Rotate/md80/autopilot/ap_disc";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
@@ -1576,26 +1446,6 @@ int nvp_chandlers_update(void *inContext)
     // new addon type: clear datarefs
     ctx->otto.conn.cc.xpcr = NULL;
     ctx->otto.disc.cc.xpcr = NULL;
-
-    /* plane-specific braking ratios */
-    if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
-    {
-        ctx->bking.rc_brk.rtio[0] = 1.50f / 3.10f;
-        ctx->bking.rc_brk.rtio[1] = 2.25f / 3.10f;
-        ctx->bking.rc_brk.rtio[2] = 3.00f / 3.10f;
-    }
-    else if (ctx->info->ac_type == ACF_TYP_A320_FF)
-    {
-        ctx->bking.rc_brk.rtio[0] = 2.00f / 3.10f;
-        ctx->bking.rc_brk.rtio[1] = 2.50f / 3.10f;
-        ctx->bking.rc_brk.rtio[2] = 3.00f / 3.10f;
-    }
-    else // default values
-    {
-        ctx->bking.rc_brk.rtio[0] = 1.00f / 3.10f;
-        ctx->bking.rc_brk.rtio[1] = 2.00f / 3.10f;
-        ctx->bking.rc_brk.rtio[2] = 3.00f / 3.10f;
-    }
 
     /*
      * Reset MCDU pop-up handler status.
@@ -2151,7 +2001,6 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         chandler_context *ctx = inRefcon;
         XPLMPluginID pid; XPLMCommandRef cmd; XPLMDataRef data;
-        int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
         /* this can happen after calling XPLMReloadPlugins() */
         if (ctx->initialized == 0)
         {
@@ -2171,10 +2020,6 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (ctx->first_fcall)
         {
             // if set to automatic, callouts become enabled on first turnaround
-            if (XPLMGetDatai(ctx->callouts.ref_park_brake) == -1)
-            {
-                XPLMSetDatai(ctx->callouts.ref_park_brake, (speak = 1));
-            }
             if (XPLMGetDatai(ctx->callouts.ref_speedbrake) == -1)
             {
                 XPLMSetDatai(ctx->callouts.ref_speedbrake,     1);
@@ -2194,12 +2039,13 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     ctx->fov.float_value = XPLMGetDataf(ctx->fov.data);
                     ctx->fov.round_value = roundf(ctx->fov.float_value);
                 }
+                if ((cmd = XPLMFindCommand("xnz/brakes/park/on/set")))
+                {
+                    XPLMCommandOnce(cmd);
+                }
                 XPLMCommandOnce(ctx->views.cbs[1].command);
                 XPLMSpeakString("turn around set");
             }
-            XPLMSetDatai    (ctx->callouts.ref_park_brake, 0);
-            XPLMCommandOnce (ctx->      bking.prk.cb.command);
-            XPLMSetDatai(ctx->callouts.ref_park_brake, speak);
         }
         else
         {
@@ -2230,537 +2076,6 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
             }
         }
-    }
-    return 0;
-}
-
-/*
- * action: set or unset parking brake.
- *
- * rationale: X-Plane only has a toggle for this :(
- */
-static int chandler_p_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
-{
-    if (inPhase == xplm_CommandEnd)
-    {
-        acf_type_info_acf_ctx_init();
-        chandler_context *ctx = inRefcon;
-        refcon_braking   *rcb = &ctx->bking.rc_brk;
-        assert_context   *rca = rcb->assert;
-        int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
-        if (ctx->info->ac_type & ACF_TYP_MASK_QPC)
-        {
-            if (ctx->acfspec.qpac.ready == 0)
-            {
-                aibus_fbw_init(&ctx->acfspec.qpac);
-            }
-            if (ctx->acfspec.qpac.ready)
-            {
-                // the FlightFactor-QPAC A350 has its parking brake dataref inverted
-                XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type != ACF_TYP_A350_FF));
-                XPLMSetDatai(rcb->p_b_int,              (ctx->info->ac_type != ACF_TYP_A350_FF));
-                if (speak > 0) XPLMSpeakString("park brake set");
-            }
-            return 0;
-        }
-        if (rcb->ro.name)
-        {
-            if (XPLMGetDatai(rcb->protate) != 1)
-            {
-                XPLMCommandOnce(rcb->ro.xpcr);
-            }
-        }
-        else if (rca)
-        {
-            if (rca->initialized && XPLMGetDataf(rcb->p_b_rat) < 0.5f)
-            {
-                XPLMCommandOnce(rca->dat.p_brk_toggle);
-            }
-        }
-        else
-        {
-            XPLMSetDataf(rcb->p_b_rat, 1.0f);
-            XPLMSetDataf(rcb->p_b_flt, 1.0f);
-        }
-        if (speak > 0) XPLMSpeakString("park brake set");
-    }
-    return 0;
-}
-
-static int chandler_p_off(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
-{
-    if (inPhase == xplm_CommandEnd)
-    {
-        acf_type_info_acf_ctx_init();
-        chandler_context *ctx = inRefcon;
-        refcon_braking   *rcb = &ctx->bking.rc_brk;
-        assert_context   *rca = rcb->assert;
-        int speak = XPLMGetDatai(ctx->callouts.ref_park_brake);
-        if (ctx->info->ac_type & ACF_TYP_MASK_QPC)
-        {
-            if (ctx->acfspec.qpac.ready == 0)
-            {
-                aibus_fbw_init(&ctx->acfspec.qpac);
-            }
-            if (ctx->acfspec.qpac.ready)
-            {
-                // the FlightFactor-QPAC A350 has its parking brake dataref inverted
-                XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type == ACF_TYP_A350_FF));
-                XPLMSetDatai(rcb->p_b_int,              (ctx->info->ac_type == ACF_TYP_A350_FF));
-                if (speak > 0) XPLMSpeakString("park brake released");
-            }
-            return 0;
-        }
-        if (rcb->ro.name)
-        {
-            if (XPLMGetDatai(rcb->protate) != 0)
-            {
-                XPLMCommandOnce(rcb->ro.xpcr);
-            }
-        }
-        else if (rca)
-        {
-            if (rca->initialized && XPLMGetDataf(rcb->p_b_rat) > 0.5f)
-            {
-                XPLMCommandOnce(rca->dat.p_brk_toggle);
-            }
-        }
-        else
-        {
-            XPLMSetDataf(rcb->p_b_rat, 0.0f);
-            XPLMSetDataf(rcb->p_b_flt, 0.0f);
-        }
-        if (speak > 0) XPLMSpeakString("park brake released");
-    }
-    return 0;
-}
-
-/*
- * action: apply symmetrical L/R braking w/out applying the parking brake.
- *
- * rationale: same braking effect, but no interference with parking brake
- *            operation (practical, one can set or unset said brake while
- *            simultaneously applying brake pressure).
- */
-static int chandler_b_max(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
-{
-    acf_type_info_acf_ctx_init();
-    chandler_context *ctx = inRefcon;
-    refcon_braking *rcb = &ctx->bking.rc_brk;
-    float g_speed = XPLMGetDataf(rcb->g_speed) * 3.6f / 1.852f;
-    assert_context *rca = rcb->assert;
-    if (rca)
-    {
-        if (rca->initialized) switch (inPhase)
-        {
-            case xplm_CommandBegin:
-                XPLMSetDataf(rca->dat.acf_brake_force, rca->dat.acf_brake_force_nomin);
-                XPLMCommandBegin(rca->dat.h_brk_mximum);
-                return 0;
-            case xplm_CommandContinue:
-                XPLMSetDataf(rca->dat.acf_brake_force, rca->dat.acf_brake_force_nomin);
-                return 0;
-            default:
-                XPLMCommandEnd(rca->dat.h_brk_mximum);
-                XPLMSetDataf(rca->dat.acf_brake_force, rca->dat.acf_brake_force_nomin);
-                return 0;
-        }
-        return 0;
-    }
-    if (ctx->info->ac_type & ACF_TYP_MASK_QPC)
-    {
-        if (ctx->acfspec.qpac.ready == 0)
-        {
-            aibus_fbw_init(&ctx->acfspec.qpac);
-        }
-        if (ctx->acfspec.qpac.ready)
-        {
-            switch (inPhase)
-            {
-                case xplm_CommandBegin: // release parkbrake on manual brake application
-                    // the FlightFactor-QPAC A350 has its parking brake dataref inverted
-                    XPLMSetDatai(rcb->             p_b_int, (ctx->info->ac_type == ACF_TYP_A350_FF));
-                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type == ACF_TYP_A350_FF));
-                    if (ctx->acfspec.qpac.tolb[2])
-                    {
-                        ctx->acfspec.qpac.tolbctr = 0;
-                        XPLMSetDataf(ctx->acfspec.qpac.tolb[0], 1.0f);
-                        XPLMSetDataf(ctx->acfspec.qpac.tolb[1], 1.0f);
-                        return 0;
-                    }
-                    if (rcb->use_pkb == 0)
-                    {
-                        XPLMSetDataf(rcb->l_b_rat, 1.0f);
-                        XPLMSetDataf(rcb->r_b_rat, 1.0f);
-                        return 0;
-                    }
-                    if (ctx->acfspec.qpac.h_b_max)
-                    {
-                        if (g_speed > 3.0f)
-                        {
-                            XPLMCommandBegin((rcb->pcmd = ctx->acfspec.qpac.h_b_max));
-                            return 0;
-                        }
-                        else
-                        {
-                            rcb->pcmd = NULL;
-                        }
-                        // when aircraft is stationary, hold commands act as park
-                        // brake toggles instead, don't use them but fall through
-                    }
-                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type != ACF_TYP_A350_FF)); // use parking brake directly
-                    return 0;
-                case xplm_CommandEnd:
-                    if (ctx->acfspec.qpac.tolb[2])
-                    {
-                        ctx->acfspec.qpac.tolbctr = 0;
-                        XPLMSetDataf(ctx->acfspec.qpac.tolb[0], 0.0f);
-                        XPLMSetDataf(ctx->acfspec.qpac.tolb[1], 0.0f);
-                    }
-                    if (rcb->use_pkb == 0)
-                    {
-                        XPLMSetDataf(rcb->l_b_rat, 0.0f);
-                        XPLMSetDataf(rcb->r_b_rat, 0.0f);
-                    }
-                    if (ctx->acfspec.qpac.h_b_max && rcb->pcmd)
-                    {
-                        XPLMCommandEnd(rcb->pcmd);
-                    }
-                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(rcb->p_b_int));
-                    return 0;
-                default: // xplm_CommandContinue
-                    if (ctx->acfspec.qpac.tolb[2])
-                    {
-                        if (!XPLMGetDatai(ctx->acfspec.qpac.pkb_ref))
-                        {
-                            if (ctx->acfspec.qpac.tolbctr < 10)
-                            {
-                                ctx->acfspec.qpac.tolbctr++;
-                            }
-                            else
-                            {
-                                if (0.01f > XPLMGetDataf(rcb->p_b_rat) &&
-                                    0.01f < XPLMGetDataf(ctx->acfspec.qpac.tolb[0]))
-                                {
-                                    ndt_log("navP [error]: ToLiSS braking override fail, "
-                                            "using parking brake (%d %.2lf %.2lf %.2lf)\n",
-                                            XPLMGetDatai(ctx->acfspec.qpac.tolb[2]),
-                                            XPLMGetDataf(ctx->acfspec.qpac.tolb[0]),
-                                            XPLMGetDataf(ctx->acfspec.qpac.tolb[1]),
-                                            XPLMGetDataf(rcb->p_b_rat));
-                                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1);
-                                    return 0;
-                                }
-                                return 0;
-                            }
-                            return 0;
-                        }
-                        return 0;
-                    }
-                    if (rcb->use_pkb == 0)
-                    {
-                        XPLMSetDataf(rcb->l_b_rat, 1.0f);
-                        XPLMSetDataf(rcb->r_b_rat, 1.0f);
-                        return 0;
-                    }
-                    return 0;
-            }
-            return 0;
-        }
-        return 0;
-    }
-    else
-    {
-        if (rcb->mx.name)
-        {
-            if (rcb->mx.xpcr == NULL)
-            {
-                rcb->mx.xpcr = XPLMFindCommand(rcb->mx.name);
-            }
-        }
-        else
-        {
-            rcb->mx.xpcr = NULL;
-        }
-    }
-    switch (inPhase)
-    {
-        case xplm_CommandBegin:
-            XPLMSetDataf(rcb->p_b_flt, 0.0f); // release park brake on manual brake application
-            if (XPLMGetDatai(rcb->a_b_lev) > 1)
-            {
-                XPLMCommandOnce(rcb->abto); // disable A/BRK
-            }
-            if (rcb->mx.xpcr)
-            {
-                XPLMCommandBegin(rcb->mx.xpcr);
-                return 0;
-            }
-            if (rcb->use_pkb)
-            {
-                XPLMSetDataf(rcb->p_b_rat, 1.0f);
-                return 0;
-            }
-            XPLMSetDataf(rcb->l_b_rat, 1.0f);
-            XPLMSetDataf(rcb->r_b_rat, 1.0f);
-            XPLMSetDataf(rcb->p_b_rat, 0.0f);
-            return 0;
-        case xplm_CommandContinue:
-            if (rcb->mx.xpcr)
-            {
-                return 0;
-            }
-            if (rcb->use_pkb)
-            {
-                XPLMSetDataf(rcb->p_b_rat, 1.0f);
-                return 0;
-            }
-            XPLMSetDataf(rcb->l_b_rat, 1.0f);
-            XPLMSetDataf(rcb->r_b_rat, 1.0f);
-            return 0;
-        default: // xplm_CommandEnd
-            if (rcb->mx.xpcr)
-            {
-                XPLMCommandEnd(rcb->mx.xpcr);
-            }
-            if (rcb->use_pkb == 0)
-            {
-                XPLMSetDataf(rcb->l_b_rat, 0.0f);
-                XPLMSetDataf(rcb->r_b_rat, 0.0f);
-            }
-            XPLMSetDataf(rcb->p_b_rat, XPLMGetDataf(rcb->p_b_flt));
-            return 0;
-    }
-    return 0;
-}
-
-static int chandler_b_reg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
-{
-    acf_type_info_acf_ctx_init();
-    chandler_context *ctx = inRefcon;
-    refcon_braking *rcb = &ctx->bking.rc_brk;
-    float p_b_flt = XPLMGetDataf(rcb->p_b_flt);
-    float g_speed = XPLMGetDataf(rcb->g_speed) * 3.6f / 1.852f;
-    float p_ratio = (g_speed < 20.0f) ? rcb->rtio[0] : (g_speed < 40.0f) ? rcb->rtio[1] : rcb->rtio[2];
-    assert_context *rca = rcb->assert;
-    if (rca)
-    {
-        if (rca->initialized) switch (inPhase)
-        {
-            case xplm_CommandBegin:
-                XPLMSetDataf(rca->dat.acf_brake_force, rca->dat.acf_brake_force_nomin * p_ratio);
-                XPLMCommandBegin((rcb->pcmd = rca->dat.h_brk_mximum));
-                return 0;
-            case xplm_CommandContinue:
-                XPLMSetDataf(rca->dat.acf_brake_force, rca->dat.acf_brake_force_nomin * p_ratio);
-                return 0;
-            default:
-                XPLMCommandEnd(rcb->pcmd);
-                XPLMSetDataf(rca->dat.acf_brake_force, rca->dat.acf_brake_force_nomin);
-                return 0;
-        }
-        return 0;
-    }
-    if (ctx->info->ac_type & ACF_TYP_MASK_QPC)
-    {
-        if (ctx->acfspec.qpac.ready == 0)
-        {
-            aibus_fbw_init(&ctx->acfspec.qpac);
-        }
-        if (ctx->acfspec.qpac.ready)
-        {
-            switch (inPhase)
-            {
-                case xplm_CommandBegin: // release parkbrake on manual brake application
-                    // the FlightFactor-QPAC A350 has its parking brake dataref inverted
-                    XPLMSetDatai(rcb->             p_b_int, (ctx->info->ac_type == ACF_TYP_A350_FF));
-                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type == ACF_TYP_A350_FF));
-                    if (ctx->acfspec.qpac.tolb[2])
-                    {
-                        ctx->acfspec.qpac.tolbctr = 0;
-                        XPLMSetDataf(ctx->acfspec.qpac.tolb[0], p_ratio);
-                        XPLMSetDataf(ctx->acfspec.qpac.tolb[1], p_ratio);
-                        return 0;
-                    }
-                    if (rcb->use_pkb == 0)
-                    {
-                        XPLMSetDataf(rcb->l_b_rat, p_ratio);
-                        XPLMSetDataf(rcb->r_b_rat, p_ratio);
-                        return 0;
-                    }
-                    if (ctx->acfspec.qpac.h_b_reg && ctx->acfspec.qpac.h_b_max)
-                    {
-                        if (g_speed > 40.0f)
-                        {
-                            XPLMCommandBegin((rcb->pcmd = ctx->acfspec.qpac.h_b_max));
-                            return 0;
-                        }
-                        if (g_speed > 3.0f)
-                        {
-                            XPLMCommandBegin((rcb->pcmd = ctx->acfspec.qpac.h_b_reg));
-                            return 0;
-                        }
-                        else
-                        {
-                            rcb->pcmd = NULL;
-                        }
-                        // when aircraft is stationary, hold commands act as park
-                        // brake toggles instead, don't use them but fall through
-                    }
-                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, (ctx->info->ac_type != ACF_TYP_A350_FF)); // use parking brake directly
-                    return 0;
-                case xplm_CommandEnd:
-                    if (ctx->acfspec.qpac.tolb[2])
-                    {
-                        ctx->acfspec.qpac.tolbctr = 0;
-                        XPLMSetDataf(ctx->acfspec.qpac.tolb[0], 0.0f);
-                        XPLMSetDataf(ctx->acfspec.qpac.tolb[1], 0.0f);
-                    }
-                    if (rcb->use_pkb == 0)
-                    {
-                        XPLMSetDataf(rcb->l_b_rat, 0.0f);
-                        XPLMSetDataf(rcb->r_b_rat, 0.0f);
-                    }
-                    if (ctx->acfspec.qpac.h_b_reg && ctx->acfspec.qpac.h_b_max && rcb->pcmd)
-                    {
-                        XPLMCommandEnd(rcb->pcmd);
-                    }
-                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, XPLMGetDatai(rcb->p_b_int));
-                    return 0;
-                default: // xplm_CommandContinue
-                    if (ctx->acfspec.qpac.tolb[2])
-                    {
-                        if (!XPLMGetDatai(ctx->acfspec.qpac.pkb_ref))
-                        {
-                            if (ctx->acfspec.qpac.tolbctr < 10)
-                            {
-                                ctx->acfspec.qpac.tolbctr++;
-                            }
-                            else
-                            {
-                                if (0.01f > XPLMGetDataf(rcb->p_b_rat) &&
-                                    0.01f < XPLMGetDataf(ctx->acfspec.qpac.tolb[0]))
-                                {
-                                    ndt_log("navP [error]: ToLiSS braking override fail, "
-                                            "using parking brake (%d %.2lf %.2lf %.2lf)\n",
-                                            XPLMGetDatai(ctx->acfspec.qpac.tolb[2]),
-                                            XPLMGetDataf(ctx->acfspec.qpac.tolb[0]),
-                                            XPLMGetDataf(ctx->acfspec.qpac.tolb[1]),
-                                            XPLMGetDataf(rcb->p_b_rat));
-                                    XPLMSetDatai(ctx->acfspec.qpac.pkb_ref, 1);
-                                    return 0;
-                                }
-                                XPLMSetDataf(ctx->acfspec.qpac.tolb[0], p_ratio);
-                                XPLMSetDataf(ctx->acfspec.qpac.tolb[1], p_ratio);
-                                return 0;
-                            }
-                            return 0;
-                        }
-                        return 0;
-                    }
-                    if (rcb->use_pkb == 0)
-                    {
-                        XPLMSetDataf(rcb->l_b_rat, p_ratio);
-                        XPLMSetDataf(rcb->r_b_rat, p_ratio);
-                        return 0;
-                    }
-                    return 0;
-            }
-            return 0;
-        }
-        return 0;
-    }
-    else
-    {
-        if (rcb->rg.name && rcb->mx.name)
-        {
-            if (rcb->rg.xpcr == NULL)
-            {
-                rcb->rg.xpcr = XPLMFindCommand(rcb->rg.name);
-            }
-            if (rcb->mx.xpcr == NULL)
-            {
-                rcb->mx.xpcr = XPLMFindCommand(rcb->mx.name);
-            }
-        }
-        else
-        {
-            rcb->rg.xpcr = NULL;
-            rcb->mx.xpcr = NULL;
-        }
-    }
-    if (p_ratio < p_b_flt)
-    {
-        p_ratio = rcb->rtio[2];
-    }
-    switch (inPhase)
-    {
-        case xplm_CommandBegin:
-            XPLMSetDataf(rcb->p_b_flt, 0.0f); // release park brake on manual brake application
-            if (XPLMGetDatai(rcb->a_b_lev) > 1)
-            {
-                XPLMCommandOnce(rcb->abto); // disable A/BRK
-            }
-            if (rcb->rg.xpcr && rcb->mx.xpcr)
-            {
-                // always start with regular braking
-                XPLMCommandBegin((rcb->pcmd = rcb->rg.xpcr));
-                return 0;
-            }
-            if (rcb->use_pkb)
-            {
-                XPLMSetDataf(rcb->p_b_rat, p_ratio);
-                return 0;
-            }
-            XPLMSetDataf(rcb->l_b_rat, p_ratio);
-            XPLMSetDataf(rcb->r_b_rat, p_ratio);
-            XPLMSetDataf(rcb->p_b_rat, 0.0f);
-            return 0;
-        case xplm_CommandEnd:
-            if (rcb->rg.xpcr && rcb->mx.xpcr)
-            {
-                XPLMCommandEnd(rcb->mx.xpcr);
-                XPLMCommandEnd(rcb->rg.xpcr);
-            }
-            if (rcb->use_pkb == 0)
-            {
-                XPLMSetDataf(rcb->l_b_rat, 0.0f);
-                XPLMSetDataf(rcb->r_b_rat, 0.0f);
-            }
-            XPLMSetDataf(rcb->p_b_rat, XPLMGetDataf(rcb->p_b_flt));
-            return 0;
-        default: // xplm_CommandContinue
-            if (rcb->rg.xpcr && rcb->mx.xpcr)
-            {
-                // adjust braking strength for speed
-                if (g_speed > 30.0f)
-                {
-                    if (rcb->pcmd != rcb->mx.xpcr)
-                    {
-                        XPLMCommandEnd  ((rcb->pcmd));
-                        XPLMCommandBegin((rcb->pcmd = rcb->mx.xpcr));
-                        return 0;
-                    }
-                }
-                else
-                {
-                    if (rcb->pcmd != rcb->rg.xpcr)
-                    {
-                        XPLMCommandEnd  ((rcb->pcmd));
-                        XPLMCommandBegin((rcb->pcmd = rcb->rg.xpcr));
-                        return 0;
-                    }
-                }
-                return 0;
-            }
-            if (rcb->use_pkb)
-            {
-                XPLMSetDataf(rcb->p_b_rat, p_ratio);
-                return 0;
-            }
-            XPLMSetDataf(rcb->l_b_rat, p_ratio);
-            XPLMSetDataf(rcb->r_b_rat, p_ratio);
-            return 0;
     }
     return 0;
 }
@@ -5175,7 +4490,6 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
     if (inRefcon)
     {
         refcon_ground *grndp = inRefcon; assert_context *assrt = grndp->assert;
-        float ground_spd_kts = XPLMGetDataf(grndp->ground_spd) * 3.6f / 1.852f;
         float thrott_cmd_all = XPLMGetDataf(grndp->idle.throttle_all), thra[2];
         if (grndp->idle.thrott_array)
         {
@@ -6769,8 +6083,6 @@ static int first_fcall_do(chandler_context *ctx)
     {
         &ctx->otto.conn.cc,
         &ctx->otto.disc.cc,
-        &ctx->bking.rc_brk.rg,
-        &ctx->bking.rc_brk.mx,
         NULL,
     };
     for (int i = 0; list[i]; i++)
@@ -7226,7 +6538,6 @@ static void priv_setdata_f(void *inRefcon, float inValue)
 
 #undef REGISTER_CHANDLER
 #undef UNREGSTR_CHANDLER
-#undef CALLOUT_PARKBRAKE
 #undef CALLOUT_SPEEDBRAK
 #undef CALLOUT_FLAPLEVER
 #undef CALLOUT_GEARLEVER
