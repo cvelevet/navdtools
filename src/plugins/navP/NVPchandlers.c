@@ -121,7 +121,6 @@ typedef struct
     XPLMDataRef    popup_x;
     XPLMDataRef    popup_y;
     XPLMDataRef    xpliver;
-    int            toaltbr;
     int            tolbctr;
     XPLMDataRef    tolb[3];
     XPLMDataRef    pkb_ref;
@@ -6468,11 +6467,6 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
                  * Permanently override braking input.
                  */
                 XPLMSetDatai(fbw->tolb[2], 1);
-
-                /*
-                 * DEBUG: log stuff when alternate/fallback braking is used.
-                 */
-                fbw->toaltbr = 0;
 
                 /*
                  * We're good to go!
