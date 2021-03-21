@@ -6337,7 +6337,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
             if ((d_ref = XPLMFindDataRef("tbm900/doors/pilot")))
             {
-                if (0.01f > XPLMGetDataf(d_ref))
+                if (0.01f < XPLMGetDataf(d_ref))
                 {
                     if ((cr = XPLMFindCommand("tbm900/doors/auto_pilot")))
                     {
@@ -6347,7 +6347,7 @@ static int first_fcall_do(chandler_context *ctx)
             }
             if ((d_ref = XPLMFindDataRef("tbm900/doors/main")))
             {
-                if (0.01f > XPLMGetDataf(d_ref))
+                if (0.01f < XPLMGetDataf(d_ref))
                 {
                     if ((cr = XPLMFindCommand("tbm900/doors/auto_main")))
                     {
@@ -6357,7 +6357,7 @@ static int first_fcall_do(chandler_context *ctx)
             }
             if ((d_ref = XPLMFindDataRef("tbm900/doors/front_cargo")))
             {
-                if (0.01f > XPLMGetDataf(d_ref))
+                if (0.01f < XPLMGetDataf(d_ref))
                 {
                     if ((cr = XPLMFindCommand("tbm900/doors/front_cargo")))
                     {
@@ -6384,8 +6384,13 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 XPLMCommandOnce(cr);
             }
+            if (acf_type_is_engine_running() == 0) // cold & dark
+            {
+                float fuel = 456.0f; acf_type_fuel_set(ctx->info, &fuel); // half tanks
+            }
             _DO(1, XPLMSetDatai, 0, "tbm900/switches/gear/chocks");
             _DO(1, XPLMSetDatai, 0, "tbm900/anim/engine/tied");
+            _DO(1, XPLMSetDatai, 1, "tbm900/tablet/visible");
             break;
 
         case ACF_TYP_GENERIC: // note: path is never verbose (don't warn for unapplicable datarefs)
