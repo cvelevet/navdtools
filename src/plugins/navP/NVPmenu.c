@@ -1900,6 +1900,15 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
                     ctx->data.refuel_dialg.adjust_load = NVP_MENU_DONE;
                 }
             }
+            else if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_TBM9_HS)
+            {
+                if (fabsf(target_load_weight - current_load) > LOAD_MINIMUM_DIFF)
+                {
+                    ndt_log("navP [info]: use TBM-900's custom load manager\n");
+                }
+                ctx->data.refuel_dialg.load_target_kg = current_load;
+                ctx->data.refuel_dialg.adjust_load = NVP_MENU_DONE;
+            }
             else
             {
                 if (ctx->data.refuel_dialg.payload_is_zfw)

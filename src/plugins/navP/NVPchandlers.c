@@ -6335,6 +6335,57 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
             _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
+            if ((d_ref = XPLMFindDataRef("tbm900/doors/pilot")))
+            {
+                if (0.01f > XPLMGetDataf(d_ref))
+                {
+                    if ((cr = XPLMFindCommand("tbm900/doors/auto_pilot")))
+                    {
+                        XPLMCommandOnce(cr);
+                    }
+                }
+            }
+            if ((d_ref = XPLMFindDataRef("tbm900/doors/main")))
+            {
+                if (0.01f > XPLMGetDataf(d_ref))
+                {
+                    if ((cr = XPLMFindCommand("tbm900/doors/auto_main")))
+                    {
+                        XPLMCommandOnce(cr);
+                    }
+                }
+            }
+            if ((d_ref = XPLMFindDataRef("tbm900/doors/front_cargo")))
+            {
+                if (0.01f > XPLMGetDataf(d_ref))
+                {
+                    if ((cr = XPLMFindCommand("tbm900/doors/front_cargo")))
+                    {
+                        XPLMCommandOnce(cr);
+                    }
+                }
+            }
+            if ((d_ref = XPLMFindDataRef("tbm900/anim/wing/wingtip_wick_flag")))
+            {
+                int off[2] = { 0, 0, };
+                XPLMSetDatavi(d_ref, &off[0], 0, 2);
+            }
+            if ((d_ref = XPLMFindDataRef("tbm900/anim/tail/static_cover")))
+            {
+                int off[2] = { 0, 0, };
+                XPLMSetDatavi(d_ref, &off[0], 0, 2);
+            }
+            if ((d_ref = XPLMFindDataRef("tbm900/anim/wing/pitot_cover")))
+            {
+                int off[2] = { 0, 0, };
+                XPLMSetDatavi(d_ref, &off[0], 0, 2);
+            }
+            if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
+            {
+                XPLMCommandOnce(cr);
+            }
+            _DO(1, XPLMSetDatai, 0, "tbm900/switches/gear/chocks");
+            _DO(1, XPLMSetDatai, 0, "tbm900/anim/engine/tied");
             break;
 
         case ACF_TYP_GENERIC: // note: path is never verbose (don't warn for unapplicable datarefs)
