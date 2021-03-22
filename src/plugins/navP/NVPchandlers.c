@@ -5702,6 +5702,8 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 float fuel = 456.0f; acf_type_fuel_set(ctx->info, &fuel); // half tanks
             }
+            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/fuel/fuel_tank_selector"); // left tank
+            _DO(1, XPLMSetDatai, 1, "tbm900/switches/fuel/auto_man"); // FUEL SEL switch position. 0 = AUTO, 1 = MAN.
             _DO(1, XPLMSetDatai, 0, "tbm900/switches/gear/chocks");
             _DO(1, XPLMSetDatai, 0, "tbm900/anim/engine/tied");
             _DO(1, XPLMSetDatai, 1, "tbm900/tablet/visible");
