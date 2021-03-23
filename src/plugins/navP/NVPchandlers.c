@@ -5687,6 +5687,11 @@ static int first_fcall_do(chandler_context *ctx)
                 int off[2] = { 0, 0, };
                 XPLMSetDatavi(d_ref, &off[0], 0, 2);
             }
+            if ((d_ref = XPLMFindDataRef("tbm900/anim/yoke_show")))
+            {
+                int hide[2] = { 0, 0, };
+                XPLMSetDatavi(d_ref, &hide[0], 0, 2);
+            }
             if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
             {
                 XPLMCommandOnce(cr);
