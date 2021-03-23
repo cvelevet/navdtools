@@ -3253,7 +3253,8 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     !strcasecmp(ctx->info->icaoid, "EVIC") ||
                     !strcasecmp(ctx->info->icaoid, "LEG2") ||
                     !strcasecmp(ctx->info->icaoid, "P180") ||
-                    !strcasecmp(ctx->info->icaoid, "SF50"))
+                    !strcasecmp(ctx->info->icaoid, "SF50") ||
+                    !strcasecmp(ctx->info->icaoid, "TBM9"))
                 {
                     flap_callout_setst(_flap_names_2POS, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
@@ -3448,8 +3449,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     flap_callout_setst(_flap_names_PIPA, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
-                if (!strcasecmp(ctx->info->icaoid, "TBM8") ||
-                    !strcasecmp(ctx->info->icaoid, "TBM9"))
+                if (!strcasecmp(ctx->info->icaoid, "TBM8"))
                 {
                     flap_callout_setst(_flap_names_TBM8, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
