@@ -5551,7 +5551,7 @@ static int first_fcall_do(chandler_context *ctx)
             }
             if (acf_type_is_engine_running() == 0)
             {
-                float load = 415.0f, fuel = 2625.0f;
+                float load = 320.0f, fuel = 2520.0f;
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
                 _DO(0, XPLMSetDataf, 0.0f, "sim/flightmodel/misc/cgz_ref_to_default");
@@ -5588,7 +5588,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
             if (acf_type_is_engine_running() == 0)
             {
-                float load = 340.0f, fuel = 2100.0f;
+                float load = 290.0f, fuel = 1750.0f;
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
             }
@@ -5632,7 +5632,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 0, "cl300/gpu_mode");
             if (acf_type_is_engine_running() == 0)
             {
-                float load = 327.0f, fuel = 2100.0f;
+                float load = 277.0f, fuel = 1750.0f;
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
             }
