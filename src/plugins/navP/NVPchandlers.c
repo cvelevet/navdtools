@@ -4746,12 +4746,41 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
     return 0;
 }
 
+static void nvp_efis_setup(void)
+{
+    XPLMDataRef d_ref;
+    _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
+    _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
+    _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
+    _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+    _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
+}
+
+static void nvp_xgps_setup(void)
+{
+    XPLMDataRef d_ref;
+    // TODO: implement
+}
+
+static void nvp_x1000_setup(void)
+{
+    XPLMDataRef d_ref;
+    // TODO: implement
+}
+
 static int first_fcall_do(chandler_context *ctx)
 {
     XPLMDataRef d_ref;
     XPLMPluginID p_id;
     XPLMCommandRef cr;
-    int skview = 0, r;
+    int absk = 0, x1000 = 0, xgps = 0, r;
     if ((r = acf_type_info_acf_ctx_init()))
     {
         if (r == EAGAIN)
@@ -5501,19 +5530,13 @@ static int first_fcall_do(chandler_context *ctx)
                 XPLMSetDatavf(d_ref, &generic_lights_switch[0], 28, 1); // bleed1
                 XPLMSetDatavf(d_ref, &generic_lights_switch[0], 29, 1); // bleed2
             }
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
-            _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
             if (acf_type_is_engine_running() == 0)
             {
                 float load = 541.0f, fuel = 3150.0f;
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
             }
+            nvp_efis_setup();
             break;
 
         case ACF_TYP_LEGA_XC:
@@ -5526,15 +5549,6 @@ static int first_fcall_do(chandler_context *ctx)
                 float generic_lights_switch[1] = { 1.0f, };
                 XPLMSetDatavf(d_ref, &generic_lights_switch[0], 56, 1); // reflec. off
             }
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
-            _DO(1, XPLMSetDatai, 0, "sim/graphics/view/hide_yoke");
-            _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
-            _DO(1, XPLMSetDatai, 1, "XCrafts/ERJ/weight_units");
             if (acf_type_is_engine_running() == 0)
             {
                 float load = 415.0f, fuel = 2625.0f;
@@ -5544,8 +5558,11 @@ static int first_fcall_do(chandler_context *ctx)
             }
              // initial climb paramaters; V2(MTOW) is 139, +20 -> 160 KIAS
             _DO(0, XPLMSetDatai, 0, "sim/cockpit2/autopilot/airspeed_is_mach");
-            _DO(0, XPLMSetDataf, 10.0f, "sim/cockpit2/autopilot/TOGA_pitch_deg");
             _DO(0, XPLMSetDataf, 160.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+            _DO(0, XPLMSetDataf, 10.0f, "sim/cockpit2/autopilot/TOGA_pitch_deg");
+            _DO(1, XPLMSetDatai, 0, "sim/graphics/view/hide_yoke");
+            _DO(1, XPLMSetDatai, 1, "XCrafts/ERJ/weight_units");
+            nvp_efis_setup();
             break;
 
         case ACF_TYP_HA4T_RW:
@@ -5597,25 +5614,12 @@ static int first_fcall_do(chandler_context *ctx)
             break;
 
         case ACF_TYP_CL30_DD:
-            // datarefs: X-Plane default
-            _DO(0, XPLMSetDataf, 0.8f, "sim/cockpit/electrical/instrument_brightness"); // set all at once
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
-            _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
             {
                 int door_open[1] = { 1, };
                 XPLMSetDatavi(d_ref, &door_open[0], 6, 1);  // cabin to bathroom
             }
+            _DO(0, XPLMSetDataf, 0.8f, "sim/cockpit/electrical/instrument_brightness");
             _DO(1, XPLMSetDatai, 0, "cl300/position_saving");
             _DO(1, XPLMSetDatai, 1, "cl300/prflt_cam_lock");
             _DO(1, XPLMSetDatai, 1, "cl300/mmenu_athide");
@@ -5633,22 +5637,11 @@ static int first_fcall_do(chandler_context *ctx)
                 acf_type_fuel_set(ctx->info, &fuel);
             }
             XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 10.0f); // initial CLB pitch
+            nvp_efis_setup();
             break;
 
         case ACF_TYP_TBM9_HS:
             _DO(0, XPLMSetDataf, 0.35f, "sim/cockpit2/engine/actuators/throttle_ratio_all"); // flight idle
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
-            _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
-            _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
-            _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
             if ((d_ref = XPLMFindDataRef("tbm900/doors/pilot")))
             {
                 if (0.01f < XPLMGetDataf(d_ref))
@@ -5707,6 +5700,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 0, "tbm900/switches/gear/chocks");
             _DO(1, XPLMSetDatai, 0, "tbm900/anim/engine/tied");
             _DO(1, XPLMSetDatai, 1, "tbm900/tablet/visible");
+            nvp_x1000_setup();
             break;
 
         case ACF_TYP_GENERIC: // note: path is never verbose (don't warn for unapplicable datarefs)
@@ -5798,17 +5792,20 @@ static int first_fcall_do(chandler_context *ctx)
             }
             if (!strcasecmp(ctx->info->icaoid, "BE20"))
             {
+                xgps = 1;
                 _DO(0, XPLMSetDataf, 1.0f, "com/dkmp/winglets");
                 _DO(0, XPLMSetDataf, 1.0f, "com/dkmp/PassengerDoorHandle");
             }
             if (!strcasecmp(ctx->info->icaoid, "C206"))
             {
+                xgps = 1;
                 _DO(0, XPLMSetDatai, 1, "com/dkmp/fairings");
                 _DO(0, XPLMSetDatai, 0, "com/dkmp/InstRefl");
                 _DO(0, XPLMSetDatai, 1, "com/dkmp/WindowRefl"); // inverted
             }
             if (!strcasecmp(ctx->info->icaoid, "TBM8"))
             {
+                xgps = 1;
                 _DO(0, XPLMSetDataf, -0.5f, "thranda/cockpit/actuators/VisorL");
                 _DO(0, XPLMSetDataf, -0.5f, "thranda/cockpit/actuators/VisorR");
                 _DO(0, XPLMSetDataf,  1.0f, "thranda/cockpit/actuators/VisorSwingL");
@@ -5879,6 +5876,7 @@ static int first_fcall_do(chandler_context *ctx)
                         _DO(1, XPLMSetDatai, 1, "sim/graphics/misc/kill_map_fms_line");
                         // and fully declutter the HSI/Avidyne displays by default
                         _DO(0, XPLMSetDatai, 0, "com/dkmp/Avidyne/Declutter");
+                        xgps = 1;
                     }
                     if (!STRN_CASECMP_AUTO(ctx->info->descrp, "C207 Skywagon"))
                     {
@@ -5886,6 +5884,7 @@ static int first_fcall_do(chandler_context *ctx)
                         _DO(0, XPLMSetDataf, -0.20f, "sim/aircraft/overflow/acf_cgZ_fwd");
                         _DO(0, XPLMSetDataf, -0.10f, "sim/flightmodel/misc/cgz_ref_to_default");
                         _DO(0, XPLMSetDataf, +0.00f, "sim/aircraft/overflow/acf_cgZ_aft");
+                        xgps = 1;
                     }
                     if (!STRN_CASECMP_AUTO(ctx->info->descrp, "C404 Titan"))
                     {
@@ -5894,6 +5893,7 @@ static int first_fcall_do(chandler_context *ctx)
                             float instrument_brightness_ratio[1] = { 0.5f, };
                             XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 4, 1); // autopilot/warning annunciator brightness
                         }
+                        xgps = 1;
                     }
                     if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Bonanza V35B"))
                     {
@@ -5902,23 +5902,32 @@ static int first_fcall_do(chandler_context *ctx)
                             int tip_tanks_enabled[1] = { 1, };
                             XPLMSetDatavi(d_ref, &tip_tanks_enabled[0], 10, 1);
                         }
+                        xgps = 1;
                     }
                 }
                 if (!STRN_CASECMP_AUTO(ctx->info->author, "Aerobask") ||
                     !STRN_CASECMP_AUTO(ctx->info->author, "Stephane Buon"))
                 {
+                    absk = 1;
+                }
+                if (absk)
+                {
                     if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Pipistrel Panthera"))
                     {
-                        if (NULL != XPLMFindDataRef("aerobask/panthera/reflections_skyview_on"))
-                        {
-                            skview = 1;
-                        }
+//                      if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
+//                      {
+//                          XPLMCommandOnce(cr);
+//                      }
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
                         _DO(0, XPLMSetDataf, 120.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
                     }
                     else if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Epic E1000") ||
                              !STRN_CASECMP_AUTO(ctx->info->descrp, "Epic Victory"))
                     {
+                        if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
+                        {
+                            XPLMCommandOnce(cr);
+                        }
                         if ((d_ref = XPLMFindDataRef("aerobask/hide_static")) &&
                             (cr = XPLMFindCommand("aerobask/toggle_static")))
                         {
@@ -5935,21 +5944,25 @@ static int first_fcall_do(chandler_context *ctx)
                                 }
                             }
                         }
-                        if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
-                        {
-                            XPLMCommandOnce(cr);
-                        }
                         if (NULL != XPLMFindDataRef("aerobask/E1000/reflections_skyview_on") ||
                             NULL != XPLMFindDataRef("aerobask/victory/reflections_skyview_on"))
                         {
-                            skview = 1;
                             _DO(0, XPLMSetDatai, 0, "sim/cockpit2/autopilot/airspeed_is_mach");
                             _DO(0, XPLMSetDataf, 150.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
                         }
                         else // Victory G1000 Edition (Performance_Guidelines.pdf)
                         {
+                            if ((d_ref = XPLMFindDataRef("aerobask/tablet/deployed")) &&
+                                (cr = XPLMFindCommand("aerobask/tablet/deploy_toggle")))
+                            {
+                                if (XPLMGetDatai(d_ref) != 0)
+                                {
+                                    XPLMCommandOnce(cr);
+                                }
+                            }
                             _DO(0, XPLMSetDatai, 0, "sim/cockpit2/autopilot/airspeed_is_mach");
                             _DO(0, XPLMSetDataf, 190.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+                            x1000 = 1;
                         }
                         _DO(0, XPLMSetDatai, 0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
                         _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_copilot");
@@ -5960,6 +5973,7 @@ static int first_fcall_do(chandler_context *ctx)
                     }
                     else if (!strcasecmp(ctx->info->icaoid, "DA62"))
                     {
+                        x1000 = 1;
                         _DO(0, XPLMSetDataf,           0.0f, "aerobask/tablet/anim_x");
                         _DO(0, XPLMSetDataf, 73.0f / 150.0f, "aerobask/tablet/anim_z");
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
@@ -5978,24 +5992,8 @@ static int first_fcall_do(chandler_context *ctx)
                         _DO(0, XPLMSetDatai,      1, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
                         _DO(0, XPLMSetDatai,      1, "sim/cockpit2/ice/ice_AOA_heat_on_copilot");
                         _DO(0, XPLMSetDatai,      1, "sim/cockpit2/ice/ice_AOA_heat_on");
-                        skview = 1;
                     }
                 }
-            }
-            if (skview == 0) // don't mess w/Aerobask's WXR radar
-            {
-                _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
-                _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
-                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");
-                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");
-                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");
-                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");
-                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
-                _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
-                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
-                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
-                _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
-                _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
             }
             if (ctx->revrs.n_engines == 1) // single-engine: select default fuel tank
             {
@@ -6038,7 +6036,19 @@ static int first_fcall_do(chandler_context *ctx)
                     }
                 }
             }
-            if (acf_type_is_engine_running() == 0 && skview == 0 &&
+            if (x1000)
+            {
+                nvp_x1000_setup();
+            }
+            else if (xgps)
+            {
+                nvp_xgps_setup();
+            }
+            else if (absk == 0) // don't mess w/Aerobask's WXR radar
+            {
+                nvp_efis_setup();
+            }
+            if (acf_type_is_engine_running() == 0 && absk == 0 &&
                 XPLMFindPluginBySignature("com.simcoders.rep") == XPLM_NO_PLUGIN_ID)
             {
                 float fmax; acf_type_fmax_get(ctx->info, &fmax); // fuel capacity
