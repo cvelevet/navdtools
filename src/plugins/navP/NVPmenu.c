@@ -613,13 +613,7 @@ void* nvp_menu_init(void)
     }
 
     /* toggle: callouts on/off */
-    if (append_menu_item("navP custom callouts", &ctx->items.callouts_sts,
-                         MENUITEM_CALLOUTS_STS,   ctx->id))
-    {
-        goto fail;
-    }
-    if (get_dataref(&ctx->data.callouts_sts.park_brake, "navP/callouts/park_brake") ||
-        get_dataref(&ctx->data.callouts_sts.speedbrake, "navP/callouts/speedbrake") ||
+    if (get_dataref(&ctx->data.callouts_sts.speedbrake, "navP/callouts/speedbrake") ||
         get_dataref(&ctx->data.callouts_sts.flap_lever, "navP/callouts/flap_lever"))
     {
         // Note: XPLMSetDatai doesn't work from XPluginEnable() either, so the
@@ -628,6 +622,11 @@ void* nvp_menu_init(void)
     }
     else
     {
+        if (append_menu_item("navP custom callouts", &ctx->items.callouts_sts,
+                             MENUITEM_CALLOUTS_STS,   ctx->id))
+        {
+            goto fail;
+        }
         XPLMAppendMenuSeparator(ctx->id);
     }
 
