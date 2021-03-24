@@ -5608,6 +5608,36 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDataf, 0.5f, "anim/6/rotery");                            // Temp. control (all ca.) (auto)
             break;
 
+        case ACF_TYP_CL30_DD:
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
+            {
+                int door_open[1] = { 1, };
+                XPLMSetDatavi(d_ref, &door_open[0], 6, 1);  // cabin to bathroom
+            }
+            _DO(0, XPLMSetDataf, 0.8f, "sim/cockpit/electrical/instrument_brightness");
+            _DO(1, XPLMSetDatai, 0, "cl300/position_saving");
+            _DO(1, XPLMSetDatai, 1, "cl300/prflt_cam_lock");
+            _DO(1, XPLMSetDatai, 1, "cl300/mmenu_athide");
+            _DO(1, XPLMSetDatai, 1, "cl300/fms/alt_rep");
+            _DO(1, XPLMSetDatai, 1, "cl300/hide_pilots");
+            _DO(1, XPLMSetDatai, 1, "cl300/popup_mfd");
+            _DO(1, XPLMSetDatai, 0, "cl300/baro_pref");
+            _DO(1, XPLMSetDatai, 0, "cl300/alt_pref");
+            _DO(1, XPLMSetDatai, 1, "cl300/com_pref");
+            _DO(1, XPLMSetDatai, 0, "cl300/gpu_mode");
+            if (acf_type_is_engine_running() == 0)
+            {
+                float load = 277.0f, fuel = 1750.0f;
+                acf_type_load_set(ctx->info, &load);
+                acf_type_fuel_set(ctx->info, &fuel);
+            }
+            XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 10.0f); // initial CLB pitch
+            nvp_efis_setup();
+            break;
+
+        case ACF_TYP_E55P_AB: // TODO: implement
+            break;
+
         case ACF_TYP_EMBE_SS:
             if (ctx->mcdu.rc.i_disabled == -1)
             {
@@ -5663,32 +5693,6 @@ static int first_fcall_do(chandler_context *ctx)
             nvp_efis_setup();
             break;
 
-        case ACF_TYP_LEGA_XC:
-            if (ctx->mcdu.rc.i_disabled == -1)
-            {
-                chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc);  // XXX: remap hotkeys
-            }
-            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/generic_lights_switch")))
-            {
-                float generic_lights_switch[1] = { 1.0f, };
-                XPLMSetDatavf(d_ref, &generic_lights_switch[0], 56, 1); // reflec. off
-            }
-            if (acf_type_is_engine_running() == 0)
-            {
-                float load = 320.0f, fuel = 2520.0f;
-                acf_type_load_set(ctx->info, &load);
-                acf_type_fuel_set(ctx->info, &fuel);
-                _DO(0, XPLMSetDataf, 0.0f, "sim/flightmodel/misc/cgz_ref_to_default");
-            }
-             // initial climb paramaters; V2(MTOW) is 139, +20 -> 160 KIAS
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/autopilot/airspeed_is_mach");
-            _DO(0, XPLMSetDataf, 160.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
-            _DO(0, XPLMSetDataf, 10.0f, "sim/cockpit2/autopilot/TOGA_pitch_deg");
-            _DO(1, XPLMSetDatai, 0, "sim/graphics/view/hide_yoke");
-            _DO(1, XPLMSetDatai, 1, "XCrafts/ERJ/weight_units");
-            nvp_efis_setup();
-            break;
-
         case ACF_TYP_HA4T_RW:
             if (ctx->mcdu.rc.i_disabled == -1)
             {
@@ -5719,6 +5723,32 @@ static int first_fcall_do(chandler_context *ctx)
             XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 8.5f); // initial CLB pitch
             break;
 
+        case ACF_TYP_LEGA_XC:
+            if (ctx->mcdu.rc.i_disabled == -1)
+            {
+                chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc);  // XXX: remap hotkeys
+            }
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/generic_lights_switch")))
+            {
+                float generic_lights_switch[1] = { 1.0f, };
+                XPLMSetDatavf(d_ref, &generic_lights_switch[0], 56, 1); // reflec. off
+            }
+            if (acf_type_is_engine_running() == 0)
+            {
+                float load = 320.0f, fuel = 2520.0f;
+                acf_type_load_set(ctx->info, &load);
+                acf_type_fuel_set(ctx->info, &fuel);
+                _DO(0, XPLMSetDataf, 0.0f, "sim/flightmodel/misc/cgz_ref_to_default");
+            }
+             // initial climb paramaters; V2(MTOW) is 139, +20 -> 160 KIAS
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/autopilot/airspeed_is_mach");
+            _DO(0, XPLMSetDataf, 160.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+            _DO(0, XPLMSetDataf, 10.0f, "sim/cockpit2/autopilot/TOGA_pitch_deg");
+            _DO(1, XPLMSetDatai, 0, "sim/graphics/view/hide_yoke");
+            _DO(1, XPLMSetDatai, 1, "XCrafts/ERJ/weight_units");
+            nvp_efis_setup();
+            break;
+
         case ACF_TYP_MD80_RO:
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/panel_brightness_ratio")))
             {
@@ -5735,33 +5765,6 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 1, "Rotate/md80/misc/hide_yoke_button_clicked");
             _DO(1, XPLMSetDatai, 2, "Rotate/md80/instruments/nav_display_range");
             _DO(1, XPLMSetDatai, 2, "Rotate/md80/instruments/nav_display_mode");
-            break;
-
-        case ACF_TYP_CL30_DD:
-            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
-            {
-                int door_open[1] = { 1, };
-                XPLMSetDatavi(d_ref, &door_open[0], 6, 1);  // cabin to bathroom
-            }
-            _DO(0, XPLMSetDataf, 0.8f, "sim/cockpit/electrical/instrument_brightness");
-            _DO(1, XPLMSetDatai, 0, "cl300/position_saving");
-            _DO(1, XPLMSetDatai, 1, "cl300/prflt_cam_lock");
-            _DO(1, XPLMSetDatai, 1, "cl300/mmenu_athide");
-            _DO(1, XPLMSetDatai, 1, "cl300/fms/alt_rep");
-            _DO(1, XPLMSetDatai, 1, "cl300/hide_pilots");
-            _DO(1, XPLMSetDatai, 1, "cl300/popup_mfd");
-            _DO(1, XPLMSetDatai, 0, "cl300/baro_pref");
-            _DO(1, XPLMSetDatai, 0, "cl300/alt_pref");
-            _DO(1, XPLMSetDatai, 1, "cl300/com_pref");
-            _DO(1, XPLMSetDatai, 0, "cl300/gpu_mode");
-            if (acf_type_is_engine_running() == 0)
-            {
-                float load = 277.0f, fuel = 1750.0f;
-                acf_type_load_set(ctx->info, &load);
-                acf_type_fuel_set(ctx->info, &fuel);
-            }
-            XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 10.0f); // initial CLB pitch
-            nvp_efis_setup();
             break;
 
         case ACF_TYP_TBM9_HS:
@@ -6187,6 +6190,7 @@ static int first_fcall_do(chandler_context *ctx)
             break;
 
         default:
+            ndt_log("navP [error]: first_fcall_do: non-generic non-handled aircraft type (%d)\n", ctx->info->ac_type);
             break;
     }
 
