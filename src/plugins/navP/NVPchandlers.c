@@ -3346,6 +3346,35 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     flap_callout_setst(_flap_names_1530, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
+                if (!strcasecmp(ctx->info->icaoid, "A19N") ||
+                    !strcasecmp(ctx->info->icaoid, "A20N") ||
+                    !strcasecmp(ctx->info->icaoid, "A21N") ||
+                    !strcasecmp(ctx->info->icaoid, "A318") ||
+                    !strcasecmp(ctx->info->icaoid, "A319") ||
+                    !strcasecmp(ctx->info->icaoid, "A320") ||
+                    !strcasecmp(ctx->info->icaoid, "A321") ||
+                    !strcasecmp(ctx->info->icaoid, "A330") ||
+                    !strcasecmp(ctx->info->icaoid, "A332") ||
+                    !strcasecmp(ctx->info->icaoid, "A333") ||
+                    !strcasecmp(ctx->info->icaoid, "A337") ||
+                    !strcasecmp(ctx->info->icaoid, "A338") ||
+                    !strcasecmp(ctx->info->icaoid, "A339") ||
+                    !strcasecmp(ctx->info->icaoid, "A340") ||
+                    !strcasecmp(ctx->info->icaoid, "A342") ||
+                    !strcasecmp(ctx->info->icaoid, "A343") ||
+                    !strcasecmp(ctx->info->icaoid, "A345") ||
+                    !strcasecmp(ctx->info->icaoid, "A346") ||
+                    !strcasecmp(ctx->info->icaoid, "A350") ||
+                    !strcasecmp(ctx->info->icaoid, "A359") ||
+                    !strcasecmp(ctx->info->icaoid, "A35K") ||
+                    !strcasecmp(ctx->info->icaoid, "A380") ||
+                    !strcasecmp(ctx->info->icaoid, "A388") ||
+                    !strcasecmp(ctx->info->icaoid, "E50P") ||
+                    !strcasecmp(ctx->info->icaoid, "E55P"))
+                {
+                    flap_callout_setst(_flap_names_4POS, lroundf(8.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
                 if (!strcasecmp(ctx->info->icaoid, "AKOY") ||
                     !strcasecmp(ctx->info->icaoid, "BE20") ||
                     !strcasecmp(ctx->info->icaoid, "BE33") ||
@@ -3369,35 +3398,16 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     flap_callout_setst(_flap_names_2POS, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
-                if (!strcasecmp(ctx->info->icaoid, "B52"))
+                if (!strcasecmp(ctx->info->icaoid, "B190"))
                 {
-                    flap_callout_setst(_flap_names_B52G, lroundf(5.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    flap_callout_setst(_flap_names_1735, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
-                if (!strcasecmp(ctx->info->icaoid, "A318") || // most Airbus airliner variants
-                    !strcasecmp(ctx->info->icaoid, "A319") ||
-                    !strcasecmp(ctx->info->icaoid, "A320") ||
-                    !strcasecmp(ctx->info->icaoid, "A321") ||
-                    !strcasecmp(ctx->info->icaoid, "A330") ||
-                    !strcasecmp(ctx->info->icaoid, "A332") ||
-                    !strcasecmp(ctx->info->icaoid, "A333") ||
-                    !strcasecmp(ctx->info->icaoid, "A340") ||
-                    !strcasecmp(ctx->info->icaoid, "A342") ||
-                    !strcasecmp(ctx->info->icaoid, "A343") ||
-                    !strcasecmp(ctx->info->icaoid, "A345") ||
-                    !strcasecmp(ctx->info->icaoid, "A346") ||
-                    !strcasecmp(ctx->info->icaoid, "A350") ||
-                    !strcasecmp(ctx->info->icaoid, "A358") ||
-                    !strcasecmp(ctx->info->icaoid, "A359") ||
-                    !strcasecmp(ctx->info->icaoid, "A380") ||
-                    !strcasecmp(ctx->info->icaoid, "A388") ||
-                    !strcasecmp(ctx->info->icaoid, "E50P") ||
-                    !strcasecmp(ctx->info->icaoid, "E55P"))
-                {
-                    flap_callout_setst(_flap_names_4POS, lroundf(8.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "B732") || // all Boeing 737 variants
+                if (!strcasecmp(ctx->info->icaoid, "B37M") ||
+                    !strcasecmp(ctx->info->icaoid, "B38M") ||
+                    !strcasecmp(ctx->info->icaoid, "B39M") ||
+                    !strcasecmp(ctx->info->icaoid, "B3XM") ||
+                    !strcasecmp(ctx->info->icaoid, "B732") ||
                     !strcasecmp(ctx->info->icaoid, "B733") ||
                     !strcasecmp(ctx->info->icaoid, "B734") ||
                     !strcasecmp(ctx->info->icaoid, "B735") ||
@@ -3411,9 +3421,12 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     flap_callout_setst(_flap_names_BOE2, lroundf(8.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
-                if (!strcasecmp(ctx->info->icaoid, "BSCA") || // all Boeing 747 variants
-                    !strcasecmp(ctx->info->icaoid, "BLCF") ||
-                    !strcasecmp(ctx->info->icaoid, "B74D") ||
+                if (!strcasecmp(ctx->info->icaoid, "B52"))
+                {
+                    flap_callout_setst(_flap_names_B52G, lroundf(5.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->info->icaoid, "B74D") ||
                     !strcasecmp(ctx->info->icaoid, "B74F") ||
                     !strcasecmp(ctx->info->icaoid, "B74R") ||
                     !strcasecmp(ctx->info->icaoid, "B74S") ||
@@ -3423,14 +3436,14 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     !strcasecmp(ctx->info->icaoid, "B744") ||
                     !strcasecmp(ctx->info->icaoid, "B747") ||
                     !strcasecmp(ctx->info->icaoid, "B748") ||
-                    !strcasecmp(ctx->info->icaoid, "B752") || // all Boeing 757 variants
+                    !strcasecmp(ctx->info->icaoid, "B752") ||
                     !strcasecmp(ctx->info->icaoid, "B753") ||
                     !strcasecmp(ctx->info->icaoid, "B757") ||
-                    !strcasecmp(ctx->info->icaoid, "B762") || // all Boeing 767 variants
+                    !strcasecmp(ctx->info->icaoid, "B762") ||
                     !strcasecmp(ctx->info->icaoid, "B763") ||
                     !strcasecmp(ctx->info->icaoid, "B764") ||
                     !strcasecmp(ctx->info->icaoid, "B767") ||
-                    !strcasecmp(ctx->info->icaoid, "B77F") || // all Boeing 777 variants
+                    !strcasecmp(ctx->info->icaoid, "B77F") ||
                     !strcasecmp(ctx->info->icaoid, "B77L") ||
                     !strcasecmp(ctx->info->icaoid, "B77W") ||
                     !strcasecmp(ctx->info->icaoid, "B772") ||
@@ -3438,17 +3451,14 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     !strcasecmp(ctx->info->icaoid, "B777") ||
                     !strcasecmp(ctx->info->icaoid, "B778") ||
                     !strcasecmp(ctx->info->icaoid, "B779") ||
-                    !strcasecmp(ctx->info->icaoid, "B78X") || // all Boeing 787 variants
                     !strcasecmp(ctx->info->icaoid, "B787") ||
                     !strcasecmp(ctx->info->icaoid, "B788") ||
-                    !strcasecmp(ctx->info->icaoid, "B789"))
+                    !strcasecmp(ctx->info->icaoid, "B789") ||
+                    !strcasecmp(ctx->info->icaoid, "B78X") ||
+                    !strcasecmp(ctx->info->icaoid, "BLCF") ||
+                    !strcasecmp(ctx->info->icaoid, "BSCA"))
                 {
                     flap_callout_setst(_flap_names_BOE1, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "B190"))
-                {
-                    flap_callout_setst(_flap_names_1735, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
                 if (!strcasecmp(ctx->info->icaoid, "BD5J") ||
@@ -3494,6 +3504,27 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 if (!strcasecmp(ctx->info->icaoid, "DC10"))
                 {
                     flap_callout_setst(_flap_names_DC10, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->info->icaoid, "E135") ||
+                    !strcasecmp(ctx->info->icaoid, "E145") ||
+                    !strcasecmp(ctx->info->icaoid, "E35L") ||
+                    !strcasecmp(ctx->info->icaoid, "E45X"))
+                {
+                    flap_callout_setst(_flap_names_EMB1, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    break;
+                }
+                if (!strcasecmp(ctx->info->icaoid, "E170") ||
+                    !strcasecmp(ctx->info->icaoid, "E175") ||
+                    !strcasecmp(ctx->info->icaoid, "E190") ||
+                    !strcasecmp(ctx->info->icaoid, "E195") ||
+                    !strcasecmp(ctx->info->icaoid, "E275") ||
+                    !strcasecmp(ctx->info->icaoid, "E290") ||
+                    !strcasecmp(ctx->info->icaoid, "E295") ||
+                    !strcasecmp(ctx->info->icaoid, "E75L") ||
+                    !strcasecmp(ctx->info->icaoid, "E75S"))
+                {
+                    flap_callout_setst(_flap_names_EMB2, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
                 if (!strcasecmp(ctx->info->icaoid, "FA7X") ||
@@ -4148,7 +4179,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 //                  XPLMSetDatavf(cdu->dataref[0], &zero, 17, 1); // ND
                     XPLMSetDatavf(cdu->dataref[0], &ones, 18, 1); // EICAS
                     XPLMSetDatavf(cdu->dataref[0], &ones, 50, 1); // radio
-                    XPLMSetDatavf(cdu->dataref[0], &ones, 51, 1); // thrust
+//                  XPLMSetDatavf(cdu->dataref[0], &ones, 51, 1); // thrust
                     XPLMSetDatavf(cdu->dataref[0], &ones, 52, 1); // Tekton
                     return 0;
                 }
@@ -4156,7 +4187,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 //              XPLMSetDatavf(cdu->dataref[0], &zero, 17, 1); // ND
                 XPLMSetDatavf(cdu->dataref[0], &zero, 18, 1); // EICAS
                 XPLMSetDatavf(cdu->dataref[0], &zero, 50, 1); // radio
-                XPLMSetDatavf(cdu->dataref[0], &zero, 51, 1); // thrust
+//              XPLMSetDatavf(cdu->dataref[0], &zero, 51, 1); // thrust
                 XPLMSetDatavf(cdu->dataref[0], &zero, 52, 1); // Tekton
                 return 0;
             }
