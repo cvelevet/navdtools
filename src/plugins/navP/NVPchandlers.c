@@ -6191,7 +6191,8 @@ static int first_fcall_do(chandler_context *ctx)
 
         default:
             ndt_log("navP [error]: first_fcall_do: non-generic non-handled aircraft type (%d)\n", ctx->info->ac_type);
-            break;
+            XPLMSpeakString("turn around error");
+            return ENOSYS;
     }
 
     /*
@@ -6565,7 +6566,7 @@ static int first_fcall_do(chandler_context *ctx)
     if (volume_context == NULL)
     {
         XPLMSpeakString("default volume error");
-        return -1;
+        return EINVAL;
     }
     acf_volume_set(volume_context, 0.10f, ctx->info->ac_type);
 
