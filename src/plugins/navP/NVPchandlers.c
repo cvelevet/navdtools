@@ -1322,113 +1322,118 @@ int nvp_chandlers_update(void *inContext)
     switch (ctx->throt.acf_type = ctx->info->ac_type)
     {
         case ACF_TYP_A320_FF:
-            ctx->otto.conn.cc.name   = "private/ff320/ap_conn";
-            ctx->otto.disc.cc.name   = "private/ff320/ap_disc";
-            ctx->gear.assert         =
-            ctx->ground.assert       =
-            ctx->revrs.assert        = &ctx->info->assert;
+            ctx->otto.conn.cc.name = "private/ff320/ap_conn";
+            ctx->otto.disc.cc.name = "private/ff320/ap_disc";
+            ctx->gear.assert = ctx->ground.assert = ctx->revrs.assert = &ctx->info->assert;
             break;
 
         case ACF_TYP_A319_TL:
         case ACF_TYP_A321_TL:
-            ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
             ctx->otto.conn.cc.name = "toliss_airbus/ap1_push";
             ctx->otto.disc.cc.name = "toliss_airbus/ap_disc_left_stick";
+            ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
             break;
 
         case ACF_TYP_A350_FF:
-            ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
             ctx->otto.conn.cc.name = "airbus_qpac/ap1_push";
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // v1.6+ for XP11
             {
                 ctx->otto.disc.cc.name = "airbus_qpac/ap_disc_left_stick";
             }
+            ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
             break;
 
         case ACF_TYP_B737_EA:
-            ctx->otto.disc.cc.name = "x737/yoke/capt_AP_DISENG_BTN";
             ctx->otto.conn.cc.name = "x737/mcp/CMDA_TOGGLE";
+            ctx->otto.disc.cc.name = "x737/yoke/capt_AP_DISENG_BTN";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
 
         case ACF_TYP_B737_XG:
-            ctx->otto.conn.cc.name = "ixeg/733/autopilot/AP_A_cmd_toggle";
             ctx->otto.disc.cc.name = "ixeg/733/autopilot/AP_disengage";
+            ctx->otto.conn.cc.name = "ixeg/733/autopilot/AP_A_cmd_toggle";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
 
         case ACF_TYP_B757_FF:
         case ACF_TYP_B767_FF:
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
             ctx->otto.conn.cc.name = "private/ffsts/ap_cmdl";
             ctx->otto.disc.cc.name = "1-sim/comm/AP/ap_disc";
+            ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
 
         case ACF_TYP_B777_FF:
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
             ctx->otto.disc.cc.name = "777/ap_disc";
-            break;
-
-        case ACF_TYP_EMBE_SS:
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
-            ctx->otto.conn.cc.name = "SSG/EJET/MCP/AP_COMM";
-            ctx->otto.disc.cc.name = "SSG/EJET/MCP/AP_COMM";
-            break;
-
-        case ACF_TYP_EMBE_XC:
-        case ACF_TYP_HA4T_RW:
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
-            break;
-
-        case ACF_TYP_LEGA_XC:
-            ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
-            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
-            break;
-
-        case ACF_TYP_MD80_RO:
-            ctx->otto.disc.cc.name = "Rotate/md80/autopilot/ap_disc";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
 
         case ACF_TYP_CL30_DD:
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
+            {
+                ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
+            }
+            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            break;
+
+        case ACF_TYP_E55P_AB:
+            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
+            ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
+            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            break;
+
+        case ACF_TYP_EMBE_SS:
+            ctx->otto.conn.cc.name = "SSG/EJET/MCP/AP_COMM";
+            ctx->otto.disc.cc.name = "SSG/EJET/MCP/AP_COMM";
+            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            break;
+
+        case ACF_TYP_EMBE_XC:
+        case ACF_TYP_HA4T_RW:
+            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            break;
+
+        case ACF_TYP_LEGA_XC:
+            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
+            ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
+            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            break;
+
+        case ACF_TYP_MD80_RO:
+            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
+            ctx->otto.disc.cc.name = "Rotate/md80/autopilot/ap_disc";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
 
         case ACF_TYP_TBM9_HS:
-            ctx->revrs.tbm9erng = ctx->throt.tbm9erng = XPLMFindDataRef("tbm900/systems/engine/range");
-            ctx->otto.disc.cc.name = "tbm900/actuators/ap/disc";
             ctx->otto.conn.cc.name = "tbm900/actuators/ap/ap";
+            ctx->otto.disc.cc.name = "tbm900/actuators/ap/disc";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            ctx->revrs.tbm9erng = ctx->throt.tbm9erng = XPLMFindDataRef("tbm900/systems/engine/range");
             break;
 
         case ACF_TYP_GENERIC:
-        {
+            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
+            {
+                ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
+            }
             if (ctx->info->has_rvrs_thr == -1) // XXX: prop-driven w/out reverse
             {
                 ctx->revrs.propdn = XPLMFindCommand("sim/engines/prop_down");
                 ctx->revrs.propup = XPLMFindCommand("sim/engines/prop_up");
             }
-            if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
-            {
-                ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
-            }
-            else
-            {
-                ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            }
-            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
-        }
 
         default: // not generic but no usable commands
+            ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
     }
 
@@ -3508,6 +3513,10 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             XPLMPluginID xfmc = XPLMFindPluginBySignature("x-fmc.com");
             switch (cdu->atyp)
             {
+                case ACF_TYP_B737_XG:
+                case ACF_TYP_MD80_RO:
+                    cdu->i_disabled = 1; break; // check for YFMS presence
+
                 case ACF_TYP_A320_FF:
                 {
                     if (XPLM_NO_PLUGIN_ID != (plugin = XPLMFindPluginBySignature(XPLM_FF_SIGNATURE)))
@@ -3551,6 +3560,94 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     cdu->i_disabled = 1; return 0; // here first from turnaround
                 }
 
+                case ACF_TYP_A319_TL:
+                case ACF_TYP_A321_TL:
+                    if (NULL == (cdu->command[0] = XPLMFindCommand("AirbusFBW/UndockMCDU1"     )) ||
+                        NULL == (cdu->command[1] = XPLMFindCommand("AirbusFBW/UndockMCDU2"     )) ||
+                        NULL == (cdu->dataref[0] = XPLMFindDataRef("AirbusFBW/PopUpHeightArray")) ||
+                        NULL == (cdu->dataref[1] = XPLMFindDataRef("AirbusFBW/PopUpScale"      )) ||
+                        NULL == (cdu->dataref[2] = XPLMFindDataRef("AirbusFBW/PopUpXCoordArray")) ||
+                        NULL == (cdu->dataref[3] = XPLMFindDataRef("AirbusFBW/PopUpYCoordArray")))
+                    {
+                        cdu->i_disabled = 1; break; // check for YFMS presence
+                    }
+                    cdu->i_disabled = 0; break;
+
+                case ACF_TYP_A350_FF:
+                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("1-sim/misc/popupOis"  )) ||
+                        NULL == (cdu->dataref[1] = XPLMFindDataRef("1-sim/misc/popupLeft" )) ||
+                        NULL == (cdu->dataref[2] = XPLMFindDataRef("1-sim/misc/popupsHide")) ||
+                        NULL == (cdu->command[0] = XPLMFindCommand("AirbusFBW/UndockMCDU1")))
+                    {
+                        cdu->i_disabled = 1; break; // check for YFMS presence
+                    }
+                    cdu->i_disabled = 0; break;
+
+                case ACF_TYP_B757_FF:
+                case ACF_TYP_B767_FF:
+                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("757Avionics/cdu/popup" )) ||
+                        NULL == (cdu->dataref[1] = XPLMFindDataRef("757Avionics/cdu2/popup")))
+                    {
+                        cdu->i_disabled = 1; break; // check for YFMS presence
+                    }
+                    cdu->i_disabled = 0; break;
+
+                case ACF_TYP_B777_FF:
+                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("T7Avionics/cdu/popup")))
+                    {
+                        cdu->i_disabled = 1; break; // check for YFMS presence
+                    }
+                    cdu->i_disabled = 0; break;
+
+                case ACF_TYP_CL30_DD:
+                    if (NULL == (cdu->command[0] = XPLMFindCommand("sim/operation/slider_12")))
+                    {
+                        cdu->i_disabled = 1; break; // check for YFMS presence
+                    }
+                    cdu->i_disabled = 0; break;
+
+                case ACF_TYP_E55P_AB:
+                    if ((cdu->command[0] = XPLMFindCommand("aerobask/gfc700_popup_toggle")) &&
+                        (cdu->command[1] = XPLMFindCommand("aerobask/gcu477_popup_toggle")) &&
+                        (cdu->command[2] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
+                        (cdu->command[3] = XPLMFindCommand("sim/GPS/g1000n3_popup")))
+                    {
+                        cdu->i_cycle_id = 0; // GCU477 + GFC700 + G1000 (x3)
+                        cdu->i_disabled = 0; break; // Aerobask G1000 (E55P)
+                    }
+                    cdu->i_disabled = 1; break; // check for YFMS presence
+
+                case ACF_TYP_EMBE_SS:
+                {
+                    if (XPLM_NO_PLUGIN_ID != (plugin = XPLMFindPluginBySignature("FJCC.SSGERJ")))
+                    {
+                        for (int i = 0; i < XPLMCountHotKeys(); i++)
+                        {
+                            XPLMPluginID outp_id; char outp_descr[513];
+                            XPLMHotKeyID hot_key = XPLMGetNthHotKey(i);
+                            if (hot_key == NULL)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                XPLMGetHotKeyInfo(hot_key, NULL, NULL, outp_descr, &outp_id);
+                            }
+                            if (outp_id == plugin)
+                            {
+                                if (!STRN_CASECMP_AUTO(outp_descr, "F8"))
+                                {
+                                    XPLMSetHotKeyCombination(hot_key, XPLM_VK_NUMPAD_ENT, xplm_UpFlag);
+                                    break;
+                                }
+                                continue;
+                            }
+                            continue;
+                        }
+                    }
+                    cdu->i_disabled = 1; return 0; // here first from turnaround
+                }
+
                 case ACF_TYP_EMBE_XC:
                 {
                     if (XPLM_NO_PLUGIN_ID != (plugin = XPLMFindPluginBySignature("ERJ_Functions")))
@@ -3578,6 +3675,40 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     }
                     if (NULL == (cdu->dataref[0] = XPLMFindDataRef("sim/cockpit2/switches/generic_lights_switch")) ||
                         NULL == (cdu->dataref[1] = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
+                    {
+                        cdu->i_disabled = 1; break; // check for YFMS presence
+                    }
+                    cdu->i_disabled = 0; return 0; // here first from turnaround
+                }
+
+                case ACF_TYP_HA4T_RW:
+                {
+                    if (XPLM_NO_PLUGIN_ID != (plugin = XPLMFindPluginBySignature("Tekton_Functions")))
+                    {
+                        for (int i = 0; i < XPLMCountHotKeys(); i++)
+                        {
+                            XPLMPluginID outp_id; char outp_descr[513];
+                            XPLMHotKeyID hot_key = XPLMGetNthHotKey(i);
+                            if (hot_key == NULL)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                XPLMGetHotKeyInfo(hot_key, NULL, NULL, outp_descr, &outp_id);
+                            }
+                            if (outp_id == plugin)
+                            {
+                                // set combination to a key almost guaranteed to be unused
+                                XPLMSetHotKeyCombination(hot_key, XPLM_VK_F24, xplm_UpFlag);
+                                continue;
+                            }
+                            continue;
+                        }
+                    }
+                    if (NULL == (cdu->command[0] = XPLMFindCommand("xap/panels/0")) ||
+                        NULL == (cdu->command[1] = XPLMFindCommand("xap/panels/5")) ||
+                        NULL == (cdu->command[2] = XPLMFindCommand("xap/panels/6")))
                     {
                         cdu->i_disabled = 1; break; // check for YFMS presence
                     }
@@ -3631,116 +3762,8 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     cdu->i_disabled = 0; return 0; // here first from turnaround
                 }
 
-                case ACF_TYP_HA4T_RW:
-                {
-                    if (XPLM_NO_PLUGIN_ID != (plugin = XPLMFindPluginBySignature("Tekton_Functions")))
-                    {
-                        for (int i = 0; i < XPLMCountHotKeys(); i++)
-                        {
-                            XPLMPluginID outp_id; char outp_descr[513];
-                            XPLMHotKeyID hot_key = XPLMGetNthHotKey(i);
-                            if (hot_key == NULL)
-                            {
-                                continue;
-                            }
-                            else
-                            {
-                                XPLMGetHotKeyInfo(hot_key, NULL, NULL, outp_descr, &outp_id);
-                            }
-                            if (outp_id == plugin)
-                            {
-                                // set combination to a key almost guaranteed to be unused
-                                XPLMSetHotKeyCombination(hot_key, XPLM_VK_F24, xplm_UpFlag);
-                                continue;
-                            }
-                            continue;
-                        }
-                    }
-                    if (NULL == (cdu->command[0] = XPLMFindCommand("xap/panels/0")) ||
-                        NULL == (cdu->command[1] = XPLMFindCommand("xap/panels/5")) ||
-                        NULL == (cdu->command[2] = XPLMFindCommand("xap/panels/6")))
-                    {
-                        cdu->i_disabled = 1; break; // check for YFMS presence
-                    }
-                    cdu->i_disabled = 0; return 0; // here first from turnaround
-                }
-
-                case ACF_TYP_EMBE_SS:
-                {
-                    if (XPLM_NO_PLUGIN_ID != (plugin = XPLMFindPluginBySignature("FJCC.SSGERJ")))
-                    {
-                        for (int i = 0; i < XPLMCountHotKeys(); i++)
-                        {
-                            XPLMPluginID outp_id; char outp_descr[513];
-                            XPLMHotKeyID hot_key = XPLMGetNthHotKey(i);
-                            if (hot_key == NULL)
-                            {
-                                continue;
-                            }
-                            else
-                            {
-                                XPLMGetHotKeyInfo(hot_key, NULL, NULL, outp_descr, &outp_id);
-                            }
-                            if (outp_id == plugin)
-                            {
-                                if (!STRN_CASECMP_AUTO(outp_descr, "F8"))
-                                {
-                                    XPLMSetHotKeyCombination(hot_key, XPLM_VK_NUMPAD_ENT, xplm_UpFlag);
-                                    break;
-                                }
-                                continue;
-                            }
-                            continue;
-                        }
-                    }
-                    cdu->i_disabled = 1; return 0; // here first from turnaround
-                }
-
-                case ACF_TYP_B737_XG:
-                case ACF_TYP_MD80_RO:
-                    cdu->i_disabled = 1; break; // check for YFMS presence
-
-                case ACF_TYP_B757_FF:
-                case ACF_TYP_B767_FF:
-                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("757Avionics/cdu/popup" )) ||
-                        NULL == (cdu->dataref[1] = XPLMFindDataRef("757Avionics/cdu2/popup")))
-                    {
-                        cdu->i_disabled = 1; break; // check for YFMS presence
-                    }
-                    cdu->i_disabled = 0; break;
-
-                case ACF_TYP_B777_FF:
-                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("T7Avionics/cdu/popup")))
-                    {
-                        cdu->i_disabled = 1; break; // check for YFMS presence
-                    }
-                    cdu->i_disabled = 0; break;
-
-                case ACF_TYP_A319_TL:
-                case ACF_TYP_A321_TL:
-                    if (NULL == (cdu->command[0] = XPLMFindCommand("AirbusFBW/UndockMCDU1"     )) ||
-                        NULL == (cdu->command[1] = XPLMFindCommand("AirbusFBW/UndockMCDU2"     )) ||
-                        NULL == (cdu->dataref[0] = XPLMFindDataRef("AirbusFBW/PopUpHeightArray")) ||
-                        NULL == (cdu->dataref[1] = XPLMFindDataRef("AirbusFBW/PopUpScale"      )) ||
-                        NULL == (cdu->dataref[2] = XPLMFindDataRef("AirbusFBW/PopUpXCoordArray")) ||
-                        NULL == (cdu->dataref[3] = XPLMFindDataRef("AirbusFBW/PopUpYCoordArray")))
-                    {
-                        cdu->i_disabled = 1; break; // check for YFMS presence
-                    }
-                    cdu->i_disabled = 0; break;
-
-                case ACF_TYP_A350_FF:
-                    if (NULL == (cdu->dataref[0] = XPLMFindDataRef("1-sim/misc/popupOis"  )) ||
-                        NULL == (cdu->dataref[1] = XPLMFindDataRef("1-sim/misc/popupLeft" )) ||
-                        NULL == (cdu->dataref[2] = XPLMFindDataRef("1-sim/misc/popupsHide")) ||
-                        NULL == (cdu->command[0] = XPLMFindCommand("AirbusFBW/UndockMCDU1")))
-                    {
-                        cdu->i_disabled = 1; break; // check for YFMS presence
-                    }
-                    cdu->i_disabled = 0; break;
-
-#if ((APL) && (CGFLOAT_IS_DOUBLE))
                 case ACF_TYP_TBM9_HS:
+#if ((APL) && (CGFLOAT_IS_DOUBLE))
                     if (NULL == (cdu->command[0] = XPLMFindCommand("tbm900/popups/ap"        )) ||
                         NULL == (cdu->command[1] = XPLMFindCommand("tbm900/popups/mfd"       )) ||
                         NULL == (cdu->command[2] = XPLMFindCommand("tbm900/popups/pfd1"      )) ||
@@ -3751,6 +3774,8 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         cdu->i_disabled = 1; break; // check for YFMS presence
                     }
                     cdu->i_cycle_id = 0; cdu->i_disabled = 0; break;
+#else
+                    cdu->i_disabled = 1; break; // check for YFMS presence
 #endif
 
                 case ACF_TYP_B737_EA:
@@ -3902,14 +3927,6 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             }
                             cdu->i_disabled = 1; break; // check for YFMS presence
                         }
-                        if (!STRN_CASECMP_AUTO(cdu->auth, "Denis 'ddenn' Krupin"))
-                        {
-                            if (NULL == (cdu->command[0] = XPLMFindCommand("sim/operation/slider_12")))
-                            {
-                                cdu->i_disabled = 1; break; // check for YFMS presence
-                            }
-                            cdu->i_disabled = 0; break;
-                        }
                         if ((cdu->command[0] = XPLMFindCommand("sim/GPS/g430n1_popup")) &&
                             (cdu->command[1] = XPLMFindCommand("sim/GPS/g430n2_popup")))
                         {
@@ -3957,14 +3974,84 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
 #ifndef NAVP_ONLY
             if ((cdu->command[0] = XPLMFindCommand("YFMS/toggle")) == NULL)
-#endif
             {
                 return 0;
             }
+            cdu->atyp = ACF_TYP_GENERIC;
             cdu->i_disabled = 0;
+#else
+            return 0;
+#endif
         }
         switch (cdu->atyp)
         {
+            case ACF_TYP_A319_TL:
+            case ACF_TYP_A321_TL:
+            {
+                int PopUpHeightArray[2]; XPLMGetDatavi(cdu->dataref[0], PopUpHeightArray, 0, 2);
+                if (PopUpHeightArray[0] <= 0 && PopUpHeightArray[1] <= 0) // both popups hidden
+                {
+                    // reset any relevant dataref to preferred size/location and show both MCDUs
+                    //                    { CDU1, CDU2, PFD1, PFD2, ND#1, ND#2, ECAM, ECAM, ISIS, };
+                    float PopUpScale[9] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, }; XPLMSetDatavf(cdu->dataref[1], PopUpScale, 0, 9);
+                    int   PopUpXArry[9] = {    0,  448,    0, 1292, 1292, 1292,  646,  646,  473, }; XPLMSetDatavi(cdu->dataref[2], PopUpXArry, 0, 9);
+                    int   PopUpYArry[9] = {    0,    0,  620,    0,  620,  620,    0,  620,  460, }; XPLMSetDatavi(cdu->dataref[3], PopUpYArry, 0, 9);
+                    XPLMCommandOnce(cdu->command[0]);
+                    XPLMCommandOnce(cdu->command[1]);
+                    return 0;
+                }
+                // else either/both MCDU popups visible, let's hide them instead
+                if (PopUpHeightArray[0] >= 1)
+                {
+                    XPLMCommandOnce(cdu->command[0]);
+                }
+                if (PopUpHeightArray[1] >= 1)
+                {
+                    XPLMCommandOnce(cdu->command[1]);
+                }
+                return 0;
+            }
+
+            case ACF_TYP_B757_FF:
+            case ACF_TYP_B767_FF:
+                XPLMSetDatai(cdu->dataref[1], 1); // auto-reset
+                // fall through
+            case ACF_TYP_B777_FF:
+                XPLMSetDatai(cdu->dataref[0], 1); // auto-reset
+                return 0;
+
+            case ACF_TYP_CL30_DD:
+                XPLMCommandOnce(cdu->command[0]); // toggle custom radio panel
+                return 0;
+
+            case ACF_TYP_E55P_AB:
+                switch (cdu->i_cycle_id)
+                {
+                    case 0:
+                        XPLMCommandOnce(cdu->command[2]); // G1000: Lt display (show)
+                        XPLMCommandOnce(cdu->command[0]); // GFC700: autopilot (show)
+                        cdu->i_cycle_id = 1;
+                        break;
+                    case 1:
+                        XPLMCommandOnce(cdu->command[2]); // G1000: Lt display (hide)
+                        XPLMCommandOnce(cdu->command[0]); // GFC700: autopilot (hide)
+                        XPLMCommandOnce(cdu->command[3]); // G1000: Ct display (show)
+                        XPLMCommandOnce(cdu->command[1]); // GCU-477: keyboard (show)
+                        cdu->i_cycle_id = 2;
+                        break;
+                    case 2:
+                    default:
+                        XPLMCommandOnce(cdu->command[3]); // G1000: Ct display (hide)
+                        XPLMCommandOnce(cdu->command[1]); // GCU-477: keyboard (hide)
+                        cdu->i_cycle_id = 0;
+                        break;
+                }
+                return 0;
+
+//          // unreachable (see above)
+//          case ACF_TYP_EMBE_SS:
+//              return 0;
+
             case ACF_TYP_EMBE_XC:
             {
                 XPLMGetDatavi(cdu->dataref[1], &cdu->i_value[1], 16, 1);
@@ -4001,41 +4088,6 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMSetDatavf(cdu->dataref[0], &zero, 52, 1); // Tekton
                 return 0;
             }
-
-            case ACF_TYP_A319_TL:
-            case ACF_TYP_A321_TL:
-            {
-                int PopUpHeightArray[2]; XPLMGetDatavi(cdu->dataref[0], PopUpHeightArray, 0, 2);
-                if (PopUpHeightArray[0] <= 0 && PopUpHeightArray[1] <= 0) // both popups hidden
-                {
-                    // reset any relevant dataref to preferred size/location and show both MCDUs
-                    //                    { CDU1, CDU2, PFD1, PFD2, ND#1, ND#2, ECAM, ECAM, ISIS, };
-                    float PopUpScale[9] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, }; XPLMSetDatavf(cdu->dataref[1], PopUpScale, 0, 9);
-                    int   PopUpXArry[9] = {    0,  448,    0, 1292, 1292, 1292,  646,  646,  473, }; XPLMSetDatavi(cdu->dataref[2], PopUpXArry, 0, 9);
-                    int   PopUpYArry[9] = {    0,    0,  620,    0,  620,  620,    0,  620,  460, }; XPLMSetDatavi(cdu->dataref[3], PopUpYArry, 0, 9);
-                    XPLMCommandOnce(cdu->command[0]);
-                    XPLMCommandOnce(cdu->command[1]);
-                    return 0;
-                }
-                // else either/both MCDU popups visible, let's hide them instead
-                if (PopUpHeightArray[0] >= 1)
-                {
-                    XPLMCommandOnce(cdu->command[0]);
-                }
-                if (PopUpHeightArray[1] >= 1)
-                {
-                    XPLMCommandOnce(cdu->command[1]);
-                }
-                return 0;
-            }
-
-            case ACF_TYP_B757_FF:
-            case ACF_TYP_B767_FF:
-                XPLMSetDatai(cdu->dataref[1], 1); // auto-reset
-                // fall through
-            case ACF_TYP_B777_FF:
-                XPLMSetDatai(cdu->dataref[0], 1); // auto-reset
-                return 0;
 
 #if ((APL) && (CGFLOAT_IS_DOUBLE))
             case ACF_TYP_TBM9_HS:
