@@ -2671,8 +2671,103 @@ enum
     NVP_DIRECTION_UP,
 };
 
+static const float nvp_thrust_presets1_e55p[] =
+{
+    /*
+     * |---------------------------------|
+     * |---------------------------------|
+     * | 1.0000 maximum RSV thrust range |
+     * | 0.9726 halfway RSV thrust range |
+     * | 0.9452 minimum RSV thrust range |
+     * |---------------------------------|
+     * |         between detents         |
+     * |---------------------------------|
+     * | 0.8630 maximum T/O thrust range |
+     * | 0.8356 halfway T/O thrust range |
+     * | 0.8082 minimum T/O thrust range |
+     * |---------------------------------|
+     * |         between detents         |
+     * |---------------------------------|
+     * | 0.7260 maximum CLB thrust range |
+     * | 0.6986 halfway CLB thrust range |
+     * | 0.6712 minimum CLB thrust range |
+     * |---------------------------------|
+     * |         between detents         |
+     * |---------------------------------|
+     * | 0.5753 maximum CRZ thrust range |
+     * | 0.5479 halfway CRZ thrust range |
+     * | 0.5205 minimum CRZ thrust range |
+     * |---------------------------------|
+     * |  man thrust (0.5205f * travel)  |
+     * |---------------------------------|
+     * |---------------------------------|
+     */
+    0.00000f,
+    0.03125f,
+    0.06250f,
+    0.09375f,
+    0.12500f,
+    0.18750f,
+    0.25000f,
+    0.31250f,
+    0.37500f,
+    0.43750f,
+    0.50000f,
+    0.54790f,
+    0.69860f,
+    0.83560f,
+//  0.97260f,
+    1.00000f,
+    -1.0000f,
+};
+
+static const float nvp_thrust_presets2_e55p[] =
+{
+    /*
+     * |---------------------------------|
+     * |---------------------------------|
+     * | 1.0000 maximum RSV thrust range |
+     * | 0.9726 halfway RSV thrust range |
+     * | 0.9452 minimum RSV thrust range |
+     * |---------------------------------|
+     * |         between detents         |
+     * |---------------------------------|
+     * | 0.8630 maximum T/O thrust range |
+     * | 0.8356 halfway T/O thrust range |
+     * | 0.8082 minimum T/O thrust range |
+     * |---------------------------------|
+     * |         between detents         |
+     * |---------------------------------|
+     * | 0.7260 maximum CLB thrust range |
+     * | 0.6986 halfway CLB thrust range |
+     * | 0.6712 minimum CLB thrust range |
+     * |---------------------------------|
+     * |         between detents         |
+     * |---------------------------------|
+     * | 0.5753 maximum CRZ thrust range |
+     * | 0.5479 halfway CRZ thrust range |
+     * | 0.5205 minimum CRZ thrust range |
+     * |---------------------------------|
+     * |  man thrust (0.5205f * travel)  |
+     * |---------------------------------|
+     * |---------------------------------|
+     */
+    0.00000f,
+    0.12500f,
+    0.25000f,
+    0.37500f,
+    0.50000f,
+    0.54790f,
+    0.69860f,
+    0.83560f,
+//  0.97260f,
+    1.00000f,
+    -1.0000f,
+};
+
 static const float nvp_thrust_presets1_tbm9[] =
 {
+    0.00000f,
     0.05000f,
     0.10000f,
     0.15000f,
@@ -2692,22 +2787,26 @@ static const float nvp_thrust_presets1_tbm9[] =
     0.90625f,
     0.93750f,
     0.96875f,
+    1.00000f,
     -1.0000f,
 };
 
 static const float nvp_thrust_presets2_tbm9[] =
 {
+    0.00000f,
     0.15000f,
     0.35000f,
     0.50000f,
     0.62500f,
     0.75000f,
     0.87500f,
+    1.00000f,
     -1.0000f,
 };
 
 static const float nvp_thrust_presets1[] =
 {
+    0.00000f,
     0.03125f,
     0.06250f,
     0.09375f,
@@ -2727,11 +2826,13 @@ static const float nvp_thrust_presets1[] =
     0.90625f,
     0.93750f,
     0.96875f,
+    1.00000f,
     -1.0000f,
 };
 
 static const float nvp_thrust_presets2[] =
 {
+    0.00000f,
     0.12500f,
     0.25000f,
     0.37500f,
@@ -2739,6 +2840,7 @@ static const float nvp_thrust_presets2[] =
     0.62500f,
     0.75000f,
     0.87500f,
+    1.00000f,
     -1.0000f,
 };
 
@@ -2746,13 +2848,13 @@ static float nvp_thrust_next(float current, const float *presets, int direction)
 {
     if (direction == NVP_DIRECTION_DN)
     {
-        float next = 0.0f;
-        for (int i = 0; presets[i] > 0.0f; i++)
+        int i = 1; float next = presets[0];
+        while (presets[i] > (0.0f - T_ZERO))
         {
             if ((presets[i] + T_ZERO) < (current - T_ZERO))
             {
                 next = presets[i];
-                continue;
+                i++; continue;
             }
             return next;
         }
@@ -2760,15 +2862,17 @@ static float nvp_thrust_next(float current, const float *presets, int direction)
     }
     if (direction == NVP_DIRECTION_UP)
     {
-        for (int i = 0; presets[i] > 0.0f; i++)
+        int i = 1; float next = presets[0];
+        while (presets[i] > (0.0f - T_ZERO))
         {
             if ((presets[i] - T_ZERO) > (current + T_ZERO))
             {
                 return presets[i];
             }
-            continue;
+            next = presets[i];
+            i++; continue;
         }
-        return 1.0f;
+        return next;
     }
     return current;
 }
@@ -2987,6 +3091,10 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets1_tbm9, NVP_DIRECTION_DN);
             }
+            if (t->acf_type == ACF_TYP_E55P_AB)
+            {
+                return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets1_e55p, NVP_DIRECTION_DN);
+            }
             return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_DN);
         }
         XPLMCommandOnce(t->thrdn);
@@ -3033,6 +3141,10 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets1_tbm9, NVP_DIRECTION_UP);
             }
+            if (t->acf_type == ACF_TYP_E55P_AB)
+            {
+                return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets1_e55p, NVP_DIRECTION_UP);
+            }
             return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets1, NVP_DIRECTION_UP);
         }
         XPLMCommandOnce(t->thrup);
@@ -3078,6 +3190,10 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     return 0;
                 }
                 return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets2_tbm9, NVP_DIRECTION_UP);
+            }
+            if (t->acf_type == ACF_TYP_E55P_AB)
+            {
+                return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets2_e55p, NVP_DIRECTION_UP);
             }
             return custom_throttle_all(t->throttle, t->acf_type, avrg_throttle, nvp_thrust_presets2, NVP_DIRECTION_UP);
         }
