@@ -488,31 +488,28 @@ typedef struct
 
 /* Flap lever position name constants */
 static       char  _flap_callout_st[11];
+static const char* _flap_names_1530[10] = {    "up",    "15",    "30",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_1545[10] = {    "up",    "15",    "45",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_1735[10] = {    "up",    "17",    "35",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_2POS[10] = {    "up",  "half",  "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_3POS[10] = {    "up",     "1",     "2", "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_A10W[10] = {    "up",    "15",    "30",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_AIB1[10] = {    "up",     "1",     "2",    "3", "full",   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_B190[10] = {    "up",    "17",    "35",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_B52G[10] = {    "up",    "10",    "20",   "30",   "40",   "55",   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_BD5J[10] = {    "up",    "10",    "20",   "30",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_BNG1[10] = {    "up",     "1",     "2",    "5",   "10",   "15",   "25",   "30",   "40",   NULL, };
-static const char* _flap_names_BNG2[10] = {    "up",     "1",     "5",   "15",   "20",   "25",   "30",   NULL,   NULL,   NULL, };
-static const char* _flap_names_BOM1[10] = {    "up",    "10",    "20",   "30",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_BOM2[10] = {    "up",     "5",    "10",   "15",   "35",   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_C130[10] = {    "up",     "1",     "2",    "3",    "4",    "5",    "6", "full",   NULL,   NULL, };
-static const char* _flap_names_C340[10] = {    "up",    "15",    "45",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_1230[10] = {    "up",    "10",    "20",   "30",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_CSNA[10] = {    "up",    "10",    "20", "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_DC10[10] = {    "up",     "5",    "15",   "25",   "30",   "35",   "40",   NULL,   NULL,   NULL, };
-static const char* _flap_names_NO18[10] = {    "up",     "9",    "22",   "45",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_EMB1[10] = {    "up",     "9",    "18",   "22",   "45",   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_EMB2[10] = {    "up",     "1",     "2",    "3",    "4",    "5", "full",   NULL,   NULL,   NULL, };
-static const char* _flap_names_FA7X[10] = {    "up",     "1",     "2",    "3",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_FA78[10] = {    "up",     "1",     "2",    "3",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_HA4T[10] = {    "up",    "12",    "20",   "35",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_MD80[10] = {    "up",     "0",     "5",   "11",   "15",   "28",   "40",   NULL,   NULL,   NULL, };
+static const char* _flap_names_NO18[10] = {    "up",     "9",    "22",   "45",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_PC12[10] = {    "up",    "15",    "30",   "40",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_PIPA[10] = {    "up",    "15",    "30",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_PIPR[10] = {    "up",    "10",    "25",   "40",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
 static const char* _flap_names_TBM8[10] = { "8 5 0",   "up",  "half",  "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_3POS[10] = {    "up",     "1",     "2", "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_EMB1[10] = {    "up",     "9",    "18",   "22",   "45",   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_4POS[10] = {    "up",     "1",     "2",    "3", "full",   NULL,   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_B52G[10] = {    "up",    "10",    "20",   "30",   "40",   "55",   NULL,   NULL,   NULL,   NULL, };
+static const char* _flap_names_BOE1[10] = {    "up",     "1",     "5",   "15",   "20",   "25",   "30",   NULL,   NULL,   NULL, };
+static const char* _flap_names_DC10[10] = {    "up",     "5",    "15",   "25",   "30",   "35",   "40",   NULL,   NULL,   NULL, };
+static const char* _flap_names_EMB2[10] = {    "up",     "1",     "2",    "3",    "4",    "5", "full",   NULL,   NULL,   NULL, };
+static const char* _flap_names_MD80[10] = {    "up",     "0",     "5",   "11",   "15",   "28",   "40",   NULL,   NULL,   NULL, };
+static const char* _flap_names_C130[10] = {    "up",     "1",     "2",    "3",    "4",    "5",    "6", "full",   NULL,   NULL, };
+static const char* _flap_names_BOE2[10] = {    "up",     "1",     "2",    "5",   "10",   "15",   "25",   "30",   "40",   NULL, };
 static       void   flap_callout_setst(const char *names[], int index)
 {
     if (index < 0) index = 0; else if (index > 9) index = 9;
@@ -3212,16 +3209,20 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             case ACF_TYP_A321_TL:
             case ACF_TYP_A350_FF:
             case ACF_TYP_A320_FF:
-                flap_callout_setst(_flap_names_AIB1, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+            case ACF_TYP_E55P_AB:
+                flap_callout_setst(_flap_names_4POS, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
             case ACF_TYP_B737_EA:
             case ACF_TYP_B737_XG:
-                flap_callout_setst(_flap_names_BNG1, lroundf(8.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                flap_callout_setst(_flap_names_BOE2, lroundf(8.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
             case ACF_TYP_B757_FF:
             case ACF_TYP_B767_FF:
             case ACF_TYP_B777_FF:
-                flap_callout_setst(_flap_names_BNG2, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                flap_callout_setst(_flap_names_BOE1, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                break;
+            case ACF_TYP_CL30_DD:
+                flap_callout_setst(_flap_names_1230, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
             case ACF_TYP_EMBE_SS:
             case ACF_TYP_EMBE_XC:
@@ -3236,9 +3237,10 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 flap_callout_setst(_flap_names_EMB1, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
             default:
-                if (!strcasecmp(ctx->info->icaoid, "A10"))
+                if (!strcasecmp(ctx->info->icaoid, "A10") ||
+                    !strcasecmp(ctx->info->icaoid, "PIPA"))
                 {
-                    flap_callout_setst(_flap_names_A10W, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    flap_callout_setst(_flap_names_1530, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
                 if (!strcasecmp(ctx->info->icaoid, "AKOY") ||
@@ -3285,9 +3287,11 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     !strcasecmp(ctx->info->icaoid, "A358") ||
                     !strcasecmp(ctx->info->icaoid, "A359") ||
                     !strcasecmp(ctx->info->icaoid, "A380") ||
-                    !strcasecmp(ctx->info->icaoid, "A388"))
+                    !strcasecmp(ctx->info->icaoid, "A388") ||
+                    !strcasecmp(ctx->info->icaoid, "E50P") ||
+                    !strcasecmp(ctx->info->icaoid, "E55P"))
                 {
-                    flap_callout_setst(_flap_names_AIB1, lroundf(8.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    flap_callout_setst(_flap_names_4POS, lroundf(8.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
                 if (!strcasecmp(ctx->info->icaoid, "B732") || // all Boeing 737 variants
@@ -3301,7 +3305,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     !strcasecmp(ctx->info->icaoid, "E737") ||
                     !strcasecmp(ctx->info->icaoid, "P8"))
                 {
-                    flap_callout_setst(_flap_names_BNG1, lroundf(8.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    flap_callout_setst(_flap_names_BOE2, lroundf(8.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
                 if (!strcasecmp(ctx->info->icaoid, "BSCA") || // all Boeing 747 variants
@@ -3336,17 +3340,19 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     !strcasecmp(ctx->info->icaoid, "B788") ||
                     !strcasecmp(ctx->info->icaoid, "B789"))
                 {
-                    flap_callout_setst(_flap_names_BNG2, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    flap_callout_setst(_flap_names_BOE1, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
                 if (!strcasecmp(ctx->info->icaoid, "B190"))
                 {
-                    flap_callout_setst(_flap_names_B190, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    flap_callout_setst(_flap_names_1735, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
-                if (!strcasecmp(ctx->info->icaoid, "BD5J"))
+                if (!strcasecmp(ctx->info->icaoid, "BD5J") ||
+                    !strcasecmp(ctx->info->icaoid, "CL30") ||
+                    !strcasecmp(ctx->info->icaoid, "CL35"))
                 {
-                    flap_callout_setst(_flap_names_BD5J, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    flap_callout_setst(_flap_names_1230, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
                 if (!strcasecmp(ctx->info->icaoid, "C130"))
@@ -3374,12 +3380,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 if (!strcasecmp(ctx->info->icaoid, "C340"))
                 {
-                    flap_callout_setst(_flap_names_C340, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "CL30"))
-                {
-                    flap_callout_setst(_flap_names_BOM1, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    flap_callout_setst(_flap_names_1545, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
                 if (!strcasecmp(ctx->info->icaoid, "CRUZ"))
@@ -3395,7 +3396,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 if (!strcasecmp(ctx->info->icaoid, "FA7X") ||
                     !strcasecmp(ctx->info->icaoid, "FA8X"))
                 {
-                    flap_callout_setst(_flap_names_FA7X, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                    flap_callout_setst(_flap_names_FA78, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
                 if (!strcasecmp(ctx->info->icaoid, "HA4T"))
@@ -3447,11 +3448,6 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 if (!strcasecmp(ctx->info->icaoid, "PC12"))
                 {
                     flap_callout_setst(_flap_names_PC12, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "PIPA"))
-                {
-                    flap_callout_setst(_flap_names_PIPA, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
                 if (!strcasecmp(ctx->info->icaoid, "TBM8"))
