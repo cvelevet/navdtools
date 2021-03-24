@@ -492,6 +492,20 @@ acf_info_context* acf_type_info_update()
                 global_info->ac_type = ACF_TYP_HA4T_RW;
                 break;
             }
+            ndt_log("acf_type [warning]: no aircraft type match despite plugin (ERJ_Functions/Tekton_Functions)\n");
+            global_info->ac_type = ACF_TYP_GENERIC;
+            break;
+        }
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim Phenom_300"))
+        {
+            if (!STRN_CASECMP_AUTO(global_info->icaoid, "E55P"))
+            {
+                global_info->ac_type = ACF_TYP_E55P_AB;
+                break;
+            }
+            ndt_log("acf_type [warning]: no aircraft type match despite plugin (1-sim Phenom_300)\n");
+            global_info->ac_type = ACF_TYP_GENERIC;
+            break;
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim.sasl"))
         {

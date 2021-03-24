@@ -50,7 +50,7 @@ typedef enum
     ACF_TYP_LEGA_XC = 0x0004000,
     ACF_TYP_MD80_RO = 0x0008000,
     ACF_TYP_TBM9_HS = 0x0010000,
-    ACF_TYP_PHOLDR2 = 0x0020000,
+    ACF_TYP_E55P_AB = 0x0020000,
     ACF_TYP_PHOLDR3 = 0x0040000,
     ACF_TYP_PHOLDR4 = 0x0080000,
     ACF_TYP_PHOLDR5 = 0x0100000,
@@ -85,7 +85,14 @@ const acf_type_kvps[] =
     { ACF_TYP_HA4T_RW, "ACF_TYP_HA4T_RW", },
     { ACF_TYP_LEGA_XC, "ACF_TYP_LEGA_XC", },
     { ACF_TYP_MD80_RO, "ACF_TYP_MD80_RO", },
-    { 0,                            NULL, },
+    { ACF_TYP_TBM9_HS, "ACF_TYP_TBM9_HS", },
+    { ACF_TYP_E55P_AB, "ACF_TYP_E55P_AB", },
+    { ACF_TYP_PHOLDR3,              NULL, },
+    { ACF_TYP_PHOLDR4,              NULL, },
+    { ACF_TYP_PHOLDR5,              NULL, },
+    { ACF_TYP_PHOLDR6,              NULL, },
+    { ACF_TYP_PHOLDR7,              NULL, },
+    { ACF_TYP_PHOLDR8,              NULL, },
 };
 
 typedef struct
