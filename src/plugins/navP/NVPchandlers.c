@@ -110,6 +110,12 @@ typedef struct
 
     XPLMDataRef tbm9erng;
 
+    XPLMDataRef e35ltrss;
+    XPLMCommandRef thcrz;
+    XPLMCommandRef thclb;
+    XPLMCommandRef thcon;
+    XPLMCommandRef thtof;
+
     XPLMDataRef throttle;
     int         acf_type;
 } refcon_thrust;
@@ -1185,8 +1191,13 @@ int nvp_chandlers_reset(void *inContext)
     ctx->otto.disc.cc.      name = NULL;
     ctx->otto.clmb.rc.   ap_arry = NULL;
     ctx->throt.            thptt = NULL;
-    ctx->throt.         throttle = NULL;
+    ctx->throt.            thcrz = NULL;
+    ctx->throt.            thclb = NULL;
+    ctx->throt.            thcon = NULL;
+    ctx->throt.            thtof = NULL;
+    ctx->throt.         e35ltrss = NULL;
     ctx->throt.         tbm9erng = NULL;
+    ctx->throt.         throttle = NULL;
     ctx->callouts.ref_flaps_e55p = NULL;
     ctx->acfspec.t319.     ready = 0;
     ctx->acfspec.i733.     ready = 0;
@@ -2671,6 +2682,52 @@ enum
     NVP_DIRECTION_UP,
 };
 
+static const float nvp_thrust_presets1_e35l[] =
+{
+    0.00000f,
+    0.03125f,
+    0.06250f,
+    0.09375f,
+    0.12500f,
+    0.18750f,
+    0.25000f,
+    0.31250f,
+    0.37500f,
+    0.43750f,
+    0.50000f,
+    0.56250f,
+    0.62500f,
+    0.68750f,
+    0.75000f,
+    0.81250f,
+    0.87500f,
+    0.90625f,
+    0.93750f,
+    0.96875f,
+    1.00000f, // CRZ
+    2.00000f, // CLB
+    3.00000f, // CON
+    4.00000f, // T/O
+    -1.0000f,
+};
+
+static const float nvp_thrust_presets2_e35l[] =
+{
+    0.00000f,
+    0.12500f,
+    0.25000f,
+    0.37500f,
+    0.50000f,
+    0.62500f,
+    0.75000f,
+    0.87500f,
+    1.00000f, // CRZ
+    2.00000f, // CLB
+    3.00000f, // CON
+    4.00000f, // T/O
+    -1.0000f,
+};
+
 static const float nvp_thrust_presets1_e55p[] =
 {
     /*
@@ -3019,7 +3076,7 @@ static inline int custom_throttle_all(XPLMDataRef throttle, int acf_type, float 
     switch (acf_type)
     {
         case ACF_TYP_CL30_DD:
-            if (custom_detents_cl30(throttle, acf_type, current, presets, direction))
+            if (custom_detents_cl30(throttle, acf_type, current, presets, direction)) // TODO: use array
             {
                 return 0;
             }
@@ -3028,7 +3085,7 @@ static inline int custom_throttle_all(XPLMDataRef throttle, int acf_type, float 
         case ACF_TYP_A319_TL:
         case ACF_TYP_A321_TL:
         case ACF_TYP_A350_FF:
-            if (custom_detents_toli(throttle, acf_type, current, presets, direction))
+            if (custom_detents_toli(throttle, acf_type, current, presets, direction)) // TODO: use array
             {
                 return 0;
             }
@@ -3038,7 +3095,6 @@ static inline int custom_throttle_all(XPLMDataRef throttle, int acf_type, float 
             break;
     }
     float next = nvp_thrust_next(current, presets, direction);
-    if (next < 0.0f) next = 0.0f; if (next > 1.0f) next = 1.0f;
     switch (acf_type)
     {
         case ACF_TYP_A319_TL:
@@ -3047,9 +3103,9 @@ static inline int custom_throttle_all(XPLMDataRef throttle, int acf_type, float 
             return toliss_throttle_set(throttle, acf_type, next);
 
         default:
-            break;
+            XPLMSetDataf(throttle, next);
+            return 0;
     }
-    XPLMSetDataf(throttle, next);
     return 0;
 }
 
@@ -3058,6 +3114,29 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     if (inPhase == xplm_CommandEnd)
     {
         refcon_thrust *t = inRefcon;
+        if (t->acf_type == ACF_TYP_LEGA_XC)
+        {
+            if (t->thtof == NULL)
+            {
+                t->thtof = XPLMFindCommand("XCrafts/ERJ/TO");
+            }
+            if (t->thcon == NULL)
+            {
+                t->thcon = XPLMFindCommand("XCrafts/ERJ/CON");
+            }
+            if (t->thclb == NULL)
+            {
+                t->thclb = XPLMFindCommand("XCrafts/ERJ/CLB");
+            }
+            if (t->thcrz == NULL)
+            {
+                t->thcrz = XPLMFindCommand("XCrafts/ERJ/CRZ");
+            }
+            if (t->e35ltrss == NULL)
+            {
+                t->e35ltrss = XPLMFindDataRef("Tekton_FMS/TRS_selection");
+            }
+        }
         if (t->throttle)
         {
             float avrg_throttle;
@@ -3075,6 +3154,64 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 default:
                     avrg_throttle = XPLMGetDataf(t->throttle);
                     break;
+            }
+            if (t->acf_type == ACF_TYP_LEGA_XC)
+            {
+                if (avrg_throttle > (1.0f - T_ZERO))
+                {
+                    if (t->e35ltrss)
+                    {
+                        switch (XPLMGetDatai(t->e35ltrss))
+                        {
+                            case 1:
+                                avrg_throttle = 4.0f;
+                                break;
+                            case 5:
+                                avrg_throttle = 3.0f;
+                                break;
+                            case 6:
+                                avrg_throttle = 2.0f;
+                                break;
+                            default:
+                                avrg_throttle = 1.0f;
+                                break;
+                        }
+                    }
+                }
+                float next = nvp_thrust_next(avrg_throttle, nvp_thrust_presets1_e35l, NVP_DIRECTION_DN);
+                if (3.5f < next)
+                {
+                    if (t->thtof)
+                    {
+                        XPLMCommandOnce(t->thtof);
+                    }
+                    XPLMSetDataf(t->throttle, 1.0f);
+                    return 0;
+                }
+                if (2.5f < next)
+                {
+                    if (t->thcon)
+                    {
+                        XPLMCommandOnce(t->thcon);
+                    }
+                    XPLMSetDataf(t->throttle, 1.0f);
+                    return 0;
+                }
+                if (1.5f < next)
+                {
+                    if (t->thclb)
+                    {
+                        XPLMCommandOnce(t->thclb);
+                    }
+                    XPLMSetDataf(t->throttle, 1.0f);
+                    return 0;
+                }
+                if (t->thcrz)
+                {
+                    XPLMCommandOnce(t->thcrz);
+                }
+                XPLMSetDataf(t->throttle, next);
+                return 0;
             }
             if (t->acf_type == ACF_TYP_TBM9_HS && t->tbm9erng)
             {
@@ -3108,6 +3245,29 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     if (inPhase == xplm_CommandEnd)
     {
         refcon_thrust *t = inRefcon;
+        if (t->acf_type == ACF_TYP_LEGA_XC)
+        {
+            if (t->thtof == NULL)
+            {
+                t->thtof = XPLMFindCommand("XCrafts/ERJ/TO");
+            }
+            if (t->thcon == NULL)
+            {
+                t->thcon = XPLMFindCommand("XCrafts/ERJ/CON");
+            }
+            if (t->thclb == NULL)
+            {
+                t->thclb = XPLMFindCommand("XCrafts/ERJ/CLB");
+            }
+            if (t->thcrz == NULL)
+            {
+                t->thcrz = XPLMFindCommand("XCrafts/ERJ/CRZ");
+            }
+            if (t->e35ltrss == NULL)
+            {
+                t->e35ltrss = XPLMFindDataRef("Tekton_FMS/TRS_selection");
+            }
+        }
         if (t->throttle)
         {
             float avrg_throttle;
@@ -3125,6 +3285,64 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 default:
                     avrg_throttle = XPLMGetDataf(t->throttle);
                     break;
+            }
+            if (t->acf_type == ACF_TYP_LEGA_XC)
+            {
+                if (avrg_throttle > (1.0f - T_ZERO))
+                {
+                    if (t->e35ltrss)
+                    {
+                        switch (XPLMGetDatai(t->e35ltrss))
+                        {
+                            case 1:
+                                avrg_throttle = 4.0f;
+                                break;
+                            case 5:
+                                avrg_throttle = 3.0f;
+                                break;
+                            case 6:
+                                avrg_throttle = 2.0f;
+                                break;
+                            default:
+                                avrg_throttle = 1.0f;
+                                break;
+                        }
+                    }
+                }
+                float next = nvp_thrust_next(avrg_throttle, nvp_thrust_presets1_e35l, NVP_DIRECTION_UP);
+                if (3.5f < next)
+                {
+                    if (t->thtof)
+                    {
+                        XPLMCommandOnce(t->thtof);
+                    }
+                    XPLMSetDataf(t->throttle, 1.0f);
+                    return 0;
+                }
+                if (2.5f < next)
+                {
+                    if (t->thcon)
+                    {
+                        XPLMCommandOnce(t->thcon);
+                    }
+                    XPLMSetDataf(t->throttle, 1.0f);
+                    return 0;
+                }
+                if (1.5f < next)
+                {
+                    if (t->thclb)
+                    {
+                        XPLMCommandOnce(t->thclb);
+                    }
+                    XPLMSetDataf(t->throttle, 1.0f);
+                    return 0;
+                }
+                if (t->thcrz)
+                {
+                    XPLMCommandOnce(t->thcrz);
+                }
+                XPLMSetDataf(t->throttle, next);
+                return 0;
             }
             if (t->acf_type == ACF_TYP_TBM9_HS && t->tbm9erng)
             {
@@ -3158,6 +3376,29 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     if (inPhase == xplm_CommandEnd)
     {
         refcon_thrust *t = inRefcon;
+        if (t->acf_type == ACF_TYP_LEGA_XC)
+        {
+            if (t->thtof == NULL)
+            {
+                t->thtof = XPLMFindCommand("XCrafts/ERJ/TO");
+            }
+            if (t->thcon == NULL)
+            {
+                t->thcon = XPLMFindCommand("XCrafts/ERJ/CON");
+            }
+            if (t->thclb == NULL)
+            {
+                t->thclb = XPLMFindCommand("XCrafts/ERJ/CLB");
+            }
+            if (t->thcrz == NULL)
+            {
+                t->thcrz = XPLMFindCommand("XCrafts/ERJ/CRZ");
+            }
+            if (t->e35ltrss == NULL)
+            {
+                t->e35ltrss = XPLMFindDataRef("Tekton_FMS/TRS_selection");
+            }
+        }
         if (t->throttle)
         {
             float avrg_throttle;
@@ -3175,6 +3416,64 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 default:
                     avrg_throttle = XPLMGetDataf(t->throttle);
                     break;
+            }
+            if (t->acf_type == ACF_TYP_LEGA_XC)
+            {
+                if (avrg_throttle > (1.0f - T_ZERO))
+                {
+                    if (t->e35ltrss)
+                    {
+                        switch (XPLMGetDatai(t->e35ltrss))
+                        {
+                            case 1:
+                                avrg_throttle = 4.0f;
+                                break;
+                            case 5:
+                                avrg_throttle = 3.0f;
+                                break;
+                            case 6:
+                                avrg_throttle = 2.0f;
+                                break;
+                            default:
+                                avrg_throttle = 1.0f;
+                                break;
+                        }
+                    }
+                }
+                float next = nvp_thrust_next(avrg_throttle, nvp_thrust_presets2_e35l, NVP_DIRECTION_UP);
+                if (3.5f < next)
+                {
+                    if (t->thtof)
+                    {
+                        XPLMCommandOnce(t->thtof);
+                    }
+                    XPLMSetDataf(t->throttle, 1.0f);
+                    return 0;
+                }
+                if (2.5f < next)
+                {
+                    if (t->thcon)
+                    {
+                        XPLMCommandOnce(t->thcon);
+                    }
+                    XPLMSetDataf(t->throttle, 1.0f);
+                    return 0;
+                }
+                if (1.5f < next)
+                {
+                    if (t->thclb)
+                    {
+                        XPLMCommandOnce(t->thclb);
+                    }
+                    XPLMSetDataf(t->throttle, 1.0f);
+                    return 0;
+                }
+                if (t->thcrz)
+                {
+                    XPLMCommandOnce(t->thcrz);
+                }
+                XPLMSetDataf(t->throttle, next);
+                return 0;
             }
             if (t->acf_type == ACF_TYP_TBM9_HS && t->tbm9erng)
             {
