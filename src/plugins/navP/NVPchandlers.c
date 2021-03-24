@@ -308,6 +308,7 @@ typedef struct
         chandler_callback cb_flapu;
         chandler_callback cb_flapd;
         XPLMDataRef ref_flap_ratio;
+        XPLMDataRef ref_flaps_e55p;
         XPLMFlightLoop_f flc_flaps;
     } callouts;
 
@@ -337,7 +338,9 @@ typedef struct
 
         XPLMDataRef    ha4t;
         XPLMDataRef    srat;
+        XPLMCommandRef e55e;
         XPLMCommandRef sext;
+        XPLMCommandRef e55r;
         XPLMCommandRef sret;
     } spbrk;
 
@@ -1178,21 +1181,22 @@ int nvp_chandlers_reset(void *inContext)
     acf_type_info_reset();
 
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
-    ctx->acfspec.qpac.    ready = 0;
-    ctx->acfspec.i733.    ready = 0;
-    ctx->acfspec.x738.    ready = 0;
-    ctx->throt.atc_is_connected = 0;
-    ctx->revrs.          propdn = NULL;
-    ctx->revrs.          propup = NULL;
-    ctx->revrs.        tbm9erng = NULL;
-    ctx->otto.ffst.          dr = NULL;
-    ctx->otto.conn.cc.     name = NULL;
-    ctx->otto.disc.cc.     name = NULL;
-    ctx->otto.clmb.rc.  ap_arry = NULL;
-    ctx->throt.           thptt = NULL;
-    ctx->throt.        throttle = NULL;
-    ctx->throt.        tbm9erng = NULL;
-    ctx->throt.        acf_type = ACF_TYP_GENERIC;
+    ctx->throt.         acf_type = ACF_TYP_GENERIC;
+    ctx->revrs.           propdn = NULL;
+    ctx->revrs.           propup = NULL;
+    ctx->revrs.         tbm9erng = NULL;
+    ctx->otto.ffst.           dr = NULL;
+    ctx->otto.conn.cc.      name = NULL;
+    ctx->otto.disc.cc.      name = NULL;
+    ctx->otto.clmb.rc.   ap_arry = NULL;
+    ctx->throt.            thptt = NULL;
+    ctx->throt.         throttle = NULL;
+    ctx->throt.         tbm9erng = NULL;
+    ctx->callouts.ref_flaps_e55p = NULL;
+    ctx->acfspec.qpac.     ready = 0;
+    ctx->acfspec.i733.     ready = 0;
+    ctx->acfspec.x738.     ready = 0;
+    ctx->throt. atc_is_connected = 0;
 
     /* Reset some datarefs to match X-Plane's defaults at startup */
     _DO(1, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com1_power");
@@ -1379,6 +1383,7 @@ int nvp_chandlers_update(void *inContext)
         case ACF_TYP_E55P_AB:
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
+            ctx->callouts.ref_flaps_e55p = XPLMFindDataRef("aerobask/anim/sw_flap");
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
 
@@ -2096,17 +2101,6 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         chandler_context *ctx = inRefcon;
         assert_context   *a32 = ctx->revrs.assert; float f_val;
         int speak = XPLMGetDatai(ctx->callouts.ref_speedbrake);
-        if (ctx->info->ac_type == ACF_TYP_HA4T_RW)
-        {
-            if (ctx->spbrk.ha4t == NULL)
-            {
-                ctx->spbrk.ha4t = XPLMFindDataRef("Hawker4000/control/speedbrake_b");
-            }
-        }
-        else
-        {
-            ctx->spbrk.ha4t = NULL;
-        }
         switch (ctx->info->ac_type)
         {
             case ACF_TYP_A320_FF:
@@ -2152,14 +2146,48 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 break;
 
-            default:
+            case ACF_TYP_E55P_AB:
+                if (ctx->spbrk.e55e == NULL)
+                {
+                    ctx->spbrk.e55e = XPLMFindCommand("aerobask/speedbrakes_open");
+                }
+                if (ctx->spbrk.e55e)
+                {
+                    if (speak > 0) XPLMSpeakString("speedbrake");
+                    XPLMCommandOnce(ctx->spbrk.e55e);
+                    return 0;
+                }
+                return 0;
+
+            case ACF_TYP_HA4T_RW:
+                if (ctx->spbrk.ha4t == NULL)
+                {
+                    ctx->spbrk.ha4t = XPLMFindDataRef("Hawker4000/control/speedbrake_b");
+                }
                 if (ctx->spbrk.ha4t && XPLMGetDatai(ctx->spbrk.ha4t))
                 {
                     // spoilers armed, disarm but don't extend
                     if (speak > 0) XPLMSpeakString("spoilers disarmed");
                     XPLMSetDatai(ctx->spbrk.ha4t, 0); return 0;
                 }
-//              else
+                else
+                {
+                    XPLMCommandOnce(ctx->spbrk.sext);
+                }
+                if (XPLMGetDataf(ctx->spbrk.srat) < +.01f)
+                {
+                    if (speak > 0) XPLMSpeakString("spoilers disarmed");
+                    return 0;
+                }
+                if (XPLMGetDataf(ctx->spbrk.srat) > +.01f)
+                {
+                    if (speak > 0) XPLMSpeakString("speedbrake");
+                    return 0;
+                }
+                return 0;
+
+            default:
+                if (ctx->spbrk.sext)
                 {
                     XPLMCommandOnce(ctx->spbrk.sext);
                 }
@@ -2175,33 +2203,32 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 return 0;
         }
+        float ratio = XPLMGetDataf(ctx->spbrk.srat);
+        if (i33 && i33->ready)
         {
-            float ratio = XPLMGetDataf(ctx->spbrk.srat);
-            if (i33 && i33->ready)
+            if (ratio < -.01f)
             {
-                if (ratio < -.01f)
-                {
-                    XPLMSetDataf(i33->slat, 0.0f);    // armed: retract fully
-                    if (speak > 0) XPLMSpeakString("spoilers disarmed");
-                    return 0;
-                }
-                XPLMSetDataf(i33->slat, 0.8f);        // extend: flight detent
-                if (speak > 0) XPLMSpeakString("speedbrake");
+                XPLMSetDataf(i33->slat, 0.0f);    // armed: retract fully
+                if (speak > 0) XPLMSpeakString("spoilers disarmed");
                 return 0;
             }
-            if (x38 && x38->ready)
-            {
-                if (ratio > .1f && ratio < .2f)
-                {
-                    XPLMCommandOnce(x38->spret);      // extend: disarm spoilers
-                    if (speak > 0) XPLMSpeakString("spoilers disarmed");
-                    return 0;
-                }
-                XPLMCommandOnce(ctx->spbrk.sext);     // extend: one
-                if (speak > 0) XPLMSpeakString("speedbrake");
-                return 0;
-            }
+            XPLMSetDataf(i33->slat, 0.8f);        // extend: flight detent
+            if (speak > 0) XPLMSpeakString("speedbrake");
+            return 0;
         }
+        if (x38 && x38->ready)
+        {
+            if (ratio > .1f && ratio < .2f)
+            {
+                XPLMCommandOnce(x38->spret);      // extend: disarm spoilers
+                if (speak > 0) XPLMSpeakString("spoilers disarmed");
+                return 0;
+            }
+            XPLMCommandOnce(ctx->spbrk.sext);     // extend: one
+            if (speak > 0) XPLMSpeakString("speedbrake");
+            return 0;
+        }
+        return 0;
     }
     return 0;
 }
@@ -2216,17 +2243,6 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         chandler_context *ctx = inRefcon;
         assert_context   *a32 = ctx->revrs.assert; float f_val;
         int speak = XPLMGetDatai(ctx->callouts.ref_speedbrake);
-        if (ctx->info->ac_type == ACF_TYP_HA4T_RW)
-        {
-            if (ctx->spbrk.ha4t == NULL)
-            {
-                ctx->spbrk.ha4t = XPLMFindDataRef("Hawker4000/control/speedbrake_b");
-            }
-        }
-        else
-        {
-            ctx->spbrk.ha4t = NULL;
-        }
         switch (ctx->info->ac_type)
         {
             case ACF_TYP_A320_FF:
@@ -2248,6 +2264,8 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         if (speak > 0) XPLMSpeakString("speedbrake retracted");
                         return 0;
                     }
+                    if (speak > 0) XPLMSpeakString("speedbrake");
+                    return 0;
                 }
                 return 0;
             }
@@ -2268,13 +2286,23 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 break;
 
-            default:
-                if (ctx->info->ac_type == ACF_TYP_EMBE_SS &&
-                    XPLMGetDataf(ctx->spbrk.srat) < +.01f)
+            case ACF_TYP_E55P_AB:
+                if (ctx->spbrk.e55r == NULL)
                 {
-                    // already retracted, we can't/needn't arm (automatic)
+                    ctx->spbrk.e55r = XPLMFindCommand("aerobask/speedbrakes_close");
+                }
+                if (ctx->spbrk.e55r)
+                {
                     if (speak > 0) XPLMSpeakString("speedbrake retracted");
+                    XPLMCommandOnce(ctx->spbrk.e55r);
                     return 0;
+                }
+                return 0;
+
+            case ACF_TYP_HA4T_RW:
+                if (ctx->spbrk.ha4t == NULL)
+                {
+                    ctx->spbrk.ha4t = XPLMFindDataRef("Hawker4000/control/speedbrake_b");
                 }
                 if (ctx->spbrk.ha4t && XPLMGetDataf(ctx->spbrk.srat) < +.01f)
                 {
@@ -2282,7 +2310,7 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     if (speak > 0) XPLMSpeakString("spoilers armed");
                     XPLMSetDatai(ctx->spbrk.ha4t, 1); return 0;
                 }
-//              else
+                else
                 {
                     XPLMCommandOnce(ctx->spbrk.sret);
                 }
@@ -2296,49 +2324,77 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     if (speak > 0) XPLMSpeakString("speedbrake retracted");
                     return 0;
                 }
+                if (speak > 0) XPLMSpeakString("speedbrake");
                 return 0;
-        }
-        {
-            float ratio = XPLMGetDataf(ctx->spbrk.srat);
-            if (i33 && i33->ready)
-            {
-                if (ratio < +.01f)
+
+            default:
+                if (ctx->info->ac_type == ACF_TYP_EMBE_SS &&
+                    XPLMGetDataf(ctx->spbrk.srat) < +.01f)
                 {
-                    if (ratio > -.01f)
-                    {
-                        XPLMSetDataf(i33->slat, .15f);// retract: arm spoilers
-                    }
+                    // already retracted, we can't/needn't arm (automatic)
+                    if (speak > 0) XPLMSpeakString("speedbrake retracted");
+                    return 0;
+                }
+                if (ctx->spbrk.sret)
+                {
+                    XPLMCommandOnce(ctx->spbrk.sret);
+                }
+                if (XPLMGetDataf(ctx->spbrk.srat) < -.01f)
+                {
                     if (speak > 0) XPLMSpeakString("spoilers armed");
                     return 0;
                 }
-                if (ratio > +.51f)
+                if (XPLMGetDataf(ctx->spbrk.srat) < +.01f)
                 {
-                    XPLMSetDataf(i33->slat, 0.8f);    // retract: flight detent
+                    if (speak > 0) XPLMSpeakString("speedbrake retracted");
                     return 0;
                 }
-                XPLMSetDataf(i33->slat, 0.0f);        // retract: fully
+                if (speak > 0) XPLMSpeakString("speedbrake");
+                return 0;
+        }
+        float ratio = XPLMGetDataf(ctx->spbrk.srat);
+        if (i33 && i33->ready)
+        {
+            if (ratio < +.01f)
+            {
+                if (ratio > -.01f)
+                {
+                    XPLMSetDataf(i33->slat, .15f);// retract: arm spoilers
+                }
+                if (speak > 0) XPLMSpeakString("spoilers armed");
+                return 0;
+            }
+            if (ratio > +.51f)
+            {
+                XPLMSetDataf(i33->slat, 0.8f);    // retract: flight detent
+                if (speak > 0) XPLMSpeakString("speedbrake");
+                return 0;
+            }
+            XPLMSetDataf(i33->slat, 0.0f);        // retract: fully
+            if (speak > 0) XPLMSpeakString("speedbrake retracted");
+            return 0;
+        }
+        if (x38 && x38->ready)
+        {
+            if ((ratio < .01f) || (ratio > .1f && ratio < .2f))
+            {
+                if (ratio < .01f)
+                {
+                    XPLMCommandOnce(x38->sparm);  // retract: arm spoilers
+                }
+                if (speak > 0) XPLMSpeakString("spoilers armed");
+                return 0;
+            }
+            XPLMCommandOnce (ctx->spbrk.sret);    // retract: one
+            if (XPLMGetDataf(ctx->spbrk.srat) < .01f)
+            {
                 if (speak > 0) XPLMSpeakString("speedbrake retracted");
                 return 0;
             }
-            if (x38 && x38->ready)
-            {
-                if ((ratio < .01f) || (ratio > .1f && ratio < .2f))
-                {
-                    if (ratio < .01f)
-                    {
-                        XPLMCommandOnce(x38->sparm);  // retract: arm spoilers
-                    }
-                    if (speak > 0) XPLMSpeakString("spoilers armed");
-                    return 0;
-                }
-                XPLMCommandOnce (ctx->spbrk.sret);    // retract: one
-                if (XPLMGetDataf(ctx->spbrk.srat) < .01f)
-                {
-                    if (speak > 0) XPLMSpeakString("speedbrake retracted");
-                }
-                return 0;
-            }
+            if (speak > 0) XPLMSpeakString("speedbrake");
+            return 0;
         }
+        return 0;
     }
     return 0;
 }
@@ -3209,7 +3265,6 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             case ACF_TYP_A321_TL:
             case ACF_TYP_A350_FF:
             case ACF_TYP_A320_FF:
-            case ACF_TYP_E55P_AB:
                 flap_callout_setst(_flap_names_4POS, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
             case ACF_TYP_B737_EA:
@@ -3224,6 +3279,30 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             case ACF_TYP_CL30_DD:
                 flap_callout_setst(_flap_names_1230, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
+            case ACF_TYP_E55P_AB:
+                if (ctx->callouts.ref_flaps_e55p)
+                {
+                    int index = lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flaps_e55p));
+                    // there is a delay in the dataref's value (caused by the animation??)
+                    if (inCommand == ctx->callouts.cb_flapd.command)
+                    {
+                        if ((index += 1) > 4)
+                        {
+                            (index = 4);
+                        }
+                    }
+                    if (inCommand == ctx->callouts.cb_flapu.command)
+                    {
+                        if ((index -= 1) < 0)
+                        {
+                            (index = 0);
+                        }
+                    }
+                    flap_callout_setst(_flap_names_4POS, index);
+                    break;
+                }
+                flap_callout_setst(_flap_names_4POS, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
+                break;
             case ACF_TYP_EMBE_SS:
             case ACF_TYP_EMBE_XC:
                 flap_callout_setst(_flap_names_EMB2, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
@@ -3236,6 +3315,35 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 flap_callout_setst(_flap_names_EMB1, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
+            case ACF_TYP_MD80_RO:
+            {
+                int index = lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio));
+                // there is a delay in the dataref's value (caused by the animation??)
+                if (inCommand == ctx->callouts.cb_flapd.command)
+                {
+                    if (++index == 2) // lever always skips 0.333 (index 2)
+                    {
+                        index++;
+                    }
+                    if (index > 6)
+                    {
+                        index = 6;
+                    }
+                }
+                if (inCommand == ctx->callouts.cb_flapu.command)
+                {
+                    if (--index == 2) // lever always skips 0.333 (index 2)
+                    {
+                        index--;
+                    }
+                    if (index < 0)
+                    {
+                        index = 0;
+                    }
+                }
+                flap_callout_setst(_flap_names_MD80, index);
+                break;
+            }
             default:
                 if (!strcasecmp(ctx->info->icaoid, "A10") ||
                     !strcasecmp(ctx->info->icaoid, "PIPA"))
@@ -3409,34 +3517,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     !strcasecmp(ctx->info->icaoid, "MD83") ||
                     !strcasecmp(ctx->info->icaoid, "MD88"))
                 {
-                    int index = lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio));
-                    if (ctx->info->ac_type == ACF_TYP_MD80_RO)
-                    {
-                        // there is a delay in the dataref's value (caused by the animation??)
-                        if (inCommand == ctx->callouts.cb_flapd.command)
-                        {
-                            if (++index == 2) // lever always skips 0.333 (index 2)
-                            {
-                                index++;
-                            }
-                            if (index > 6)
-                            {
-                                index = 6;
-                            }
-                        }
-                        if (inCommand == ctx->callouts.cb_flapu.command)
-                        {
-                            if (--index == 2) // lever always skips 0.333 (index 2)
-                            {
-                                index--;
-                            }
-                            if (index < 0)
-                            {
-                                index = 0;
-                            }
-                        }
-                    }
-                    flap_callout_setst(_flap_names_MD80, index);
+                    flap_callout_setst(_flap_names_MD80, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
                 }
                 if (!strcasecmp(ctx->info->icaoid, "PA32") ||
