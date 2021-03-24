@@ -59,7 +59,7 @@ typedef enum
     ACF_TYP_PHOLDR8 = 0x0800000,
 }
 acf_type;
-#define ACF_TYP_MASK_QPC (ACF_TYP_A319_TL|ACF_TYP_A321_TL|ACF_TYP_A350_FF)
+#define ACF_TYP_MASK_TOL (ACF_TYP_A319_TL|ACF_TYP_A321_TL)
 
 static struct
 {

@@ -121,12 +121,7 @@ typedef struct
     XPLMDataRef    popup_x;
     XPLMDataRef    popup_y;
     XPLMDataRef    xpliver;
-    int            tolbctr;
-    XPLMDataRef    tolb[3];
-    XPLMDataRef    pkb_ref;
-    XPLMCommandRef h_b_max;
-    XPLMCommandRef h_b_reg;
-} refcon_qpacfbw;
+} refcon_tolifbw;
 
 typedef struct
 {
@@ -314,7 +309,7 @@ typedef struct
 
     struct
     {
-        refcon_qpacfbw qpac;
+        refcon_tolifbw t319;
         refcon_ixeg733 i733;
         refcon_eadt738 x738;
     } acfspec;
@@ -634,7 +629,7 @@ static float flc_oatc_func (                                        float, float
 static float gnd_stab_hdlr (                                        float, float, int, void*);
 static float tbm9mousehdlr (                                        float, float, int, void*);
 static int   first_fcall_do(                                           chandler_context *ctx);
-static int   aibus_fbw_init(                                             refcon_qpacfbw *fbw);
+static int   tliss_fbw_init(                                             refcon_tolifbw *fbw);
 static int   boing_733_init(                                             refcon_ixeg733 *i33);
 static int   boing_738_init(                                             refcon_eadt738 *x38);
 static int   priv_getdata_i(                                   void *inRefcon               );
@@ -1193,7 +1188,7 @@ int nvp_chandlers_reset(void *inContext)
     ctx->throt.         throttle = NULL;
     ctx->throt.         tbm9erng = NULL;
     ctx->callouts.ref_flaps_e55p = NULL;
-    ctx->acfspec.qpac.     ready = 0;
+    ctx->acfspec.t319.     ready = 0;
     ctx->acfspec.i733.     ready = 0;
     ctx->acfspec.x738.     ready = 0;
     ctx->throt. atc_is_connected = 0;
@@ -1215,7 +1210,7 @@ int nvp_chandlers_reset(void *inContext)
     }
 
     /* Unregister aircraft-specific command handlers */
-    UNREGSTR_CHANDLER(ctx->acfspec.qpac.mwcb);
+    UNREGSTR_CHANDLER(ctx->acfspec.t319.mwcb);
     UNREGSTR_CHANDLER(ctx->apd.          aft);
     UNREGSTR_CHANDLER(ctx->apd.          bef);
     UNREGSTR_CHANDLER(ctx->vvi.           dn);
@@ -2017,11 +2012,11 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         /*
          * Do any additional aircraft-specific stuff that can't be done earlier.
          */
-        if (ctx->info->ac_type & ACF_TYP_MASK_QPC)
+        if (ctx->info->ac_type & ACF_TYP_MASK_TOL)
         {
-            if (ctx->acfspec.qpac.ready == 0)
+            if (ctx->acfspec.t319.ready == 0)
             {
-                aibus_fbw_init(&ctx->acfspec.qpac);
+                tliss_fbw_init(&ctx->acfspec.t319);
             }
         }
         if (ctx->first_fcall)
@@ -4389,14 +4384,14 @@ static int chandler_31isc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     if (inRefcon) // do it for all phases just in case
     {
-        if (((refcon_qpacfbw*)inRefcon)->xpliver) // XP11+
+        if (((refcon_tolifbw*)inRefcon)->xpliver) // XP11+
         {
-            int x = 758; XPLMSetDatavi(((refcon_qpacfbw*)inRefcon)->popup_x, &x, 9, 1);
-            int y = 284; XPLMSetDatavi(((refcon_qpacfbw*)inRefcon)->popup_y, &y, 9, 1);
+            int x = 758; XPLMSetDatavi(((refcon_tolifbw*)inRefcon)->popup_x, &x, 9, 1);
+            int y = 284; XPLMSetDatavi(((refcon_tolifbw*)inRefcon)->popup_y, &y, 9, 1);
             return 1; // pass through
         }
-        int x = 768; XPLMSetDatavi(((refcon_qpacfbw*)inRefcon)->popup_x, &x, 9, 1);
-        int y = 352; XPLMSetDatavi(((refcon_qpacfbw*)inRefcon)->popup_y, &y, 9, 1);
+        int x = 768; XPLMSetDatavi(((refcon_tolifbw*)inRefcon)->popup_x, &x, 9, 1);
+        int y = 352; XPLMSetDatavi(((refcon_tolifbw*)inRefcon)->popup_y, &y, 9, 1);
         return 1; // pass through
     }
     return 1; // pass through
@@ -6583,7 +6578,7 @@ static int first_fcall_do(chandler_context *ctx)
     return (ctx->first_fcall = 0);
 }
 
-static int aibus_fbw_init(refcon_qpacfbw *fbw)
+static int tliss_fbw_init(refcon_tolifbw *fbw)
 {
     if (fbw && fbw->ready == 0)
     {
@@ -6592,41 +6587,9 @@ static int aibus_fbw_init(refcon_qpacfbw *fbw)
             (fbw->popup_y      = XPLMFindDataRef("AirbusFBW/PopUpYCoordArray")))
         {
             fbw->xpliver = XPLMFindDataRef("sim/version/xplane_internal_version");
-            REGISTER_CHANDLER(fbw->mwcb, chandler_31isc, 1/*before ToLiSS plugin*/, fbw);
-        }
-        if ((fbw->pkb_ref = XPLMFindDataRef("1-sim/parckBrake")))
-        {
-            /*
-             * We're good to go!
-             */
-            (fbw->h_b_max = fbw->h_b_reg = NULL);
-            (fbw->ready = 1); return 0;
-        }
-        if ((fbw->pkb_ref = XPLMFindDataRef("AirbusFBW/ParkBrake")) ||
-            (fbw->pkb_ref = XPLMFindDataRef("com/petersaircraft/airbus/ParkBrake")))
-        {
-            if ((fbw->tolb[0] = XPLMFindDataRef("AirbusFBW/BrakePedalInputLeft"))  &&
-                (fbw->tolb[1] = XPLMFindDataRef("AirbusFBW/BrakePedalInputRight")) &&
-                (fbw->tolb[2] = XPLMFindDataRef("AirbusFBW/BrakePedalInputOverride")))
-            {
-                /*
-                 * Permanently override braking input.
-                 */
-                XPLMSetDatai(fbw->tolb[2], 1);
-
-                /*
-                 * We're good to go!
-                 */
-                (fbw->ready = 1); return 0;
-            }
-            if ((fbw->h_b_max = XPLMFindCommand("sim/flight_controls/brakes_max"    )) &&
-                (fbw->h_b_reg = XPLMFindCommand("sim/flight_controls/brakes_regular")))
-            {
-                /*
-                 * We're good to go!
-                 */
-                (fbw->ready = 1); return 0;
-            }
+            REGISTER_CHANDLER(fbw->mwcb, chandler_31isc, 1/*before ToLiSS*/, fbw);
+            fbw->ready = 1;
+            return 0;
         }
         return -1;
     }
