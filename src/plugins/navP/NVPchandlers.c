@@ -6067,18 +6067,72 @@ static int first_fcall_do(chandler_context *ctx)
             nvp_efis_setup();
             break;
 
-        case ACF_TYP_E55P_AB: // TODO: implement
+        case ACF_TYP_E55P_AB:
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
+            {
+                int door_close[1] = { 0, }, door_open[1] = { 1, };
+                XPLMSetDatavi(d_ref, &door_close[0], 1, 1); // baggage FWD LH
+                XPLMSetDatavi(d_ref, &door_close[0], 2, 1); // baggage FWD RH
+                XPLMSetDatavi(d_ref, &door_close[0], 3, 1); // baggage AFT
+                XPLMSetDatavi(d_ref, &door_close[0], 5, 1); // FUEL panel
+                XPLMSetDatavi(d_ref,  &door_open[0], 4, 1); // GPU panel
+            }
+            if ((cr = XPLMFindCommand("sim/flight_controls/door_close_1"))) // passenger door
+            {
+                XPLMCommandOnce(cr);
+            }
+            if ((d_ref = XPLMFindDataRef("aerobask/hide_gpu")))
+            {
+                if (XPLMGetDatai(d_ref) != 0)
+                {
+                    if ((cr = XPLMFindCommand("aerobask/electrical/gpu_connect_disconnect")))
+                    {
+                        XPLMCommandOnce(cr);
+                    }
+                }
+            }
+            if ((d_ref = XPLMFindDataRef("aerobask/hide_static")))
+            {
+                if (XPLMGetDatai(d_ref) == 0)
+                {
+                    if ((cr = XPLMFindCommand("aerobask/toggle_static")))
+                    {
+                        XPLMCommandOnce(cr);
+                    }
+                }
+            }
+            if ((d_ref = XPLMFindDataRef("aerobask/tablet/deployed")) &&
+                (cr = XPLMFindCommand("aerobask/tablet/deploy_toggle")))
+            {
+                if (XPLMGetDatai(d_ref) != 1)
+                {
+                    XPLMCommandOnce(cr);
+                }
+            }
+            if (acf_type_is_engine_running() == 0)
+            {
+                float pload = 180.0f, fuelq = 710.0f;
+                acf_type_load_set(ctx->info, &pload);
+                acf_type_fuel_set(ctx->info, &fuelq);
+            }
+            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/autopilot/airspeed_is_mach");
+            _DO(0, XPLMSetDataf, 180.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+            _DO(0, XPLMSetDatai, 0, "aerobask/show_reflections_instruments");
+            _DO(0, XPLMSetDatai, 0, "aerobask/show_reflections_windows");
+            _DO(1, XPLMSetDatai, 0, "sim/graphics/view/hide_yoke");
+            XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 10.0f); // initial CLB pitch
+            nvp_x1000_setup();
             break;
 
         case ACF_TYP_EMBE_SS:
             if (ctx->mcdu.rc.i_disabled == -1)
             {
-                chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc);  // XXX: remap hotkeys
+                chandler_mcdup(ctx->mcdu.cb.command, xplm_CommandEnd, &ctx->mcdu.rc); // XXX: remap hotkeys
             }
-            _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/stair1_ON");                      // Hide passenger stairs
-            _DO(1, XPLMSetDatai, 1, "ssg/EJET/GND/rain_hide_sw");                   // Disable rain effects
-            _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/seats_hide_sw");                  // Hide captain's seat
-            _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/yokes_hide_sw");                  // Hide both yokes
+            _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/stair1_ON");     // Hide passenger stairs
+            _DO(1, XPLMSetDatai, 1, "ssg/EJET/GND/rain_hide_sw");  // Disable rain effects
+            _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/seats_hide_sw"); // Hide captain's seat
+            _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/yokes_hide_sw"); // Hide both yokes
             break;
 
         case ACF_TYP_EMBE_XC:
@@ -6519,7 +6573,7 @@ static int first_fcall_do(chandler_context *ctx)
                             if ((d_ref = XPLMFindDataRef("aerobask/tablet/deployed")) &&
                                 (cr = XPLMFindCommand("aerobask/tablet/deploy_toggle")))
                             {
-                                if (XPLMGetDatai(d_ref) != 0)
+                                if (XPLMGetDatai(d_ref) != 1)
                                 {
                                     XPLMCommandOnce(cr);
                                 }
