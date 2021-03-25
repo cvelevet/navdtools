@@ -85,6 +85,37 @@ typedef struct
 
 typedef struct
 {
+    acf_info_context *info;
+    struct
+    {
+        struct
+        {
+            chandler_callback cb;
+        } tog;
+
+        struct
+        {
+            chandler_callback cb;
+        } fwd;
+
+        struct
+        {
+            chandler_callback cb;
+        } bet;
+
+        struct
+        {
+            chandler_callback cb;
+        } rev;
+
+        void          *assert;
+        XPLMDataRef prop_mode;
+        XPLMCommandRef propdn;
+        XPLMCommandRef propup;
+        XPLMCommandRef tgb[9];
+        XPLMCommandRef tgr[9];
+    } rev;
+
     chandler_callback mi;
     XPLMDataRef mixratio;
 
@@ -117,7 +148,6 @@ typedef struct
     XPLMCommandRef thtof;
 
     XPLMDataRef throttle;
-    int         acf_type;
 } refcon_thrust;
 
 typedef struct
@@ -392,38 +422,6 @@ typedef struct
             } rt;
         } rud;
     } trims;
-
-    struct
-    {
-        struct
-        {
-            chandler_callback cb;
-        } tog;
-
-        struct
-        {
-            chandler_callback cb;
-        } fwd;
-
-        struct
-        {
-            chandler_callback cb;
-        } bet;
-
-        struct
-        {
-            chandler_callback cb;
-        } rev;
-
-        void          *assert;
-        int         n_engines;
-        XPLMDataRef prop_mode;
-        XPLMCommandRef propdn;
-        XPLMCommandRef propup;
-        XPLMCommandRef tgb[9];
-        XPLMCommandRef tgr[9];
-        XPLMDataRef  tbm9erng;
-    } revrs;
 
     struct
     {
@@ -779,61 +777,61 @@ void* nvp_chandlers_init(void)
     }
 
     /* Custom commands: reverser control */
-    ctx->revrs.tog.cb.command = XPLMCreateCommand("navP/thrust/toggler", "toggle thrust reverse");
-    ctx->revrs.fwd.cb.command = XPLMCreateCommand("navP/thrust/forward", "stow thrust reversers");
-    ctx->revrs.bet.cb.command = XPLMCreateCommand("navP/thrust/betarng", "propeller beta range");
-    ctx->revrs.rev.cb.command = XPLMCreateCommand("navP/thrust/reverse", "deploy thrust reversers");
-    ctx->revrs.prop_mode      = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/prop_mode");
-    ctx->revrs.tgr[1]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle_1");
-    ctx->revrs.tgr[2]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle_2");
-    ctx->revrs.tgr[3]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle_3");
-    ctx->revrs.tgr[4]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle_4");
-    ctx->revrs.tgr[5]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle_5");
-    ctx->revrs.tgr[6]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle_6");
-    ctx->revrs.tgr[7]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle_7");
-    ctx->revrs.tgr[8]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle_8");
-    ctx->revrs.tgr[0]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle");
-    ctx->revrs.tgb[1]         = XPLMFindCommand  ("sim/engines/beta_toggle_1");
-    ctx->revrs.tgb[2]         = XPLMFindCommand  ("sim/engines/beta_toggle_2");
-    ctx->revrs.tgb[3]         = XPLMFindCommand  ("sim/engines/beta_toggle_3");
-    ctx->revrs.tgb[4]         = XPLMFindCommand  ("sim/engines/beta_toggle_4");
-    ctx->revrs.tgb[5]         = XPLMFindCommand  ("sim/engines/beta_toggle_5");
-    ctx->revrs.tgb[6]         = XPLMFindCommand  ("sim/engines/beta_toggle_6");
-    ctx->revrs.tgb[7]         = XPLMFindCommand  ("sim/engines/beta_toggle_7");
-    ctx->revrs.tgb[8]         = XPLMFindCommand  ("sim/engines/beta_toggle_8");
-    ctx->revrs.tgb[0]         = XPLMFindCommand  ("sim/engines/beta_toggle");
-    if (!ctx->revrs.tog.cb.command ||
-        !ctx->revrs.fwd.cb.command ||
-        !ctx->revrs.rev.cb.command ||
-        !ctx->revrs.prop_mode      ||
-        !ctx->revrs.tgb[0]         ||
-        !ctx->revrs.tgb[1]         ||
-        !ctx->revrs.tgb[2]         ||
-        !ctx->revrs.tgb[3]         ||
-        !ctx->revrs.tgb[4]         ||
-        !ctx->revrs.tgb[5]         ||
-        !ctx->revrs.tgb[6]         ||
-        !ctx->revrs.tgb[7]         ||
-        !ctx->revrs.tgb[8]         ||
-        !ctx->revrs.tgr[0]         ||
-        !ctx->revrs.tgr[1]         ||
-        !ctx->revrs.tgr[2]         ||
-        !ctx->revrs.tgr[3]         ||
-        !ctx->revrs.tgr[4]         ||
-        !ctx->revrs.tgr[5]         ||
-        !ctx->revrs.tgr[6]         ||
-        !ctx->revrs.tgr[7]         ||
-        !ctx->revrs.tgr[8])
+    ctx->throt.rev.tog.cb.command = XPLMCreateCommand("navP/thrust/toggler", "toggle thrust reverse");
+    ctx->throt.rev.fwd.cb.command = XPLMCreateCommand("navP/thrust/forward", "stow thrust reversers");
+    ctx->throt.rev.bet.cb.command = XPLMCreateCommand("navP/thrust/betarng", "propeller beta range");
+    ctx->throt.rev.rev.cb.command = XPLMCreateCommand("navP/thrust/reverse", "deploy thrust reversers");
+    ctx->throt.rev.prop_mode      = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/prop_mode");
+    ctx->throt.rev.tgr[1]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle_1");
+    ctx->throt.rev.tgr[2]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle_2");
+    ctx->throt.rev.tgr[3]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle_3");
+    ctx->throt.rev.tgr[4]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle_4");
+    ctx->throt.rev.tgr[5]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle_5");
+    ctx->throt.rev.tgr[6]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle_6");
+    ctx->throt.rev.tgr[7]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle_7");
+    ctx->throt.rev.tgr[8]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle_8");
+    ctx->throt.rev.tgr[0]         = XPLMFindCommand  ("sim/engines/thrust_reverse_toggle");
+    ctx->throt.rev.tgb[1]         = XPLMFindCommand  ("sim/engines/beta_toggle_1");
+    ctx->throt.rev.tgb[2]         = XPLMFindCommand  ("sim/engines/beta_toggle_2");
+    ctx->throt.rev.tgb[3]         = XPLMFindCommand  ("sim/engines/beta_toggle_3");
+    ctx->throt.rev.tgb[4]         = XPLMFindCommand  ("sim/engines/beta_toggle_4");
+    ctx->throt.rev.tgb[5]         = XPLMFindCommand  ("sim/engines/beta_toggle_5");
+    ctx->throt.rev.tgb[6]         = XPLMFindCommand  ("sim/engines/beta_toggle_6");
+    ctx->throt.rev.tgb[7]         = XPLMFindCommand  ("sim/engines/beta_toggle_7");
+    ctx->throt.rev.tgb[8]         = XPLMFindCommand  ("sim/engines/beta_toggle_8");
+    ctx->throt.rev.tgb[0]         = XPLMFindCommand  ("sim/engines/beta_toggle");
+    if (!ctx->throt.rev.tog.cb.command ||
+        !ctx->throt.rev.fwd.cb.command ||
+        !ctx->throt.rev.rev.cb.command ||
+        !ctx->throt.rev.prop_mode      ||
+        !ctx->throt.rev.tgb[0]         ||
+        !ctx->throt.rev.tgb[1]         ||
+        !ctx->throt.rev.tgb[2]         ||
+        !ctx->throt.rev.tgb[3]         ||
+        !ctx->throt.rev.tgb[4]         ||
+        !ctx->throt.rev.tgb[5]         ||
+        !ctx->throt.rev.tgb[6]         ||
+        !ctx->throt.rev.tgb[7]         ||
+        !ctx->throt.rev.tgb[8]         ||
+        !ctx->throt.rev.tgr[0]         ||
+        !ctx->throt.rev.tgr[1]         ||
+        !ctx->throt.rev.tgr[2]         ||
+        !ctx->throt.rev.tgr[3]         ||
+        !ctx->throt.rev.tgr[4]         ||
+        !ctx->throt.rev.tgr[5]         ||
+        !ctx->throt.rev.tgr[6]         ||
+        !ctx->throt.rev.tgr[7]         ||
+        !ctx->throt.rev.tgr[8])
     {
         ndt_log("navP [error]: nvp_chandlers_init: command or dataref not found\n");
         goto fail;
     }
     else
     {
-        REGISTER_CHANDLER(ctx->revrs.tog.cb, chandler_r_tog, 0, ctx);
-        REGISTER_CHANDLER(ctx->revrs.fwd.cb, chandler_r_fwd, 0, ctx);
-        REGISTER_CHANDLER(ctx->revrs.bet.cb, chandler_r_bet, 0, ctx);
-        REGISTER_CHANDLER(ctx->revrs.rev.cb, chandler_r_rev, 0, ctx);
+        REGISTER_CHANDLER(ctx->throt.rev.tog.cb, chandler_r_tog, 0, ctx);
+        REGISTER_CHANDLER(ctx->throt.rev.fwd.cb, chandler_r_fwd, 0, ctx);
+        REGISTER_CHANDLER(ctx->throt.rev.bet.cb, chandler_r_bet, 0, ctx);
+        REGISTER_CHANDLER(ctx->throt.rev.rev.cb, chandler_r_rev, 0, ctx);
     }
 
     /* Custom commands and handlers: thrust control */
@@ -1098,31 +1096,31 @@ int nvp_chandlers_close(void **_chandler_context)
     }
 
     /* unregister all handlers… */
-    UNREGSTR_CHANDLER(ctx->turnaround.  cb);
-    UNREGSTR_CHANDLER(ctx->spbrk.   ext.cb);
-    UNREGSTR_CHANDLER(ctx->spbrk.   ret.cb);
-    UNREGSTR_CHANDLER(ctx->trims.pch.up.cb);
-    UNREGSTR_CHANDLER(ctx->trims.pch.dn.cb);
-    UNREGSTR_CHANDLER(ctx->trims.ail.lt.cb);
-    UNREGSTR_CHANDLER(ctx->trims.ail.rt.cb);
-    UNREGSTR_CHANDLER(ctx->trims.rud.lt.cb);
-    UNREGSTR_CHANDLER(ctx->trims.rud.rt.cb);
-    UNREGSTR_CHANDLER(ctx->revrs.   tog.cb);
-    UNREGSTR_CHANDLER(ctx->revrs.   fwd.cb);
-    UNREGSTR_CHANDLER(ctx->revrs.   bet.cb);
-    UNREGSTR_CHANDLER(ctx->revrs.   rev.cb);
-    UNREGSTR_CHANDLER(ctx->throt.       mi);
-    UNREGSTR_CHANDLER(ctx->throt.       rp);
-    UNREGSTR_CHANDLER(ctx->throt.       dn);
-    UNREGSTR_CHANDLER(ctx->throt.       up);
-    UNREGSTR_CHANDLER(ctx->throt.       ul);
-    UNREGSTR_CHANDLER(ctx->asrt.   ap_conn);
-    UNREGSTR_CHANDLER(ctx->asrt.   ap_disc);
-    UNREGSTR_CHANDLER(ctx->otto.   ffst.cb);
-    UNREGSTR_CHANDLER(ctx->otto.   conn.cb);
-    UNREGSTR_CHANDLER(ctx->otto.   disc.cb);
-    UNREGSTR_CHANDLER(ctx->views.  prev.cb);
-    UNREGSTR_CHANDLER(ctx->views.  next.cb);
+    UNREGSTR_CHANDLER(ctx->turnaround.   cb);
+    UNREGSTR_CHANDLER(ctx->spbrk.    ext.cb);
+    UNREGSTR_CHANDLER(ctx->spbrk.    ret.cb);
+    UNREGSTR_CHANDLER(ctx->trims. pch.up.cb);
+    UNREGSTR_CHANDLER(ctx->trims. pch.dn.cb);
+    UNREGSTR_CHANDLER(ctx->trims. ail.lt.cb);
+    UNREGSTR_CHANDLER(ctx->trims. ail.rt.cb);
+    UNREGSTR_CHANDLER(ctx->trims. rud.lt.cb);
+    UNREGSTR_CHANDLER(ctx->trims. rud.rt.cb);
+    UNREGSTR_CHANDLER(ctx->throt.rev.tog.cb);
+    UNREGSTR_CHANDLER(ctx->throt.rev.fwd.cb);
+    UNREGSTR_CHANDLER(ctx->throt.rev.bet.cb);
+    UNREGSTR_CHANDLER(ctx->throt.rev.rev.cb);
+    UNREGSTR_CHANDLER(ctx->throt.        mi);
+    UNREGSTR_CHANDLER(ctx->throt.        rp);
+    UNREGSTR_CHANDLER(ctx->throt.        dn);
+    UNREGSTR_CHANDLER(ctx->throt.        up);
+    UNREGSTR_CHANDLER(ctx->throt.        ul);
+    UNREGSTR_CHANDLER(ctx->asrt.    ap_conn);
+    UNREGSTR_CHANDLER(ctx->asrt.    ap_disc);
+    UNREGSTR_CHANDLER(ctx->otto.    ffst.cb);
+    UNREGSTR_CHANDLER(ctx->otto.    conn.cb);
+    UNREGSTR_CHANDLER(ctx->otto.    disc.cb);
+    UNREGSTR_CHANDLER(ctx->views.   prev.cb);
+    UNREGSTR_CHANDLER(ctx->views.   next.cb);
     for (int i = 0; i < 10; i++)
     {
         UNREGSTR_CHANDLER(ctx->views.cbs[i]);
@@ -1221,15 +1219,11 @@ int nvp_chandlers_reset(void *inContext)
     }
 
     /* Reset aircraft properties (type, engine count, retractable gear, etc.) */
-    ctx->gear.assert = ctx->ground.assert = ctx->revrs.assert = NULL;
-    ctx->gear.has_retractable_gear = -1; ctx->revrs.n_engines = -1;
+    ctx->gear.assert = ctx->ground.assert = ctx->throt.rev.assert = NULL;
+    ctx->gear.has_retractable_gear = -1;
     acf_type_info_reset();
 
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
-    ctx->throt.         acf_type = ACF_TYP_GENERIC;
-    ctx->revrs.           propdn = NULL;
-    ctx->revrs.           propup = NULL;
-    ctx->revrs.         tbm9erng = NULL;
     ctx->otto.ffst.           dr = NULL;
     ctx->otto.conn.cc.      name = NULL;
     ctx->otto.disc.cc.      name = NULL;
@@ -1239,6 +1233,8 @@ int nvp_chandlers_reset(void *inContext)
     ctx->throt.            thclb = NULL;
     ctx->throt.            thcon = NULL;
     ctx->throt.            thtof = NULL;
+    ctx->throt.rev.       propdn = NULL;
+    ctx->throt.rev.       propup = NULL;
     ctx->throt.         e35ltrss = NULL;
     ctx->throt.         tbm9erng = NULL;
     ctx->throt.         throttle = NULL;
@@ -1370,12 +1366,12 @@ int nvp_chandlers_update(void *inContext)
     print_aircft_info(ctx->info);
 
     /* aircraft-specific custom commands and miscellaneous stuff */
-    switch (ctx->throt.acf_type = ctx->info->ac_type)
+    switch ((ctx->throt.info = ctx->info)->ac_type)
     {
         case ACF_TYP_A320_FF:
             ctx->otto.conn.cc.name = "private/ff320/ap_conn";
             ctx->otto.disc.cc.name = "private/ff320/ap_disc";
-            ctx->gear.assert = ctx->ground.assert = ctx->revrs.assert = &ctx->info->assert;
+            ctx->gear.assert = ctx->ground.assert = ctx->throt.rev.assert = &ctx->info->assert;
             break;
 
         case ACF_TYP_A319_TL:
@@ -1477,8 +1473,8 @@ int nvp_chandlers_update(void *inContext)
             }
             if (ctx->info->has_rvrs_thr == -1 && ctx->info->has_beta_thr == -1) // XXX: prop-driven w/out reverse
             {
-                ctx->revrs.propdn = XPLMFindCommand("sim/engines/prop_down");
-                ctx->revrs.propup = XPLMFindCommand("sim/engines/prop_up");
+                ctx->throt.rev.propdn = XPLMFindCommand("sim/engines/prop_down");
+                ctx->throt.rev.propup = XPLMFindCommand("sim/engines/prop_up");
             }
             ctx->throt.throttle = ctx->ground.idle.throttle_all;
             break;
@@ -1577,9 +1573,6 @@ int nvp_chandlers_update(void *inContext)
 
     /* for the gear handle callouts */
     ctx->gear.callouts.atype = ctx->info->ac_type;
-
-    /* for the reverse thrust commands */
-    ctx->revrs.n_engines = ctx->info->engine_count;
 
     /* check for presence of online ATC plugins */
     ctx->coatc.pe_plid = XPLMFindPluginBySignature("com.pilotedge.plugin.xplane");
@@ -2148,7 +2141,7 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         refcon_ixeg733   *i33 = NULL;
         refcon_eadt738   *x38 = NULL;
         chandler_context *ctx = inRefcon;
-        assert_context   *a32 = ctx->revrs.assert; float f_val;
+        assert_context   *a32 = ctx->throt.rev.assert; float f_val;
         int speak = XPLMGetDatai(ctx->callouts.ref_speedbrake);
         switch (ctx->info->ac_type)
         {
@@ -2290,7 +2283,7 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         refcon_ixeg733   *i33 = NULL;
         refcon_eadt738   *x38 = NULL;
         chandler_context *ctx = inRefcon;
-        assert_context   *a32 = ctx->revrs.assert; float f_val;
+        assert_context   *a32 = ctx->throt.rev.assert; float f_val;
         int speak = XPLMGetDatai(ctx->callouts.ref_speedbrake);
         switch (ctx->info->ac_type)
         {
@@ -2828,15 +2821,15 @@ static int in_beta_at_index(chandler_context *ctx, int index)
     {
         if (ctx->info->ac_type == ACF_TYP_TBM9_HS)
         {
-            if (ctx->revrs.tbm9erng == NULL)
+            if (ctx->throt.tbm9erng == NULL)
             {
-                ctx->revrs.tbm9erng = XPLMFindDataRef("tbm900/systems/engine/range");
+                ctx->throt.tbm9erng = XPLMFindDataRef("tbm900/systems/engine/range");
             }
             if (index == 1)
             {
-                if (ctx->revrs.tbm9erng)
+                if (ctx->throt.tbm9erng)
                 {
-                    switch (XPLMGetDatai(ctx->revrs.tbm9erng))
+                    switch (XPLMGetDatai(ctx->throt.tbm9erng))
                     {
                         case 3:
                         case 5:
@@ -2854,11 +2847,11 @@ static int in_beta_at_index(chandler_context *ctx, int index)
         }
         if (ctx->info->has_beta_thr == 1)
         {
-            if (ctx->revrs.n_engines >= 1)
+            if (ctx->info->engine_count >= 1)
             {
-                if (index >= 1 && index <= 8 && index <= ctx->revrs.n_engines)
+                if (index >= 1 && index <= 8 && index <= ctx->info->engine_count)
                 {
-                    int mode; XPLMGetDatavi(ctx->revrs.prop_mode, &mode, index - 1, 1);
+                    int mode; XPLMGetDatavi(ctx->throt.rev.prop_mode, &mode, index - 1, 1);
                     return mode == 2;
                 }
                 return -1;
@@ -2874,7 +2867,7 @@ static int in_reverse_at_index(chandler_context *ctx, int index)
 {
     if (ctx)
     {
-        assert_context *a32 = ctx->revrs.assert;
+        assert_context *a32 = ctx->throt.rev.assert;
         if (a32)
         {
             if (index == 1)
@@ -2889,15 +2882,15 @@ static int in_reverse_at_index(chandler_context *ctx, int index)
         }
         if (ctx->info->ac_type == ACF_TYP_TBM9_HS)
         {
-            if (ctx->revrs.tbm9erng == NULL)
+            if (ctx->throt.tbm9erng == NULL)
             {
-                ctx->revrs.tbm9erng = XPLMFindDataRef("tbm900/systems/engine/range");
+                ctx->throt.tbm9erng = XPLMFindDataRef("tbm900/systems/engine/range");
             }
             if (index == 1)
             {
-                if (ctx->revrs.tbm9erng)
+                if (ctx->throt.tbm9erng)
                 {
-                    switch (XPLMGetDatai(ctx->revrs.tbm9erng))
+                    switch (XPLMGetDatai(ctx->throt.tbm9erng))
                     {
                         case 3:
                         case 4:
@@ -2915,11 +2908,11 @@ static int in_reverse_at_index(chandler_context *ctx, int index)
         }
         if (ctx->info->has_rvrs_thr == 1)
         {
-            if (ctx->revrs.n_engines >= 1)
+            if (ctx->info->engine_count >= 1)
             {
-                if (index >= 1 && index <= 8 && index <= ctx->revrs.n_engines)
+                if (index >= 1 && index <= 8 && index <= ctx->info->engine_count)
                 {
-                    int mode; XPLMGetDatavi(ctx->revrs.prop_mode, &mode, index - 1, 1);
+                    int mode; XPLMGetDatavi(ctx->throt.rev.prop_mode, &mode, index - 1, 1);
                     return mode == 3;
                 }
                 return -1;
@@ -2947,7 +2940,7 @@ static int at_least_one_engine_in_beta(chandler_context *ctx)
             }
             if (in_beta_at_index(ctx, i) == -1)
             {
-                return 0; // i > ctx->revrs.n_engines
+                return 0; // i > ctx->info->engine_count
             }
             continue;
         }
@@ -2972,7 +2965,7 @@ static int at_least_one_engine_in_reverse(chandler_context *ctx)
             }
             if (in_reverse_at_index(ctx, i) == -1)
             {
-                return 0; // i > ctx->revrs.n_engines
+                return 0; // i > ctx->info->engine_count
             }
             continue;
         }
@@ -2992,24 +2985,24 @@ static int chandler_r_tog(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             if (reverse_supported)
             {
-                return chandler_r_rev(((chandler_context*)inRefcon)->revrs.rev.cb.command, xplm_CommandEnd, inRefcon);
+                return chandler_r_rev(((chandler_context*)inRefcon)->throt.rev.rev.cb.command, xplm_CommandEnd, inRefcon);
             }
-            return chandler_r_fwd(((chandler_context*)inRefcon)->revrs.fwd.cb.command, xplm_CommandEnd, inRefcon);
+            return chandler_r_fwd(((chandler_context*)inRefcon)->throt.rev.fwd.cb.command, xplm_CommandEnd, inRefcon);
         }
         if (in_reverse)
         {
             /*
              * we cannot switch to beta here, else we'd toggle between beta and reverse only instead of cycling…
              */
-            return chandler_r_fwd(((chandler_context*)inRefcon)->revrs.fwd.cb.command, xplm_CommandEnd, inRefcon);
+            return chandler_r_fwd(((chandler_context*)inRefcon)->throt.rev.fwd.cb.command, xplm_CommandEnd, inRefcon);
         }
         if (beta_supported) // not in beta, not in reverse, beta supported
         {
-            return chandler_r_bet(((chandler_context*)inRefcon)->revrs.bet.cb.command, xplm_CommandEnd, inRefcon);
+            return chandler_r_bet(((chandler_context*)inRefcon)->throt.rev.bet.cb.command, xplm_CommandEnd, inRefcon);
         }
         if (reverse_supported) // not in beta, not in reverse, reverse supported
         {
-            return chandler_r_rev(((chandler_context*)inRefcon)->revrs.rev.cb.command, xplm_CommandEnd, inRefcon);
+            return chandler_r_rev(((chandler_context*)inRefcon)->throt.rev.rev.cb.command, xplm_CommandEnd, inRefcon);
         }
         return 0; // neither beta nor reverse supported
     }
@@ -3019,15 +3012,15 @@ static int chandler_r_tog(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     chandler_context *ctx = inRefcon;
-    if (ctx->revrs.propup)
+    if (ctx->throt.rev.propup)
     {
         switch (inPhase)
         {
             case xplm_CommandBegin:
-                XPLMCommandBegin(ctx->revrs.propup);
+                XPLMCommandBegin(ctx->throt.rev.propup);
                 return 0;
             case xplm_CommandEnd:
-                XPLMCommandEnd(ctx->revrs.propup);
+                XPLMCommandEnd(ctx->throt.rev.propup);
                 return 0;
             default:
                 return 0;
@@ -3051,12 +3044,12 @@ static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             if (in_beta_at_index(ctx, i) == 1)
             {
-                XPLMCommandOnce(ctx->revrs.tgb[i]); // does it also work if we're feathered?
+                XPLMCommandOnce(ctx->throt.rev.tgb[i]); // does it also work if we're feathered?
                 continue;
             }
             if (in_reverse_at_index(ctx, i) == 1)
             {
-                XPLMCommandOnce(ctx->revrs.tgr[i]); // does it also work if we're feathered?
+                XPLMCommandOnce(ctx->throt.rev.tgr[i]); // does it also work if we're feathered?
                 continue;
             }
             continue;
@@ -3069,15 +3062,15 @@ static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_r_bet(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     chandler_context *ctx = inRefcon;
-    if (ctx->revrs.propdn)
+    if (ctx->throt.rev.propdn)
     {
         switch (inPhase)
         {
             case xplm_CommandBegin:
-                XPLMCommandBegin(ctx->revrs.propdn);
+                XPLMCommandBegin(ctx->throt.rev.propdn);
                 return 0;
             case xplm_CommandEnd:
-                XPLMCommandEnd(ctx->revrs.propdn);
+                XPLMCommandEnd(ctx->throt.rev.propdn);
                 return 0;
             default:
                 return 0;
@@ -3096,14 +3089,14 @@ static int chandler_r_bet(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 return 0; // already below beta range
             }
             XPLMSetDataf(ctx->throt.throttle, nvp_thrust_next(TBM9_FLIGHT_IDLE_GATE, nvp_thrust_presets1_tbm9, NVP_DIRECTION_DN));
-            XPLMCommandOnce(ctx->revrs.tgr[0]);
+            XPLMCommandOnce(ctx->throt.rev.tgr[0]);
             return 0;
         }
         for (int i = 1; i <= 8; i++)
         {
             if (in_beta_at_index(ctx, i) == 0) // not in beta and beta supported
             {
-                XPLMCommandOnce(ctx->revrs.tgb[i]); // does it also work if we're feathered or in reverse?
+                XPLMCommandOnce(ctx->throt.rev.tgb[i]); // does it also work if we're feathered or in reverse?
                 continue;
             }
             continue;
@@ -3116,15 +3109,15 @@ static int chandler_r_bet(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     chandler_context *ctx = inRefcon;
-    if (ctx->revrs.propdn)
+    if (ctx->throt.rev.propdn)
     {
         switch (inPhase)
         {
             case xplm_CommandBegin:
-                XPLMCommandBegin(ctx->revrs.propdn);
+                XPLMCommandBegin(ctx->throt.rev.propdn);
                 return 0;
             case xplm_CommandEnd:
-                XPLMCommandEnd(ctx->revrs.propdn);
+                XPLMCommandEnd(ctx->throt.rev.propdn);
                 return 0;
             default:
                 return 0;
@@ -3141,7 +3134,7 @@ static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             if (in_beta_at_index(ctx, 1) == 0)
             {
                 // not in beta range yet, use the beta command to lift the throttle lever past the flight idle gate
-                return chandler_r_bet(((chandler_context*)inRefcon)->revrs.bet.cb.command, xplm_CommandEnd, inRefcon);
+                return chandler_r_bet(((chandler_context*)inRefcon)->throt.rev.bet.cb.command, xplm_CommandEnd, inRefcon);
             }
             return 0; // already in or below beta range at this point, use thrust up/down commands to control thrust
         }
@@ -3153,12 +3146,12 @@ static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             if (in_beta_at_index(ctx, i) == 0) // not in reverse, not in beta, beta supported
             {
-                XPLMCommandOnce(ctx->revrs.tgb[i]); // does it also work if we're feathered?
+                XPLMCommandOnce(ctx->throt.rev.tgb[i]); // does it also work if we're feathered?
                 continue;
             }
             if (in_reverse_at_index(ctx, i) == 0) // not in reverse, reverse supported
             {
-                XPLMCommandOnce(ctx->revrs.tgr[i]); // does it also work if we're feathered or in beta?
+                XPLMCommandOnce(ctx->throt.rev.tgr[i]); // does it also work if we're feathered or in beta?
                 continue;
             }
             continue;
@@ -3375,7 +3368,7 @@ static int nvp_throttle_all(refcon_thrust *t, const float *presets, int directio
     if (t->throttle)
     {
         float current, l[2];
-        switch (t->acf_type)
+        switch (t->info->ac_type)
         {
             case ACF_TYP_A319_TL:
             case ACF_TYP_A321_TL:
@@ -3440,13 +3433,13 @@ static int nvp_throttle_all(refcon_thrust *t, const float *presets, int directio
                 break;
         }
         float next = nvp_thrust_next(current, presets, direction);
-        switch (t->acf_type)
+        switch (t->info->ac_type)
         {
             case ACF_TYP_A319_TL:
             case ACF_TYP_A321_TL:
             case ACF_TYP_A350_FF:
             case ACF_TYP_CL30_DD:
-                return custom_throttle_all(t->throttle, t->acf_type, current, presets, direction); // TODO: use array
+                return custom_throttle_all(t->throttle, t->info->ac_type, current, presets, direction); // TODO: use array
 
             case ACF_TYP_LEGA_XC:
                 if (3.5f < next)
@@ -3522,7 +3515,7 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         if (((refcon_thrust*)inRefcon)->throttle)
         {
-            switch (((refcon_thrust*)inRefcon)->acf_type)
+            switch (((refcon_thrust*)inRefcon)->info->ac_type)
             {
                 case ACF_TYP_E55P_AB:
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets1_e55p, NVP_DIRECTION_DN);
@@ -3535,7 +3528,7 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             return nvp_throttle_all(inRefcon, nvp_thrust_presets1, NVP_DIRECTION_DN);
         }
-        switch (((refcon_thrust*)inRefcon)->acf_type)
+        switch (((refcon_thrust*)inRefcon)->info->ac_type)
         {
             case ACF_TYP_A320_FF:
             default:
@@ -3553,7 +3546,7 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         if (((refcon_thrust*)inRefcon)->throttle)
         {
-            switch (((refcon_thrust*)inRefcon)->acf_type)
+            switch (((refcon_thrust*)inRefcon)->info->ac_type)
             {
                 case ACF_TYP_E55P_AB:
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets1_e55p, NVP_DIRECTION_UP);
@@ -3566,7 +3559,7 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             return nvp_throttle_all(inRefcon, nvp_thrust_presets1, NVP_DIRECTION_UP);
         }
-        switch (((refcon_thrust*)inRefcon)->acf_type)
+        switch (((refcon_thrust*)inRefcon)->info->ac_type)
         {
             case ACF_TYP_A320_FF:
             default:
@@ -3584,7 +3577,7 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     {
         if (((refcon_thrust*)inRefcon)->throttle)
         {
-            switch (((refcon_thrust*)inRefcon)->acf_type)
+            switch (((refcon_thrust*)inRefcon)->info->ac_type)
             {
                 case ACF_TYP_E55P_AB:
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets2_e55p, NVP_DIRECTION_UP);
@@ -3597,7 +3590,7 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             return nvp_throttle_all(inRefcon, nvp_thrust_presets2, NVP_DIRECTION_UP);
         }
-        switch (((refcon_thrust*)inRefcon)->acf_type)
+        switch (((refcon_thrust*)inRefcon)->info->ac_type)
         {
             case ACF_TYP_A320_FF:
             default:
@@ -6673,7 +6666,7 @@ static int first_fcall_do(chandler_context *ctx)
                     }
                 }
             }
-            if (ctx->revrs.n_engines == 1) // single-engine: select default fuel tank
+            if (ctx->info->engine_count == 1) // single-engine: select default fuel tank
             {
                 if ((d_ref = XPLMFindDataRef("sim/aircraft/overflow/acf_has_fuel_all")))
                 {
