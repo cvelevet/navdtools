@@ -224,17 +224,8 @@ typedef struct
     XPLMDataRef auto_t_sts;
     XPLMDataRef elev_m_agl;
     XPLMFlightLoop_f flc_g;
-    struct
-    {
-        chandler_callback preset;
-        XPLMDataRef throttle_all;
-        XPLMDataRef thrott_array;
-        XPLMDataRef onground_any;
-        float r_t[2];
-        float r_taxi;
-        float r_idle;
-        int minimums;
-    } idle;
+    XPLMDataRef ongrnd_any;
+    XPLMDataRef thrott_all;
     struct
     {
         XPLMDataRef vol_com0;
@@ -624,7 +615,6 @@ static int chandler_32apd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_32atd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_31isc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_apbef(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_apaft(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_p2vvi(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -1038,21 +1028,20 @@ void* nvp_chandlers_init(void)
     }
 
     /* Custom ground stabilization system (via flight loop callback) */
-    ctx->ground.auto_t_sts          = XPLMFindDataRef  ("sim/cockpit2/autopilot/autothrottle_enabled");
-    ctx->ground.auto_p_sts          = XPLMFindDataRef  ("sim/cockpit2/autopilot/servos_on");
-    ctx->ground.elev_m_agl          = XPLMFindDataRef  ("sim/flightmodel/position/y_agl");
-    ctx->ground.time.view_type      = XPLMFindDataRef  ("sim/graphics/view/view_type");
-    ctx->ground.time.sim_pause      = XPLMFindDataRef  ("sim/time/paused");
-    ctx->ground.time.zulu_time_xpl  = XPLMFindDataRef  ("sim/time/zulu_time_sec");
-    ctx->ground.time.zulu_time_hrs  = XPLMFindDataRef  ("sim/cockpit2/clock_timer/zulu_time_hours");
-    ctx->ground.time.zulu_time_min  = XPLMFindDataRef  ("sim/cockpit2/clock_timer/zulu_time_minutes");
-    ctx->ground.time.zulu_time_sec  = XPLMFindDataRef  ("sim/cockpit2/clock_timer/zulu_time_seconds");
-    ctx->ground.oatc.vol_com0       = XPLMFindDataRef  ("sim/operation/sound/radio_volume_ratio");
-    ctx->ground.oatc.vol_com1       = XPLMFindDataRef  ("sim/cockpit2/radios/actuators/audio_volume_com1");
-    ctx->ground.oatc.vol_com2       = XPLMFindDataRef  ("sim/cockpit2/radios/actuators/audio_volume_com2");
-    ctx->ground.idle.onground_any   = XPLMFindDataRef  ("sim/flightmodel/failures/onground_any");
-    ctx->ground.idle.throttle_all   = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/throttle_ratio_all");
-    ctx->ground.idle.preset.command = XPLMCreateCommand("navP/thrust/idle_boost", "apply just a bit of throttle");
+    ctx->ground.auto_t_sts         = XPLMFindDataRef("sim/cockpit2/autopilot/autothrottle_enabled");
+    ctx->ground.auto_p_sts         = XPLMFindDataRef("sim/cockpit2/autopilot/servos_on");
+    ctx->ground.elev_m_agl         = XPLMFindDataRef("sim/flightmodel/position/y_agl");
+    ctx->ground.time.view_type     = XPLMFindDataRef("sim/graphics/view/view_type");
+    ctx->ground.time.sim_pause     = XPLMFindDataRef("sim/time/paused");
+    ctx->ground.time.zulu_time_xpl = XPLMFindDataRef("sim/time/zulu_time_sec");
+    ctx->ground.time.zulu_time_hrs = XPLMFindDataRef("sim/cockpit2/clock_timer/zulu_time_hours");
+    ctx->ground.time.zulu_time_min = XPLMFindDataRef("sim/cockpit2/clock_timer/zulu_time_minutes");
+    ctx->ground.time.zulu_time_sec = XPLMFindDataRef("sim/cockpit2/clock_timer/zulu_time_seconds");
+    ctx->ground.oatc.vol_com0      = XPLMFindDataRef("sim/operation/sound/radio_volume_ratio");
+    ctx->ground.oatc.vol_com1      = XPLMFindDataRef("sim/cockpit2/radios/actuators/audio_volume_com1");
+    ctx->ground.oatc.vol_com2      = XPLMFindDataRef("sim/cockpit2/radios/actuators/audio_volume_com2");
+    ctx->ground.thrott_all         = XPLMFindDataRef("sim/cockpit2/engine/actuators/throttle_ratio_all");
+    ctx->ground.ongrnd_any         = XPLMFindDataRef("sim/flightmodel/failures/onground_any");
     if (!ctx->ground.auto_t_sts         ||
         !ctx->ground.auto_p_sts         ||
         !ctx->ground.elev_m_agl         ||
@@ -1065,15 +1054,14 @@ void* nvp_chandlers_init(void)
         !ctx->ground.oatc.vol_com0      ||
         !ctx->ground.oatc.vol_com1      ||
         !ctx->ground.oatc.vol_com2      ||
-        !ctx->ground.idle.throttle_all  ||
-        !ctx->ground.idle.preset.command)
+        !ctx->ground.thrott_all         ||
+        !ctx->ground.ongrnd_any)
     {
         ndt_log("navP [error]: nvp_chandlers_init: command or dataref not found\n");
         goto fail;
     }
     else
     {
-        REGISTER_CHANDLER(ctx->ground.idle.preset, chandler_idleb, 0, &ctx->ground);
         ctx->ground.pt = &ctx->throt;
     }
 
@@ -1128,7 +1116,6 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->gear.landing_gear_toggle);
     UNREGSTR_CHANDLER(ctx->gear.  landing_gear_down);
     UNREGSTR_CHANDLER(ctx->gear.    landing_gear_up);
-    UNREGSTR_CHANDLER(ctx->ground.      idle.preset);
     UNREGSTR_CHANDLER(ctx->callouts.       cb_flapu);
     UNREGSTR_CHANDLER(ctx->callouts.       cb_flapd);
     UNREGSTR_CHANDLER(ctx->apd.                 aft);
@@ -1255,8 +1242,6 @@ int nvp_chandlers_reset(void *inContext)
     if (ctx->ground.flc_g)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
-        ctx->ground.idle.thrott_array = NULL;
-        ctx->ground.idle.minimums = 0;
         ctx->ground.flc_g = NULL;
     }
 
@@ -1394,26 +1379,26 @@ int nvp_chandlers_update(void *inContext)
         case ACF_TYP_B737_EA:
             ctx->otto.conn.cc.name = "x737/mcp/CMDA_TOGGLE";
             ctx->otto.disc.cc.name = "x737/yoke/capt_AP_DISENG_BTN";
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
         case ACF_TYP_B737_XG:
             ctx->otto.disc.cc.name = "ixeg/733/autopilot/AP_disengage";
             ctx->otto.conn.cc.name = "ixeg/733/autopilot/AP_A_cmd_toggle";
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
         case ACF_TYP_B757_FF:
         case ACF_TYP_B767_FF:
             ctx->otto.conn.cc.name = "private/ffsts/ap_cmdl";
             ctx->otto.disc.cc.name = "1-sim/comm/AP/ap_disc";
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
         case ACF_TYP_B777_FF:
             ctx->otto.disc.cc.name = "777/ap_disc";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
         case ACF_TYP_CL30_DD:
@@ -1423,45 +1408,45 @@ int nvp_chandlers_update(void *inContext)
             {
                 ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
             }
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
         case ACF_TYP_E55P_AB:
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
             ctx->callouts.ref_flaps_e55p = XPLMFindDataRef("aerobask/anim/sw_flap");
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
         case ACF_TYP_EMBE_SS:
             ctx->otto.conn.cc.name = "SSG/EJET/MCP/AP_COMM";
             ctx->otto.disc.cc.name = "SSG/EJET/MCP/AP_COMM";
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
         case ACF_TYP_EMBE_XC:
         case ACF_TYP_HA4T_RW:
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
         case ACF_TYP_LEGA_XC:
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
         case ACF_TYP_MD80_RO:
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->otto.disc.cc.name = "Rotate/md80/autopilot/ap_disc";
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
         case ACF_TYP_TBM9_HS:
             ctx->otto.conn.cc.name = "tbm900/actuators/ap/ap";
             ctx->otto.disc.cc.name = "tbm900/actuators/ap/disc";
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
         case ACF_TYP_GENERIC:
@@ -1476,11 +1461,11 @@ int nvp_chandlers_update(void *inContext)
                 ctx->throt.rev.propdn = XPLMFindCommand("sim/engines/prop_down");
                 ctx->throt.rev.propup = XPLMFindCommand("sim/engines/prop_up");
             }
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
         default: // not generic but no usable commands
-            ctx->throt.throttle = ctx->ground.idle.throttle_all;
+            ctx->throt.throttle = ctx->ground.thrott_all;
             break;
     }
 
@@ -4981,60 +4966,6 @@ static int chandler_ghndl(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 1; // let X-Plane actually move the handle
 }
 
-static int chandler_idleb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
-{
-    if (inPhase == xplm_CommandEnd)
-    {
-        refcon_ground *grndp = inRefcon;
-        assert_context *a320 = grndp->assert;
-        if (a320)
-        {
-            // TODO: check reverse for other aircrafts
-            if (XPLMGetDataf(a320->dat.engine_reverse1) > 0.5f ||
-                XPLMGetDataf(a320->dat.engine_reverse2) > 0.5f)
-            {
-                return 0;
-            }
-            // there isn't a way to set throttle to a given position yet
-            // instead, allow adjustments using XPLMCommandOnce but only
-            // towards our "ideal" position - we may need multiple calls
-            // Aircraft.Cockpit.Pedestal.EngineLever1: 20-65 (idle -> toga)
-            float engine_lever_lt = XPLMGetDataf(a320->dat.engine_lever_lt);
-            float engine_lever_rt = XPLMGetDataf(a320->dat.engine_lever_rt);
-            if (((engine_lever_lt < (grndp->idle.r_taxi - T_ZERO))) &&
-                ((engine_lever_rt < (grndp->idle.r_taxi - T_ZERO))))
-            {
-                XPLMCommandOnce(a320->dat.throttles_up);
-                return 0;
-            }
-            if (((engine_lever_lt > (grndp->idle.r_taxi + T_ZERO))) ||
-                ((engine_lever_rt > (grndp->idle.r_taxi + T_ZERO))))
-            {
-                XPLMCommandOnce(a320->dat.throttles_dn);
-                return 0;
-            }
-            return 0;
-        }
-        if (XPLMGetDatai(grndp->idle.onground_any) != 1)
-        {
-            return 0;
-        }
-        if (grndp->idle.minimums > 0)
-        {
-            if (grndp->idle.thrott_array)
-            {
-                XPLMSetDatavf(grndp->idle.thrott_array, grndp->idle.r_t, 0, 2);
-                return 0;
-            }
-            XPLMSetDataf(grndp->idle.throttle_all, grndp->idle.r_taxi);
-            return 0;
-        }
-        XPLMSetDataf(grndp->idle.throttle_all, 0.2f);
-        return 0;
-    }
-    return 0;
-}
-
 static int chandler_apbef(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandBegin)
@@ -5138,28 +5069,11 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                            int   inCounter,
                            void *inRefcon)
 {
-    if (inRefcon)
+    refcon_ground *grndp = inRefcon;
+    if (grndp)
     {
-        refcon_ground *grndp = inRefcon; assert_context *assrt = grndp->assert;
-        float thrott_cmd_all = XPLMGetDataf(grndp->idle.throttle_all), thra[2];
-        if (grndp->idle.thrott_array)
-        {
-            XPLMGetDatavf(grndp->idle.thrott_array, thra, 0, 2);
-            thrott_cmd_all = (((((thra[0] + thra[1]) / 2.0f))));
-        }
-        else if (assrt)
-        {
-            // Aircraft.Cockpit.Pedestal.EngineLever1: 0-20-65 (rev-idle-max)
-            assrt->api.ValueGet(assrt->dat.id_f32_p_engines_lever1, &thra[0]);
-            assrt->api.ValueGet(assrt->dat.id_f32_p_engines_lever1, &thra[1]);
-            if ((thrott_cmd_all = (((thra[0] + thra[1]) / 2.0f) - 20.0f) / 45.0f) < 0.0f)
-            {
-                (thrott_cmd_all = (((thra[0] + thra[1]) / 2.0f) - 20.0f) / 20.0f);
-            }
-        }
-
         // set default flight loop callback interval based on whether we're airborne or on ground
-        float flightLoopCallbackInterval = !XPLMGetDatai(grndp->idle.onground_any) ? 1.0f : 0.25f;
+        float flightLoopCallbackInterval = !XPLMGetDatai(grndp->ongrnd_any) ? 1.0f : 0.25f;
 
 #if TIM_ONLY
         /*
@@ -5377,20 +5291,11 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             XPLMGetDataf(grndp->elev_m_agl) <= 15.24f)
         {
             XPLMSetDatai(grndp->auto_t_sts, 0);
-            XPLMSetDataf(grndp->idle.throttle_all, (thrott_cmd_all = 0.0f));
+            XPLMSetDataf(grndp->thrott_all, 0.0f);
         }
         // TODO: FlightFactor 757???
         // its A/T never seems to auto-disconnect (unlike e.g. IXEG's 737), and will
         // command thrust to maintain speed even after touchdown unless auto-landing
-
-//        // raise our throttles to a minimum idle if required
-//        if (grndp->idle.minimums >= 2)
-//        {
-//            if (thrott_cmd_all < (grndp->idle.r_idle - T_ZERO))
-//            {
-//                XPLMSetDataf(grndp->idle.throttle_all, grndp->idle.r_idle);
-//            }
-//        }
 
         return flightLoopCallbackInterval;
     }
@@ -6849,181 +6754,6 @@ static int first_fcall_do(chandler_context *ctx)
     }
 #endif
 
-    /*
-     * Custom ground stabilization system (via flight loop callback)
-     *
-     * Minimum ground throttle detent.
-     * Testing parameters:
-     * - weather: CAVOK preset
-     * - version: X-Plane 10.51r2
-     * - runways: follow terrain contour OFF
-     * - airport: KNTD (Naval Base Ventura County)
-     * - taxiing: ideal peak speed ~20.0 Knots ground speed
-     * - pistons: minimum propeller speed ~1,000.0 r/minute
-     */
-    switch (ctx->info->ac_type)
-    {
-        case ACF_TYP_A320_FF:
-            // Pedestal.EngineLever1: 20.0/24/26 (idle/fwd1/fwd2)
-            ctx->ground.idle.r_taxi   = .400000f; // fwd pos. #2
-            ctx->ground.idle.minimums = 0; break;
-
-        case ACF_TYP_A319_TL:
-        case ACF_TYP_A321_TL:
-            ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
-            ctx->ground.idle.r_t[0]   = 0.25000f;
-            ctx->ground.idle.r_t[1]   = 0.25000f;
-            ctx->ground.idle.minimums = 1; break;
-
-        case ACF_TYP_A350_FF:
-            ctx->ground.idle.thrott_array = XPLMFindDataRef("AirbusFBW/throttle_input");
-//          ctx->ground.idle.r_t[0]   = 0.10000f; // ~25.3% N1 @ NTD
-//          ctx->ground.idle.r_t[1]   = 0.10000f; // ~25.3% N1 @ NTD
-            ctx->ground.idle.r_t[0]   = 0.25000f;
-            ctx->ground.idle.r_t[1]   = 0.25000f;
-            ctx->ground.idle.minimums = 1; break;
-
-        case ACF_TYP_B737_XG:
-//          ctx->ground.idle.r_taxi   = 0.13333f; // ~33.3% N1 @ NTD
-            ctx->ground.idle.r_taxi   = 0.37500f;
-            ctx->ground.idle.minimums = 1; break;
-
-        case ACF_TYP_B757_FF:
-            if ((d_ref = XPLMFindDataRef("757Avionics/engine")))
-            {
-                switch (XPLMGetDatai(d_ref))
-                {
-                    case 0: // Pratt & Whitney
-//                      ctx->ground.idle.r_taxi   = 0.09000f; // ~26.1% N1 @ NTD
-                        ctx->ground.idle.r_taxi   = 0.12500f;
-                        ctx->ground.idle.minimums = 1; break;
-                    case 1: // Rolls-Royce
-//                      ctx->ground.idle.r_taxi   = 0.15555f; // ~26.1% N1 @ NTD
-                        ctx->ground.idle.r_taxi   = 0.25000f;
-                        ctx->ground.idle.minimums = 1; break;
-                    default:
-                        ndt_log("navP [warning]: couldn't determine engine type for FF757\n");
-                        break;
-                }
-                break;
-            }
-            ndt_log("navP [warning]: couldn't obtain engine type data reference for FF757\n");
-            break;
-
-        case ACF_TYP_B767_FF:
-            if ((d_ref = XPLMFindDataRef("757Avionics/engine")))
-            {
-                switch (XPLMGetDatai(d_ref))
-                {
-                    case 0: // Pratt & Whitney
-//                      ctx->ground.idle.r_taxi   = 0.16666f; // ~26.1% N1 @ NTD
-                        ctx->ground.idle.r_taxi   = 0.25000f;
-                        ctx->ground.idle.minimums = 1; break;
-                    default:
-                        ndt_log("navP [warning]: couldn't determine engine type for FF767\n");
-                        break;
-                }
-                break;
-            }
-            ndt_log("navP [warning]: couldn't obtain engine type data reference for FF767\n");
-            break;
-
-        case ACF_TYP_B777_FF:
-            if ((d_ref = XPLMFindDataRef("1-sim/engineType")))
-            {
-                switch (XPLMGetDatai(d_ref))
-                {
-                    case 1: // General Electric
-//                      ctx->ground.idle.r_taxi   = 0.09765f; // ~28.1% N1 @ NTD
-                        ctx->ground.idle.r_taxi   = 0.12500f;
-                        ctx->ground.idle.minimums = 1; break;
-                    default:
-                        ndt_log("navP [warning]: couldn't determine engine type for FF777\n");
-                        break;
-                }
-                break;
-            }
-            ndt_log("navP [warning]: couldn't obtain engine type data reference for FF777\n");
-            break;
-
-        default:
-        {
-            if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
-            {
-                // REP: 3.4+: custom engine model, use "simcoders/" rpm datarefs
-                if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "BE33") ||
-                    !STRN_CASECMP_AUTO(ctx->info->icaoid, "BE35"))
-                {
-//                  ctx->ground.idle.r_idle   = 0.06845f; // prop 1,100rpm @ NTD
-//                  ctx->ground.idle.r_taxi   = 0.15525f; // prop 1,400rpm @ NTD
-                    ctx->ground.idle.r_idle   = 0.05000f;
-                    ctx->ground.idle.r_taxi   = 0.15000f;
-                    ctx->ground.idle.minimums = 2; break;
-                }
-                if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "BE58"))
-                {
-//                  ctx->ground.idle.r_idle   = 0.08725f; // prop 1,000rpm @ NTD
-//                  ctx->ground.idle.r_taxi   = 0.20375f; // prop 1,400rpm @ NTD
-                    ctx->ground.idle.r_idle   = 0.07500f;
-                    ctx->ground.idle.r_taxi   = 0.20000f;
-                    ctx->ground.idle.minimums = 2; break;
-                }
-                if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "T210"))
-                {
-//                  ctx->ground.idle.r_idle   = 0.06150f; // prop 1,100rpm @ NTD
-//                  ctx->ground.idle.r_taxi   = 0.11025f; // prop 1,400rpm @ NTD
-                    ctx->ground.idle.r_idle   = 0.05000f;
-                    ctx->ground.idle.r_taxi   = 0.15000f;
-                    ctx->ground.idle.minimums = 2; break;
-                }
-                break;
-            }
-            if (!STRN_CASECMP_AUTO(ctx->info->author, "Aerobask") ||
-                !STRN_CASECMP_AUTO(ctx->info->author, "Stephane Buon"))
-            {
-                if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Lancair Legacy FG"))
-                {
-//                  ctx->ground.idle.r_idle   = 0.03010f; // prop 1,100rpm @ NTD
-//                  ctx->ground.idle.r_taxi   = 0.09650f; // prop 1,400rpm @ NTD
-                    ctx->ground.idle.r_idle   = 0.02500f;
-                    ctx->ground.idle.r_taxi   = 0.12500f;
-                    ctx->ground.idle.minimums = 2; break;
-                }
-                if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Pipistrel Panthera"))
-                {
-//                  ctx->ground.idle.r_idle   = 0.05585f; // prop 1,100rpm @ NTD
-//                  ctx->ground.idle.r_taxi   = 0.13650f; // prop 1,400rpm @ NTD
-                    ctx->ground.idle.r_idle   = 0.05000f;
-                    ctx->ground.idle.r_taxi   = 0.12500f;
-                    ctx->ground.idle.minimums = 2; break;
-                }
-                if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Epic Victory"))
-                {
-//                  ctx->ground.idle.r_taxi   = 0.16666f; // ~45.0% N1 @ NTD
-                    ctx->ground.idle.r_taxi   = 0.25000f;
-                    ctx->ground.idle.minimums = 1; break;
-                }
-                if (!STRN_CASECMP_AUTO(ctx->info->descrp, "The Eclipse 550"))
-                {
-//                  ctx->ground.idle.r_taxi   = 0.23875f; // ~50.0% N1 @ NTD
-                    ctx->ground.idle.r_taxi   = 0.37500f;
-                    ctx->ground.idle.minimums = 1; break;
-                }
-                break;
-            }
-            if (!STRN_CASECMP_AUTO(ctx->info->author, "Alabeo") ||
-                !STRN_CASECMP_AUTO(ctx->info->author, "Carenado"))
-            {
-                if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Pilatus PC12"))
-                {
-                    ctx->ground.idle.r_taxi   = 0.37500f;
-                    ctx->ground.idle.minimums = 1; break;
-                }
-                break;
-            }
-            break;
-        }
-    }
     if (ctx->ground.oatc.flc)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.oatc.flc, &ctx);
