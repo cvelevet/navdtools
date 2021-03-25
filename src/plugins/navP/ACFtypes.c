@@ -278,18 +278,29 @@ acf_info_context* acf_type_info_update()
             {
                 global_info->has_rvrs_thr = XPLMGetDatai(tmp) != 0;
             }
-            global_info->has_auto_thr = global_info->engine_count >= 2;
+            global_info->has_auto_thr = global_info->engine_count >= 2; // TODO: case by case basis
+            global_info->has_beta_thr = 0;
             break;
         case 0: case 1: // piston engines
         case 2: case 8: // and turboprops
             if ((tmp = XPLMFindDataRef("sim/aircraft/prop/acf_revthrust_eq")))
             {
-                global_info->has_rvrs_thr = XPLMGetDatai(tmp) ? 1 : -1;
+                global_info->has_rvrs_thr = XPLMGetDatai(tmp) != 0;
             }
-            global_info->has_auto_thr = 0;
+            if ((tmp = XPLMFindDataRef("sim/aircraft/overflow/acf_has_beta")))
+            {
+                global_info->has_beta_thr = XPLMGetDatai(tmp) != 0;
+            }
+            if (global_info->has_rvrs_thr == 0 && global_info->has_beta_thr == 0)
+            {
+                global_info->has_rvrs_thr = -1; // XXX: prop-driven w/out reverse
+                global_info->has_beta_thr = -1; // XXX: prop-driven w/out reverse
+            }
+            global_info->has_auto_thr = 0; // TODO: case by case basis
             break;
         default:
             global_info->has_rvrs_thr = 0;
+            global_info->has_beta_thr = 0;
             global_info->has_auto_thr = 0;
             break;
     }
@@ -492,6 +503,20 @@ acf_info_context* acf_type_info_update()
                 global_info->ac_type = ACF_TYP_HA4T_RW;
                 break;
             }
+            ndt_log("acf_type [warning]: no aircraft type match despite plugin (ERJ_Functions/Tekton_Functions)\n");
+            global_info->ac_type = ACF_TYP_GENERIC;
+            break;
+        }
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim Phenom_300"))
+        {
+            if (!STRN_CASECMP_AUTO(global_info->icaoid, "E55P"))
+            {
+                global_info->ac_type = ACF_TYP_E55P_AB;
+                break;
+            }
+            ndt_log("acf_type [warning]: no aircraft type match despite plugin (1-sim Phenom_300)\n");
+            global_info->ac_type = ACF_TYP_GENERIC;
+            break;
         }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim.sasl"))
         {
