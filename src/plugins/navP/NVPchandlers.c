@@ -3422,12 +3422,6 @@ static int nvp_throttle_all(refcon_thrust *t, const float *presets, int directio
                 }
                 break;
 
-            case ACF_TYP_TBM9_HS:
-                if (t->tbm9erng == NULL)
-                {
-                    t->tbm9erng = XPLMFindDataRef("tbm900/systems/engine/range");
-                }
-                // fall through
             default:
                 current = XPLMGetDataf(t->throttle);
                 break;
@@ -3476,25 +3470,36 @@ static int nvp_throttle_all(refcon_thrust *t, const float *presets, int directio
                 break;
 
             case ACF_TYP_TBM9_HS:
-                if (t->tbm9erng)
+                /*
+                 * the code below is disabled but left in for future reference
+                 * while it works well with the step commands, its behavior is
+                 * not ideal with the continuous thrust commands; moreover, it
+                 * doesn't work well to select the ideal thrust/power for taxi
+                 */
+                /*if (in_beta_at_index(t, 1) == 1 || in_reverse_at_index(t, 1) == 1)
                 {
-                    switch (XPLMGetDatai(t->tbm9erng))
+                    if (direction == NVP_DIRECTION_DN)
                     {
-                        case 0:
-                        case 1:
-                        case 2:
-                            XPLMSetDataf(t->throttle, TBM9_FLIGHT_IDLE_GATE);
-                            return 0;
-
-                        case 3:
-                            if (next < TBM9_FLIGHT_IDLE_GATE)
-                            {
-                                XPLMSetDataf(t->throttle, TBM9_FLIGHT_IDLE_GATE);
-                                return 0;
-                            }
-                            // fall through
-                        default:
-                            break;
+                        // in beta/reverse range, invert the direction of the commands
+                        // to match behavior when in reverse range with other aircraft
+                        // that is: thrust up: more reverse, thrust down: less reverse
+                        XPLMSetDataf(t->throttle, nvp_thrust_next(current, presets, NVP_DIRECTION_UP));
+                        return 0;
+                    }
+                    XPLMSetDataf(t->throttle, nvp_thrust_next(current, presets, NVP_DIRECTION_DN));
+                    return 0;
+                }*/
+                if (in_beta_at_index(t, 1) == -1 || in_reverse_at_index(t, 1) == -1)
+                {
+                    XPLMSetDataf(t->throttle, TBM9_FLIGHT_IDLE_GATE);
+                    return 0;  // beta/reverse not available (cutoff or feathered propeller)
+                }
+                if (in_beta_at_index(t, 1) == 0 && in_reverse_at_index(t, 1) == 0)
+                {
+                    if (next < TBM9_FLIGHT_IDLE_GATE)
+                    {
+                        XPLMSetDataf(t->throttle, TBM9_FLIGHT_IDLE_GATE);
+                        return 0; // not in beta/reverse, cannot move throttle below gate
                     }
                     break;
                 }
@@ -3635,6 +3640,10 @@ static int chandler_thptt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_thrdd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
+    /*
+     * future: TBM9 inverted thrust in beta/reverse like in
+     * nvp_throttle_all (probably have to disable it anyway)
+     */
     if (inPhase == xplm_CommandBegin)
     {
         XPLMCommandBegin(((refcon_thrust*)inRefcon)->thrdn);
@@ -3651,6 +3660,10 @@ static int chandler_thrdd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_thruu(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
+    /*
+     * future: TBM9 inverted thrust in beta/reverse like in
+     * nvp_throttle_all (probably have to disable it anyway)
+     */
     if (inPhase == xplm_CommandBegin)
     {
         XPLMCommandBegin(((refcon_thrust*)inRefcon)->thrup);
