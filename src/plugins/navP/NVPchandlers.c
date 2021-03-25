@@ -5589,9 +5589,9 @@ static int first_fcall_do(chandler_context *ctx)
                 }
 #endif
 #if TIM_ONLY
-                if (NULL == (ctx->a319kc.c[2][41] = XPLMFindCommand("navP/brakes/regular"           )) ||
-                    NULL == (ctx->a319kc.c[2][42] = XPLMFindCommand("navP/spoilers/extend"          )) ||
+                if (NULL == (ctx->a319kc.c[2][42] = XPLMFindCommand("navP/spoilers/extend"          )) ||
                     NULL == (ctx->a319kc.c[2][43] = XPLMFindCommand("navP/spoilers/retract"         )) ||
+                    NULL == (ctx->a319kc.c[2][41] = XPLMFindCommand("xnz/brakes/regular/hold"       )) ||
                     NULL == (ctx->a319kc.c[2][45] = XPLMFindCommand("sim/flight_controls/flaps_up"  )) ||
                     NULL == (ctx->a319kc.c[2][46] = XPLMFindCommand("sim/flight_controls/flaps_down")))
                 {
