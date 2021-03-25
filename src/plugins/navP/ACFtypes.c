@@ -278,18 +278,29 @@ acf_info_context* acf_type_info_update()
             {
                 global_info->has_rvrs_thr = XPLMGetDatai(tmp) != 0;
             }
-            global_info->has_auto_thr = global_info->engine_count >= 2;
+            global_info->has_auto_thr = global_info->engine_count >= 2; // TODO: case by case basis
+            global_info->has_beta_thr = 0;
             break;
         case 0: case 1: // piston engines
         case 2: case 8: // and turboprops
             if ((tmp = XPLMFindDataRef("sim/aircraft/prop/acf_revthrust_eq")))
             {
-                global_info->has_rvrs_thr = XPLMGetDatai(tmp) ? 1 : -1;
+                global_info->has_rvrs_thr = XPLMGetDatai(tmp) != 0;
             }
-            global_info->has_auto_thr = 0;
+            if ((tmp = XPLMFindDataRef("sim/aircraft/overflow/acf_has_beta")))
+            {
+                global_info->has_beta_thr = XPLMGetDatai(tmp) != 0;
+            }
+            if (global_info->has_rvrs_thr == 0 && global_info->has_beta_thr == 0)
+            {
+                global_info->has_rvrs_thr = -1; // XXX: prop-driven w/out reverse
+                global_info->has_beta_thr = -1; // XXX: prop-driven w/out reverse
+            }
+            global_info->has_auto_thr = 0; // TODO: case by case basis
             break;
         default:
             global_info->has_rvrs_thr = 0;
+            global_info->has_beta_thr = 0;
             global_info->has_auto_thr = 0;
             break;
     }
