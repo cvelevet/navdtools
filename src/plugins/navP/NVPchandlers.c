@@ -828,10 +828,10 @@ void* nvp_chandlers_init(void)
     }
     else
     {
-        REGISTER_CHANDLER(ctx->throt.rev.tog.cb, chandler_r_tog, 0, ctx);
-        REGISTER_CHANDLER(ctx->throt.rev.fwd.cb, chandler_r_fwd, 0, ctx);
-        REGISTER_CHANDLER(ctx->throt.rev.bet.cb, chandler_r_bet, 0, ctx);
-        REGISTER_CHANDLER(ctx->throt.rev.rev.cb, chandler_r_rev, 0, ctx);
+        REGISTER_CHANDLER(ctx->throt.rev.tog.cb, chandler_r_tog, 0, &ctx->throt);
+        REGISTER_CHANDLER(ctx->throt.rev.fwd.cb, chandler_r_fwd, 0, &ctx->throt);
+        REGISTER_CHANDLER(ctx->throt.rev.bet.cb, chandler_r_bet, 0, &ctx->throt);
+        REGISTER_CHANDLER(ctx->throt.rev.rev.cb, chandler_r_rev, 0, &ctx->throt);
     }
 
     /* Custom commands and handlers: thrust control */
@@ -2815,21 +2815,21 @@ static float nvp_thrust_next(float current, const float *presets, int direction)
     return current;
 }
 
-static int in_beta_at_index(chandler_context *ctx, int index)
+static int in_beta_at_index(refcon_thrust *t, int index)
 {
-    if (ctx)
+    if (t)
     {
-        if (ctx->info->ac_type == ACF_TYP_TBM9_HS)
+        if (t->info->ac_type == ACF_TYP_TBM9_HS)
         {
-            if (ctx->throt.tbm9erng == NULL)
+            if (t->tbm9erng == NULL)
             {
-                ctx->throt.tbm9erng = XPLMFindDataRef("tbm900/systems/engine/range");
+                t->tbm9erng = XPLMFindDataRef("tbm900/systems/engine/range");
             }
             if (index == 1)
             {
-                if (ctx->throt.tbm9erng)
+                if (t->tbm9erng)
                 {
-                    switch (XPLMGetDatai(ctx->throt.tbm9erng))
+                    switch (XPLMGetDatai(t->tbm9erng))
                     {
                         case 3:
                         case 5:
@@ -2845,13 +2845,13 @@ static int in_beta_at_index(chandler_context *ctx, int index)
             }
             return -1;
         }
-        if (ctx->info->has_beta_thr == 1)
+        if (t->info->has_beta_thr == 1)
         {
-            if (ctx->info->engine_count >= 1)
+            if (t->info->engine_count >= 1)
             {
-                if (index >= 1 && index <= 8 && index <= ctx->info->engine_count)
+                if (index >= 1 && index <= 8 && index <= t->info->engine_count)
                 {
-                    int mode; XPLMGetDatavi(ctx->throt.rev.prop_mode, &mode, index - 1, 1);
+                    int mode; XPLMGetDatavi(t->rev.prop_mode, &mode, index - 1, 1);
                     return mode == 2;
                 }
                 return -1;
@@ -2863,11 +2863,11 @@ static int in_beta_at_index(chandler_context *ctx, int index)
     return -1;
 }
 
-static int in_reverse_at_index(chandler_context *ctx, int index)
+static int in_reverse_at_index(refcon_thrust *t, int index)
 {
-    if (ctx)
+    if (t)
     {
-        assert_context *a32 = ctx->throt.rev.assert;
+        assert_context *a32 = t->rev.assert;
         if (a32)
         {
             if (index == 1)
@@ -2880,17 +2880,17 @@ static int in_reverse_at_index(chandler_context *ctx, int index)
             }
             return -1;
         }
-        if (ctx->info->ac_type == ACF_TYP_TBM9_HS)
+        if (t->info->ac_type == ACF_TYP_TBM9_HS)
         {
-            if (ctx->throt.tbm9erng == NULL)
+            if (t->tbm9erng == NULL)
             {
-                ctx->throt.tbm9erng = XPLMFindDataRef("tbm900/systems/engine/range");
+                t->tbm9erng = XPLMFindDataRef("tbm900/systems/engine/range");
             }
             if (index == 1)
             {
-                if (ctx->throt.tbm9erng)
+                if (t->tbm9erng)
                 {
-                    switch (XPLMGetDatai(ctx->throt.tbm9erng))
+                    switch (XPLMGetDatai(t->tbm9erng))
                     {
                         case 3:
                         case 4:
@@ -2906,13 +2906,13 @@ static int in_reverse_at_index(chandler_context *ctx, int index)
             }
             return -1;
         }
-        if (ctx->info->has_rvrs_thr == 1)
+        if (t->info->has_rvrs_thr == 1)
         {
-            if (ctx->info->engine_count >= 1)
+            if (t->info->engine_count >= 1)
             {
-                if (index >= 1 && index <= 8 && index <= ctx->info->engine_count)
+                if (index >= 1 && index <= 8 && index <= t->info->engine_count)
                 {
-                    int mode; XPLMGetDatavi(ctx->throt.rev.prop_mode, &mode, index - 1, 1);
+                    int mode; XPLMGetDatavi(t->rev.prop_mode, &mode, index - 1, 1);
                     return mode == 3;
                 }
                 return -1;
@@ -2924,23 +2924,23 @@ static int in_reverse_at_index(chandler_context *ctx, int index)
     return -1;
 }
 
-static int at_least_one_engine_in_beta(chandler_context *ctx)
+static int at_least_one_engine_in_beta(refcon_thrust *t)
 {
-    if (ctx)
+    if (t)
     {
-        if (in_beta_at_index(ctx, 1) == -1)
+        if (in_beta_at_index(t, 1) == -1)
         {
             return -1; // beta range not supported
         }
         for (int i = 1; i <= 8; i++)
         {
-            if (in_beta_at_index(ctx, i) == 1)
+            if (in_beta_at_index(t, i) == 1)
             {
                 return 1;
             }
-            if (in_beta_at_index(ctx, i) == -1)
+            if (in_beta_at_index(t, i) == -1)
             {
-                return 0; // i > ctx->info->engine_count
+                return 0; // i > t->info->engine_count
             }
             continue;
         }
@@ -2949,23 +2949,23 @@ static int at_least_one_engine_in_beta(chandler_context *ctx)
     return -1;
 }
 
-static int at_least_one_engine_in_reverse(chandler_context *ctx)
+static int at_least_one_engine_in_reverse(refcon_thrust *t)
 {
-    if (ctx)
+    if (t)
     {
-        if (in_reverse_at_index(ctx, 1) == -1)
+        if (in_reverse_at_index(t, 1) == -1)
         {
             return -1; // reverse thrust not supported
         }
         for (int i = 1; i <= 8; i++)
         {
-            if (in_reverse_at_index(ctx, i) == 1)
+            if (in_reverse_at_index(t, i) == 1)
             {
                 return 1;
             }
-            if (in_reverse_at_index(ctx, i) == -1)
+            if (in_reverse_at_index(t, i) == -1)
             {
-                return 0; // i > ctx->info->engine_count
+                return 0; // i > t->info->engine_count
             }
             continue;
         }
@@ -2985,24 +2985,24 @@ static int chandler_r_tog(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             if (reverse_supported)
             {
-                return chandler_r_rev(((chandler_context*)inRefcon)->throt.rev.rev.cb.command, xplm_CommandEnd, inRefcon);
+                return chandler_r_rev(((refcon_thrust*)inRefcon)->rev.rev.cb.command, xplm_CommandEnd, inRefcon);
             }
-            return chandler_r_fwd(((chandler_context*)inRefcon)->throt.rev.fwd.cb.command, xplm_CommandEnd, inRefcon);
+            return chandler_r_fwd(((refcon_thrust*)inRefcon)->rev.fwd.cb.command, xplm_CommandEnd, inRefcon);
         }
         if (in_reverse)
         {
             /*
              * we cannot switch to beta here, else we'd toggle between beta and reverse only instead of cycling…
              */
-            return chandler_r_fwd(((chandler_context*)inRefcon)->throt.rev.fwd.cb.command, xplm_CommandEnd, inRefcon);
+            return chandler_r_fwd(((refcon_thrust*)inRefcon)->rev.fwd.cb.command, xplm_CommandEnd, inRefcon);
         }
         if (beta_supported) // not in beta, not in reverse, beta supported
         {
-            return chandler_r_bet(((chandler_context*)inRefcon)->throt.rev.bet.cb.command, xplm_CommandEnd, inRefcon);
+            return chandler_r_bet(((refcon_thrust*)inRefcon)->rev.bet.cb.command, xplm_CommandEnd, inRefcon);
         }
         if (reverse_supported) // not in beta, not in reverse, reverse supported
         {
-            return chandler_r_rev(((chandler_context*)inRefcon)->throt.rev.rev.cb.command, xplm_CommandEnd, inRefcon);
+            return chandler_r_rev(((refcon_thrust*)inRefcon)->rev.rev.cb.command, xplm_CommandEnd, inRefcon);
         }
         return 0; // neither beta nor reverse supported
     }
@@ -3011,16 +3011,16 @@ static int chandler_r_tog(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    chandler_context *ctx = inRefcon;
-    if (ctx->throt.rev.propup)
+    refcon_thrust *t = inRefcon;
+    if (t->rev.propup)
     {
         switch (inPhase)
         {
             case xplm_CommandBegin:
-                XPLMCommandBegin(ctx->throt.rev.propup);
+                XPLMCommandBegin(t->rev.propup);
                 return 0;
             case xplm_CommandEnd:
-                XPLMCommandEnd(ctx->throt.rev.propup);
+                XPLMCommandEnd(t->rev.propup);
                 return 0;
             default:
                 return 0;
@@ -3028,28 +3028,28 @@ static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     }
     if (inPhase == xplm_CommandEnd)
     {
-        if (ctx->info->ac_type == ACF_TYP_TBM9_HS)
+        if (t->info->ac_type == ACF_TYP_TBM9_HS)
         {
-            if (in_beta_at_index(ctx, 1) == 1 || in_reverse_at_index(ctx, 1) == 1)
+            if (in_beta_at_index(t, 1) == 1 || in_reverse_at_index(t, 1) == 1)
             {
                 /*
                  * cannot go reverse -> beta here, else chandler_r_tog would toggle between beta and reverse only instead of cycling…
                  */
-                XPLMSetDataf(ctx->throt.throttle, T_ZERO + TBM9_FLIGHT_IDLE_GATE); // trigger the gate
+                XPLMSetDataf(t->throttle, T_ZERO + TBM9_FLIGHT_IDLE_GATE); // trigger the gate
                 return 0;
             }
             return 0;
         }
         for (int i = 1; i <= 8; i++)
         {
-            if (in_beta_at_index(ctx, i) == 1)
+            if (in_beta_at_index(t, i) == 1)
             {
-                XPLMCommandOnce(ctx->throt.rev.tgb[i]); // does it also work if we're feathered?
+                XPLMCommandOnce(t->rev.tgb[i]); // does it also work if we're feathered?
                 continue;
             }
-            if (in_reverse_at_index(ctx, i) == 1)
+            if (in_reverse_at_index(t, i) == 1)
             {
-                XPLMCommandOnce(ctx->throt.rev.tgr[i]); // does it also work if we're feathered?
+                XPLMCommandOnce(t->rev.tgr[i]); // does it also work if we're feathered?
                 continue;
             }
             continue;
@@ -3061,16 +3061,16 @@ static int chandler_r_fwd(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_r_bet(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    chandler_context *ctx = inRefcon;
-    if (ctx->throt.rev.propdn)
+    refcon_thrust *t = inRefcon;
+    if (t->rev.propdn)
     {
         switch (inPhase)
         {
             case xplm_CommandBegin:
-                XPLMCommandBegin(ctx->throt.rev.propdn);
+                XPLMCommandBegin(t->rev.propdn);
                 return 0;
             case xplm_CommandEnd:
-                XPLMCommandEnd(ctx->throt.rev.propdn);
+                XPLMCommandEnd(t->rev.propdn);
                 return 0;
             default:
                 return 0;
@@ -3078,25 +3078,25 @@ static int chandler_r_bet(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     }
     if (inPhase == xplm_CommandEnd)
     {
-        if (ctx->info->ac_type == ACF_TYP_TBM9_HS)
+        if (t->info->ac_type == ACF_TYP_TBM9_HS)
         {
-            if (in_beta_at_index(ctx, 1) != 0)
+            if (in_beta_at_index(t, 1) != 0)
             {
                 return 0;  // already in beta or beta not available (cutoff or feathered propeller)
             }
-            if (in_reverse_at_index(ctx, 1) == 1)
+            if (in_reverse_at_index(t, 1) == 1)
             {
                 return 0; // already below beta range
             }
-            XPLMSetDataf(ctx->throt.throttle, nvp_thrust_next(TBM9_FLIGHT_IDLE_GATE, nvp_thrust_presets1_tbm9, NVP_DIRECTION_DN));
-            XPLMCommandOnce(ctx->throt.rev.tgr[0]);
+            XPLMSetDataf(t->throttle, nvp_thrust_next(TBM9_FLIGHT_IDLE_GATE, nvp_thrust_presets1_tbm9, NVP_DIRECTION_DN));
+            XPLMCommandOnce(t->rev.tgr[0]);
             return 0;
         }
         for (int i = 1; i <= 8; i++)
         {
-            if (in_beta_at_index(ctx, i) == 0) // not in beta and beta supported
+            if (in_beta_at_index(t, i) == 0) // not in beta and beta supported
             {
-                XPLMCommandOnce(ctx->throt.rev.tgb[i]); // does it also work if we're feathered or in reverse?
+                XPLMCommandOnce(t->rev.tgb[i]); // does it also work if we're feathered or in reverse?
                 continue;
             }
             continue;
@@ -3108,16 +3108,16 @@ static int chandler_r_bet(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    chandler_context *ctx = inRefcon;
-    if (ctx->throt.rev.propdn)
+    refcon_thrust *t = inRefcon;
+    if (t->rev.propdn)
     {
         switch (inPhase)
         {
             case xplm_CommandBegin:
-                XPLMCommandBegin(ctx->throt.rev.propdn);
+                XPLMCommandBegin(t->rev.propdn);
                 return 0;
             case xplm_CommandEnd:
-                XPLMCommandEnd(ctx->throt.rev.propdn);
+                XPLMCommandEnd(t->rev.propdn);
                 return 0;
             default:
                 return 0;
@@ -3125,33 +3125,33 @@ static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     }
     if (inPhase == xplm_CommandEnd)
     {
-        if (ctx->info->ac_type == ACF_TYP_TBM9_HS)
+        if (t->info->ac_type == ACF_TYP_TBM9_HS)
         {
-            if (in_reverse_at_index(ctx, 1) != 0)
+            if (in_reverse_at_index(t, 1) != 0)
             {
                 return 0;  // already in reverse or reverse not available (cutoff or feathered propeller)
             }
-            if (in_beta_at_index(ctx, 1) == 0)
+            if (in_beta_at_index(t, 1) == 0)
             {
                 // not in beta range yet, use the beta command to lift the throttle lever past the flight idle gate
-                return chandler_r_bet(((chandler_context*)inRefcon)->throt.rev.bet.cb.command, xplm_CommandEnd, inRefcon);
+                return chandler_r_bet(((refcon_thrust*)inRefcon)->rev.bet.cb.command, xplm_CommandEnd, inRefcon);
             }
             return 0; // already in or below beta range at this point, use thrust up/down commands to control thrust
         }
         for (int i = 1; i <= 8; i++)
         {
-            if (in_reverse_at_index(ctx, i) == 1) // already in reverse
+            if (in_reverse_at_index(t, i) == 1) // already in reverse
             {
                 continue;
             }
-            if (in_beta_at_index(ctx, i) == 0) // not in reverse, not in beta, beta supported
+            if (in_beta_at_index(t, i) == 0) // not in reverse, not in beta, beta supported
             {
-                XPLMCommandOnce(ctx->throt.rev.tgb[i]); // does it also work if we're feathered?
+                XPLMCommandOnce(t->rev.tgb[i]); // does it also work if we're feathered?
                 continue;
             }
-            if (in_reverse_at_index(ctx, i) == 0) // not in reverse, reverse supported
+            if (in_reverse_at_index(t, i) == 0) // not in reverse, reverse supported
             {
-                XPLMCommandOnce(ctx->throt.rev.tgr[i]); // does it also work if we're feathered or in beta?
+                XPLMCommandOnce(t->rev.tgr[i]); // does it also work if we're feathered or in beta?
                 continue;
             }
             continue;
