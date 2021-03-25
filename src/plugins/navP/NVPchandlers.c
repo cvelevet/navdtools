@@ -2607,6 +2607,47 @@ static const float nvp_thrust_presets2_e35l[] =
     -1.0000f,
 };
 
+static const float nvp_thrust_presets1_cl30[] =
+{
+    0.00000f,
+    0.03125f,
+    0.06250f,
+    0.09375f,
+    0.12500f,
+    0.18750f,
+    0.25000f,
+    0.31250f,
+    0.37500f,
+    0.43750f,
+    0.50000f,
+    0.56250f,
+    0.62500f,
+    0.68750f,
+    0.75000f,
+    0.80000f, // manual thrust
+    .833333f, // CRZ
+    .866663f, // CLB
+    .933333f, // T/O
+    1.00000f, // APR
+    -1.0000f,
+};
+
+static const float nvp_thrust_presets2_cl30[] =
+{
+    0.00000f,
+    0.12500f,
+    0.25000f,
+    0.37500f,
+    0.50000f,
+    0.62500f,
+    0.75000f, // manual thrust
+    .833333f, // CRZ
+    .866663f, // CLB
+    .933333f, // T/O
+    1.00000f, // APR
+    -1.0000f,
+};
+
 static const float nvp_thrust_presets1_e55p[] =
 {
     /*
@@ -2741,6 +2782,41 @@ static const float nvp_thrust_presets2_tbm9[] =
 };
 
 #define TBM9_FLIGHT_IDLE_GATE (0.35f)
+
+static const float nvp_thrust_presets1_toli[] =
+{
+    0.00000f,
+    0.03125f,
+    0.06250f,
+    0.09375f,
+    0.12500f,
+    0.18750f,
+    0.25000f,
+    0.31250f,
+    0.37500f,
+    0.43750f,
+    0.50000f,
+    0.56250f,
+    0.62500f,
+    0.69250f, // ~CLB
+    0.87000f, // ~FLX
+    1.00000f, // TOGA
+    -1.0000f,
+};
+
+static const float nvp_thrust_presets2_toli[] =
+{
+    0.00000f,
+    0.12500f,
+    0.25000f,
+    0.37500f,
+    0.50000f,
+    0.62500f,
+    0.69250f, // ~CLB
+    0.87000f, // ~FLX
+    1.00000f, // TOGA
+    -1.0000f,
+};
 
 static const float nvp_thrust_presets1[] =
 {
@@ -3188,75 +3264,7 @@ static int chandler_rpmdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
-#define T_CL30_APR      (1.0f) // 1.000
-#define T_CL30_TOF (2.8f/3.0f) // 0.933
-#define T_CL30_CLB (2.6f/3.0f) // 0.866
-#define T_CL30_CRZ (2.5f/3.0f) // 0.833
-#define T_CL30_MAN      (0.8f) // 0.800
-static inline int custom_detents_cl30(XPLMDataRef throttle, int acf_type, float current, const float *presets, int direction)
-{
-    if (direction == NVP_DIRECTION_UP)
-    {
-        if (current > (T_CL30_TOF - T_ZERO)) // TO -> APR
-        {
-            XPLMSetDataf(throttle, T_CL30_APR);
-            return 1;
-        }
-        if (current > (T_CL30_CLB - T_ZERO)) // CLB -> TO
-        {
-            XPLMSetDataf(throttle, T_CL30_TOF);
-            return 1;
-        }
-        if (current > (T_CL30_CRZ - T_ZERO)) // CRZ -> CLB
-        {
-            XPLMSetDataf(throttle, T_CL30_CLB);
-            return 1;
-        }
-        if (current > (T_CL30_MAN - T_ZERO)) // MAN -> CRZ
-        {
-            XPLMSetDataf(throttle, T_CL30_CRZ);
-            return 1;
-        }
-        if (((nvp_thrust_next(current, presets, direction) > (T_CL30_MAN + T_ZERO)))) // -> MAN
-        {
-            XPLMSetDataf(throttle, T_CL30_MAN);
-            return 1;
-        }
-        return 0;
-    }
-    if (direction == NVP_DIRECTION_DN)
-    {
-        if (current > (T_CL30_TOF + T_ZERO)) // APR -> TO
-        {
-            XPLMSetDataf(throttle, T_CL30_TOF);
-            return 1;
-        }
-        if (current > (T_CL30_CLB + T_ZERO)) // TO -> CLB
-        {
-            XPLMSetDataf(throttle, T_CL30_CLB);
-            return 1;
-        }
-        if (current > (T_CL30_CRZ + T_ZERO)) // CLB -> CRZ
-        {
-            XPLMSetDataf(throttle, T_CL30_CRZ);
-            return 1;
-        }
-        if (current > (T_CL30_MAN + T_ZERO)) // CRZ ->
-        {
-            XPLMSetDataf(throttle, T_CL30_MAN);
-            return 1;
-        }
-        return 0;
-    }
-    return 0;
-}
-#undef T_CL30_APR
-#undef T_CL30_TOF
-#undef T_CL30_CLB
-#undef T_CL30_CRZ
-#undef T_CL30_MAN
-
-static inline int toliss_throttle_set(XPLMDataRef throttle, int acf_type, float next)
+static int toliss_throttle_set(XPLMDataRef throttle, int acf_type, float next)
 {
     switch (acf_type)
     {
@@ -3276,7 +3284,7 @@ static inline int toliss_throttle_set(XPLMDataRef throttle, int acf_type, float 
     return 0;
 }
 
-static inline int custom_detents_toli(XPLMDataRef throttle, int acf_type, float current, const float *presets, int direction)
+static float custom_detents_toliss(float next, int direction)
 {
     /*
      * ToLiSS "detents" vary based on whether thrust is going up or down :-(
@@ -3288,79 +3296,29 @@ static inline int custom_detents_toli(XPLMDataRef throttle, int acf_type, float 
      *
      * CLB: 00.695 (up, both)
      * CLB: 00.690 (dn, both)
+     *
+     * return lower of the two when going down (works for both)
+     * return higher of the two when going up (works for both)
      */
-    if (direction == NVP_DIRECTION_UP)
+    float hi_lo_detents[3][2] =
     {
-        if (current > (.865f - T_ZERO)) // FLEX (0.865..0.875) -> TOGA
-        {
-            toliss_throttle_set(throttle, acf_type, 1.0f);
-            return 1;
-        }
-        if (current > (0.69f - T_ZERO)) // CLMB (0.690..0.695) -> FLEX
-        {
-            toliss_throttle_set(throttle, acf_type, .875f);
-            return 1;
-        }
-        if (((nvp_thrust_next(current, presets, direction) > (0.69f + T_ZERO)))) // -> CLMB
-        {
-            toliss_throttle_set(throttle, acf_type, .695f);
-            return 1;
-        }
-        return 0;
-    }
-    if (direction == NVP_DIRECTION_DN)
+        { 1.00f, 1.00f },
+        { .875f, .865f },
+        { .695f, 0.69f },
+    };
+    if (next > (hi_lo_detents[1][0] + T_ZERO))
     {
-        if (current > (.875f + T_ZERO)) // TOGA -> FLEX (0.875..0.865)
-        {
-            toliss_throttle_set(throttle, acf_type, .865f);
-            return 1;
-        }
-        if (current > (.695f + T_ZERO)) // FLEX -> CLMB (0.695..0.690)
-        {
-            toliss_throttle_set(throttle, acf_type, 0.69f);
-            return 1;
-        }
-        return 0;
+        return hi_lo_detents[0][direction != NVP_DIRECTION_UP];
     }
-    return 0;
-}
-
-static inline int custom_throttle_all(XPLMDataRef throttle, int acf_type, float current, const float *presets, int direction)
-{
-    switch (acf_type)
+    if (next > (hi_lo_detents[2][0] + T_ZERO))
     {
-        case ACF_TYP_CL30_DD:
-            if (custom_detents_cl30(throttle, acf_type, current, presets, direction)) // TODO: use array
-            {
-                return 0;
-            }
-            break;
-
-        case ACF_TYP_A319_TL:
-        case ACF_TYP_A321_TL:
-        case ACF_TYP_A350_FF:
-            if (custom_detents_toli(throttle, acf_type, current, presets, direction)) // TODO: use array
-            {
-                return 0;
-            }
-            break;
-
-        default:
-            break;
+        return hi_lo_detents[1][direction != NVP_DIRECTION_UP];
     }
-    float next = nvp_thrust_next(current, presets, direction);
-    switch (acf_type)
+    if (next > (hi_lo_detents[2][1] - T_ZERO))
     {
-        case ACF_TYP_A319_TL:
-        case ACF_TYP_A321_TL:
-        case ACF_TYP_A350_FF:
-            return toliss_throttle_set(throttle, acf_type, next);
-
-        default:
-            XPLMSetDataf(throttle, next);
-            return 0;
+        return hi_lo_detents[2][direction != NVP_DIRECTION_UP];
     }
-    return 0;
+    return next;
 }
 
 static int nvp_throttle_all(refcon_thrust *t, const float *presets, int direction)
@@ -3432,8 +3390,7 @@ static int nvp_throttle_all(refcon_thrust *t, const float *presets, int directio
             case ACF_TYP_A319_TL:
             case ACF_TYP_A321_TL:
             case ACF_TYP_A350_FF:
-            case ACF_TYP_CL30_DD:
-                return custom_throttle_all(t->throttle, t->info->ac_type, current, presets, direction); // TODO: use array
+                return toliss_throttle_set(t->throttle, t->info->ac_type, custom_detents_toliss(next, direction));
 
             case ACF_TYP_LEGA_XC:
                 if (3.5f < next)
@@ -3522,6 +3479,12 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             switch (((refcon_thrust*)inRefcon)->info->ac_type)
             {
+                case ACF_TYP_A319_TL:
+                case ACF_TYP_A321_TL:
+                case ACF_TYP_A350_FF:
+                    return nvp_throttle_all(inRefcon, nvp_thrust_presets1_toli, NVP_DIRECTION_DN);
+                case ACF_TYP_CL30_DD:
+                    return nvp_throttle_all(inRefcon, nvp_thrust_presets1_cl30, NVP_DIRECTION_DN);
                 case ACF_TYP_E55P_AB:
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets1_e55p, NVP_DIRECTION_DN);
                 case ACF_TYP_LEGA_XC:
@@ -3553,6 +3516,12 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             switch (((refcon_thrust*)inRefcon)->info->ac_type)
             {
+                case ACF_TYP_A319_TL:
+                case ACF_TYP_A321_TL:
+                case ACF_TYP_A350_FF:
+                    return nvp_throttle_all(inRefcon, nvp_thrust_presets1_toli, NVP_DIRECTION_UP);
+                case ACF_TYP_CL30_DD:
+                    return nvp_throttle_all(inRefcon, nvp_thrust_presets1_cl30, NVP_DIRECTION_UP);
                 case ACF_TYP_E55P_AB:
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets1_e55p, NVP_DIRECTION_UP);
                 case ACF_TYP_LEGA_XC:
@@ -3584,6 +3553,12 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             switch (((refcon_thrust*)inRefcon)->info->ac_type)
             {
+                case ACF_TYP_A319_TL:
+                case ACF_TYP_A321_TL:
+                case ACF_TYP_A350_FF:
+                    return nvp_throttle_all(inRefcon, nvp_thrust_presets2_toli, NVP_DIRECTION_UP);
+                case ACF_TYP_CL30_DD:
+                    return nvp_throttle_all(inRefcon, nvp_thrust_presets2_cl30, NVP_DIRECTION_UP);
                 case ACF_TYP_E55P_AB:
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets2_e55p, NVP_DIRECTION_UP);
                 case ACF_TYP_LEGA_XC:
