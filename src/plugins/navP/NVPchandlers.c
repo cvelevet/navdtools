@@ -5319,7 +5319,7 @@ static void nvp_efis_setup(void)
     _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
 }
 
-static void nvp_xgps_setup(void)
+static void nvp_skyv_setup(void)
 {
     XPLMDataRef d_ref;
     // TODO: implement
@@ -5331,12 +5331,73 @@ static void nvp_x1000_setup(void)
     // TODO: implement
 }
 
+static void nvp_xgps_setup(void)
+{
+    XPLMDataRef d_ref;
+    // TODO: implement
+}
+
+static void nvp_xnz_setup(int engine_count, int engines_on)
+{
+    XPLMCommandRef cr;
+    /*
+     * Sync TCA Quadrant switches w/default state.
+     */
+    const char* master[4][2] =
+    {
+        { "xnz/tca/engines/1/on", "xnz/tca/engines/1/off", },
+        { "xnz/tca/engines/2/on", "xnz/tca/engines/2/off", },
+        { "xnz/tca/engines/3/on", "xnz/tca/engines/3/off", },
+        { "xnz/tca/engines/4/on", "xnz/tca/engines/4/off", },
+    };
+    switch (engine_count)
+    {
+        case 8:
+        case 7:
+        case 6:
+        case 5:
+        case 4:
+            if ((cr = XPLMFindCommand(master[3][0 == engines_on])))
+            {
+                XPLMCommandOnce(cr);
+            }
+        case 3:
+            if ((cr = XPLMFindCommand(master[2][0 == engines_on])))
+            {
+                XPLMCommandOnce(cr);
+            }
+            if ((cr = XPLMFindCommand("xnz/tca/34/modes/norm")))
+            {
+                XPLMCommandOnce(cr);
+            }
+        case 2:
+            if ((cr = XPLMFindCommand(master[1][0 == engines_on])))
+            {
+                XPLMCommandOnce(cr);
+            }
+        case 1:
+            if ((cr = XPLMFindCommand(master[0][0 == engines_on])))
+            {
+                XPLMCommandOnce(cr);
+            }
+            if ((cr = XPLMFindCommand("xnz/tca/12/modes/norm")))
+            {
+                XPLMCommandOnce(cr);
+            }
+            return;
+
+        default:
+            break;
+    }
+    return;
+}
+
 static int first_fcall_do(chandler_context *ctx)
 {
     XPLMDataRef d_ref;
     XPLMPluginID p_id;
     XPLMCommandRef cr;
-    int absk = 0, x1000 = 0, xgps = 0, r;
+    int absk = 0, x1000 = 0, xgps = 0, xnzs = 0, r;
     if ((r = acf_type_info_acf_ctx_init()))
     {
         if (r == EAGAIN)
@@ -5400,6 +5461,7 @@ static int first_fcall_do(chandler_context *ctx)
                 rca->api.ValueSet(rca->dat.id_u32_overhead_rmp3pow, &defaults_u32[9]); // overhead (RMP #3: power off)
                 XPLMCommandOnce(rca->dat.throttles_dn); // workaround bug in A320's default "cold & dark" saved state
             }
+            nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             break;
 
         case ACF_TYP_A319_TL:
@@ -5458,8 +5520,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/audio_selection_com1"); // C1:TX/RX
             _DO(0, XPLMSetDatai, 6, "sim/cockpit2/radios/actuators/audio_com_selection");  // C1:TX/RX
-            if (ctx->info->ac_type == ACF_TYP_A319_TL ||
-                ctx->info->ac_type == ACF_TYP_A321_TL)
+            if (ctx->info->ac_type == ACF_TYP_A319_TL || ctx->info->ac_type == ACF_TYP_A321_TL)
             {
                 if (ctx->a319kc.kc_is_registered)
                 {
@@ -5615,6 +5676,7 @@ static int first_fcall_do(chandler_context *ctx)
                 ndt_log("navP [info]: AirbusFBW key sniffer registered\n");
                 break;
             }
+            nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             break;
 
         case ACF_TYP_A350_FF:
@@ -5797,10 +5859,12 @@ static int first_fcall_do(chandler_context *ctx)
                 ndt_log("navP [warning]: failed to register key sniffer for AirbusFBW\n");
                 break;
             }
+            nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             ndt_log("navP [info]: AirbusFBW key sniffer registered\n");
             break;
 
         case ACF_TYP_B737_EA:
+            nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             _DO(1, XPLMSetDatai, 0, "x737/cockpit/yoke/captYokeVisible");
             _DO(1, XPLMSetDatai, 0, "x737/cockpit/yoke/foYokeVisible");
             break;
@@ -5845,6 +5909,7 @@ static int first_fcall_do(chandler_context *ctx)
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
             }
+            nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             break;
 
         case ACF_TYP_B757_FF:
@@ -6010,6 +6075,7 @@ static int first_fcall_do(chandler_context *ctx)
                 _DO(1, XPLMSetDatai, 0, "1-sim/optoins/eicas/BrakeTemperatureDisplay"); // avionics: EICAS display settings
                 _DO(1, XPLMSetDatai, 0, "1-sim/optoins/eicas/BulkCargoCompartmentTemperature");   // EICAS display settings
             }
+            nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             break;
 
         case ACF_TYP_B777_FF:
@@ -6038,6 +6104,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai,    1, "anim/26/switch");                           // Cargo temp. cont. (blk) (low)
             _DO(1, XPLMSetDataf, 0.5f, "anim/5/rotery");                            // Temp. control (f. deck) (auto)
             _DO(1, XPLMSetDataf, 0.5f, "anim/6/rotery");                            // Temp. control (all ca.) (auto)
+            nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             break;
 
         case ACF_TYP_CL30_DD:
@@ -6064,6 +6131,7 @@ static int first_fcall_do(chandler_context *ctx)
                 acf_type_fuel_set(ctx->info, &fuel);
             }
             XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 10.0f); // initial CLB pitch
+            nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             nvp_efis_setup();
             break;
 
@@ -6121,6 +6189,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 0, "aerobask/show_reflections_windows");
             _DO(1, XPLMSetDatai, 0, "sim/graphics/view/hide_yoke");
             XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 10.0f); // initial CLB pitch
+            nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             nvp_x1000_setup();
             break;
 
@@ -6133,6 +6202,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 1, "ssg/EJET/GND/rain_hide_sw");  // Disable rain effects
             _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/seats_hide_sw"); // Hide captain's seat
             _DO(1, XPLMSetDatai, 0, "ssg/EJET/GND/yokes_hide_sw"); // Hide both yokes
+            nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             break;
 
         case ACF_TYP_EMBE_XC:
@@ -6176,6 +6246,7 @@ static int first_fcall_do(chandler_context *ctx)
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
             }
+            nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             nvp_efis_setup();
             break;
 
@@ -6207,6 +6278,7 @@ static int first_fcall_do(chandler_context *ctx)
                 acf_type_fuel_set(ctx->info, &fuel);
             }
             XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 8.5f); // initial CLB pitch
+            nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             break;
 
         case ACF_TYP_LEGA_XC:
@@ -6232,6 +6304,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDataf, 10.0f, "sim/cockpit2/autopilot/TOGA_pitch_deg");
             _DO(1, XPLMSetDatai, 0, "sim/graphics/view/hide_yoke");
             _DO(1, XPLMSetDatai, 1, "XCrafts/ERJ/weight_units");
+            nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             nvp_efis_setup();
             break;
 
@@ -6251,6 +6324,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 1, "Rotate/md80/misc/hide_yoke_button_clicked");
             _DO(1, XPLMSetDatai, 2, "Rotate/md80/instruments/nav_display_range");
             _DO(1, XPLMSetDatai, 2, "Rotate/md80/instruments/nav_display_mode");
+            nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             break;
 
         case ACF_TYP_TBM9_HS:
@@ -6318,6 +6392,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 0, "tbm900/switches/gear/chocks");
             _DO(1, XPLMSetDatai, 0, "tbm900/anim/engine/tied");
             _DO(1, XPLMSetDatai, 1, "tbm900/tablet/visible");
+            nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             nvp_x1000_setup();
             break;
 
@@ -6665,6 +6740,14 @@ static int first_fcall_do(chandler_context *ctx)
             else if (absk == 0) // don't mess w/Aerobask's WXR radar
             {
                 nvp_efis_setup();
+            }
+            else
+            {
+                nvp_skyv_setup();
+            }
+            if (xnzs == 0) // unless we specifically skip it
+            {
+                nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             }
             if (acf_type_is_engine_running() == 0 && absk == 0 &&
                 XPLMFindPluginBySignature("com.simcoders.rep") == XPLM_NO_PLUGIN_ID)
