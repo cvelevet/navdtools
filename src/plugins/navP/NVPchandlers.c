@@ -6291,6 +6291,10 @@ static int first_fcall_do(chandler_context *ctx)
                 float generic_lights_switch[1] = { 1.0f, };
                 XPLMSetDatavf(d_ref, &generic_lights_switch[0], 56, 1); // reflec. off
             }
+            if ((cr = XPLMFindCommand("XCrafts/ERJ/CRZ")))
+            {
+                XPLMCommandOnce(cr);
+            }
             if (acf_type_is_engine_running() == 0)
             {
                 float load = 320.0f, fuel = 2520.0f;
