@@ -483,6 +483,12 @@ typedef struct
         XPLMPluginID pe_plid;
         XPLMPluginID xb_plid;
     } coatc;
+
+    struct
+    {
+        XPLMDataRef  axis[3];
+        float sensitivity[3];
+    } axes;
 } chandler_context;
 
 /* Callout default values */
@@ -1065,6 +1071,32 @@ void* nvp_chandlers_init(void)
         ctx->ground.pt = &ctx->throt;
     }
 
+    /* nominal axis sensitivity settings as per user preference files */
+    if ((ctx->axes.axis[0] = XPLMFindDataRef("sim/joystick/joystick_heading_sensitivity")))
+    {
+        ctx->axes.sensitivity[0] = XPLMGetDataf(ctx->axes.axis[0]);
+    }
+    else
+    {
+        ctx->axes.sensitivity[0] = 0.5f;
+    }
+    if ((ctx->axes.axis[1] = XPLMFindDataRef("sim/joystick/joystick_pitch_sensitivity")))
+    {
+        ctx->axes.sensitivity[1] = XPLMGetDataf(ctx->axes.axis[0]);
+    }
+    else
+    {
+        ctx->axes.sensitivity[1] = 0.5f;
+    }
+    if ((ctx->axes.axis[2] = XPLMFindDataRef("sim/joystick/joystick_roll_sensitivity")))
+    {
+        ctx->axes.sensitivity[2] = XPLMGetDataf(ctx->axes.axis[0]);
+    }
+    else
+    {
+        ctx->axes.sensitivity[2] = 0.5f;
+    }
+
     /* all good */
     return ctx;
 
@@ -1232,10 +1264,16 @@ int nvp_chandlers_reset(void *inContext)
     ctx->throt. atc_is_connected = 0;
 
     /* Reset some datarefs to match X-Plane's defaults at startup */
+    _DO(1, XPLMSetDataf, ctx->axes.sensitivity[0], "sim/joystick/joystick_heading_sensitivity");
+    _DO(1, XPLMSetDataf, ctx->axes.sensitivity[1], "sim/joystick/joystick_pitch_sensitivity");
+    _DO(1, XPLMSetDataf, ctx->axes.sensitivity[2], "sim/joystick/joystick_roll_sensitivity");
     _DO(1, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com1_power");
     _DO(1, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/com2_power");
     _DO(1, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/nav1_power");
     _DO(1, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/nav2_power");
+    _DO(1, XPLMSetDataf, 0.5f, "sim/joystick/joystick_heading_augment");
+    _DO(1, XPLMSetDataf, 0.5f, "sim/joystick/joystick_pitch_augment");
+    _DO(1, XPLMSetDataf, 0.5f, "sim/joystick/joystick_roll_augment");
     _DO(1, XPLMSetDatai, 0, "sim/graphics/misc/kill_map_fms_line");
 
     /* Reset turnaround-enabled flight loop callback */
@@ -5419,10 +5457,13 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_roll_augment");
             break;
 
+        case ACF_TYP_E55P_AB:
+            _DO(1, XPLMSetDataf, 1.0f, "sim/joystick/joystick_heading_sensitivity");
+            _DO(1, XPLMSetDataf, 1.0f, "sim/joystick/joystick_pitch_sensitivity");
+            _DO(1, XPLMSetDataf, 1.0f, "sim/joystick/joystick_roll_sensitivity");
+            break;
+
         default:
-            _DO(1, XPLMSetDataf, 0.5f, "sim/joystick/joystick_heading_augment");
-            _DO(1, XPLMSetDataf, 0.5f, "sim/joystick/joystick_pitch_augment");
-            _DO(1, XPLMSetDataf, 0.5f, "sim/joystick/joystick_roll_augment");
             break;
     }
     switch (ctx->info->ac_type)
