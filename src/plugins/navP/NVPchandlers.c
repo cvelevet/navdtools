@@ -4121,10 +4121,12 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     cdu->i_disabled = 0; break;
 
                 case ACF_TYP_E55P_AB:
-                    if ((cdu->command[0] = XPLMFindCommand("aerobask/gfc700_popup_toggle")) &&
-                        (cdu->command[1] = XPLMFindCommand("aerobask/gcu477_popup_toggle")) &&
-                        (cdu->command[2] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
-                        (cdu->command[3] = XPLMFindCommand("sim/GPS/g1000n3_popup")))
+                    if ((cdu->command[0] = XPLMFindCommand("aerobask/gfc700_popup_show")) &&
+                        (cdu->command[1] = XPLMFindCommand("aerobask/gfc700_popup_hide")) &&
+                        (cdu->command[2] = XPLMFindCommand("aerobask/gcu477_popup_show")) &&
+                        (cdu->command[3] = XPLMFindCommand("aerobask/gcu477_popup_hide")) &&
+                        (cdu->command[4] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
+                        (cdu->command[5] = XPLMFindCommand("sim/GPS/g1000n3_popup")))
                     {
                         cdu->i_cycle_id = 0; // GCU477 + GFC700 + G1000 (x3)
                         cdu->i_disabled = 0; break; // Aerobask G1000 (E55P)
@@ -4326,10 +4328,12 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             if (!STRN_CASECMP_AUTO(cdu->icao, "EPIC") ||
                                 !STRN_CASECMP_AUTO(cdu->icao, "EVIC"))
                             {
-                                if ((cdu->command[0] = XPLMFindCommand("aerobask/gfc700_popup_toggle")) &&
-                                    (cdu->command[1] = XPLMFindCommand("aerobask/gcu477_popup_toggle")) &&
-                                    (cdu->command[2] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
-                                    (cdu->command[3] = XPLMFindCommand("sim/GPS/g1000n3_popup")))
+                                if ((cdu->command[0] = XPLMFindCommand("aerobask/gfc700_popup_show")) &&
+                                    (cdu->command[1] = XPLMFindCommand("aerobask/gfc700_popup_hide")) &&
+                                    (cdu->command[2] = XPLMFindCommand("aerobask/gcu477_popup_show")) &&
+                                    (cdu->command[3] = XPLMFindCommand("aerobask/gcu477_popup_hide")) &&
+                                    (cdu->command[4] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
+                                    (cdu->command[5] = XPLMFindCommand("sim/GPS/g1000n3_popup")))
                                 {
                                     cdu->i_cycle_id = 0;
                                     cdu->i_aerobask = 2; // GCU477 + GFC700 + G1000 (x3)
@@ -4542,21 +4546,32 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 switch (cdu->i_cycle_id)
                 {
                     case 0:
-                        XPLMCommandOnce(cdu->command[2]); // G1000: Lt display (show)
+                        XPLMCommandOnce(cdu->command[4]); // G1000: Lt display (show)
                         XPLMCommandOnce(cdu->command[0]); // GFC700: autopilot (show)
+//                      XPLMCommandOnce(cdu->command[5]); // G1000: Rt display (hide) (already hidden - we only have a toggle command)
+                        XPLMCommandOnce(cdu->command[3]); // GCU-477: keyboard (hide)
                         cdu->i_cycle_id = 1;
-                        break;
+                        return 0;
                     case 1:
-                        XPLMCommandOnce(cdu->command[2]); // G1000: Lt display (hide)
-                        XPLMCommandOnce(cdu->command[0]); // GFC700: autopilot (hide)
-                        XPLMCommandOnce(cdu->command[3]); // G1000: Ct display (show)
-                        XPLMCommandOnce(cdu->command[1]); // GCU-477: keyboard (show)
+                        XPLMCommandOnce(cdu->command[4]); // G1000: Lt display (hide)
+                        XPLMCommandOnce(cdu->command[1]); // GFC700: autopilot (hide)
+                        XPLMCommandOnce(cdu->command[5]); // G1000: Ct display (show)
+                        XPLMCommandOnce(cdu->command[2]); // GCU-477: keyboard (show)
                         cdu->i_cycle_id = 2;
-                        break;
+                        return 0;
                     case 2:
+//                      XPLMCommandOnce(cdu->command[4]); // G1000: Lt display (hide) (already hidden - we only have a toggle command)
+                        XPLMCommandOnce(cdu->command[1]); // GFC700: autopilot (hide)
+//                      XPLMCommandOnce(cdu->command[5]); // G1000: Ct display (show) (already showing, we only have a toggle command)
+                        XPLMCommandOnce(cdu->command[3]); // GCU-477: keyboard (hide)
+                        cdu->i_cycle_id = 3;
+                        return 0;
+                    case 3:
                     default:
-                        XPLMCommandOnce(cdu->command[3]); // G1000: Ct display (hide)
-                        XPLMCommandOnce(cdu->command[1]); // GCU-477: keyboard (hide)
+//                      XPLMCommandOnce(cdu->command[4]); // G1000: Lt display (hide) (already hidden - we only have a otggle command)
+                        XPLMCommandOnce(cdu->command[1]); // GFC700: autopilot (hide)
+                        XPLMCommandOnce(cdu->command[5]); // G1000: Ct display (hide)
+                        XPLMCommandOnce(cdu->command[3]); // GCU-477: keyboard (hide)
                         cdu->i_cycle_id = 0;
                         break;
                 }
@@ -4703,21 +4718,32 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     switch (cdu->i_cycle_id)
                     {
                         case 0:
-                            XPLMCommandOnce(cdu->command[2]); // G1000: Lt display (show)
+                            XPLMCommandOnce(cdu->command[4]); // G1000: Lt display (show)
                             XPLMCommandOnce(cdu->command[0]); // GFC700: autopilot (show)
+//                          XPLMCommandOnce(cdu->command[5]); // G1000: Rt display (hide) (already hidden - we only have a toggle command)
+                            XPLMCommandOnce(cdu->command[3]); // GCU-477: keyboard (hide)
                             cdu->i_cycle_id = 1;
-                            break;
+                            return 0;
                         case 1:
-                            XPLMCommandOnce(cdu->command[2]); // G1000: Lt display (hide)
-                            XPLMCommandOnce(cdu->command[0]); // GFC700: autopilot (hide)
-                            XPLMCommandOnce(cdu->command[3]); // G1000: Ct display (show)
-                            XPLMCommandOnce(cdu->command[1]); // GCU-477: keyboard (show)
+                            XPLMCommandOnce(cdu->command[4]); // G1000: Lt display (hide)
+                            XPLMCommandOnce(cdu->command[1]); // GFC700: autopilot (hide)
+                            XPLMCommandOnce(cdu->command[5]); // G1000: Ct display (show)
+                            XPLMCommandOnce(cdu->command[2]); // GCU-477: keyboard (show)
                             cdu->i_cycle_id = 2;
-                            break;
+                            return 0;
                         case 2:
+//                          XPLMCommandOnce(cdu->command[4]); // G1000: Lt display (hide) (already hidden - we only have a toggle command)
+                            XPLMCommandOnce(cdu->command[1]); // GFC700: autopilot (hide)
+//                          XPLMCommandOnce(cdu->command[5]); // G1000: Ct display (show) (already showing, we only have a toggle command)
+                            XPLMCommandOnce(cdu->command[3]); // GCU-477: keyboard (hide)
+                            cdu->i_cycle_id = 3;
+                            return 0;
+                        case 3:
                         default:
-                            XPLMCommandOnce(cdu->command[3]); // G1000: Ct display (hide)
-                            XPLMCommandOnce(cdu->command[1]); // GCU-477: keyboard (hide)
+//                          XPLMCommandOnce(cdu->command[4]); // G1000: Lt display (hide) (already hidden - we only have a otggle command)
+                            XPLMCommandOnce(cdu->command[1]); // GFC700: autopilot (hide)
+                            XPLMCommandOnce(cdu->command[5]); // G1000: Ct display (hide)
+                            XPLMCommandOnce(cdu->command[3]); // GCU-477: keyboard (hide)
                             cdu->i_cycle_id = 0;
                             break;
                     }
