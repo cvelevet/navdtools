@@ -148,18 +148,12 @@ void nvp_plugin_message(XPLMPluginID inFromWho,
             break;
 
         case XPLM_MSG_AIRPORT_LOADED:
-            /*
-             * We call nvp_chandlers_on_run here because X-Plane 11 stupidly resets the things
-             * it does after both XPLM_MSG_LIVERY_LOADED and XPLM_MSG_SCENERY_LOADED messages;
-             * the function itself will ensure it doesn't do anything when it is not required.
-             */
-            nvp_chandlers_on_run(chandler_context);
-            nvp_menu_reset      (navpmenu_context); // TODO: document why we also call this here
+            nvp_menu_reset(navpmenu_context); // TODO: document why we also call this here
             break;
 
         case XPLM_MSG_SCENERY_LOADED:
             nvp_chandlers_scload(chandler_context);
-            nvp_menu_reset      (navpmenu_context);
+            nvp_menu_reset      (navpmenu_context); // TODO: document why we also call this here
             break;
 
         case XPLM_MSG_AIRPLANE_COUNT_CHANGED:
@@ -181,6 +175,7 @@ void nvp_plugin_message(XPLMPluginID inFromWho,
             if (inParam == XPLM_USER_AIRCRAFT) // custom plugins loaded
             {
                 nvp_chandlers_update(chandler_context);
+                nvp_chandlers_on_run(chandler_context);
                 nvp_menu_setup      (navpmenu_context);
                 break;
             }
