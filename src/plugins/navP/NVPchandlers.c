@@ -290,6 +290,7 @@ typedef struct
 
 typedef struct
 {
+    int reset_count;
     int acf_num_tanks;
     int acf_num_engines;
     float time_elapsed_total;
@@ -1460,9 +1461,14 @@ static float fuel_t_w_hdlr(float inElapsedSinceLastCall,
     {
         if (fuel_tank_select(((refcon_fueltw*)inRefcon)->acf_num_engines, ((refcon_fueltw*)inRefcon)->acf_num_tanks) > 0)
         {
+            if ((((refcon_fueltw*)inRefcon)->reset_count += 1) >= 2)
+            {
+                ndt_log("navP [info]: fuel_tank_select() changed selection\n");
+                ndt_log("navP [info]: fuel_t_w_hdlr() mission accomplished\n");
+                return 0; // no longer needed past this point
+            }
             ndt_log("navP [info]: fuel_tank_select() changed selection\n");
-            ndt_log("navP [info]: fuel_t_w_hdlr() mission accomplished\n");
-            return 0; // no longer needed past this point
+            return -1;
         }
         if ((((refcon_fueltw*)inRefcon)->time_elapsed_total += inElapsedSinceLastCall) > 60.0f)
         {
@@ -1484,7 +1490,7 @@ void nvp_chandlers_on_run(void *inContext)
         {
             if (ctx->info->engine_count == 1) // single-engine: select default fuel tank
             {
-                ctx->fueltw.time_elapsed_total = 0.0f;
+                ctx->fueltw.reset_count = 0; ctx->fueltw.time_elapsed_total = 0.0f;
                 XPLMRegisterFlightLoopCallback(ctx->fueltw.flc_fuel = fuel_t_w_hdlr, -1, &ctx->fueltw);
                 if (fuel_tank_select(ctx->fueltw.acf_num_engines = ctx->info->engine_count, ctx->fueltw.acf_num_tanks = ctx->info->ftanks_count) > 0)
                 {
