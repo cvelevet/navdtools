@@ -160,6 +160,7 @@ typedef struct
     char icaoid[ 41];
     XPLMDataRef dric;
     int flap_detents;
+    int ftanks_count;
     int engine_count;
     int engine_type1;
     int has_auto_thr;

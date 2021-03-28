@@ -31,6 +31,8 @@
 #include "NVPchandlers.h"
 #include "NVPmenu.h"
 
+//#define NVP_DEBUG 1
+
 /* version number */
 #ifndef NDT_VERSION
 #define NDT_VERSION "unknown :-("
@@ -121,31 +123,43 @@ void nvp_plugin_message(XPLMPluginID inFromWho,
                         long         inMessage,
                         void        *inParam)
 {
+#if NVP_DEBUG
+    ndt_log("DEBUG: ---------------------------\nDEBUG: nvp_plugin_message begin\nDEBUG: with inMessage == %ld\n", inMessage);
+#endif
     switch (inMessage)
     {
         case XPLM_MSG_PLANE_CRASHED:
+            if (inParam == XPLM_USER_AIRCRAFT)
+            {
+                break;
+            }
             break;
 
         case XPLM_MSG_PLANE_LOADED:
-            if (xplane_first_load)
+            if (inParam == XPLM_USER_AIRCRAFT)
             {
-//                XPLMPluginID xfsr = XPLMFindPluginBySignature("ivao.xivap");
-//                if (XPLM_NO_PLUGIN_ID != xfsr) // X-FlightServer's X-IvAp
-//                {
-//                    XPLMDisablePlugin(xfsr);
-//                }
-                xplane_first_load = 0;
+                if (xplane_first_load)
+                {
+                    xplane_first_load = 0;
+                }
+                nvp_chandlers_onload(chandler_context);
+                break;
             }
-            nvp_chandlers_onload(chandler_context);
             break;
 
         case XPLM_MSG_AIRPORT_LOADED:
-            nvp_menu_reset(navpmenu_context);
+            /*
+             * We call nvp_chandlers_on_run here because X-Plane 11 stupidly resets the things
+             * it does after both XPLM_MSG_LIVERY_LOADED and XPLM_MSG_SCENERY_LOADED messages;
+             * the function itself will ensure it doesn't do anything when it is not required.
+             */
+            nvp_chandlers_on_run(chandler_context);
+            nvp_menu_reset      (navpmenu_context); // TODO: document why we also call this here
             break;
 
         case XPLM_MSG_SCENERY_LOADED:
-            nvp_menu_reset(navpmenu_context);
             nvp_chandlers_scload(chandler_context);
+            nvp_menu_reset      (navpmenu_context);
             break;
 
         case XPLM_MSG_AIRPLANE_COUNT_CHANGED:
@@ -156,6 +170,7 @@ void nvp_plugin_message(XPLMPluginID inFromWho,
             {
                 nvp_menu_reset     (navpmenu_context);
                 nvp_chandlers_reset(chandler_context);
+                break;
             }
             break;
 
@@ -167,10 +182,14 @@ void nvp_plugin_message(XPLMPluginID inFromWho,
             {
                 nvp_chandlers_update(chandler_context);
                 nvp_menu_setup      (navpmenu_context);
+                break;
             }
             break;
 
         default:
             break;
     }
+#if NVP_DEBUG
+    ndt_log("DEBUG: still inMessage == %ld\nDEBUG: nvp_plugin_message end\nDEBUG: ---------------------------\n", inMessage);
+#endif    
 }

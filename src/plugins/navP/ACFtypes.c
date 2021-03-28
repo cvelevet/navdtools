@@ -250,6 +250,24 @@ acf_info_context* acf_type_info_update()
     }
 
     /* get engine count and type */
+    if ((tmp = XPLMFindDataRef("sim/aircraft/overflow/acf_tank_rat")))
+    {
+                float tank_ratio[9]; global_info->ftanks_count = 0;
+                for (int i = 0, j = XPLMGetDatavf(tmp, tank_ratio, 0, 9); i < j; i++)
+                {
+                    if (tank_ratio[i] > .01f)
+                    {
+                        global_info->ftanks_count++;
+                        continue;
+                    }
+                    continue;
+                }
+                if (global_info->ftanks_count == 4 && (fabsf(tank_ratio[0] - tank_ratio[1]) < .01f &&
+                                                       fabsf(tank_ratio[2] - tank_ratio[3]) < .01f))
+                {
+                    global_info->ftanks_count = 2; // e.g. Bonanza V35B w/tip tanks
+                }
+    }
     if ((tmp = XPLMFindDataRef("sim/aircraft/engine/acf_num_engines")))
     {
         global_info->engine_count = XPLMGetDatai(tmp);
