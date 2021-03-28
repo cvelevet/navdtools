@@ -290,13 +290,23 @@ typedef struct
 
 typedef struct
 {
+    int acf_num_tanks;
+    int acf_num_engines;
+    float time_elapsed_total;
+    XPLMFlightLoop_f flc_fuel;
+} refcon_fueltw;
+
+typedef struct
+{
     int        initialized;
+    int        onrun_items;
     int        first_fcall;
     int        kill_daniel;
     void     *menu_context;
     acf_info_context *info;
     refcon_a319kbc  a319kc;
     refcon_a350kbc  a350kc;
+    refcon_fueltw   fueltw;
     refcon_ground   ground;
     refcon_thrust    throt;
     refcon_gear       gear;
@@ -622,6 +632,7 @@ static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static float flc_flap_func (                                        float, float, int, void*);
 static float flc_oatc_func (                                        float, float, int, void*);
 static float gnd_stab_hdlr (                                        float, float, int, void*);
+static float fuel_t_w_hdlr (                                        float, float, int, void*);
 static float tbm9mousehdlr (                                        float, float, int, void*);
 static int   first_fcall_do(                                           chandler_context *ctx);
 static int   tliss_fbw_init(                                             refcon_tolifbw *fbw);
@@ -1265,6 +1276,13 @@ int nvp_chandlers_reset(void *inContext)
     _DO(1, XPLMSetDataf, 0.5f, "sim/joystick/joystick_roll_augment");
     _DO(1, XPLMSetDatai, 0, "sim/graphics/misc/kill_map_fms_line");
 
+    /* reset fuel tank selector workaround */
+    if (ctx->fueltw.flc_fuel)
+    {
+        XPLMUnregisterFlightLoopCallback(ctx->fueltw.flc_fuel, &ctx->fueltw);
+        ctx->fueltw.flc_fuel = NULL;
+    }
+
     /* Reset turnaround-enabled flight loop callback */
     if (ctx->ground.flc_g)
     {
@@ -1294,7 +1312,7 @@ int nvp_chandlers_reset(void *inContext)
     }
 
     /* all good */
-    ndt_log("navP [info]: nvp_chandlers_reset OK\n"); return (ctx->initialized = 0);
+    ndt_log("navP [info]: nvp_chandlers_reset OK\n"); return (ctx->initialized = ctx->onrun_items = 0);
 }
 
 void nvp_chandlers_setmnu(void *inContext, void *inMenu)
@@ -1356,6 +1374,129 @@ static void print_aircft_info(acf_info_context *info)
     ndt_log("navP [info]: %s (\"%s\", \"%s\", \"%s\", \"%s\", \"%s\")\n",
             acf_type_get_name(info->ac_type),
             info->icaoid, info->tailnb, info->author, info->descrp, info->afname);
+}
+
+static int fuel_tank_select(int acf_num_engines, int acf_num_tanks)
+{
+    if (acf_num_engines == 1)
+    {
+        XPLMDataRef d_ref = XPLMFindDataRef("sim/cockpit2/fuel/fuel_tank_selector");
+        if (d_ref)
+        {
+            int fuel_tank_selector = XPLMGetDatai(d_ref);
+            if (fuel_tank_selector < 1 ||  fuel_tank_selector > 3 || fuel_tank_selector > acf_num_tanks)
+            {
+                if ((d_ref = XPLMFindDataRef("sim/aircraft/overflow/acf_has_fuel_all")))
+                {
+                    if (XPLMGetDatai(d_ref))
+                    {
+                        if (fuel_tank_selector != 4)
+                        {
+                            if ((d_ref = XPLMFindDataRef("sim/cockpit2/fuel/fuel_tank_selector_right")))
+                            {
+                                XPLMSetDatai(d_ref, 4);
+                            }
+                            if ((d_ref = XPLMFindDataRef("sim/cockpit2/fuel/fuel_tank_selector_left")))
+                            {
+                                XPLMSetDatai(d_ref, 4);
+                            }
+                            if ((d_ref = XPLMFindDataRef("sim/cockpit2/fuel/fuel_tank_selector")))
+                            {
+                                XPLMSetDatai(d_ref, 4);
+                            }
+                            return 4; // dataref set
+                        }
+                        return 0; // 4 == XPLMGetDatai(XPLMFindDataRef("sim/cockpit2/fuel/fuel_tank_selector"))
+                    }
+                    if ((d_ref = XPLMFindDataRef("sim/cockpit2/fuel/fuel_tank_selector_right")))
+                    {
+                        XPLMSetDatai(d_ref, 1);
+                    }
+                    if ((d_ref = XPLMFindDataRef("sim/cockpit2/fuel/fuel_tank_selector_left")))
+                    {
+                        XPLMSetDatai(d_ref, 1);
+                    }
+                    if ((d_ref = XPLMFindDataRef("sim/cockpit2/fuel/fuel_tank_selector")))
+                    {
+                        XPLMSetDatai(d_ref, 1);
+                    }
+                    if ((d_ref = XPLMFindDataRef("aerobask/panthera/fuel_position")))
+                    {
+                        XPLMSetDatai(d_ref, 0);
+                    }
+                    if ((d_ref = XPLMFindDataRef("aerobask/victory/fuel_position")))
+                    {
+                        XPLMSetDatai(d_ref, 1);
+                    }
+                    if ((d_ref = XPLMFindDataRef("aerobask/E1000/fuel_position")))
+                    {
+                        XPLMSetDatai(d_ref, 1);
+                    }
+                    if ((d_ref = XPLMFindDataRef("aerobask/fuel_selector")))
+                    {
+                        XPLMSetDatai(d_ref, 1);
+                    }
+                    if ((d_ref = XPLMFindDataRef("sim/har/fueltank")))
+                    {
+                        XPLMSetDatai(d_ref, 0);
+                    }
+                    return 1; // dataref set
+                }
+                return -1; // NULL == XPLMFindDataRef("sim/aircraft/overflow/acf_has_fuel_all")
+            }
+            return 0; // (1 || 2 || acf_num_tanks) == XPLMGetDatai(XPLMFindDataRef("sim/cockpit2/fuel/fuel_tank_selector"))
+        }
+        return -1; // NULL == XPLMFindDataRef("sim/cockpit2/fuel/fuel_tank_selector")
+    }
+    return 0; // acf_num_engines != 1 || acf_num_tanks != 2
+}
+
+static float fuel_t_w_hdlr(float inElapsedSinceLastCall,
+                           float inElapsedTimeSinceLastFlightLoop,
+                           int   inCounter,
+                           void *inRefcon)
+{
+    if (inRefcon)
+    {
+        if (fuel_tank_select(((refcon_fueltw*)inRefcon)->acf_num_engines, ((refcon_fueltw*)inRefcon)->acf_num_tanks) > 0)
+        {
+            ndt_log("navP [info]: fuel_tank_select() changed selection\n");
+            ndt_log("navP [info]: fuel_t_w_hdlr() mission accomplished\n");
+            return 0; // no longer needed past this point
+        }
+        if ((((refcon_fueltw*)inRefcon)->time_elapsed_total += inElapsedSinceLastCall) > 60.0f)
+        {
+            ndt_log("navP [info]: fuel_t_w_hdlr() timed out\n");
+            return 0; // never run for more than a minute
+        }
+        return -1;
+    }
+    return 0;
+}
+
+void nvp_chandlers_on_run(void *inContext)
+{
+    chandler_context *ctx = inContext;
+    if (ctx && ctx->initialized && ctx->onrun_items == 0)
+    {
+        XPLMDataRef d_ref = XPLMFindDataRef("sim/operation/prefs/startup_running");
+        if (d_ref && XPLMGetDatai(d_ref))
+        {
+            if (ctx->info->engine_count == 1) // single-engine: select default fuel tank
+            {
+                ctx->fueltw.time_elapsed_total = 0.0f;
+                XPLMRegisterFlightLoopCallback(ctx->fueltw.flc_fuel = fuel_t_w_hdlr, -1, &ctx->fueltw);
+                if (fuel_tank_select(ctx->fueltw.acf_num_engines = ctx->info->engine_count, ctx->fueltw.acf_num_tanks = ctx->info->ftanks_count) > 0)
+                {
+                    ndt_log("navP [info]: fuel_tank_select() changed selection\n");
+                }
+            }
+            ctx->onrun_items = 1;
+            return;
+        }
+        return;
+    }
+    return;
 }
 
 int nvp_chandlers_update(void *inContext)
@@ -2095,6 +2236,11 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             if (first_fcall_do(ctx) == 0 && ctx->first_fcall == 0)
             {
+                if (ctx->fueltw.flc_fuel)
+                {
+                    XPLMUnregisterFlightLoopCallback(ctx->fueltw.flc_fuel, &ctx->fueltw);
+                    ctx->fueltw.flc_fuel = NULL; // no longer needed past this point
+                }
                 if (XPLMGetDatai(ctx->fov.nonp) == 0)
                 {
                     ctx->fov.float_value = XPLMGetDataf(ctx->fov.data);
@@ -6663,44 +6809,7 @@ static int first_fcall_do(chandler_context *ctx)
             }
             if (ctx->info->engine_count == 1) // single-engine: select default fuel tank
             {
-                if ((d_ref = XPLMFindDataRef("sim/aircraft/overflow/acf_has_fuel_all")))
-                {
-                    int acf_has_fuel_all, acf_num_tanks = 0; float rat[9];
-                    {
-                        acf_has_fuel_all = XPLMGetDatai(d_ref);
-                    }
-                    if ((d_ref = XPLMFindDataRef("sim/aircraft/overflow/acf_tank_rat")))
-                    {
-                        for (int i = 0, j = XPLMGetDatavf(d_ref, rat, 0, 9); i < j; i++)
-                        {
-                            if (rat[i] > .01f)
-                            {
-                                acf_num_tanks++;
-                            }
-                        }
-                        if (acf_num_tanks == 4 && (fabsf(rat[0] - rat[1]) < .01f &&
-                                                   fabsf(rat[2] - rat[3]) < .01f))
-                        {
-                            acf_num_tanks -= 2; // e.g. Bonanza V35B w/tip tanks
-                        }
-                        if (acf_num_tanks == 2)
-                        {
-                            if (acf_has_fuel_all) // can draw from all tanks at once
-                            {
-                                _DO(0, XPLMSetDatai, 4, "sim/cockpit2/fuel/fuel_tank_selector");
-                            }
-                            else
-                            {
-                                _DO(0, XPLMSetDatai, 1, "sim/cockpit2/fuel/fuel_tank_selector");
-                                _DO(0, XPLMSetDatai, 0, "aerobask/panthera/fuel_position");
-                                _DO(0, XPLMSetDatai, 1, "aerobask/victory/fuel_position");
-                                _DO(0, XPLMSetDatai, 1, "aerobask/E1000/fuel_position");
-                                _DO(0, XPLMSetDatai, 1, "aerobask/fuel_selector");
-                                _DO(0, XPLMSetDatai, 0, "sim/har/fueltank");
-                            }
-                        }
-                    }
-                }
+                fuel_tank_select(ctx->info->engine_count, ctx->info->ftanks_count);
             }
             if (x1000)
             {
