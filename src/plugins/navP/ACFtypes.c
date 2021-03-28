@@ -649,20 +649,36 @@ acf_info_context* acf_type_info_update()
         snprintf(global_info->icaoid, sizeof(global_info->icaoid), "%s", new_icao);
         uf_dref_string_wrte(global_info->dric, new_icao, sizeof(new_icao));
     }
-    else // personal hack(s)
+    if (global_info->ac_type == ACF_TYP_GENERIC)
     {
-        if (strncmp(global_info->icaoid, "EA51", 4) == 0)
+        if (!STRN_CASECMP_AUTO(global_info->author, "Aerobask") || !STRN_CASECMP_AUTO(global_info->author, "Stephane Buon"))
         {
-            snprintf(global_info->icaoid, 5, "%s", "EA50");
-            uf_dref_string_wrte(global_info->dric, "PRM1", 6);
+            if (!STRN_CASECMP_AUTO(global_info->icaoid, "DA62"))
+            {
+                global_info->thrust_presets = NVP_TP_DA62;
+            }
+            else if (!STRN_CASECMP_AUTO(global_info->icaoid, "EA50"))
+            {
+                global_info->thrust_presets = NVP_TP_EA50;
+            }
+            else if (!STRN_CASECMP_AUTO(global_info->icaoid, "EVIC"))
+            {
+                global_info->thrust_presets = NVP_TP_EVIC;
+            }
+            else
+            {
+                global_info->thrust_presets = NVP_TP_XPLM;
+            }
         }
-        if (strncmp(global_info->icaoid, "EA52", 4) == 0)
+        else
         {
-            snprintf(global_info->icaoid, 5, "%s", "EA50");
-            uf_dref_string_wrte(global_info->dric, "C25M", 6);
+            global_info->thrust_presets = NVP_TP_XPLM;
         }
     }
-
+    else
+    {
+        global_info->thrust_presets = NVP_TP_XPLM;
+    }
     global_info->up_to_date = 1; return global_info;
 }
 

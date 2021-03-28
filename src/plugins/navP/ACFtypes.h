@@ -166,6 +166,13 @@ typedef struct
     int has_auto_thr;
     int has_beta_thr;
     int has_rvrs_thr;
+    enum
+    {
+        NVP_TP_XPLM,
+        NVP_TP_DA62,
+        NVP_TP_EA50,
+        NVP_TP_EVIC,
+    } thrust_presets;
     struct
     {
         XPLMDataRef minimum;
