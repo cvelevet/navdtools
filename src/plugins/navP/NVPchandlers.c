@@ -4751,28 +4751,42 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 if (cdu->i_aerobask == 3)
                 {
-                    if (XPLMGetDatai(cdu->dataref[0]) == 0 &&
-                        XPLMGetDatai(cdu->dataref[2]) == 0)
+                    if (XPLMGetDatai(cdu->dataref[0]) == 0 && XPLMGetDatai(cdu->dataref[2]) == 0)
                     {
-                        XPLMSetDatai(cdu->dataref[0], 1);
-                        XPLMSetDatai(cdu->dataref[1], 1);
-                        XPLMSetDatai(cdu->dataref[2], 0);
-                        XPLMSetDatai(cdu->dataref[3], 0);
+                        // Lt SkyView + GTN 650 hidden, switch to configuration 1
+                        XPLMSetDatai(cdu->dataref[0], 1); // Lt SkyView (show)
+                        XPLMSetDatai(cdu->dataref[1], 1); // Ct GTN 650 (show)
+                        XPLMSetDatai(cdu->dataref[2], 0); // Rt SkyView (hide)
+                        XPLMSetDatai(cdu->dataref[3], 0); // Ct GTN 750 (hide)
                         return 0;
                     }
-                    if (XPLMGetDatai(cdu->dataref[0]) == 1 &&
-                        XPLMGetDatai(cdu->dataref[1]) == 1)
+                    if (XPLMGetDatai(cdu->dataref[0]) == 1 && XPLMGetDatai(cdu->dataref[1]) == 1)
                     {
-                        XPLMSetDatai(cdu->dataref[0], 0);
-                        XPLMSetDatai(cdu->dataref[1], 0);
-                        XPLMSetDatai(cdu->dataref[2], 1);
-                        XPLMSetDatai(cdu->dataref[3], 1);
+                        // Lt SkyView + GTN 650 showing, switch to configuration 2
+                        XPLMSetDatai(cdu->dataref[0], 0); // Lt SkyView (hide)
+                        XPLMSetDatai(cdu->dataref[1], 0); // Ct GTN 650 (hide)
+                        XPLMSetDatai(cdu->dataref[2], 1); // Rt SkyView (show)
+                        XPLMSetDatai(cdu->dataref[3], 1); // Ct GTN 750 (show)
                         return 0;
                     }
-                    XPLMSetDatai(cdu->dataref[0], 0);
-                    XPLMSetDatai(cdu->dataref[1], 0);
-                    XPLMSetDatai(cdu->dataref[2], 0);
-                    XPLMSetDatai(cdu->dataref[3], 0);
+                    if (XPLMGetDatai(cdu->dataref[2]) == 1)
+                    {
+                        if (XPLMGetDatai(cdu->dataref[3]) == 1)
+                        {
+                            // Rt SkyView + GTN 750 showing, switch to configuration 3
+                            XPLMSetDatai(cdu->dataref[0], 0); // Lt SkyView (hide)
+                            XPLMSetDatai(cdu->dataref[1], 0); // Ct GTN 650 (hide)
+                            XPLMSetDatai(cdu->dataref[2], 1); // Rt SkyView (show)
+                            XPLMSetDatai(cdu->dataref[3], 0); // Ct GTN 750 (hide)
+                            return 0;
+                        }
+                        // Rt SkyView showing only, turn everything off (fall through)
+                    }
+                    // manual popup configuration, turn everything off
+                    XPLMSetDatai(cdu->dataref[0], 0); // Lt SkyView (hide)
+                    XPLMSetDatai(cdu->dataref[1], 0); // Ct GTN 650 (hide)
+                    XPLMSetDatai(cdu->dataref[2], 0); // Rt SkyView (hide)
+                    XPLMSetDatai(cdu->dataref[3], 0); // Ct GTN 750 (hide)
                     return 0;
                 }
                 if (cdu->command[0]) XPLMCommandOnce(cdu->command[0]);
