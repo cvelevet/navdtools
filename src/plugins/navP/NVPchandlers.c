@@ -2552,6 +2552,15 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 if (XPLMGetDataf(ctx->spbrk.srat) < +.01f)
                 {
+                    if (ctx->info->ac_type == ACF_TYP_LEGA_XC && ctx->spbrk.sret)
+                    {
+                        XPLMCommandOnce (ctx->spbrk.sret);
+                        if (XPLMGetDataf(ctx->spbrk.srat) < -.01f)
+                        {
+                            if (speak > 0) XPLMSpeakString("spoilers armed");
+                            return 0;
+                        }
+                    }
                     if (speak > 0) XPLMSpeakString("speedbrake retracted");
                     return 0;
                 }
