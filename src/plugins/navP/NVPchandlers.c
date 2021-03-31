@@ -2399,6 +2399,15 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 if (XPLMGetDataf(ctx->spbrk.srat) < +.01f)
                 {
+                    if (ctx->info->ac_type == ACF_TYP_LEGA_XC && ctx->spbrk.sext)
+                    {
+                        XPLMCommandOnce (ctx->spbrk.sext);
+                        if (XPLMGetDataf(ctx->spbrk.srat) > +.01f)
+                        {
+                            if (speak > 0) XPLMSpeakString("speedbrake");
+                            return 0;
+                        }
+                    }
                     if (speak > 0) XPLMSpeakString("spoilers disarmed");
                     return 0;
                 }
