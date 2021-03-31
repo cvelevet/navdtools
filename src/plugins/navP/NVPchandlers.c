@@ -3828,6 +3828,8 @@ static int chandler_apclb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     if (inPhase == xplm_CommandEnd)
     {
+        // TODO: aircraft-specific behavior (climb speed, pitch trim takeoff if applicable); do not check for
+        // aircraft's type here, but store climb speed, pitch command/dataref and value in refcon_app instead
         if (XPLMGetDatai(((refcon_app*)inRefcon)->ap_pmod) > 0)
         {
             if (((refcon_app*)inRefcon)->ap_arry)
