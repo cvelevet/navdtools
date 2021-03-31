@@ -3824,7 +3824,7 @@ static int chandler_thruu(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
-static int chandler_apclb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+static int chandler_apclb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)//fixme
 {
     if (inPhase == xplm_CommandEnd)
     {
