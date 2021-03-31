@@ -6875,6 +6875,7 @@ static int first_fcall_do(chandler_context *ctx)
 //                      {
 //                          XPLMCommandOnce(cr);
 //                      }
+                        _DO(1, XPLMSetDatai,      1, "aerobask/panthera/key_engaged");
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
                         _DO(0, XPLMSetDataf, 120.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
                     }
