@@ -5756,20 +5756,23 @@ static void nvp_efis_setup(void)
 
 static void nvp_skyv_setup(void)
 {
-    XPLMDataRef d_ref;
-    // TODO: implement
+    XPLMDataRef d_ref; // TODO: implement more
+    _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
+    _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
 }
 
 static void nvp_x1000_setup(void)
 {
-    XPLMDataRef d_ref;
-    // TODO: implement
+    XPLMDataRef d_ref; // TODO: implement more
+    _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
+    _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
 }
 
 static void nvp_xgps_setup(void)
 {
-    XPLMDataRef d_ref;
-    // TODO: implement
+    XPLMDataRef d_ref; // TODO: implement more
+    _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
+    _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
 }
 
 static void nvp_xnz_setup(int engine_count, int engines_on)
