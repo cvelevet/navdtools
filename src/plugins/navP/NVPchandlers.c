@@ -5759,6 +5759,8 @@ static void nvp_skyv_setup(void)
     XPLMDataRef d_ref; // TODO: implement more
     _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
     _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
+    _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_weather_on");
+    _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_tcas_on");
 }
 
 static void nvp_x1000_setup(void)
@@ -5766,6 +5768,8 @@ static void nvp_x1000_setup(void)
     XPLMDataRef d_ref; // TODO: implement more
     _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
     _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
+//  _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_weather_on");
+//  _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_tcas_on");
 }
 
 static void nvp_xgps_setup(void)
@@ -7067,8 +7071,6 @@ static int first_fcall_do(chandler_context *ctx)
                         _DO(0, XPLMSetDatai, 0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
                         _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_copilot");
                         _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
-                        _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_weather_on");
-                        _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_tcas_on");
                         _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_detect_on");
                     }
                     else if (!strcasecmp(ctx->info->icaoid, "DA62"))
