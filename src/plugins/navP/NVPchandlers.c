@@ -5832,10 +5832,8 @@ static void nvp_xnz_setup(int engine_count, int engines_on)
 
 static int first_fcall_do(chandler_context *ctx)
 {
-    XPLMDataRef d_ref;
-    XPLMPluginID p_id;
-    XPLMCommandRef cr;
-    int absk = 0, x1000 = 0, xgps = 0, xnzs = 0, r;
+    XPLMDataRef d_ref; XPLMPluginID p_id; XPLMCommandRef cr;
+    int absk = 0, x1000 = 0, xgps = 0, xnz = 0, simc = 0, r;
     if ((r = acf_type_info_acf_ctx_init()))
     {
         if (r == EAGAIN)
@@ -6868,6 +6866,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "thranda/cockpit/actuators/HideYokeR");         // various aircraft
             if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.simcoders.rep"))
             {
+                simc = 1;
                 _DO(0, XPLMSetDatai,    0, "simcoders/rep/staticelements/visible");
                 _DO(0, XPLMSetDataf, 1.0f, "simcoders/rep/engine/cowl/handle_ratio_0");
                 _DO(0, XPLMSetDataf, 1.0f, "simcoders/rep/engine/cowl/handle_ratio_1");
@@ -7112,12 +7111,11 @@ static int first_fcall_do(chandler_context *ctx)
             {
                 nvp_skyv_setup();
             }
-            if (xnzs == 0) // unless we specifically skip it
+            if (xnz == 0) // unless we specifically skip it
             {
                 nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             }
-            if (acf_type_is_engine_running() == 0 && absk == 0 &&
-                XPLMFindPluginBySignature("com.simcoders.rep") == XPLM_NO_PLUGIN_ID)
+            if (acf_type_is_engine_running() == 0 && absk == 0 && simc == 0)
             {
                 float fmax; acf_type_fmax_get(ctx->info, &fmax); // fuel capacity
                 float load = 77.0f; acf_type_load_set(ctx->info, &load); // PIC only
