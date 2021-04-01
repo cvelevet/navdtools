@@ -3934,6 +3934,31 @@ static int chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
+    if (inPhase == xplm_CommandBegin && ((chandler_context*)inRefcon)->info->ac_type == ACF_TYP_TBM9_HS)
+    {
+        if (XPLMGetDatai(((chandler_context*)inRefcon)->callouts.ref_flap_lever) <= 0)
+        {
+            return 1;
+        }
+        int index = lroundf(2.0f * XPLMGetDataf(((chandler_context*)inRefcon)->callouts.ref_flap_ratio));
+        if (inCommand == ((chandler_context*)inRefcon)->callouts.cb_flapd.command)
+        {
+            if ((index += 1) > 2)
+            {
+                (index = 2);
+            }
+        }
+        if (inCommand == ((chandler_context*)inRefcon)->callouts.cb_flapu.command)
+        {
+            if ((index -= 1) < 0)
+            {
+                (index = 0);
+            }
+        }
+        flap_callout_setst(_flap_names_2POS, lroundf(2.0f * XPLMGetDataf(((chandler_context*)inRefcon)->callouts.ref_flap_ratio)));
+        XPLMSetFlightLoopCallbackInterval(((chandler_context*)inRefcon)->callouts.flc_flaps, 1.5f, 1, NULL);
+        return 1;
+    }
     if (inPhase == xplm_CommandEnd)
     {
         chandler_context *ctx = inRefcon;
@@ -4026,6 +4051,8 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 flap_callout_setst(_flap_names_MD80, index);
                 break;
             }
+            case ACF_TYP_TBM9_HS:
+                return 1; // handled on command begin, see above
             default:
                 if (!strcasecmp(ctx->info->icaoid, "A10") ||
                     !strcasecmp(ctx->info->icaoid, "PIPA"))
