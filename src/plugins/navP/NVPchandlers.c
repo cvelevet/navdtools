@@ -271,10 +271,13 @@ typedef struct
 
 typedef struct
 {
-    XPLMDataRef ap_pmod;
-    XPLMDataRef ap_pclb;
-    XPLMDataRef to_pclb;
-    XPLMDataRef ap_arry;
+    XPLMDataRef f_pitch;
+    XPLMDataRef vfpitch;
+    const char *ap_toga;
+    const char *ap_trim;
+    float init_cl_speed;
+    float init_cl_pitch;
+    int vfpitch_array_i;
 } refcon_app;
 
 typedef struct
@@ -926,21 +929,15 @@ void* nvp_chandlers_init(void)
     ctx->asrt.ap_conn.command = XPLMCreateCommand( "private/ff320/ap_conn", "NOT TO BE USED");
     ctx->asrt.ap_disc.command = XPLMCreateCommand( "private/ff320/ap_disc", "NOT TO BE USED");
     ctx->otto.ffst.cb.command = XPLMCreateCommand( "private/ffsts/ap_cmdl", "NOT TO BE USED");
-    ctx->otto.clmb.cb.command = XPLMCreateCommand( "navP/switches/ap_clmb", "A/P pitch: CLB");
-    ctx->otto.conn.cb.command = XPLMCreateCommand( "navP/switches/ap_conn", "A/P engagement");
-    ctx->otto.disc.cb.command = XPLMCreateCommand( "navP/switches/ap_disc", "A/P disconnect");
-    ctx->otto.clmb.rc.ap_pclb = XPLMFindDataRef("sim/cockpit2/autopilot/sync_hold_pitch_deg");
-    ctx->otto.clmb.rc.to_pclb = XPLMFindDataRef(     "sim/cockpit2/autopilot/TOGA_pitch_deg");
-    ctx->otto.clmb.rc.ap_pmod = XPLMFindDataRef(       "sim/cockpit2/autopilot/pitch_status");
+    ctx->otto.clmb.cb.command = XPLMCreateCommand( "navP/special/ap_to_ga", "A/P mode: TOGA"); // note: keep: custom behavior on ground
+    ctx->otto.conn.cb.command = XPLMCreateCommand( "navP/switches/ap_conn", "A/P engagement"); // TODO: move to x-nullzones
+    ctx->otto.disc.cb.command = XPLMCreateCommand( "navP/switches/ap_disc", "A/P disconnect"); // TODO: move to x-nullzones
     if (!ctx->asrt.ap_conn.command ||
         !ctx->asrt.ap_disc.command ||
         !ctx->otto.ffst.cb.command ||
         !ctx->otto.clmb.cb.command ||
         !ctx->otto.conn.cb.command ||
-        !ctx->otto.disc.cb.command ||
-        !ctx->otto.clmb.rc.ap_pclb ||
-        !ctx->otto.clmb.rc.to_pclb ||
-        !ctx->otto.clmb.rc.ap_pmod)
+        !ctx->otto.disc.cb.command)
     {
         ndt_log("navP [error]: nvp_chandlers_init: could not create command or dataref not found\n");
         goto fail;
@@ -1103,8 +1100,8 @@ void* nvp_chandlers_init(void)
         ctx->axes.sensitivity[2] = 0.5f;
     }
 
-    /* all good */
-    return ctx;
+    /* all OK, sanitize values, return */
+    nvp_chandlers_reset(ctx); return ctx;
 
 fail:
     ndt_log("navP [error]: nvp_chandlers_init: fail path reached\n");
@@ -1249,20 +1246,25 @@ int nvp_chandlers_reset(void *inContext)
     acf_type_info_reset();
 
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
-    ctx->otto.ffst.           dr = NULL;
-    ctx->otto.conn.cc.      name = NULL;
-    ctx->otto.disc.cc.      name = NULL;
-    ctx->otto.clmb.rc.   ap_arry = NULL;
-    ctx->throt.            thptt = NULL;
-    ctx->throt.rev.       propdn = NULL;
-    ctx->throt.rev.       propup = NULL;
-    ctx->throt.         tbm9erng = NULL;
-    ctx->throt.         throttle = NULL;
-    ctx->callouts.ref_flaps_e55p = NULL;
-    ctx->acfspec.t319.     ready = 0;
-    ctx->acfspec.i733.     ready = 0;
-    ctx->acfspec.x738.     ready = 0;
-    ctx->throt. atc_is_connected = 0;
+    ctx->otto.clmb.rc.      ap_trim = "sim/flight_controls/pitch_trim_takeoff";
+    ctx->otto.clmb.rc.      ap_toga = "sim/autopilot/take_off_go_around";
+    ctx->otto.clmb.rc.init_cl_pitch = -1.0f;
+    ctx->otto.clmb.rc.init_cl_speed = -1.0f;
+    ctx->otto.clmb.rc.      f_pitch = NULL;
+    ctx->otto.clmb.rc.      vfpitch = NULL;
+    ctx->otto.ffst.              dr = NULL;
+    ctx->otto.conn.cc.         name = NULL;
+    ctx->otto.disc.cc.         name = NULL;
+    ctx->throt.               thptt = NULL;
+    ctx->throt.rev.          propdn = NULL;
+    ctx->throt.rev.          propup = NULL;
+    ctx->throt.            tbm9erng = NULL;
+    ctx->throt.            throttle = NULL;
+    ctx->callouts.   ref_flaps_e55p = NULL;
+    ctx->acfspec.t319.        ready = 0;
+    ctx->acfspec.i733.        ready = 0;
+    ctx->acfspec.x738.        ready = 0;
+    ctx->throt.    atc_is_connected = 0;
 
     /* Reset some datarefs to match X-Plane's defaults at startup */
     _DO(1, XPLMSetDataf, ctx->axes.sensitivity[0], "sim/joystick/joystick_heading_sensitivity");
@@ -1505,6 +1507,8 @@ void nvp_chandlers_on_run(void *inContext)
     return;
 }
 
+#define AFTER_7X_PATH(p) ((((p) + (0.0285f)) / ((0.5011f))))
+
 int nvp_chandlers_update(void *inContext)
 {
     chandler_context *ctx = inContext;
@@ -1523,6 +1527,7 @@ int nvp_chandlers_update(void *inContext)
     /* determine which plane we're flying */
     ctx->info = acf_type_info_update();
     print_aircft_info(ctx->info);
+    XPLMDataRef d_ref;
 
     /* aircraft-specific custom commands and miscellaneous stuff */
     switch ((ctx->throt.info = ctx->info)->ac_type)
@@ -1530,6 +1535,7 @@ int nvp_chandlers_update(void *inContext)
         case ACF_TYP_A320_FF:
             ctx->otto.conn.cc.name = "private/ff320/ap_conn";
             ctx->otto.disc.cc.name = "private/ff320/ap_disc";
+            ctx->otto.clmb.rc.ap_toga = ctx->otto.clmb.rc.ap_trim = NULL;
             ctx->gear.assert = ctx->ground.assert = ctx->throt.rev.assert = &ctx->info->assert;
             break;
 
@@ -1538,6 +1544,7 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.conn.cc.name = "toliss_airbus/ap1_push";
             ctx->otto.disc.cc.name = "toliss_airbus/ap_disc_left_stick";
             ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
+            ctx->otto.clmb.rc.ap_toga = ctx->otto.clmb.rc.ap_trim = NULL;
             break;
 
         case ACF_TYP_A350_FF:
@@ -1548,18 +1555,21 @@ int nvp_chandlers_update(void *inContext)
                 ctx->otto.disc.cc.name = "airbus_qpac/ap_disc_left_stick";
             }
             ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
+            ctx->otto.clmb.rc.ap_toga = ctx->otto.clmb.rc.ap_trim = NULL;
             break;
 
         case ACF_TYP_B737_EA:
             ctx->otto.conn.cc.name = "x737/mcp/CMDA_TOGGLE";
             ctx->otto.disc.cc.name = "x737/yoke/capt_AP_DISENG_BTN";
             ctx->throt.throttle = ctx->ground.thrott_all;
+            ctx->otto.clmb.rc.ap_toga = NULL;
             break;
 
         case ACF_TYP_B737_XG:
             ctx->otto.disc.cc.name = "ixeg/733/autopilot/AP_disengage";
             ctx->otto.conn.cc.name = "ixeg/733/autopilot/AP_A_cmd_toggle";
             ctx->throt.throttle = ctx->ground.thrott_all;
+            ctx->otto.clmb.rc.ap_toga = NULL;
             break;
 
         case ACF_TYP_B757_FF:
@@ -1567,12 +1577,14 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.conn.cc.name = "private/ffsts/ap_cmdl";
             ctx->otto.disc.cc.name = "1-sim/comm/AP/ap_disc";
             ctx->throt.throttle = ctx->ground.thrott_all;
+            ctx->otto.clmb.rc.ap_toga = NULL;
             break;
 
         case ACF_TYP_B777_FF:
             ctx->otto.disc.cc.name = "777/ap_disc";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->throt.throttle = ctx->ground.thrott_all;
+            ctx->otto.clmb.rc.ap_toga = NULL;
             break;
 
         case ACF_TYP_CL30_DD:
@@ -1582,6 +1594,10 @@ int nvp_chandlers_update(void *inContext)
             {
                 ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
             }
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
+            {
+                XPLMSetDataf(d_ref, 10.5f);
+            }
             ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
@@ -1590,22 +1606,46 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
             ctx->callouts.ref_flaps_e55p = XPLMFindDataRef("aerobask/anim/sw_flap");
             ctx->throt.throttle = ctx->ground.thrott_all;
+//          if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
+//          {
+//              XPLMSetDataf(d_ref, 10.5f); // TODO: customize
+//          }
             break;
 
         case ACF_TYP_EMBE_SS:
             ctx->otto.conn.cc.name = "SSG/EJET/MCP/AP_COMM";
             ctx->otto.disc.cc.name = "SSG/EJET/MCP/AP_COMM";
             ctx->throt.throttle = ctx->ground.thrott_all;
+            ctx->otto.clmb.rc.ap_toga = NULL;
             break;
 
         case ACF_TYP_EMBE_XC:
+            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
+            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+            ctx->throt.throttle = ctx->ground.thrott_all;
+            if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
+            {
+                XPLMSetDataf(d_ref, 10.5f);
+            }
+            break;
+
         case ACF_TYP_HA4T_RW:
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             ctx->throt.throttle = ctx->ground.thrott_all;
+            if (NULL == XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP10- detection
+            {
+                if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
+                {
+                    XPLMSetDataf(d_ref, 8.75f); // intital climb @ MTOW slightly weak in testing
+                }
+            } // else: XP11 version (intitial climb untested)
             break;
 
         case ACF_TYP_LEGA_XC:
+            // initial climb speed: V2 @ MTOW + ~20
+            ctx->otto.clmb.rc.init_cl_speed = 160.0f;
+            ctx->otto.clmb.rc.ap_toga = "XCrafts/ERJ/TOGA";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
             ctx->throt.throttle = ctx->ground.thrott_all;
@@ -1615,12 +1655,14 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->otto.disc.cc.name = "Rotate/md80/autopilot/ap_disc";
             ctx->throt.throttle = ctx->ground.thrott_all;
+            ctx->otto.clmb.rc.ap_toga = NULL;
             break;
 
         case ACF_TYP_TBM9_HS:
             ctx->otto.conn.cc.name = "tbm900/actuators/ap/ap";
             ctx->otto.disc.cc.name = "tbm900/actuators/ap/disc";
             ctx->throt.throttle = ctx->ground.thrott_all;
+            ctx->otto.clmb.rc.ap_trim = NULL;
             break;
 
         case ACF_TYP_GENERIC:
@@ -1636,6 +1678,73 @@ int nvp_chandlers_update(void *inContext)
                 ctx->throt.rev.propup = XPLMFindCommand("sim/engines/prop_up");
             }
             ctx->throt.throttle = ctx->ground.thrott_all;
+            if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "FA7X"))
+            {
+                if ((d_ref = XPLMFindDataRef("sim/weapons/targ_h")))
+                {
+                    // climb path (not pitch); we default to 7.5 degrees
+                    // range of values: min: ~5.0 (MTOW) max: ~15.0 (OEW)
+                    ctx->otto.clmb.rc.init_cl_pitch = AFTER_7X_PATH(7.5f);
+                    ctx->otto.clmb.rc.init_cl_speed = 165.0f;
+                    ctx->otto.clmb.rc.vfpitch_array_i = 0;
+                    ctx->otto.clmb.rc.vfpitch = d_ref;
+                    ctx->otto.clmb.rc.ap_toga = NULL;
+                }
+            }
+            else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "EA50"))
+            {
+                if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
+                {
+                    XPLMSetDataf(d_ref, 10.5f);
+                }
+                ctx->otto.clmb.rc.init_cl_speed = 160.0f; // SkyView
+            }
+            else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "EPIC"))
+            {
+                if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
+                {
+                    XPLMSetDataf(d_ref, 10.5f);
+                }
+                if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim.sasl"))
+                {
+                    ctx->otto.clmb.rc.init_cl_speed = 160.0f; // SkyView (G1000 version: custom SASL signature)
+                }
+                // else: G1000 (FLC speed sync, defsult climb speed pointless)
+            }
+            else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "EVIC"))
+            {
+                if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
+                {
+                    XPLMSetDataf(d_ref, 10.5f);
+                }
+                if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim.sasl"))
+                {
+                    ctx->otto.clmb.rc.init_cl_speed = 160.0f; // SkyView (G1000 version: custom SASL signature)
+                }
+                // else: G1000 (FLC speed sync, defsult climb speed pointless)
+            }
+            else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "PIPA"))
+            {
+                ctx->otto.clmb.rc.init_cl_speed = 120.0f; // SkyView
+            }
+//          else // disabled for now
+//          {
+//              if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
+//              {
+//                  switch (ctx->info->engine_type1) // engine-specific take-off/go-around pitch
+//                  {
+//                      case 4: case 5:
+//                          XPLMSetDataf(d_ref, 10.5f);
+//                          break;
+//                      case 2: case 8:
+//                          XPLMSetDataf(d_ref, 8.75f);
+//                          break;
+//                      default:
+//                          XPLMSetDataf(d_ref, 7.0f);
+//                          break;
+//                  }
+//              }
+//          }
             break;
 
         default: // not generic but no usable commands
@@ -3842,23 +3951,76 @@ static int chandler_thruu(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
-static int chandler_apclb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)//fixme
+static int chandler_apclb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandEnd)
     {
-        // TODO: aircraft-specific behavior (climb speed, pitch trim takeoff if applicable); do not check for
-        // aircraft's type here, but store climb speed, pitch command/dataref and value in refcon_app instead
-        if (XPLMGetDatai(((refcon_app*)inRefcon)->ap_pmod) > 0)
+        XPLMDataRef d_ref; XPLMCommandRef cr;
+        if (((refcon_app*)inRefcon)->ap_toga)
         {
-            if (((refcon_app*)inRefcon)->ap_arry)
+            if ((cr = XPLMFindCommand("sim/autopilot/fdir_on")))
             {
-                float  value = XPLMGetDataf(((refcon_app*)inRefcon)->to_pclb);
-                XPLMSetDatavf(((refcon_app*)inRefcon)->ap_arry, &value, 0, 1);
+                XPLMCommandOnce(cr);
+            }
+            if ((cr = XPLMFindCommand(((refcon_app*)inRefcon)->ap_toga)))
+            {
+                XPLMCommandOnce(cr);
+            }
+        }
+        else if ((d_ref = ((refcon_app*)inRefcon)->f_pitch) || (d_ref = ((refcon_app*)inRefcon)->vfpitch))
+        {
+            if ((cr = XPLMFindCommand("sim/autopilot/fdir_on")))
+            {
+                XPLMCommandOnce(cr);
+            }
+            if ((cr = XPLMFindCommand("sim/autopilot/pitch_sync")))
+            {
+                XPLMCommandOnce(cr);
+            }
+            if ((cr = XPLMFindCommand("sim/autopilot/wing_leveler")))
+            {
+                XPLMCommandOnce(cr);
+            }
+            if (d_ref == ((refcon_app*)inRefcon)->vfpitch)
+            {
+                XPLMSetDatavf(d_ref, &(((refcon_app*)inRefcon)->init_cl_pitch), ((refcon_app*)inRefcon)->vfpitch_array_i, 1);
+            }
+            else
+            {
+                XPLMSetDataf(d_ref, ((refcon_app*)inRefcon)->init_cl_pitch);
+            }
+        }
+        /*
+         * else: do nothing (e.g. ToLiSS-based aircraft)…
+         */
+        if ((d_ref = XPLMFindDataRef("sim/flightmodel/failures/onground_any")))
+        {
+            if (0 < XPLMGetDatai(d_ref))
+            {
+                if (((refcon_app*)inRefcon)->ap_trim)
+                {
+                    if ((cr = XPLMFindCommand(((refcon_app*)inRefcon)->ap_trim)))
+                    {
+                        XPLMCommandOnce(cr);
+                    }
+                }
+                if (((refcon_app*)inRefcon)->init_cl_speed > 0.0f)
+                {
+                    if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_is_mach")))
+                    {
+                        XPLMSetDatai(d_ref, 0);
+                    }
+                    if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_dial_kts_mach")))
+                    {
+                        XPLMSetDataf(d_ref, ((refcon_app*)inRefcon)->init_cl_speed);
+                    }
+                    return 0;
+                }
                 return 0;
             }
-            XPLMSetDataf(((refcon_app*)inRefcon)->ap_pclb, XPLMGetDataf(((refcon_app*)inRefcon)->to_pclb));
             return 0;
         }
+        return 0;
     }
     return 0;
 }
@@ -6406,7 +6568,6 @@ static int first_fcall_do(chandler_context *ctx)
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
             }
-            XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 10.0f); // initial CLB pitch
             nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             nvp_efis_setup();
             break;
@@ -6459,12 +6620,9 @@ static int first_fcall_do(chandler_context *ctx)
                 acf_type_load_set(ctx->info, &pload);
                 acf_type_fuel_set(ctx->info, &fuelq);
             }
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/autopilot/airspeed_is_mach");
-            _DO(0, XPLMSetDataf, 180.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
             _DO(0, XPLMSetDatai, 0, "aerobask/show_reflections_instruments");
             _DO(0, XPLMSetDatai, 0, "aerobask/show_reflections_windows");
             _DO(1, XPLMSetDatai, 0, "sim/graphics/view/hide_yoke");
-            XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 10.0f); // initial CLB pitch
             nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             nvp_x1000_setup();
             break;
@@ -6553,7 +6711,6 @@ static int first_fcall_do(chandler_context *ctx)
                 acf_type_load_set(ctx->info, &load);
                 acf_type_fuel_set(ctx->info, &fuel);
             }
-            XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 8.5f); // initial CLB pitch
             nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             break;
 
@@ -6574,10 +6731,6 @@ static int first_fcall_do(chandler_context *ctx)
                 acf_type_fuel_set(ctx->info, &fuel);
                 _DO(0, XPLMSetDataf, 0.0f, "sim/flightmodel/misc/cgz_ref_to_default");
             }
-             // initial climb paramaters; V2(MTOW) is 139, +20 -> 160 KIAS
-            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/autopilot/airspeed_is_mach");
-            _DO(0, XPLMSetDataf, 160.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
-            _DO(0, XPLMSetDataf, 10.0f, "sim/cockpit2/autopilot/TOGA_pitch_deg");
             _DO(1, XPLMSetDatai, 0, "sim/graphics/view/hide_yoke");
             _DO(1, XPLMSetDatai, 1, "XCrafts/ERJ/weight_units");
             nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
@@ -6786,18 +6939,6 @@ static int first_fcall_do(chandler_context *ctx)
              * X-Plane default
              */
             _DO(0, XPLMSetDataf, 0.8f, "sim/cockpit/electrical/instrument_brightness"); // set all at once
-            switch (ctx->info->engine_type1) // engine-specific takeoff pitch
-            {
-                case 4: case 5: // jet
-                    XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 10.0f);
-                    break;
-                case 2: case 8: // turbine
-                    XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 8.5f);
-                    break;
-                default:
-                    XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, 7.0f);
-                    break;
-            }
             /*
              * Aircraft-specific
              */
@@ -6807,13 +6948,10 @@ static int first_fcall_do(chandler_context *ctx)
                 {
                     if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "FA7X"))
                     {
-                        // climb "path" (not pitch); default to 7.5 degrees
-                        // range of values -- min: ~5 (MTOW) max: ~15 (OEW)
                         if ((d_ref = XPLMFindDataRef("sim/weapons/targ_h")))
                         {
-                            float value = ((0.0f + 0.0285f) / 0.5011f);
-                            XPLMSetDatavf((ctx->otto.clmb.rc.ap_arry = d_ref), &value, 0, 1);
-                            XPLMSetDataf(ctx->otto.clmb.rc.to_pclb, ((7.5f + 0.0285f) / 0.5011f));
+                            float wings_level = AFTER_7X_PATH(0.0f);
+                            XPLMSetDatavf(d_ref, &wings_level, 0, 1);
                         }
                         // relocating the aircraft while cold & dark resets many datarefs
                         if ((d_ref = XPLMFindDataRef("sim/cockpit/electrical/generator_on")))
@@ -6887,9 +7025,7 @@ static int first_fcall_do(chandler_context *ctx)
 //                      {
 //                          XPLMCommandOnce(cr);
 //                      }
-                        _DO(1, XPLMSetDatai,      1, "aerobask/panthera/key_engaged");
-                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
-                        _DO(0, XPLMSetDataf, 120.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
+                        _DO(1, XPLMSetDatai, 1, "aerobask/panthera/key_engaged");
                     }
                     else if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Epic E1000") ||
                              !STRN_CASECMP_AUTO(ctx->info->descrp, "Epic Victory"))
@@ -6914,13 +7050,7 @@ static int first_fcall_do(chandler_context *ctx)
                                 }
                             }
                         }
-                        if (NULL != XPLMFindDataRef("aerobask/E1000/reflections_skyview_on") ||
-                            NULL != XPLMFindDataRef("aerobask/victory/reflections_skyview_on"))
-                        {
-                            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/autopilot/airspeed_is_mach");
-                            _DO(0, XPLMSetDataf, 150.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
-                        }
-                        else // Victory G1000 Edition (Performance_Guidelines.pdf)
+                        if (XPLM_NO_PLUGIN_ID == XPLMFindPluginBySignature("1-sim.sasl"))
                         {
                             if ((d_ref = XPLMFindDataRef("aerobask/tablet/deployed")) &&
                                 (cr = XPLMFindCommand("aerobask/tablet/deploy_toggle")))
@@ -6929,10 +7059,8 @@ static int first_fcall_do(chandler_context *ctx)
                                 {
                                     XPLMCommandOnce(cr);
                                 }
+                                x1000 = 1; // custom SASL signature: G1000 version
                             }
-                            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/autopilot/airspeed_is_mach");
-                            _DO(0, XPLMSetDataf, 190.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
-                            x1000 = 1;
                         }
                         _DO(0, XPLMSetDatai, 0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
                         _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_copilot");
@@ -6946,8 +7074,6 @@ static int first_fcall_do(chandler_context *ctx)
                         x1000 = 1;
                         _DO(0, XPLMSetDataf,           0.0f, "aerobask/tablet/anim_x");
                         _DO(0, XPLMSetDataf, 73.0f / 150.0f, "aerobask/tablet/anim_z");
-                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
-                        _DO(0, XPLMSetDataf, 100.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
                     }
                     else if (!strcasecmp(ctx->info->icaoid, "EA50"))
                     {
@@ -6955,8 +7081,6 @@ static int first_fcall_do(chandler_context *ctx)
                         {
                             XPLMCommandOnce(cr);
                         }
-                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/autopilot/airspeed_is_mach");
-                        _DO(0, XPLMSetDataf, 150.0f, "sim/cockpit2/autopilot/airspeed_dial_kts_mach");
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
                         _DO(0, XPLMSetDatai,      1, "sim/cockpit2/ice/ice_pitot_heat_on_copilot");
                         _DO(0, XPLMSetDatai,      1, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
@@ -7290,6 +7414,7 @@ static void priv_setdata_f(void *inRefcon, float inValue)
 #undef CALLOUT_SPEEDBRAK
 #undef CALLOUT_FLAPLEVER
 #undef CALLOUT_GEARLEVER
+#undef AFTER_7X_PATH
 #undef A320T_CLMB
 #undef A320T_HALF
 #undef A320T_IDLE

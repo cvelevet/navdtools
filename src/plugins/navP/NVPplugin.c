@@ -73,9 +73,6 @@ void nvp_plugin_stop(void)
 
 int nvp_plugin_enable(void)
 {
-    /* reset command handlers */
-    nvp_chandlers_reset(chandler_context);
-
     /* navP features a menu :-) */
     if ((navpmenu_context = nvp_menu_init()) == NULL)
     {
