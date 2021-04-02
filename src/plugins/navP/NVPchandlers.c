@@ -1604,7 +1604,7 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case ACF_TYP_E55P_AB:
-            // G1000: for PFD display purposes only
+            // custom G1000 PFD (always shows speed)
             ctx->otto.clmb.rc.init_cl_speed = 180.0f;
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
