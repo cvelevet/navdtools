@@ -1598,20 +1598,18 @@ int nvp_chandlers_update(void *inContext)
             }
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
             {
-                XPLMSetDataf(d_ref, 10.5f);
+                XPLMSetDataf(d_ref, 10.0f);
             }
             ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
         case ACF_TYP_E55P_AB:
+            // G1000: for PFD display purposes only
+            ctx->otto.clmb.rc.init_cl_speed = 180.0f;
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
             ctx->callouts.ref_flaps_e55p = XPLMFindDataRef("aerobask/anim/sw_flap");
             ctx->throt.throttle = ctx->ground.thrott_all;
-//          if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
-//          {
-//              XPLMSetDataf(d_ref, 10.5f); // TODO: customize
-//          }
             break;
 
         case ACF_TYP_EMBE_SS:
@@ -1627,7 +1625,7 @@ int nvp_chandlers_update(void *inContext)
             ctx->throt.throttle = ctx->ground.thrott_all;
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
             {
-                XPLMSetDataf(d_ref, 10.5f);
+                XPLMSetDataf(d_ref, 10.0f);
             }
             break;
 
@@ -1697,7 +1695,7 @@ int nvp_chandlers_update(void *inContext)
             {
                 if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
                 {
-                    XPLMSetDataf(d_ref, 10.5f);
+                    XPLMSetDataf(d_ref, 10.0f);
                 }
                 ctx->otto.clmb.rc.init_cl_speed = 160.0f; // SkyView
             }
@@ -1705,7 +1703,7 @@ int nvp_chandlers_update(void *inContext)
             {
                 if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
                 {
-                    XPLMSetDataf(d_ref, 10.5f);
+                    XPLMSetDataf(d_ref, 10.0f);
                 }
                 if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim.sasl"))
                 {
@@ -1717,7 +1715,7 @@ int nvp_chandlers_update(void *inContext)
             {
                 if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
                 {
-                    XPLMSetDataf(d_ref, 10.5f);
+                    XPLMSetDataf(d_ref, 10.0f);
                 }
                 if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim.sasl"))
                 {
@@ -1736,13 +1734,13 @@ int nvp_chandlers_update(void *inContext)
 //                  switch (ctx->info->engine_type1) // engine-specific take-off/go-around pitch
 //                  {
 //                      case 4: case 5:
-//                          XPLMSetDataf(d_ref, 10.5f);
+//                          XPLMSetDataf(d_ref, 10.0f);
 //                          break;
 //                      case 2: case 8:
 //                          XPLMSetDataf(d_ref, 8.75f);
 //                          break;
 //                      default:
-//                          XPLMSetDataf(d_ref, 7.0f);
+//                          XPLMSetDataf(d_ref, 7.50f);
 //                          break;
 //                  }
 //              }
