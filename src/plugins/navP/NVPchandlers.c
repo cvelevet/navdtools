@@ -2962,17 +2962,32 @@ static const float nvp_thrust_presets1_ea50[] =
     0.31250f,
     0.37500f,
     0.43750f,
-//  0.45155f, // 60% cruise
+//  .451875f, // ~60% N1
     0.50000f,
     0.56250f,
     0.62500f,
-//  0.64050f, // 75% cruise
     0.68750f,
     0.75000f,
     0.81250f,
     0.87500f, // climb thrust
-//  0.88425f, // 95% N1 climb
-    1.00000f, // takeoff thrust
+    0.94375f, // ~100% N1
+//  1.00000f, // takeoff
+    -1.0000f,
+};
+
+static const float nvp_thrust_presets2_ea50[] =
+{
+    0.00000f,
+    0.12500f,
+    0.25000f,
+    0.37500f,
+//  .451875f, // ~60% N1
+    0.50000f,
+    0.62500f,
+    0.75000f,
+    0.87500f, // climb thrust
+    0.94375f, // ~100% N1
+//  1.00000f, // takeoff
     -1.0000f,
 };
 
@@ -2986,19 +3001,34 @@ static const float nvp_thrust_presets1_evic[] =
     0.18750f,
     0.25000f,
     0.31250f,
-//  0.35870f, // 60% cruise
+//  0.35875f, // ~60% N1
     0.37500f,
     0.43750f,
     0.50000f,
     0.56250f,
-//  0.57310f, // 75% cruise
     0.62500f,
     0.68750f,
     0.75000f,
     0.81250f,
     0.87500f, // climb thrust
-//  0.88889f, // 95% N1 climb
-    1.00000f, // takeoff thrust
+    .971875f, // ~100% N1
+//  1.00000f, // takeoff
+    -1.0000f,
+};
+
+static const float nvp_thrust_presets2_evic[] =
+{
+    0.00000f,
+    0.12500f,
+    0.25000f,
+//  0.35875f, // ~60% N1
+    0.37500f,
+    0.50000f,
+    0.62500f,
+    0.75000f,
+    0.87500f, // climb thrust
+    .971875f, // ~100% N1
+//  1.00000f, // takeoff
     -1.0000f,
 };
 
@@ -3863,6 +3893,10 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             }
             switch (((refcon_thrust*)inRefcon)->info->thrust_presets)
             {
+                case NVP_TP_EA50:
+                    return nvp_throttle_all(inRefcon, nvp_thrust_presets2_ea50, NVP_DIRECTION_DN);
+                case NVP_TP_EVIC:
+                    return nvp_throttle_all(inRefcon, nvp_thrust_presets2_evic, NVP_DIRECTION_DN);
                 default:
                     break;
             }
