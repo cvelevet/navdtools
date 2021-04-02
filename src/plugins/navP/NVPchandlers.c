@@ -6566,7 +6566,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDatai, 0, "cl300/baro_pref");
             _DO(1, XPLMSetDatai, 0, "cl300/alt_pref");
             _DO(1, XPLMSetDatai, 1, "cl300/com_pref");
-            _DO(1, XPLMSetDatai, 0, "cl300/gpu_mode");
+            _DO(1, XPLMSetDatai, 0, "cl300/gpu_mode"); // ???
             if (acf_type_is_engine_running() == 0)
             {
                 float load = 277.0f, fuel = 1750.0f;
@@ -6580,26 +6580,16 @@ static int first_fcall_do(chandler_context *ctx)
         case ACF_TYP_E55P_AB:
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
             {
-                int door_close[1] = { 0, }, door_open[1] = { 1, };
+                int door_close[1] = { 0, };
                 XPLMSetDatavi(d_ref, &door_close[0], 1, 1); // baggage FWD LH
                 XPLMSetDatavi(d_ref, &door_close[0], 2, 1); // baggage FWD RH
                 XPLMSetDatavi(d_ref, &door_close[0], 3, 1); // baggage AFT
                 XPLMSetDatavi(d_ref, &door_close[0], 5, 1); // FUEL panel
-                XPLMSetDatavi(d_ref,  &door_open[0], 4, 1); // GPU panel
+                XPLMSetDatavi(d_ref, &door_close[0], 4, 1); // GPU panel
             }
             if ((cr = XPLMFindCommand("sim/flight_controls/door_close_1"))) // passenger door
             {
                 XPLMCommandOnce(cr);
-            }
-            if ((d_ref = XPLMFindDataRef("aerobask/hide_gpu")))
-            {
-                if (XPLMGetDatai(d_ref) != 0)
-                {
-                    if ((cr = XPLMFindCommand("aerobask/electrical/gpu_connect_disconnect")))
-                    {
-                        XPLMCommandOnce(cr);
-                    }
-                }
             }
             if ((d_ref = XPLMFindDataRef("aerobask/hide_static")))
             {
@@ -6611,16 +6601,33 @@ static int first_fcall_do(chandler_context *ctx)
                     }
                 }
             }
-            if ((d_ref = XPLMFindDataRef("aerobask/tablet/deployed")) &&
-                (cr = XPLMFindCommand("aerobask/tablet/deploy_toggle")))
+            if (acf_type_is_engine_running() == 0) // cold & dark
             {
-                if (XPLMGetDatai(d_ref) != 1)
+                if ((d_ref = XPLMFindDataRef("sim/cockpit2/switches/custom_slider_on")))
                 {
-                    XPLMCommandOnce(cr);
+                    int door_open[1] = { 1, };
+                    XPLMSetDatavi(d_ref, &door_open[0], 4, 1); // GPU panel
                 }
-            }
-            if (acf_type_is_engine_running() == 0)
-            {
+                if ((d_ref = XPLMFindDataRef("aerobask/hide_gpu")))
+                {
+                    if (XPLMGetDatai(d_ref) != 0)
+                    {
+                        if ((cr = XPLMFindCommand("aerobask/electrical/gpu_connect_disconnect")))
+                        {
+                            XPLMCommandOnce(cr);
+                        }
+                    }
+                }
+                if ((d_ref = XPLMFindDataRef("aerobask/tablet/deployed")))
+                {
+                    if (XPLMGetDatai(d_ref) != 1)
+                    {
+                        if ((cr = XPLMFindCommand("aerobask/tablet/deploy_toggle")))
+                        {
+                            XPLMCommandOnce(cr);
+                        }
+                    }
+                }
                 float pload = 180.0f, fuelq = 710.0f;
                 acf_type_load_set(ctx->info, &pload);
                 acf_type_fuel_set(ctx->info, &fuelq);
@@ -6754,7 +6761,10 @@ static int first_fcall_do(chandler_context *ctx)
                 float instrument_brightness_ratio[1] = { 1.0f, };
                 XPLMSetDatavf(d_ref, &instrument_brightness_ratio[0], 0, 1);        // LED readouts intensity control
             }
-            _DO(1, XPLMSetDatai, 1, "Rotate/md80/electrical/GPU_power_available");
+            if (acf_type_is_engine_running() == 0) // cold & dark
+            {
+                _DO(1, XPLMSetDatai, 1, "Rotate/md80/electrical/GPU_power_available");
+            }
             _DO(1, XPLMSetDatai, 1, "Rotate/md80/misc/hide_yoke_button_clicked");
             _DO(1, XPLMSetDatai, 2, "Rotate/md80/instruments/nav_display_range");
             _DO(1, XPLMSetDatai, 2, "Rotate/md80/instruments/nav_display_mode");
@@ -6812,12 +6822,12 @@ static int first_fcall_do(chandler_context *ctx)
                 int hide[2] = { 0, 0, };
                 XPLMSetDatavi(d_ref, &hide[0], 0, 2);
             }
-            if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
-            {
-                XPLMCommandOnce(cr);
-            }
             if (acf_type_is_engine_running() == 0) // cold & dark
             {
+                if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
+                {
+                    XPLMCommandOnce(cr);
+                }
                 float fuel = 456.0f; acf_type_fuel_set(ctx->info, &fuel); // half tanks
             }
             _DO(0, XPLMSetDataf, TBM9_FLIGHT_IDLE_GATE, "sim/cockpit2/engine/actuators/throttle_ratio_all"); // flight idle
@@ -7027,18 +7037,24 @@ static int first_fcall_do(chandler_context *ctx)
                 {
                     if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Pipistrel Panthera"))
                     {
-//                      if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
+//                      if (acf_type_is_engine_running() == 0) // cold & dark
 //                      {
-//                          XPLMCommandOnce(cr);
+//                          if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
+//                          {
+//                              XPLMCommandOnce(cr);
+//                          }
 //                      }
                         _DO(1, XPLMSetDatai, 1, "aerobask/panthera/key_engaged");
                     }
                     else if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Epic E1000") ||
                              !STRN_CASECMP_AUTO(ctx->info->descrp, "Epic Victory"))
                     {
-                        if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
+                        if (acf_type_is_engine_running() == 0) // cold & dark
                         {
-                            XPLMCommandOnce(cr);
+                            if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
+                            {
+                                XPLMCommandOnce(cr);
+                            }
                         }
                         if ((d_ref = XPLMFindDataRef("aerobask/hide_static")) &&
                             (cr = XPLMFindCommand("aerobask/toggle_static")))
@@ -7061,9 +7077,12 @@ static int first_fcall_do(chandler_context *ctx)
                             if ((d_ref = XPLMFindDataRef("aerobask/tablet/deployed")) &&
                                 (cr = XPLMFindCommand("aerobask/tablet/deploy_toggle")))
                             {
-                                if (XPLMGetDatai(d_ref) != 1)
+                                if (acf_type_is_engine_running() == 0) // cold & dark
                                 {
-                                    XPLMCommandOnce(cr);
+                                    if (XPLMGetDatai(d_ref) != 1)
+                                    {
+                                        XPLMCommandOnce(cr);
+                                    }
                                 }
                                 x1000 = 1; // custom SASL signature: G1000 version
                             }
@@ -7081,9 +7100,12 @@ static int first_fcall_do(chandler_context *ctx)
                     }
                     else if (!strcasecmp(ctx->info->icaoid, "EA50"))
                     {
-                        if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
+                        if (acf_type_is_engine_running() == 0) // cold & dark
                         {
-                            XPLMCommandOnce(cr);
+                            if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
+                            {
+                                XPLMCommandOnce(cr);
+                            }
                         }
                         _DO(0, XPLMSetDatai,      0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
                         _DO(0, XPLMSetDatai,      1, "sim/cockpit2/ice/ice_pitot_heat_on_copilot");
