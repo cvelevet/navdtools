@@ -1544,7 +1544,8 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.conn.cc.name = "toliss_airbus/ap1_push";
             ctx->otto.disc.cc.name = "toliss_airbus/ap_disc_left_stick";
             ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
-            ctx->otto.clmb.rc.ap_toga = ctx->otto.clmb.rc.ap_trim = NULL;
+            ctx->otto.clmb.rc.ap_toga = "sim/autopilot/autothrottle_on";
+            ctx->otto.clmb.rc.ap_trim = NULL;
             break;
 
         case ACF_TYP_A350_FF:
@@ -1555,7 +1556,8 @@ int nvp_chandlers_update(void *inContext)
                 ctx->otto.disc.cc.name = "airbus_qpac/ap_disc_left_stick";
             }
             ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
-            ctx->otto.clmb.rc.ap_toga = ctx->otto.clmb.rc.ap_trim = NULL;
+            ctx->otto.clmb.rc.ap_toga = "sim/autopilot/autothrottle_on";
+            ctx->otto.clmb.rc.ap_trim = NULL;
             break;
 
         case ACF_TYP_B737_EA:
