@@ -274,7 +274,7 @@ typedef struct
     XPLMDataRef f_pitch;
     XPLMDataRef vfpitch;
     const char *ap_toga;
-    const char *ap_trim;
+    const char *ptrimto;
     float init_cl_speed;
     float init_cl_pitch;
     int vfpitch_array_i;
@@ -1246,7 +1246,7 @@ int nvp_chandlers_reset(void *inContext)
     acf_type_info_reset();
 
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
-    ctx->otto.clmb.rc.      ap_trim = "sim/flight_controls/pitch_trim_takeoff";
+    ctx->otto.clmb.rc.      ptrimto = "sim/flight_controls/pitch_trim_takeoff";
     ctx->otto.clmb.rc.      ap_toga = "sim/autopilot/take_off_go_around";
     ctx->otto.clmb.rc.init_cl_pitch = -1.0f;
     ctx->otto.clmb.rc.init_cl_speed = -1.0f;
@@ -1535,7 +1535,7 @@ int nvp_chandlers_update(void *inContext)
         case ACF_TYP_A320_FF:
             ctx->otto.conn.cc.name = "private/ff320/ap_conn";
             ctx->otto.disc.cc.name = "private/ff320/ap_disc";
-            ctx->otto.clmb.rc.ap_toga = ctx->otto.clmb.rc.ap_trim = NULL;
+            ctx->otto.clmb.rc.ap_toga = ctx->otto.clmb.rc.ptrimto = NULL;
             ctx->gear.assert = ctx->ground.assert = ctx->throt.rev.assert = &ctx->info->assert;
             break;
 
@@ -1545,7 +1545,7 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.disc.cc.name = "toliss_airbus/ap_disc_left_stick";
             ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
             ctx->otto.clmb.rc.ap_toga = "sim/autopilot/autothrottle_on";
-            ctx->otto.clmb.rc.ap_trim = NULL;
+            ctx->otto.clmb.rc.ptrimto = NULL;
             break;
 
         case ACF_TYP_A350_FF:
@@ -1557,7 +1557,7 @@ int nvp_chandlers_update(void *inContext)
             }
             ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
             ctx->otto.clmb.rc.ap_toga = "sim/autopilot/autothrottle_on";
-            ctx->otto.clmb.rc.ap_trim = NULL;
+            ctx->otto.clmb.rc.ptrimto = NULL;
             break;
 
         case ACF_TYP_B737_EA:
@@ -1606,6 +1606,7 @@ int nvp_chandlers_update(void *inContext)
         case ACF_TYP_E55P_AB:
             // custom G1000 PFD (always shows speed)
             ctx->otto.clmb.rc.init_cl_speed = 180.0f;
+            ctx->otto.clmb.rc.ptrimto = NULL; // automatic
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
             ctx->callouts.ref_flaps_e55p = XPLMFindDataRef("aerobask/anim/sw_flap");
@@ -1662,7 +1663,7 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.conn.cc.name = "tbm900/actuators/ap/ap";
             ctx->otto.disc.cc.name = "tbm900/actuators/ap/disc";
             ctx->throt.throttle = ctx->ground.thrott_all;
-            ctx->otto.clmb.rc.ap_trim = NULL;
+            ctx->otto.clmb.rc.ptrimto = NULL;
             break;
 
         case ACF_TYP_GENERIC:
@@ -4031,9 +4032,9 @@ static int chandler_apclb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             if (0 < XPLMGetDatai(d_ref))
             {
-                if (((refcon_app*)inRefcon)->ap_trim)
+                if (((refcon_app*)inRefcon)->ptrimto)
                 {
-                    if ((cr = XPLMFindCommand(((refcon_app*)inRefcon)->ap_trim)))
+                    if ((cr = XPLMFindCommand(((refcon_app*)inRefcon)->ptrimto)))
                     {
                         XPLMCommandOnce(cr);
                     }
