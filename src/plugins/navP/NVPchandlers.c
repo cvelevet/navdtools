@@ -5799,7 +5799,7 @@ static void nvp_efis_setup(void)
 
 static void nvp_skyv_setup(void)
 {
-    XPLMDataRef d_ref; // TODO: implement more
+    XPLMDataRef d_ref;
 //  _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot"); // triple-skyview setup: overridden by plugin as well
 //  _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot"); // overridden by plugin, no dataref nor command control
     /*
@@ -5820,7 +5820,7 @@ static void nvp_skyv_setup(void)
 
 static void nvp_x1000_setup(void)
 {
-    XPLMDataRef d_ref; // TODO: implement more
+    XPLMDataRef d_ref;
     _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
     _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
 //    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot"); // untested
@@ -5837,7 +5837,7 @@ static void nvp_x1000_setup(void)
 
 static void nvp_xgps_setup(void)
 {
-    XPLMDataRef d_ref; // TODO: implement more
+    XPLMDataRef d_ref;
     _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
     _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
 //  _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot"); // untested
