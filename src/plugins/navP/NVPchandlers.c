@@ -5383,14 +5383,8 @@ static int chandler_31isc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 {
     if (inRefcon) // do it for all phases just in case
     {
-        if (((refcon_tolifbw*)inRefcon)->xpliver) // XP11+
-        {
-            int x = 758; XPLMSetDatavi(((refcon_tolifbw*)inRefcon)->popup_x, &x, 9, 1);
-            int y = 284; XPLMSetDatavi(((refcon_tolifbw*)inRefcon)->popup_y, &y, 9, 1);
-            return 1; // pass through
-        }
-        int x = 768; XPLMSetDatavi(((refcon_tolifbw*)inRefcon)->popup_x, &x, 9, 1);
-        int y = 352; XPLMSetDatavi(((refcon_tolifbw*)inRefcon)->popup_y, &y, 9, 1);
+        int x = 0; XPLMSetDatavi(((refcon_tolifbw*)inRefcon)->popup_x, &x, 9, 1);
+        int y = 0; XPLMSetDatavi(((refcon_tolifbw*)inRefcon)->popup_y, &y, 9, 1);
         return 1; // pass through
     }
     return 1; // pass through
