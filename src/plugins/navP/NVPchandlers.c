@@ -3895,9 +3895,9 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             switch (((refcon_thrust*)inRefcon)->info->thrust_presets)
             {
                 case NVP_TP_EA50:
-                    return nvp_throttle_all(inRefcon, nvp_thrust_presets2_ea50, NVP_DIRECTION_DN);
+                    return nvp_throttle_all(inRefcon, nvp_thrust_presets2_ea50, NVP_DIRECTION_UP);
                 case NVP_TP_EVIC:
-                    return nvp_throttle_all(inRefcon, nvp_thrust_presets2_evic, NVP_DIRECTION_DN);
+                    return nvp_throttle_all(inRefcon, nvp_thrust_presets2_evic, NVP_DIRECTION_UP);
                 default:
                     break;
             }
