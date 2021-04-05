@@ -5800,10 +5800,22 @@ static void nvp_efis_setup(void)
 static void nvp_skyv_setup(void)
 {
     XPLMDataRef d_ref; // TODO: implement more
-    _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
-    _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
-    _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_weather_on");
-    _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_tcas_on");
+//  _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot"); // triple-skyview setup: overridden by plugin as well
+//  _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot"); // overridden by plugin, no dataref nor command control
+    /*
+     * the following datarefs are either overriden by plugin or changing them can cause display artifacts due to conflicts about how the plugin
+     * writes on top of the default map (thus a specific mode is required); non-issue as such settings can be saved in Aerobask preference file
+     */
+//  _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot");
+//  _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot");
+//  _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot");
+//  _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");
+//  _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
+//  _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
+//  _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
+//  _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
+//  _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
+//  _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
 }
 
 static void nvp_x1000_setup(void)
@@ -5811,8 +5823,16 @@ static void nvp_x1000_setup(void)
     XPLMDataRef d_ref; // TODO: implement more
     _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
     _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
-//  _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_weather_on");
-//  _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_tcas_on");
+//    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot"); // untested
+//    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot"); // untested
+//    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot"); // not tested
+//    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot"); // not tested
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
+    _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
+//  _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range"); // un-tested
+//  _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode"); // not tested
 }
 
 static void nvp_xgps_setup(void)
@@ -5820,6 +5840,16 @@ static void nvp_xgps_setup(void)
     XPLMDataRef d_ref; // TODO: implement more
     _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot");
     _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot");
+//  _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_copilot"); // untested
+//  _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_copilot"); // untested
+//  _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_1_selection_pilot"); // not tested
+//  _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot"); // not tested
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_airport_on");
+    _DO(0, XPLMSetDatai, 0, "sim/cockpit2/EFIS/EFIS_fix_on");
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_ndb_on");
+    _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
+//  _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range"); // un-tested
+//  _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode"); // not tested
 }
 
 static void nvp_xnz_setup(int engine_count, int engines_on)
