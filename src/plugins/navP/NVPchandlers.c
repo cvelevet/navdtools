@@ -5012,13 +5012,17 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     // reset any relevant dataref to preset size/location and show both MCDUs
                     // ISI top right matches PFD top right (500 - 200 = 300, 500 - 200 = 300)
                     // L PFD: bottom left (0,0) R PFD offset to the top (0, 1120 - 500 = 620)
+                    // R PFD and R ND: same position as their left counterparts, but inverted
                     // upper ECAM in upper right corner (1792 - 500 = 1292, 1120 - 500 = 620)
                     // lower ECAM goes right next to it (1292 - 500 = _792, 1120 - 500 = 620)
                     // R CDU: bottom right (1792 - 415 = 1377) L CDU: next to it (1377 - 415 = 962)
                     //                    { CDU1, CDU2, PFD1, PFD2, ND#1, ND#2, ECAM, ECAM, ISIS, };
-                    float PopUpScale[9] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, }; XPLMSetDatavf(cdu->dataref[1], PopUpScale, 0, 9);
-                    int   PopUpXArry[9] = {  962, 1377,    0,    0,  500,  500, 1292,  792,  300, }; XPLMSetDatavi(cdu->dataref[2], PopUpXArry, 0, 9);
-                    int   PopUpYArry[9] = {    0,    0,    0,    0,    0,    0,  620,  620,  300, }; XPLMSetDatavi(cdu->dataref[3], PopUpYArry, 0, 9);
+                    float PopUpScale[9] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, };
+                    int   PopUpXArry[9] = {  962, 1377,    0,  500,  500,    0, 1292,  792,  300, };
+                    int   PopUpYArry[9] = {    0,    0,    0,    0,    0,    0,  620,  620,  300, };
+                    XPLMSetDatavf(cdu->dataref[1], PopUpScale, 0, 9);
+                    XPLMSetDatavi(cdu->dataref[2], PopUpXArry, 0, 9);
+                    XPLMSetDatavi(cdu->dataref[3], PopUpYArry, 0, 9);
                     XPLMCommandOnce(cdu->command[0]);
                     XPLMCommandOnce(cdu->command[1]);
                     return 0;
@@ -6044,7 +6048,7 @@ static int first_fcall_do(chandler_context *ctx)
             if (ctx->info->ac_type == ACF_TYP_A319_TL || ctx->info->ac_type == ACF_TYP_A321_TL)
             {
                 float PopUpScale[9] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, };
-                int   PopUpXArry[9] = {  962, 1377,    0,    0,  500,  500, 1292,  792,  300, };
+                int   PopUpXArry[9] = {  962, 1377,    0,  500,  500,    0, 1292,  792,  300, };
                 int   PopUpYArry[9] = {    0,    0,    0,    0,    0,    0,  620,  620,  300, };
                 if ((d_ref = XPLMFindDataRef("AirbusFBW/PopUpScale")))
                 {
