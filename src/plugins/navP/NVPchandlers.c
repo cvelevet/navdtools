@@ -5060,6 +5060,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         cdu->i_cycle_id = 2;
                         return 0;
                     case 2:
+#if 0 // we resized popups so GCU-477 no longer interferes with EIS on MFD
 //                      XPLMCommandOnce(cdu->command[4]); // G1000: Lt display (hide) (already hidden - we only have a toggle command)
                         XPLMCommandOnce(cdu->command[1]); // GFC700: autopilot (hide)
 //                      XPLMCommandOnce(cdu->command[5]); // G1000: Ct display (show) (already showing, we only have a toggle command)
@@ -5067,6 +5068,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         cdu->i_cycle_id = 3;
                         return 0;
                     case 3:
+#endif
                     default:
 //                      XPLMCommandOnce(cdu->command[4]); // G1000: Lt display (hide) (already hidden - we only have a otggle command)
                         XPLMCommandOnce(cdu->command[1]); // GFC700: autopilot (hide)
@@ -5198,15 +5200,17 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     {
                         case 0:
                             XPLMCommandOnce(cdu->command[0]); // G1000: Lt display (show)
+//                          XPLMCommandOnce(cdu->command[1]); // G1000: Ct display (hide) (already hidden - we only have a toggle command)
                             cdu->i_cycle_id = 1;
                             break;
                         case 1:
-                            XPLMCommandOnce(cdu->command[0]); // G1000: Lt display (hide)
+//                          XPLMCommandOnce(cdu->command[0]); // G1000: Lt display (show) (already showing, we only have a toggle command)
                             XPLMCommandOnce(cdu->command[1]); // G1000: Ct display (show)
                             cdu->i_cycle_id = 2;
                             break;
                         case 2:
                         default:
+                            XPLMCommandOnce(cdu->command[0]); // G1000: Lt display (hide)
                             XPLMCommandOnce(cdu->command[1]); // G1000: Ct display (hide)
                             cdu->i_cycle_id = 0;
                             break;
@@ -5232,6 +5236,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             cdu->i_cycle_id = 2;
                             return 0;
                         case 2:
+#if 0 // we resized popups so GCU-477 no longer interferes with EIS on MFD
 //                          XPLMCommandOnce(cdu->command[4]); // G1000: Lt display (hide) (already hidden - we only have a toggle command)
                             XPLMCommandOnce(cdu->command[1]); // GFC700: autopilot (hide)
 //                          XPLMCommandOnce(cdu->command[5]); // G1000: Ct display (show) (already showing, we only have a toggle command)
@@ -5239,6 +5244,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                             cdu->i_cycle_id = 3;
                             return 0;
                         case 3:
+#endif
                         default:
 //                          XPLMCommandOnce(cdu->command[4]); // G1000: Lt display (hide) (already hidden - we only have a otggle command)
                             XPLMCommandOnce(cdu->command[1]); // GFC700: autopilot (hide)
@@ -5269,6 +5275,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         XPLMSetDatai(cdu->dataref[3], 1); // Ct GTN 750 (show)
                         return 0;
                     }
+#if 0 // we resized popups so GTN-750 no longer interferes with EIS on MFD
                     if (XPLMGetDatai(cdu->dataref[2]) == 1)
                     {
                         if (XPLMGetDatai(cdu->dataref[3]) == 1)
@@ -5282,7 +5289,8 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         }
                         // Rt SkyView showing only, turn everything off (fall through)
                     }
-                    // manual popup configuration, turn everything off
+#endif
+                    // other popup configuration, turn everything off
                     XPLMSetDatai(cdu->dataref[0], 0); // Lt SkyView (hide)
                     XPLMSetDatai(cdu->dataref[1], 0); // Ct GTN 650 (hide)
                     XPLMSetDatai(cdu->dataref[2], 0); // Rt SkyView (hide)
