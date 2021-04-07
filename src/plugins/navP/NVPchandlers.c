@@ -6719,6 +6719,124 @@ static int first_fcall_do(chandler_context *ctx)
                         }
                     }
                 }
+                /*
+                 * -----------------------
+                 * | Already done for us |
+                 * -----------------------
+                 * **************************************************** COCKPIT.INSPECTION ****************************************************
+                 * SUPPLY CONTROL KNOB.................................................................................................PAX AUTO
+                 * ELECTRICAL PANEL..................................BATT 1 & 2 Switches in the OFF position. BUS TIE Knob in the AUTO position
+                 * TEST PANEL...............................................................................................................OFF
+                 * FUEL PUMP 1 & 2 SWITCHES................................................................................................AUTO
+                 * XFEED KNOB...............................................................................................................OFF
+                 * ELT SWITCH.............................................................................................................ARMED
+                 * PUSHER CUTOUT BUTTON..............................................................................................PUSHED OUT
+                 * HEATING PANEL..............................WSHLD 1 & 2 Switches in the OFF position and ADS PROBES Knob in the AUTO position
+                 * ICE PROTECTION PANEL.................................................................................................ALL OFF
+                 * PRESSURIZATION PANEL..............................Pressurization MODE Switch in the AUTO position and DUMP Button pushed out
+                 * AIR CONDITIONING PANEL...............................................................................................AS RQRD
+                 * ENG FIRE EXTINGUISHER PANEL...............................SHUTOFF 1 & 2 Buttons pushed out and BOTTLE Switch in OFF position
+                 *
+                 * *************************************************** LEAVING.THE.AIRPLANE ***************************************************
+                 * EMER LT SWITCH...........................................................................................................OFF
+                 * LIGHTS...................................................................................................................OFF
+                 *
+                 * ------------------------------------------
+                 * | Done and/or controlled via x-nullzones |
+                 * ------------------------------------------
+                 * **************************************************** COCKPIT.INSPECTION ****************************************************
+                 * LANDING GEAR LEVER........................................................................................................DN
+                 * SPEED BRAKE SWITCH.....................................................................................................CLOSE
+                 *
+                 * ******************************************************* BEFORE.START *******************************************************
+                 * ENG IGNITION SWITCHES...................................................................................................AUTO
+                 *
+                 * ********************************************************* SHUTDOWN *********************************************************
+                 * THRUST LEVERS...........................................................................................................IDLE
+                 * PARKING BRAKE..........................................................................................................APPLY
+                 * START/STOP KNOBS........................................................................................................STOP
+                 *
+                 * ---------------------------
+                 * | Applied earlier by navP |
+                 * ---------------------------
+                 * **************************************************** COCKPIT.INSPECTION ****************************************************
+                 * PROBES AND ENGINES COVERS............................................................................................REMOVED
+                 *
+                 * ----------------------
+                 * | applied below here |
+                 * ----------------------
+                 * **************************************************** COCKPIT.INSPECTION ****************************************************
+                 * OXYGEN BOTTLE VALVE HANDLE...................................................................................PUSH TO RESTORE
+                 * ELECTRICAL PANEL.....................................................................GEN 1 & 2 Switches in the AUTO position
+                 * BLEED 1 & 2 SWITCHES....................................................................................................AUTO
+                 * XBLEED KNOB.............................................................................................................AUTO
+                 * HYD PUMP SOV 1 & 2 SWITCHES.............................................................................................OPEN
+                 * PRESSURIZATION PANEL...........................................................................ECS Knob in the BOTH position
+                 */
+                if ((d_ref = XPLMFindDataRef("aerobask/oxygen/sw_cut_out")))
+                {
+                    if (XPLMGetDataf(d_ref) < 0.5f)
+                    {
+                        if ((cr = XPLMFindCommand("aerobask/oxygen/cut_out")))
+                        {
+                            XPLMCommandOnce(cr);
+                        }
+                    }
+                }
+                if ((cr = XPLMFindCommand("aerobask/electrical/gen1_auto")))
+                {
+                    XPLMCommandOnce(cr);
+                }
+                if ((cr = XPLMFindCommand("aerobask/electrical/gen2_auto")))
+                {
+                    XPLMCommandOnce(cr);
+                }
+                if ((cr = XPLMFindCommand("aerobask/bleed/bleed1_auto")))
+                {
+                    XPLMCommandOnce(cr);
+                }
+                if ((cr = XPLMFindCommand("aerobask/bleed/bleed2_auto")))
+                {
+                    XPLMCommandOnce(cr);
+                }
+                if ((cr = XPLMFindCommand("aerobask/bleed/xbleed_auto")))
+                {
+                    XPLMCommandOnce(cr);
+                }
+                if ((d_ref = XPLMFindDataRef("aerobask/hyd/sw_pump1")))
+                {
+                    if (XPLMGetDataf(d_ref) < 0.5f)
+                    {
+                        if ((cr = XPLMFindCommand("aerobask/hyd/pump1_up")))
+                        {
+                            XPLMCommandOnce(cr);
+                        }
+                    }
+                }
+                if ((d_ref = XPLMFindDataRef("aerobask/hyd/sw_pump2")))
+                {
+                    if (XPLMGetDataf(d_ref) < 0.5f)
+                    {
+                        if ((cr = XPLMFindCommand("aerobask/hyd/pump2_up")))
+                        {
+                            XPLMCommandOnce(cr);
+                        }
+                    }
+                }
+                if ((cr = XPLMFindCommand("aerobask/press/ecs_rt")))
+                {
+                    if ((d_ref = XPLMFindDataRef("aerobask/press/knob_ecs")))
+                    {
+                        if (XPLMGetDataf(d_ref) < 1.5f)
+                        {
+                            if (XPLMGetDataf(d_ref) < 0.5f)
+                            {
+                                XPLMCommandOnce(cr); // OFF VENT -> 1
+                            }
+                            XPLMCommandOnce(cr); // 1 -> AUTO
+                        }
+                    }
+                }
                 float pload = 180.0f, fuelq = 710.0f;
                 acf_type_load_set(ctx->info, &pload);
                 acf_type_fuel_set(ctx->info, &fuelq);
