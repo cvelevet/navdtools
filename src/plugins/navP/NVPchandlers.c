@@ -5798,11 +5798,11 @@ static void nvp_efis_setup(void)
     _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
     _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
     _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
+    return;
 }
 
 static void nvp_skyv_setup(void)
 {
-    XPLMDataRef d_ref;
 //  _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_copilot"); // triple-skyview setup: overridden by plugin as well
 //  _DO(0, XPLMSetDatai, 2, "sim/cockpit2/radios/actuators/HSI_source_select_pilot"); // overridden by plugin, no dataref nor command control
     /*
@@ -5819,6 +5819,8 @@ static void nvp_skyv_setup(void)
 //  _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
 //  _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range");
 //  _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode");
+    XPLMDataRef d_ref;
+    return;
 }
 
 static void nvp_x1000_setup(void)
@@ -5836,6 +5838,7 @@ static void nvp_x1000_setup(void)
     _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
 //  _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range"); // un-tested
 //  _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode"); // not tested
+    return;
 }
 
 static void nvp_xgps_setup(void)
@@ -5853,6 +5856,7 @@ static void nvp_xgps_setup(void)
     _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_vor_on");
 //  _DO(0, XPLMSetDatai, 4, "sim/cockpit2/EFIS/map_range"); // un-tested
 //  _DO(0, XPLMSetDatai, 2, "sim/cockpit2/EFIS/map_mode"); // not tested
+    return;
 }
 
 static void nvp_xnz_setup(int engine_count, int engines_on)
