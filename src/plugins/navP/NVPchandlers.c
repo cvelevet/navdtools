@@ -1594,7 +1594,7 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
             {
-                ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
+                ctx->otto.disc.cc.name = "sim/autopilot/servos_yawd_off_any";
             }
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
             {
@@ -1608,7 +1608,7 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.clmb.rc.init_cl_speed = 180.0f;
             ctx->otto.clmb.rc.ptrimto = NULL; // automatic
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
+            ctx->otto.disc.cc.name = "sim/autopilot/servos_yawd_off_any";
             ctx->callouts.ref_flaps_e55p = XPLMFindDataRef("aerobask/anim/sw_flap");
             ctx->throt.throttle = ctx->ground.thrott_all;
             break;
@@ -1648,7 +1648,7 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.clmb.rc.init_cl_speed = 160.0f;
             ctx->otto.clmb.rc.ap_toga = "XCrafts/ERJ/TOGA";
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
+            ctx->otto.disc.cc.name = "sim/autopilot/servos_yawd_off_any";
             ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
@@ -1668,10 +1668,27 @@ int nvp_chandlers_update(void *inContext)
 
         case ACF_TYP_GENERIC:
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
             {
-                ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
+                if ((d_ref = XPLMFindDataRef("sim/aircraft/autopilot/preconfigured_ap_type")))
+                {
+                    if (2 == XPLMGetDatai(d_ref)) // 2=GFC-700
+                    {
+                        ctx->otto.disc.cc.name = "sim/autopilot/servos_yawd_off_any";
+                    }
+                    else
+                    {
+                        ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
+                    }
+                }
+                else
+                {
+                    ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
+                }
+            }
+            else
+            {
+                ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             }
             if (ctx->info->has_rvrs_thr == -1 && ctx->info->has_beta_thr == -1) // XXX: prop-driven w/out reverse
             {
@@ -1710,7 +1727,13 @@ int nvp_chandlers_update(void *inContext)
                 {
                     ctx->otto.clmb.rc.init_cl_speed = 160.0f; // SkyView (G1000 version: custom SASL signature)
                 }
-                // else: G1000 (FLC speed sync, defsult climb speed pointless)
+                else // G1000 (FLC speed sync, defsult climb speed pointless)
+                {
+                    if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
+                    {
+                        ctx->otto.disc.cc.name = "sim/autopilot/servos_yawd_off_any";
+                    }
+                }
             }
             else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "EVIC"))
             {
@@ -1722,7 +1745,13 @@ int nvp_chandlers_update(void *inContext)
                 {
                     ctx->otto.clmb.rc.init_cl_speed = 160.0f; // SkyView (G1000 version: custom SASL signature)
                 }
-                // else: G1000 (FLC speed sync, defsult climb speed pointless)
+                else // G1000 (FLC speed sync, defsult climb speed pointless)
+                {
+                    if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
+                    {
+                        ctx->otto.disc.cc.name = "sim/autopilot/servos_yawd_off_any";
+                    }
+                }
             }
             else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "PIPA"))
             {
