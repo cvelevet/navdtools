@@ -2964,18 +2964,15 @@ static const float nvp_thrust_presets1_da62[] =
     0.31250f,
     0.37500f,
     0.43750f,
-//  0.45000f, // 45% cruise
     0.50000f,
     0.56250f,
-//  0.60000f, // 60% cruise
     0.62500f,
     0.68750f,
-    0.75000f, // 75% cruise
+    0.75000f,
     0.81250f,
     0.87500f,
     0.90625f,
     0.93750f, // climb thrust
-//  0.95000f, // maximum climb
     1.00000f, // takeoff thrust
     -1.0000f,
 };
@@ -2992,15 +2989,14 @@ static const float nvp_thrust_presets1_ea50[] =
     0.31250f,
     0.37500f,
     0.43750f,
-//  .451875f, // ~60% N1
     0.50000f,
     0.56250f,
     0.62500f,
     0.68750f,
     0.75000f,
     0.81250f,
-    0.87500f, // climb thrust
-    0.94375f, // ~100% N1
+    .883175f, // climb thrust
+    .943875f, // ~100% N1
 //  1.00000f, // takeoff
     -1.0000f,
 };
@@ -3011,12 +3007,11 @@ static const float nvp_thrust_presets2_ea50[] =
     0.12500f,
     0.25000f,
     0.37500f,
-//  .451875f, // ~60% N1
     0.50000f,
     0.62500f,
     0.75000f,
-    0.87500f, // climb thrust
-    0.94375f, // ~100% N1
+    .883175f, // climb thrust
+    .943875f, // ~100% N1
 //  1.00000f, // takeoff
     -1.0000f,
 };
@@ -3031,7 +3026,6 @@ static const float nvp_thrust_presets1_evic[] =
     0.18750f,
     0.25000f,
     0.31250f,
-//  0.35875f, // ~60% N1
     0.37500f,
     0.43750f,
     0.50000f,
@@ -3040,7 +3034,7 @@ static const float nvp_thrust_presets1_evic[] =
     0.68750f,
     0.75000f,
     0.81250f,
-    0.87500f, // climb thrust
+    .887425f, // climb thrust
     .971875f, // ~100% N1
 //  1.00000f, // takeoff
     -1.0000f,
@@ -3051,12 +3045,11 @@ static const float nvp_thrust_presets2_evic[] =
     0.00000f,
     0.12500f,
     0.25000f,
-//  0.35875f, // ~60% N1
     0.37500f,
     0.50000f,
     0.62500f,
     0.75000f,
-    0.87500f, // climb thrust
+    .887425f, // climb thrust
     .971875f, // ~100% N1
 //  1.00000f, // takeoff
     -1.0000f,
