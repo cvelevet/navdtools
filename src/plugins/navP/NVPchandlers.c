@@ -137,7 +137,7 @@ typedef struct
     XPLMCommandRef thrup;
 
     chandler_callback uu;
-    XPLMCommandRef thruo;
+    XPLMCommandRef thrul;
 
     XPLMDataRef tbm9erng;
 
@@ -844,7 +844,7 @@ void* nvp_chandlers_init(void)
     ctx->throt.  mixratio = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/mixture_ratio_all");
     ctx->throt.dd.command = XPLMCreateCommand("navP/thrust/dn_cont", "throttle down + once");
     ctx->throt.dn.command = XPLMCreateCommand("navP/thrust/dn_once", "throttle down once");
-    ctx->throt.uu.command = XPLMCreateCommand("navP/thrust/up_cont", "throttle up + once");
+    ctx->throt.uu.command = XPLMCreateCommand("navP/thrust/up_cont", "throttle up + 12pc");
     ctx->throt.up.command = XPLMCreateCommand("navP/thrust/up_once", "throttle up once");
     ctx->throt.ul.command = XPLMCreateCommand("navP/thrust/up_lots", "throttle up 12pc");
     ctx->throt.pt.command = XPLMCreateCommand("private/ptt/dn/once", "NOT TO BE USED");
@@ -869,7 +869,7 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->throt.uu, chandler_thruu, 0, &ctx->throt);
         ctx->throt.thptt = NULL; ctx->throt.atc_is_connected = 0;
         ctx->throt.thrdo = ctx->throt.dn.command;
-        ctx->throt.thruo = ctx->throt.up.command;
+        ctx->throt.thrul = ctx->throt.ul.command;
     }
 
     /* Custom commands: quick look views */
@@ -4002,7 +4002,7 @@ static int chandler_thruu(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     if (inPhase == xplm_CommandEnd)
     {
         XPLMCommandEnd (((refcon_thrust*)inRefcon)->thrup);
-        XPLMCommandOnce(((refcon_thrust*)inRefcon)->thruo);
+        XPLMCommandOnce(((refcon_thrust*)inRefcon)->thrul);
         return 0;
     }
     return 0;
