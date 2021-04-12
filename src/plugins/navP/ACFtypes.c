@@ -301,6 +301,7 @@ acf_info_context* acf_type_info_update()
             break;
         case 0: case 1: // piston engines
         case 2: case 8: // and turboprops
+        case 9: // another turboprop (XP11+, not documented in Datarefs.txt)
             if ((tmp = XPLMFindDataRef("sim/aircraft/prop/acf_revthrust_eq")))
             {
                 global_info->has_rvrs_thr = XPLMGetDatai(tmp) != 0;
