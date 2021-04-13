@@ -296,7 +296,7 @@ acf_info_context* acf_type_info_update()
             {
                 global_info->has_rvrs_thr = XPLMGetDatai(tmp) != 0;
             }
-            global_info->has_auto_thr = global_info->engine_count >= 2; // TODO: case by case basis
+            global_info->has_auto_thr = 0;
             global_info->has_beta_thr = 0;
             break;
         case 0: case 1: // piston engines
@@ -323,6 +323,11 @@ acf_info_context* acf_type_info_update()
             global_info->has_auto_thr = 0;
             break;
     }
+    /*
+     * XXX: disable globally; re-enable on a case-by-case basis until
+     * I can get a better understanding of X-Plane's default behavior…
+     */
+    global_info->has_beta_thr = 0;
 
     /* update fuel tank characteristics */
     struct tank_sorter fuel_tank_for_sorting[9]; int lsingles[9];
@@ -679,6 +684,36 @@ acf_info_context* acf_type_info_update()
     else
     {
         global_info->thrust_presets = NVP_TP_XPLM;
+    }
+    switch (global_info->ac_type)
+    {
+        case ACF_TYP_A320_FF:
+        case ACF_TYP_A319_TL:
+        case ACF_TYP_A321_TL:
+        case ACF_TYP_A350_FF:
+        case ACF_TYP_B737_EA:
+        case ACF_TYP_B737_XG:
+        case ACF_TYP_B757_FF:
+        case ACF_TYP_B767_FF:
+        case ACF_TYP_B777_FF:
+        case ACF_TYP_EMBE_SS:
+        case ACF_TYP_EMBE_XC:
+        case ACF_TYP_HA4T_RW:
+        case ACF_TYP_MD80_RO:
+            global_info->has_auto_thr = 1;
+            break;
+
+        default:
+            switch (global_info->thrust_presets)
+            {
+                case NVP_TP_EA50:
+                    global_info->has_auto_thr = 1;
+                    break;
+
+                default:
+                    break;
+            }
+            break;
     }
     global_info->up_to_date = 1; return global_info;
 }
