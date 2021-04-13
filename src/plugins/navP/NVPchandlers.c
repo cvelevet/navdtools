@@ -1549,11 +1549,15 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case ACF_TYP_A350_FF:
-            ctx->otto.conn.cc.name = "airbus_qpac/ap1_push";
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // v1.6+ for XP11
             {
+                ctx->otto.conn.cc.name = "airbus_qpac/ap1_push";
                 ctx->otto.disc.cc.name = "airbus_qpac/ap_disc_left_stick";
+            }
+            else
+            {
+                ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+                ctx->otto.conn.cc.name = "airbus_qpac/ap1_push";
             }
             ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
             ctx->otto.clmb.rc.ap_toga = "sim/autopilot/autothrottle_on";
@@ -1590,11 +1594,15 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case ACF_TYP_CL30_DD:
-            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
             if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
             {
+                ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
                 ctx->otto.disc.cc.name = "sim/autopilot/servos_yawd_off_any";
+            }
+            else
+            {
+                ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+                ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             }
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
             {
@@ -1621,26 +1629,40 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case ACF_TYP_EMBE_XC:
-            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->throt.throttle = ctx->ground.thrott_all;
+            if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
+            {
+                ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
+                ctx->otto.disc.cc.name = "sim/autopilot/servos_yawd_off_any";
+            }
+            else
+            {
+                ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+                ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
+            }
             if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
             {
                 XPLMSetDataf(d_ref, 10.0f);
             }
+            ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
         case ACF_TYP_HA4T_RW:
-            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            ctx->throt.throttle = ctx->ground.thrott_all;
-            if (NULL == XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP10- detection
+            if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
+            {
+                // XP11 version (intitial climb untested)
+                ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
+                ctx->otto.disc.cc.name = "sim/autopilot/servos_yawd_off_any";
+            }
+            else // lazy XP10- detection
             {
                 if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
                 {
                     XPLMSetDataf(d_ref, 8.75f); // intital climb @ MTOW slightly weak in testing
                 }
-            } // else: XP11 version (intitial climb untested)
+                ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+                ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
+            }
+            ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
         case ACF_TYP_LEGA_XC:
@@ -1667,35 +1689,21 @@ int nvp_chandlers_update(void *inContext)
             break;
 
         case ACF_TYP_GENERIC:
-            ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
-            if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
-            {
-                if ((d_ref = XPLMFindDataRef("sim/aircraft/autopilot/preconfigured_ap_type")))
-                {
-                    if (2 == XPLMGetDatai(d_ref)) // 2=GFC-700
-                    {
-                        ctx->otto.disc.cc.name = "sim/autopilot/servos_yawd_off_any";
-                    }
-                    else
-                    {
-                        ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
-                    }
-                }
-                else
-                {
-                    ctx->otto.disc.cc.name = "sim/autopilot/servos_off_any";
-                }
-            }
-            else
-            {
-                ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
-            }
             if (ctx->info->has_rvrs_thr == -1 && ctx->info->has_beta_thr == -1) // XXX: prop-driven w/out reverse
             {
                 ctx->throt.rev.propdn = XPLMFindCommand("sim/engines/prop_down");
                 ctx->throt.rev.propup = XPLMFindCommand("sim/engines/prop_up");
             }
-            ctx->throt.throttle = ctx->ground.thrott_all;
+            if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
+            {
+                ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
+                ctx->otto.disc.cc.name = "sim/autopilot/servos_yawd_off_any";
+            }
+            else
+            {
+                ctx->otto.disc.cc.name = "sim/autopilot/fdir_servos_down_one";
+                ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
+            }
             if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "FA7X"))
             {
                 if ((d_ref = XPLMFindDataRef("sim/weapons/targ_h")))
@@ -1726,14 +1734,7 @@ int nvp_chandlers_update(void *inContext)
                 if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim.sasl"))
                 {
                     ctx->otto.clmb.rc.init_cl_speed = 160.0f; // SkyView (G1000 version: custom SASL signature)
-                }
-                else // G1000 (FLC speed sync, defsult climb speed pointless)
-                {
-                    if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
-                    {
-                        ctx->otto.disc.cc.name = "sim/autopilot/servos_yawd_off_any";
-                    }
-                }
+                } // else G1000 (FLC speed sync, defsult climb speed pointless)
             }
             else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "EVIC"))
             {
@@ -1744,37 +1745,13 @@ int nvp_chandlers_update(void *inContext)
                 if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim.sasl"))
                 {
                     ctx->otto.clmb.rc.init_cl_speed = 160.0f; // SkyView (G1000 version: custom SASL signature)
-                }
-                else // G1000 (FLC speed sync, defsult climb speed pointless)
-                {
-                    if (NULL != XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
-                    {
-                        ctx->otto.disc.cc.name = "sim/autopilot/servos_yawd_off_any";
-                    }
-                }
+                } // else G1000 (FLC speed sync, defsult climb speed pointless)
             }
             else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "PIPA"))
             {
                 ctx->otto.clmb.rc.init_cl_speed = 120.0f; // SkyView
             }
-//          else // disabled for now
-//          {
-//              if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
-//              {
-//                  switch (ctx->info->engine_type1) // engine-specific take-off/go-around pitch
-//                  {
-//                      case 4: case 5:
-//                          XPLMSetDataf(d_ref, 10.0f);
-//                          break;
-//                      case 2: case 8:
-//                          XPLMSetDataf(d_ref, 8.75f);
-//                          break;
-//                      default:
-//                          XPLMSetDataf(d_ref, 7.50f);
-//                          break;
-//                  }
-//              }
-//          }
+            ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
         default: // not generic but no usable commands
