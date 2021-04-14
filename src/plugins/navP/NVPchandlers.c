@@ -5943,6 +5943,9 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(1, XPLMSetDataf, 1.0f, "sim/joystick/joystick_heading_sensitivity");
             _DO(1, XPLMSetDataf, 1.0f, "sim/joystick/joystick_pitch_sensitivity");
             _DO(1, XPLMSetDataf, 1.0f, "sim/joystick/joystick_roll_sensitivity");
+            _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_heading_augment");
+            _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_pitch_augment");
+            _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_roll_augment");
             break;
 
         default:
