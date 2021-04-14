@@ -5207,13 +5207,14 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     switch (cdu->i_cycle_id)
                     {
                         case 0:
-                            XPLMCommandOnce(cdu->command[0]); // G1000: Lt display (show)
-//                          XPLMCommandOnce(cdu->command[1]); // G1000: Ct display (hide) (already hidden - we only have a toggle command)
+                            XPLMCommandOnce(cdu->command[1]); // G1000: Ct display (show below)
+                            XPLMCommandOnce(cdu->command[0]); // G1000: Lt display (show above)
                             cdu->i_cycle_id = 1;
                             break;
                         case 1:
+                            XPLMCommandOnce(cdu->command[1]); // G1000: Ct display (hide first)
+                            XPLMCommandOnce(cdu->command[1]); // G1000: Ct display (show above)
 //                          XPLMCommandOnce(cdu->command[0]); // G1000: Lt display (show) (already showing, we only have a toggle command)
-                            XPLMCommandOnce(cdu->command[1]); // G1000: Ct display (show)
                             cdu->i_cycle_id = 2;
                             break;
                         case 2:
