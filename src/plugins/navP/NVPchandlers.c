@@ -5663,16 +5663,16 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 //                              ncycles / grndp->elapsed_fr_reset / 2.0f);
                         if (grndp->nvp_menu)
                         {
-                            float low_fps = 24000.0f / 1001.0f;
-                            float vhi_fps = 60000.0f / 1001.0f;
-                            if (avg_fps < low_fps)
+                            // note: had cases where fps < 20 w/clouds vs. about 100 w/out!!!
+                            float vlo_fps = 24000.0f / 1001.0f, vhi_fps = 144000.0f / 1001.0f;
+                            if (avg_fps < vlo_fps)
                             {
                                 XPLMDataRef cloud_skip = XPLMFindDataRef("sim/private/controls/clouds/skip_draw");
                                 if (cloud_skip && XPLMGetDataf(cloud_skip) < 0.5f) // clouds showing
                                 {
                                     ndt_log("navP [info]: fps %.3f < %.3f (%.1f s), "
                                             "disabling clouds for better sim speed\n",
-                                            avg_fps, low_fps, grndp->elapsed_fr_reset);
+                                            avg_fps, vlo_fps, grndp->elapsed_fr_reset);
                                 }
                                 nvp_menu_ckill(grndp->nvp_menu, xplm_Menu_Checked);
                                 grndp->last_cycle_number = inCounter;
