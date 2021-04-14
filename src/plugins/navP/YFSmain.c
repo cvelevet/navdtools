@@ -908,14 +908,14 @@ static void toggle_main_window(yfms_context *yfms)
     {
         return;
     }
-    if (yfms->mwindow.win_state == 0) // top left, adjusted for XSB & X-IvAp
+    if (yfms->mwindow.win_state == 0)
     {
-        int windowTP, windowLT = 0;
-        yfms->mwindow.win_state += 1;
-        XPLMGetScreenSize(NULL, &windowTP);
-        int inTP = (windowTP - 200); int inBM = (inTP - YFS_MAINWINDOW_H) + 1;
-        int inLT = (windowLT +  20); int inRT = (inLT + YFS_MAINWINDOW_W) - 1;
+        // top right, below XP11 menu (~30px) *and* XNZ overlay (56px)
+        int windowRT, windowTP; XPLMGetScreenSize(&windowRT, &windowTP);
+        int inTP = (windowTP - 56 - 1); int inBM = (inTP - YFS_MAINWINDOW_H) + 1;
+        int inRT = (windowRT/*-0*/- 1); int inLT = (inRT - YFS_MAINWINDOW_W) + 1;
         XPSetWidgetGeometry(yfms->mwindow.id, inLT, inTP, inRT, inBM);
+        yfms->mwindow.win_state = 1;
     }
     if (XPIsWidgetVisible(yfms->mwindow.id))
     {
