@@ -7195,6 +7195,7 @@ static int first_fcall_do(chandler_context *ctx)
                         {
                             XPLMSetDataf(d_ref, -0.5f);
                         }
+                        // no controls for pitot/aoa heat, always turn ON (even in cold/dark)
                         _DO(1, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_pitot_heat_on_copilot");
                         _DO(1, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
                         _DO(1, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_AOA_heat_on_copilot");
@@ -7205,7 +7206,7 @@ static int first_fcall_do(chandler_context *ctx)
                 if (!STRN_CASECMP_AUTO(ctx->info->author, "Alabeo") ||
                     !STRN_CASECMP_AUTO(ctx->info->author, "Carenado"))
                 {
-                    if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Pilatus PC12"))
+                    if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Pilatus PC12")) // TODO: fixme: handle XP11 version w/REP pack separately
                     {
                         // make the aircraft less tail-heavy to improve ground handling
                         _DO(0, XPLMSetDataf, -0.30f, "sim/aircraft/overflow/acf_cgZ_fwd");
@@ -7265,13 +7266,6 @@ static int first_fcall_do(chandler_context *ctx)
                     else if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Epic E1000") ||
                              !STRN_CASECMP_AUTO(ctx->info->descrp, "Epic Victory"))
                     {
-                        if (acf_type_is_engine_running() == 0) // cold & dark
-                        {
-                            if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
-                            {
-                                XPLMCommandOnce(cr);
-                            }
-                        }
                         if ((d_ref = XPLMFindDataRef("aerobask/hide_static")) &&
                             (cr = XPLMFindCommand("aerobask/toggle_static")))
                         {
@@ -7303,10 +7297,17 @@ static int first_fcall_do(chandler_context *ctx)
                                 x1000 = 1; // custom SASL signature: G1000 version
                             }
                         }
-                        _DO(0, XPLMSetDatai, 0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
-                        _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_copilot");
-                        _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
-                        _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_detect_on");
+                        if (acf_type_is_engine_running() == 0) // cold & dark
+                        {
+                            if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
+                            {
+                                XPLMCommandOnce(cr);
+                            }
+                            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
+                            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_copilot");
+                            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
+                            _DO(0, XPLMSetDatai, 0, "sim/cockpit2/ice/ice_detect_on");
+                        }
                     }
                     else if (!strcasecmp(ctx->info->icaoid, "DA62"))
                     {
@@ -7323,11 +7324,12 @@ static int first_fcall_do(chandler_context *ctx)
                                 XPLMCommandOnce(cr);
                             }
                         }
-                        _DO(0, XPLMSetDatai,      0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
-                        _DO(0, XPLMSetDatai,      1, "sim/cockpit2/ice/ice_pitot_heat_on_copilot");
-                        _DO(0, XPLMSetDatai,      1, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
-                        _DO(0, XPLMSetDatai,      1, "sim/cockpit2/ice/ice_AOA_heat_on_copilot");
-                        _DO(0, XPLMSetDatai,      1, "sim/cockpit2/ice/ice_AOA_heat_on");
+                        // no cockpit controls for pitot/aoa heat, always turn ON (even in cold & dark)
+                        _DO(0, XPLMSetDatai, 0, "sim/cockpit2/pressurization/actuators/bleed_air_mode");
+                        _DO(0, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_pitot_heat_on_copilot");
+                        _DO(0, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
+                        _DO(0, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_AOA_heat_on_copilot");
+                        _DO(0, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_AOA_heat_on");
                     }
                 }
             }
