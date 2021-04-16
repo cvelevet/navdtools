@@ -188,6 +188,9 @@ void yfs_menu_resetall(yfms_context *yfms)
     ndt_log("YFMS [debug]: phase change: full FMGS reset\n");
     yfms->data.phase = FMGS_PHASE_END;
 
+    /* may need to re-position the window on a per-aircraft basis */
+    yfms->mwindow.win_state = 0;
+
     /* all good */
     if (XPIsWidgetVisible(yfms->mwindow.id))
     {

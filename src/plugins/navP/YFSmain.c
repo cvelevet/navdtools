@@ -908,35 +908,36 @@ static void toggle_main_window(yfms_context *yfms)
     {
         return;
     }
-    if (yfms->mwindow.win_state == 0)
-    {
-        /*
-        // TODO: fixme: only use this position for TBM9 by Hot Start
-        // use full top-right corner position for all other aircraft
-        int windowW, windowH; XPLMGetScreenSize(&windowW, &windowH);
-        // top: aligned with TBM-900's MFD keypad (644 + 376 = 1020)
-        int yOff = (windowH - (windowH * 51 / 56)); // (1020 / 1120)
-        int inTP = (windowH - yOff - 1); int inBM = (inTP - YFS_MAINWINDOW_H) + 1;
-        // centered between TBM-900's PFD right and MFD keypad left
-        // ((((896 + (1792 - 492)) / 2) = 1098) - (width(cdu) / 2))
-        int xOff = (windowW - (windowW * 549 / 896) - (YFS_MAINWINDOW_W / 2));
-        int inRT = (windowW - xOff - 1); int inLT = (inRT - YFS_MAINWINDOW_W) + 1;
-        XPSetWidgetGeometry(yfms->mwindow.id, inLT, inTP, inRT, inBM);
-        */
-        // top-right corner, out of the way of most other popups
-        // -> XP menu bar covers YFMS title bar -> unmovable :-)
-        // TODO: fixme: test combined with XSquawkBox ATC text box
-        int windowW, windowH; XPLMGetScreenSize(&windowW, &windowH);
-        int inTP = (windowH - 1); int inBM = (inTP - YFS_MAINWINDOW_H) + 1;
-        int inRT = (windowW - 1); int inLT = (inRT - YFS_MAINWINDOW_W) + 1;
-        XPSetWidgetGeometry(yfms->mwindow.id, inLT, inTP, inRT, inBM);
-        yfms->mwindow.win_state = 1;
-    }
     if (XPIsWidgetVisible(yfms->mwindow.id))
     {
         XPHideWidget       (yfms->mwindow.id);
         XPLoseKeyboardFocus(yfms->mwindow.id);
         return;
+    }
+    if (yfms->mwindow.win_state == 0)
+    {
+        int windowW, windowH; XPLMPluginID pid; XPLMGetScreenSize(&windowW, &windowH);
+        if (((XPLM_NO_PLUGIN_ID != (pid = XPLMFindPluginBySignature("hotstart.tbm900"))) && (XPLMIsPluginEnabled(pid))))
+        {
+            // top: aligned with TBM-900's MFD keypad (644 + 376 = 1020)
+            int yOff = (windowH - (windowH * 51 / 56)); // (1020 / 1120)
+            int inTP = (windowH - yOff - 1); int inBM = (inTP - YFS_MAINWINDOW_H) + 1;
+            // centered between TBM-900's PFD right and MFD keypad left
+            // ((((896 + (1792 - 492)) / 2) = 1098) - (width(cdu) / 2))
+            int xOff = (windowW - (windowW * 549 / 896) - (YFS_MAINWINDOW_W / 2));
+            int inRT = (windowW - xOff - 1); int inLT = (inRT - YFS_MAINWINDOW_W) + 1;
+            XPSetWidgetGeometry(yfms->mwindow.id, inLT, inTP, inRT, inBM);
+        }
+        else
+        {
+            // top-right corner, out of the way of most other popups
+            // -> XP menu bar covers YFMS title bar -> unmovable :-)
+            // TODO: fixme: test combined with XSquawkBox ATC text box
+            int inTP = (windowH - 1); int inBM = (inTP - YFS_MAINWINDOW_H) + 1;
+            int inRT = (windowW - 1); int inLT = (inRT - YFS_MAINWINDOW_W) + 1;
+            XPSetWidgetGeometry(yfms->mwindow.id, inLT, inTP, inRT, inBM);
+        }
+        yfms->mwindow.win_state = 1;
     }
     /*
      * First time displayed since reset: miscellaneous setup.
