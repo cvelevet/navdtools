@@ -932,7 +932,7 @@ static void toggle_main_window(yfms_context *yfms)
         {
             // top-right corner, out of the way of most other popups
             // -> XP menu bar covers YFMS title bar -> unmovable :-)
-            // TODO: fixme: test combined with XSquawkBox ATC text box
+            // XSB text window doesn't interfere w/YFS (drawn below)
             int inTP = (windowH - 1); int inBM = (inTP - YFS_MAINWINDOW_H) + 1;
             int inRT = (windowW - 1); int inLT = (inRT - YFS_MAINWINDOW_W) + 1;
             XPSetWidgetGeometry(yfms->mwindow.id, inLT, inTP, inRT, inBM);
