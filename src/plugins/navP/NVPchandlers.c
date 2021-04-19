@@ -197,7 +197,7 @@ typedef struct
     const char          *desc;
     const char          *icao;
     int                  atyp;
-    int            i_aerobask;
+    int            i_cycletyp;
     int            i_cycle_id;
     int            i_disabled;
     int            i_value[2];
@@ -1839,7 +1839,7 @@ int nvp_chandlers_update(void *inContext)
             }
         }
     }
-    ctx->mcdu.rc.i_aerobask = 0;
+    ctx->mcdu.rc.i_cycletyp = 0;
     ctx->mcdu.rc.i_disabled = -1;
     ctx->mcdu.rc.auth = ctx->info->author;
     ctx->mcdu.rc.desc = ctx->info->descrp;
@@ -4820,7 +4820,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                     (cdu->command[1] = XPLMFindCommand("sim/GPS/g1000n3_popup")))
                                 {
                                     cdu->i_cycle_id = 0;
-                                    cdu->i_aerobask = 1; // MD-302 + GFC700 + G1000 (x2)
+                                    cdu->i_cycletyp = 1; // MD-302 + GFC700 + G1000 (x2)
                                     cdu->i_disabled = 0; break; // Aerobask G1000 (DA62)
                                 }
                             }
@@ -4835,7 +4835,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                     (cdu->command[5] = XPLMFindCommand("sim/GPS/g1000n3_popup")))
                                 {
                                     cdu->i_cycle_id = 0;
-                                    cdu->i_aerobask = 2; // GCU477 + GFC700 + G1000 (x3)
+                                    cdu->i_cycletyp = 2; // GCU477 + GFC700 + G1000 (x3)
                                     cdu->i_disabled = 0; break; // Aerobask G1000 (EVIC)
                                 }
                             }
@@ -4847,7 +4847,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                     (cdu->dataref[2] = XPLMFindDataRef("aerobask/eclipse/dynonR_Show")) &&
                                     (cdu->dataref[3] = XPLMFindDataRef("aerobask/eclipse/gtn750_Show")))
                                 {
-                                    cdu->i_aerobask = 3; // GTN650 + GTN750 + Skyview (x2)
+                                    cdu->i_cycletyp = 3; // GTN650 + GTN750 + Skyview (x2)
                                     cdu->i_disabled = 0; break; // Aerobask double SkyView
                                 }
                                 if ((cdu->dataref[0] = XPLMFindDataRef("aerobask/panthera/dynonL_Show")) &&
@@ -4855,7 +4855,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                     (cdu->dataref[2] = XPLMFindDataRef("aerobask/panthera/dynonR_Show")) &&
                                     (cdu->dataref[3] = XPLMFindDataRef("aerobask/panthera/gtn750_Show")))
                                 {
-                                    cdu->i_aerobask = 3; // GTN650 + GTN750 + Skyview (x2)
+                                    cdu->i_cycletyp = 3; // GTN650 + GTN750 + Skyview (x2)
                                     cdu->i_disabled = 0; break; // Aerobask double SkyView
                                 }
                             }
@@ -4916,6 +4916,18 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                     (cdu->command[1] = XPLMFindCommand("sim/GPS/g430n1_popup")) &&
                                     (cdu->command[2] = XPLMFindCommand("sim/GPS/g430n2_popup")))
                                 {
+                                    cdu->i_disabled = 0; break; // X-Plane GPS
+                                }
+                            }
+                            if (!STRN_CASECMP_AUTO(cdu->desc, "Pilatus PC12"))
+                            {
+                                if ((cdu->command[0] = XPLMFindCommand("xap/panels/2")) && // A/P
+                                    (cdu->command[1] = XPLMFindCommand("xap/panels/3")) && // EIS
+                                    (cdu->command[2] = XPLMFindCommand("sim/GPS/g430n1_popup")) &&
+                                    (cdu->command[3] = XPLMFindCommand("sim/GPS/g430n2_popup")))
+                                {
+                                    cdu->i_cycle_id = 0;
+                                    cdu->i_cycletyp = 4;
                                     cdu->i_disabled = 0; break; // X-Plane GPS
                                 }
                             }
@@ -5202,7 +5214,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 // fall through
             default:
-                if (cdu->i_aerobask == 1)
+                if (cdu->i_cycletyp == 1)
                 {
                     switch (cdu->i_cycle_id)
                     {
@@ -5226,7 +5238,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     }
                     return 0;
                 }
-                if (cdu->i_aerobask == 2)
+                if (cdu->i_cycletyp == 2)
                 {
                     switch (cdu->i_cycle_id)
                     {
@@ -5264,7 +5276,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     }
                     return 0;
                 }
-                if (cdu->i_aerobask == 3)
+                if (cdu->i_cycletyp == 3)
                 {
                     if (XPLMGetDatai(cdu->dataref[0]) == 0 && XPLMGetDatai(cdu->dataref[2]) == 0)
                     {
@@ -5305,6 +5317,44 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     XPLMSetDatai(cdu->dataref[2], 0); // Rt SkyView (hide)
                     XPLMSetDatai(cdu->dataref[3], 0); // Ct GTN 750 (hide)
                     return 0;
+                }
+                if (cdu->i_cycletyp == 4)
+                {
+                    switch (cdu->i_cycle_id)
+                    {
+                        case 0:
+                            XPLMCommandOnce(cdu->command[0]); // A/P: popup (show)
+//                          XPLMCommandOnce(cdu->command[1]); // EIS: popup (hide) (already hidden - we only have a toggle command)
+//                          XPLMCommandOnce(cdu->command[2]); // GNS1 popup (hide) (already hidden - we only have a toggle command)
+//                          XPLMCommandOnce(cdu->command[3]); // GNS2 popup (hide) (already hidden - we only have a toggle command)
+                            cdu->i_cycle_id = 1;
+                            return 0;
+
+                        case 1:
+                            XPLMCommandOnce(cdu->command[0]); // A/P: popup (hide)
+                            XPLMCommandOnce(cdu->command[1]); // EIS: popup (show)
+//                          XPLMCommandOnce(cdu->command[2]); // GNS1 popup (hide) (already hidden - we only have a toggle command)
+//                          XPLMCommandOnce(cdu->command[3]); // GNS2 popup (hide) (already hidden - we only have a toggle command)
+                            cdu->i_cycle_id = 2;
+                            return 0;
+
+                        case 2:
+//                          XPLMCommandOnce(cdu->command[0]); // A/P: popup (hide) (already hidden - we only have a toggle command)
+                            XPLMCommandOnce(cdu->command[1]); // EIS: popup (hide)
+                            XPLMCommandOnce(cdu->command[2]); // GNS1 popup (show)
+                            XPLMCommandOnce(cdu->command[3]); // GNS2 popup (show)
+                            cdu->i_cycle_id = 3;
+                            return 0;
+
+                        case 3:
+                        default:
+//                          XPLMCommandOnce(cdu->command[0]); // A/P: popup (hide) (already hidden - we only have a toggle command)
+//                          XPLMCommandOnce(cdu->command[1]); // EIS: popup (hide) (already hidden - we only have a toggle command)
+                            XPLMCommandOnce(cdu->command[2]); // GNS1 popup (hide)
+                            XPLMCommandOnce(cdu->command[3]); // GNS2 popup (hide)
+                            cdu->i_cycle_id = 0;
+                            return 0;
+                    }
                 }
                 if (cdu->command[0]) XPLMCommandOnce(cdu->command[0]);
                 if (cdu->command[1]) XPLMCommandOnce(cdu->command[1]);
@@ -7206,12 +7256,15 @@ static int first_fcall_do(chandler_context *ctx)
                 if (!STRN_CASECMP_AUTO(ctx->info->author, "Alabeo") ||
                     !STRN_CASECMP_AUTO(ctx->info->author, "Carenado"))
                 {
-                    if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Pilatus PC12")) // TODO: fixme: handle XP11 version w/REP pack separately
+                    if (!STRN_CASECMP_AUTO(ctx->info->descrp, "Pilatus PC12"))
                     {
-                        // make the aircraft less tail-heavy to improve ground handling
-                        _DO(0, XPLMSetDataf, -0.30f, "sim/aircraft/overflow/acf_cgZ_fwd");
-                        _DO(0, XPLMSetDataf, -0.20f, "sim/flightmodel/misc/cgz_ref_to_default");
-                        _DO(0, XPLMSetDataf, +0.10f, "sim/aircraft/overflow/acf_cgZ_aft");
+                        if (simc == 0) // X-Plane 10 and/or no REP package installed
+                        {
+                            // make the aircraft less tail-heavy to improve ground handling
+                            _DO(0, XPLMSetDataf, +0.10f, "sim/aircraft/overflow/acf_cgZ_aft");
+                            _DO(0, XPLMSetDataf, -0.30f, "sim/aircraft/overflow/acf_cgZ_fwd");
+                            _DO(0, XPLMSetDataf, -0.20f, "sim/flightmodel/misc/cgz_ref_to_default");
+                        }
                         // let's also skip drawing the FMS line from the HSI display's map
                         _DO(1, XPLMSetDatai, 1, "sim/graphics/misc/kill_map_fms_line");
                         // and fully declutter the HSI/Avidyne displays by default
