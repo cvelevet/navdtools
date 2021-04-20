@@ -5325,24 +5325,24 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         case 0:
                             XPLMCommandOnce(cdu->command[0]); // A/P: popup (show)
 //                          XPLMCommandOnce(cdu->command[1]); // EIS: popup (hide) (already hidden - we only have a toggle command)
-//                          XPLMCommandOnce(cdu->command[2]); // GNS1 popup (hide) (already hidden - we only have a toggle command)
 //                          XPLMCommandOnce(cdu->command[3]); // GNS2 popup (hide) (already hidden - we only have a toggle command)
+//                          XPLMCommandOnce(cdu->command[2]); // GNS1 popup (hide) (already hidden - we only have a toggle command)
                             cdu->i_cycle_id = 1;
                             return 0;
 
                         case 1:
                             XPLMCommandOnce(cdu->command[0]); // A/P: popup (hide)
                             XPLMCommandOnce(cdu->command[1]); // EIS: popup (show)
-//                          XPLMCommandOnce(cdu->command[2]); // GNS1 popup (hide) (already hidden - we only have a toggle command)
 //                          XPLMCommandOnce(cdu->command[3]); // GNS2 popup (hide) (already hidden - we only have a toggle command)
+//                          XPLMCommandOnce(cdu->command[2]); // GNS1 popup (hide) (already hidden - we only have a toggle command)
                             cdu->i_cycle_id = 2;
                             return 0;
 
                         case 2:
 //                          XPLMCommandOnce(cdu->command[0]); // A/P: popup (hide) (already hidden - we only have a toggle command)
                             XPLMCommandOnce(cdu->command[1]); // EIS: popup (hide)
-                            XPLMCommandOnce(cdu->command[2]); // GNS1 popup (show)
                             XPLMCommandOnce(cdu->command[3]); // GNS2 popup (show)
+                            XPLMCommandOnce(cdu->command[2]); // GNS1 popup (show)
                             cdu->i_cycle_id = 3;
                             return 0;
 
@@ -5350,8 +5350,8 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         default:
 //                          XPLMCommandOnce(cdu->command[0]); // A/P: popup (hide) (already hidden - we only have a toggle command)
 //                          XPLMCommandOnce(cdu->command[1]); // EIS: popup (hide) (already hidden - we only have a toggle command)
-                            XPLMCommandOnce(cdu->command[2]); // GNS1 popup (hide)
                             XPLMCommandOnce(cdu->command[3]); // GNS2 popup (hide)
+                            XPLMCommandOnce(cdu->command[2]); // GNS1 popup (hide)
                             cdu->i_cycle_id = 0;
                             return 0;
                     }
