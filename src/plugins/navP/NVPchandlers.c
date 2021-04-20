@@ -7265,6 +7265,13 @@ static int first_fcall_do(chandler_context *ctx)
                             _DO(0, XPLMSetDataf, -0.30f, "sim/aircraft/overflow/acf_cgZ_fwd");
                             _DO(0, XPLMSetDataf, -0.20f, "sim/flightmodel/misc/cgz_ref_to_default");
                         }
+                        else
+                        {
+                            _DO(0, XPLMSetDataf,  1.0000f, "thranda/cockpit/actuators/VisorL");
+                            _DO(0, XPLMSetDataf,  1.0000f, "thranda/cockpit/actuators/VisorR");
+                            _DO(0, XPLMSetDataf, -0.1125f, "thranda/cockpit/actuators/VisorSwingL");
+                            _DO(0, XPLMSetDataf, -0.1125f, "thranda/cockpit/actuators/VisorSwingR");
+                        }
                         // let's also skip drawing the FMS line from the HSI display's map
                         _DO(1, XPLMSetDatai, 1, "sim/graphics/misc/kill_map_fms_line");
                         // and fully declutter the HSI/Avidyne displays by default
