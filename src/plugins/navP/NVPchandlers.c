@@ -3137,6 +3137,43 @@ static const float nvp_thrust_presets2_e55p[] =
     -1.0000f,
 };
 
+static const float nvp_thrust_presets1_pc12[] =
+{
+    0.00000f,
+    0.03125f,
+    0.06250f,
+    0.09375f,
+    0.12500f,
+    0.18750f,
+    0.25000f,
+    0.31250f,
+    0.37500f,
+    0.43750f,
+    0.50000f,
+    0.56250f,
+    0.62500f,
+    0.68750f,
+    0.75000f,
+    0.81250f,
+    0.87500f,
+    .984375f, // (1-(1/64))
+    -1.0000f,
+};
+
+static const float nvp_thrust_presets2_pc12[] =
+{
+    0.00000f,
+    0.12500f,
+    0.25000f,
+    0.37500f,
+    0.50000f,
+    0.62500f,
+    0.75000f,
+    0.87500f,
+    .984375f, // (1-(1/64))
+    -1.0000f,
+};
+
 static const float nvp_thrust_presets1_tbm9[] =
 {
     0.00000f, // rev. thrust
@@ -3818,6 +3855,8 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets1_ea50, NVP_DIRECTION_DN);
                 case NVP_TP_EVIC:
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets1_evic, NVP_DIRECTION_DN);
+                case NVP_TP_PC12:
+                    return nvp_throttle_all(inRefcon, nvp_thrust_presets1_pc12, NVP_DIRECTION_DN);
                 default:
                     break;
             }
@@ -3866,6 +3905,8 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets1_ea50, NVP_DIRECTION_UP);
                 case NVP_TP_EVIC:
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets1_evic, NVP_DIRECTION_UP);
+                case NVP_TP_PC12:
+                    return nvp_throttle_all(inRefcon, nvp_thrust_presets1_pc12, NVP_DIRECTION_UP);
                 default:
                     break;
             }
@@ -3910,6 +3951,8 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets2_ea50, NVP_DIRECTION_UP);
                 case NVP_TP_EVIC:
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets2_evic, NVP_DIRECTION_UP);
+                case NVP_TP_PC12:
+                    return nvp_throttle_all(inRefcon, nvp_thrust_presets2_pc12, NVP_DIRECTION_UP);
                 default:
                     break;
             }

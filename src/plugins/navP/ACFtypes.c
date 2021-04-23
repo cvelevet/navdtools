@@ -676,6 +676,17 @@ acf_info_context* acf_type_info_update()
                 global_info->thrust_presets = NVP_TP_XPLM;
             }
         }
+        else if (!STRN_CASECMP_AUTO(global_info->author, "Carenado"))
+        {
+            if (!STRN_CASECMP_AUTO(global_info->icaoid, "PC12"))
+            {
+                global_info->thrust_presets = NVP_TP_PC12;
+            }
+            else
+            {
+                global_info->thrust_presets = NVP_TP_XPLM;
+            }
+        }
         else
         {
             global_info->thrust_presets = NVP_TP_XPLM;
