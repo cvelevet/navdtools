@@ -1747,6 +1747,19 @@ int nvp_chandlers_update(void *inContext)
                     ctx->otto.clmb.rc.init_cl_speed = 160.0f; // SkyView (G1000 version: custom SASL signature)
                 } // else G1000 (FLC speed sync, defsult climb speed pointless)
             }
+            else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "PC12"))
+            {
+                if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
+                {
+                    /*
+                     * https://www.flyingmag.com/iss-pc12-thrustsense-autothrottle-reviewed/
+                     * "As soon as the takeoff/go-around button is pressed on the
+                     *  runway, the autothrottle enters go-around mode and places
+                     *  the flight director command bars at 7.5 degrees pitch up."
+                     */
+                    XPLMSetDataf(d_ref, 7.5f);
+                }
+            }
             else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "PIPA"))
             {
                 ctx->otto.clmb.rc.init_cl_speed = 120.0f; // SkyView
