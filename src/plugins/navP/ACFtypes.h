@@ -172,6 +172,7 @@ typedef struct
         NVP_TP_DA62,
         NVP_TP_EA50,
         NVP_TP_EVIC,
+        NVP_TP_PC12,
     } thrust_presets;
     struct
     {
