@@ -3064,7 +3064,7 @@ static const float nvp_thrust_presets2_evic[] =
 static const float nvp_thrust_presets1_e55p[] =
 {
     0.00000f,
-    0.03125f,
+//  0.03125f, // <4/73
     0.06250f,
     0.09375f,
     0.12500f,
