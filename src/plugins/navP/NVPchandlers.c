@@ -3051,37 +3051,18 @@ static const float nvp_thrust_presets2_evic[] =
     -1.0000f,
 };
 
+/*
+ * https://forums.x-plane.org/index.php?/forums/topic/244181-phenom-300-throttle-quadrant-detents/&do=findComment&comment=2178232
+ * https://www.omnicalculator.com/math/rounding
+ * travel = angle / max_angle = angle / 73
+ * 69 to 73°: MAX RSV
+ * 59 to 63°: MAX TO/GA
+ * 49 to 53°: MAX CON/CLB
+ * 38 to 42°: MAX CRZ
+ * 00 to 04°: IDLE
+ */
 static const float nvp_thrust_presets1_e55p[] =
 {
-    /*
-     * |---------------------------------|
-     * |---------------------------------|
-     * | 1.0000 maximum RSV thrust range |
-     * | 0.9726 halfway RSV thrust range |
-     * | 0.9452 minimum RSV thrust range |
-     * |---------------------------------|
-     * |         between detents         |
-     * |---------------------------------|
-     * | 0.8630 maximum T/O thrust range |
-     * | 0.8356 halfway T/O thrust range |
-     * | 0.8082 minimum T/O thrust range |
-     * |---------------------------------|
-     * |         between detents         |
-     * |---------------------------------|
-     * | 0.7260 maximum CLB thrust range |
-     * | 0.6986 halfway CLB thrust range |
-     * | 0.6712 minimum CLB thrust range |
-     * |---------------------------------|
-     * |         between detents         |
-     * |---------------------------------|
-     * | 0.5753 maximum CRZ thrust range |
-     * | 0.5479 halfway CRZ thrust range |
-     * | 0.5205 minimum CRZ thrust range |
-     * |---------------------------------|
-     * |  man thrust (0.5205f * travel)  |
-     * |---------------------------------|
-     * |---------------------------------|
-     */
     0.00000f,
     0.03125f,
     0.06250f,
@@ -3093,53 +3074,24 @@ static const float nvp_thrust_presets1_e55p[] =
     0.37500f,
     0.43750f,
     0.50000f,
-    0.54790f,
-    0.69860f,
-    0.83560f,
-    0.97260f,
+    .547945f, // 40/73
+    .698630f, // 51/73
+    .835616f, // 61/73
+    1.00000f,
     -1.0000f,
 };
 
 static const float nvp_thrust_presets2_e55p[] =
 {
-    /*
-     * |---------------------------------|
-     * |---------------------------------|
-     * | 1.0000 maximum RSV thrust range |
-     * | 0.9726 halfway RSV thrust range |
-     * | 0.9452 minimum RSV thrust range |
-     * |---------------------------------|
-     * |         between detents         |
-     * |---------------------------------|
-     * | 0.8630 maximum T/O thrust range |
-     * | 0.8356 halfway T/O thrust range |
-     * | 0.8082 minimum T/O thrust range |
-     * |---------------------------------|
-     * |         between detents         |
-     * |---------------------------------|
-     * | 0.7260 maximum CLB thrust range |
-     * | 0.6986 halfway CLB thrust range |
-     * | 0.6712 minimum CLB thrust range |
-     * |---------------------------------|
-     * |         between detents         |
-     * |---------------------------------|
-     * | 0.5753 maximum CRZ thrust range |
-     * | 0.5479 halfway CRZ thrust range |
-     * | 0.5205 minimum CRZ thrust range |
-     * |---------------------------------|
-     * |  man thrust (0.5205f * travel)  |
-     * |---------------------------------|
-     * |---------------------------------|
-     */
     0.00000f,
     0.12500f,
     0.25000f,
     0.37500f,
     0.50000f,
-    0.54790f,
-    0.69860f,
-    0.83560f,
-    0.97260f,
+    .547945f, // 40/73
+    .698630f, // 51/73
+    .835616f, // 61/73
+    1.00000f,
     -1.0000f,
 };
 
