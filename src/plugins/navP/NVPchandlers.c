@@ -2878,35 +2878,6 @@ enum
     NVP_DIRECTION_UP,
 };
 
-static const float nvp_thrust_presets1_e35l[] =
-{
-    0.00000f,
-    0.03125f,
-    0.06250f,
-    0.09375f,
-    0.12500f,
-    0.18750f,
-    0.25000f,
-    0.31250f,
-    0.37500f,
-    0.40625f, // increased precision between 0.40 and 0.55f
-    0.43750f,
-    0.46875f, // increased precision between 0.40 and 0.55f
-    0.50000f,
-    0.53125f, // increased precision between 0.40 and 0.55f
-    0.56250f,
-    0.62500f,
-    0.68750f,
-    0.71875f, // increased precision between 0.70 and 0.85f
-    0.75000f,
-    0.78125f, // increased precision between 0.70 and 0.85f
-    0.81250f,
-    0.84375f, // increased precision between 0.70 and 0.85f
-    0.87500f,
-    1.00000f,
-    -1.0000f,
-};
-
 static const float nvp_thrust_presets1_cl30[] =
 {
     0.00000f,
@@ -2914,16 +2885,27 @@ static const float nvp_thrust_presets1_cl30[] =
     0.06250f,
     0.09375f,
     0.12500f,
+    0.15625f,
     0.18750f,
+    0.21875f,
     0.25000f,
+    0.28125f,
     0.31250f,
+    0.34375f,
     0.37500f,
+    0.40625f,
     0.43750f,
+    0.46875f,
     0.50000f,
+    0.53125f,
     0.56250f,
+    0.59375f,
     0.62500f,
+    0.65625f,
     0.68750f,
+    0.71875f,
     0.75000f,
+    0.78125f,
     0.81250f, // manual thrust
     .833333f, // CRZ
     .866663f, // CLB
@@ -2955,20 +2937,32 @@ static const float nvp_thrust_presets1_da62[] =
     0.06250f,
     0.09375f,
     0.12500f,
+    0.15625f,
     0.18750f,
+    0.21875f,
     0.25000f,
+    0.28125f,
     0.31250f,
+    0.34375f,
     0.37500f,
+    0.40625f,
     0.43750f,
+    0.46875f,
     0.50000f,
+    0.53125f,
     0.56250f,
+    0.59375f,
     0.62500f,
+    0.65625f,
     0.68750f,
+    0.71875f,
     0.75000f,
+    0.78125f,
     0.81250f,
+    0.84375f,
     0.87500f,
     0.90625f,
-    0.94000f, // climb thrust
+    0.93750f, // climb thrust
     1.00000f, // takeoff thrust
     -1.0000f,
 };
@@ -2980,17 +2974,29 @@ static const float nvp_thrust_presets1_ea50[] =
     0.06250f,
     0.09375f,
     0.12500f,
+    0.15625f,
     0.18750f,
+    0.21875f,
     0.25000f,
+    0.28125f,
     0.31250f,
+    0.34375f,
     0.37500f,
+    0.40625f,
     0.43750f,
+    0.46875f,
     0.50000f,
+    0.53125f,
     0.56250f,
+    0.59375f,
     0.62500f,
+    0.65625f,
     0.68750f,
+    0.71875f,
     0.75000f,
+    0.78125f,
     0.81250f,
+    0.84375f,
     .872425f, // climb thrust
     .943875f, // ~100% N1
 //  1.00000f, // takeoff
@@ -3019,17 +3025,29 @@ static const float nvp_thrust_presets1_evic[] =
     0.06250f,
     0.09375f,
     0.12500f,
+    0.15625f,
     0.18750f,
+    0.21875f,
     0.25000f,
+    0.28125f,
     0.31250f,
+    0.34375f,
     0.37500f,
+    0.40625f,
     0.43750f,
+    0.46875f,
     0.50000f,
+    0.53125f,
     0.56250f,
+    0.59375f,
     0.62500f,
+    0.65625f,
     0.68750f,
+    0.71875f,
     0.75000f,
+    0.78125f,
     0.81250f,
+    0.84375f,
     .872725f, // climb thrust
     .971875f, // ~100% N1
 //  1.00000f, // takeoff
@@ -3064,16 +3082,23 @@ static const float nvp_thrust_presets2_evic[] =
 static const float nvp_thrust_presets1_e55p[] =
 {
     0.00000f,
-//  0.03125f, // <4/73
+//  0.03125f, //<04/73
     0.06250f,
     0.09375f,
     0.12500f,
+    0.15625f,
     0.18750f,
+    0.21875f,
     0.25000f,
+    0.28125f,
     0.31250f,
+    0.34375f,
     0.37500f,
+    0.40625f,
     0.43750f,
+    0.46875f,
     0.50000f,
+//  0.53125f, //>38/73
     .547945f, // 40/73
     .698630f, // 51/73
     .835616f, // 61/73
@@ -3102,17 +3127,29 @@ static const float nvp_thrust_presets1_pc12[] =
     0.06250f,
     0.09375f,
     0.12500f,
+    0.15625f,
     0.18750f,
+    0.21875f,
     0.25000f,
+    0.28125f,
     0.31250f,
+    0.34375f,
     0.37500f,
+    0.40625f,
     0.43750f,
+    0.46875f,
     0.50000f,
+    0.53125f,
     0.56250f,
+    0.59375f,
     0.62500f,
+    0.65625f,
     0.68750f,
+    0.71875f,
     0.75000f,
+    0.78125f,
     0.81250f,
+    0.84375f,
     0.87500f,
     .984375f, // (1-(1/64))
     -1.0000f,
@@ -3142,14 +3179,22 @@ static const float nvp_thrust_presets1_tbm9[] =
     0.25000f, // beta thrust
     0.30000f, // beta thrust
     0.35000f, // idle-beta/reverse gate
-    0.40000f,
-    0.45000f,
+//  0.37500f, // too close to the above
+    0.40625f,
+    0.43750f,
+    0.46875f,
     0.50000f,
+    0.53125f,
     0.56250f,
+    0.59375f,
     0.62500f,
+    0.65625f,
     0.68750f,
+    0.71875f,
     0.75000f,
+    0.78125f,
     0.81250f,
+    0.84375f,
     0.87500f,
     0.90625f,
     0.93750f,
@@ -3161,7 +3206,7 @@ static const float nvp_thrust_presets1_tbm9[] =
 static const float nvp_thrust_presets2_tbm9[] =
 {
     0.00000f, // rev. thrust
-    0.15000f, // zero-thrust
+    0.15000f, // zero thrust
     0.35000f, // idle-beta/reverse gate
     0.50000f,
     0.62500f,
@@ -3180,14 +3225,23 @@ static const float nvp_thrust_presets1_toli[] =
     0.06250f,
     0.09375f,
     0.12500f,
+    0.15625f,
     0.18750f,
+    0.21875f,
     0.25000f,
+    0.28125f,
     0.31250f,
+    0.34375f,
     0.37500f,
+    0.40625f,
     0.43750f,
+    0.46875f,
     0.50000f,
+    0.53125f,
     0.56250f,
+    0.59375f,
     0.62500f,
+    0.65625f,
     0.69250f, // ~CLB
     0.87000f, // ~FLX
     1.00000f, // TOGA
@@ -3215,17 +3269,29 @@ static const float nvp_thrust_presets1[] =
     0.06250f,
     0.09375f,
     0.12500f,
+    0.15625f,
     0.18750f,
+    0.21875f,
     0.25000f,
+    0.28125f,
     0.31250f,
+    0.34375f,
     0.37500f,
+    0.40625f,
     0.43750f,
+    0.46875f,
     0.50000f,
+    0.53125f,
     0.56250f,
+    0.59375f,
     0.62500f,
+    0.65625f,
     0.68750f,
+    0.71875f,
     0.75000f,
+    0.78125f,
     0.81250f,
+    0.84375f,
     0.87500f,
     0.90625f,
     0.93750f,
@@ -3838,8 +3904,6 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets1_cl30, NVP_DIRECTION_DN);
                 case ACF_TYP_E55P_AB:
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets1_e55p, NVP_DIRECTION_DN);
-                case ACF_TYP_LEGA_XC:
-                    return nvp_throttle_all(inRefcon, nvp_thrust_presets1_e35l, NVP_DIRECTION_DN);
                 case ACF_TYP_TBM9_HS:
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets1_tbm9, NVP_DIRECTION_DN);
                 default:
@@ -3888,8 +3952,6 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets1_cl30, NVP_DIRECTION_UP);
                 case ACF_TYP_E55P_AB:
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets1_e55p, NVP_DIRECTION_UP);
-                case ACF_TYP_LEGA_XC:
-                    return nvp_throttle_all(inRefcon, nvp_thrust_presets1_e35l, NVP_DIRECTION_UP);
                 case ACF_TYP_TBM9_HS:
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets1_tbm9, NVP_DIRECTION_UP);
                 default:
