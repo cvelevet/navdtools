@@ -340,7 +340,9 @@ typedef struct
         chandler_callback cb_flapd;
         XPLMDataRef ref_flap_ratio;
         XPLMDataRef ref_flaps_e55p;
+        XPLMFlightLoop_f flc_flapd;
         XPLMFlightLoop_f flc_flaps;
+        XPLMFlightLoop_f flc_flapu;
     } callouts;
 
     struct
@@ -636,6 +638,7 @@ static int chandler_apbef(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_apaft(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_p2vvi(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static float flc_flap_cmmd (                                        float, float, int, void*);
 static float flc_flap_func (                                        float, float, int, void*);
 static float flc_oatc_func (                                        float, float, int, void*);
 static float gnd_stab_hdlr (                                        float, float, int, void*);
@@ -973,6 +976,8 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->callouts.cb_flapd, chandler_flchg, 0, ctx);
     }
     XPLMRegisterFlightLoopCallback((ctx->callouts.flc_flaps = &flc_flap_func), 0, NULL);
+    XPLMRegisterFlightLoopCallback((ctx->callouts.flc_flapd = &flc_flap_cmmd), 0, ctx->callouts.cb_flapd.command);
+    XPLMRegisterFlightLoopCallback((ctx->callouts.flc_flapu = &flc_flap_cmmd), 0, ctx->callouts.cb_flapu.command);
 
     /* Default commands' handlers: gear up, down, toggle */
     ctx->gear.acf_gear_retract            = XPLMFindDataRef("sim/aircraft/gear/acf_gear_retract"     );
@@ -4271,6 +4276,61 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         XPLMSetFlightLoopCallbackInterval(((chandler_context*)inRefcon)->callouts.flc_flaps, 1.5f, 1, NULL);
         return 1;
     }
+    if (inPhase == xplm_CommandBegin && ((chandler_context*)inRefcon)->info->ac_type == ACF_TYP_E55P_AB)
+    {
+        if (((chandler_context*)inRefcon)->callouts.ref_flaps_e55p)
+        {
+            int index = lroundf(4.0f * XPLMGetDataf(((chandler_context*)inRefcon)->callouts.ref_flaps_e55p));
+            if (inCommand == ((chandler_context*)inRefcon)->callouts.cb_flapd.command)
+            {
+                if ((index += 1) > 4)
+                {
+                    (index = 4);
+                }
+                if (XPLMGetDatai(((chandler_context*)inRefcon)->ground.ongrnd_any) < 1)
+                {
+                    switch (index)
+                    {
+                        case 2:
+                            XPLMSetFlightLoopCallbackInterval(((chandler_context*)inRefcon)->callouts.flc_flapd, 0.75f, 1, ((chandler_context*)inRefcon)->callouts.cb_flapd.command);
+                            return 1;
+                        case 3:
+                            XPLMSetFlightLoopCallbackInterval(((chandler_context*)inRefcon)->callouts.flc_flaps, 0.75f, 1, NULL);
+                            flap_callout_setst(_flap_names_4POS, index);
+                            return 1;
+                        default:
+                            break;
+                    }
+                }
+            }
+            if (inCommand == ((chandler_context*)inRefcon)->callouts.cb_flapu.command)
+            {
+                if ((index -= 1) < 0)
+                {
+                    (index = 0);
+                }
+                if (XPLMGetDatai(((chandler_context*)inRefcon)->ground.ongrnd_any) < 1)
+                {
+                    switch (index)
+                    {
+                        case 2:
+                            XPLMSetFlightLoopCallbackInterval(((chandler_context*)inRefcon)->callouts.flc_flapu, 0.75f, 1, ((chandler_context*)inRefcon)->callouts.cb_flapu.command);
+                            return 1;
+                        case 1:
+                            XPLMSetFlightLoopCallbackInterval(((chandler_context*)inRefcon)->callouts.flc_flaps, 0.75f, 1, NULL);
+                            flap_callout_setst(_flap_names_4POS, index);
+                            return 1;
+                        default:
+                            break;
+                    }
+                }
+            }
+            XPLMSetFlightLoopCallbackInterval(((chandler_context*)inRefcon)->callouts.flc_flaps, 1.5f, 1, NULL);
+            flap_callout_setst(_flap_names_4POS, index);
+            return 1;
+        }
+        return 1;
+    }
     if (inPhase == xplm_CommandEnd)
     {
         chandler_context *ctx = inRefcon;
@@ -4297,30 +4357,6 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 break;
             case ACF_TYP_CL30_DD:
                 flap_callout_setst(_flap_names_1230, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                break;
-            case ACF_TYP_E55P_AB:
-                if (ctx->callouts.ref_flaps_e55p)
-                {
-                    int index = lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flaps_e55p));
-                    // there is a delay in the dataref's value (caused by the animation??)
-                    if (inCommand == ctx->callouts.cb_flapd.command)
-                    {
-                        if ((index += 1) > 4)
-                        {
-                            (index = 4);
-                        }
-                    }
-                    if (inCommand == ctx->callouts.cb_flapu.command)
-                    {
-                        if ((index -= 1) < 0)
-                        {
-                            (index = 0);
-                        }
-                    }
-                    flap_callout_setst(_flap_names_4POS, index);
-                    break;
-                }
-                flap_callout_setst(_flap_names_4POS, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                 break;
             case ACF_TYP_EMBE_SS:
             case ACF_TYP_EMBE_XC:
@@ -4363,6 +4399,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 flap_callout_setst(_flap_names_MD80, index);
                 break;
             }
+            case ACF_TYP_E55P_AB:
             case ACF_TYP_TBM9_HS:
                 return 1; // handled on command begin, see above
             default:
@@ -5681,6 +5718,19 @@ static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
     }
     return 0; // suppress all default "contact ATC" functionality
+}
+
+static float flc_flap_cmmd(float inElapsedSinceLastCall,
+                           float inElapsedTimeSinceLastFlightLoop,
+                           int   inCounter,
+                           void *inRefcon)
+{
+    if (inRefcon)
+    {
+        XPLMCommandOnce(inRefcon);
+        return 0;
+    }
+    return 0;
 }
 
 static float flc_flap_func(float inElapsedSinceLastCall,
