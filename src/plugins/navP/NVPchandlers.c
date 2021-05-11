@@ -3088,7 +3088,7 @@ static const float nvp_thrust_presets1_e55p[] =
 {
     0.00000f,
 //  0.03125f, //<04/73
-    0.06250f, //<1% N1
+//  0.06250f, //<1% N1
     0.09375f,
     0.12500f,
     0.15625f,
@@ -3226,7 +3226,7 @@ static const float nvp_thrust_presets2_tbm9[] =
 static const float nvp_thrust_presets1_toli[] =
 {
     0.00000f,
-    0.03125f, //<1% N1
+//  0.03125f, //<1% N1
     0.06250f,
     0.09375f,
     0.12500f,
