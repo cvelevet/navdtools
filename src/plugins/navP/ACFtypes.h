@@ -180,7 +180,7 @@ typedef struct
         XPLMDataRef maximum;
         XPLMDataRef current;
         XPLMDataRef payload;
-        XPLMDataRef gwcgz_m;
+        XPLMDataRef zfwcgzm;
     }
     weight;
     struct
@@ -222,7 +222,7 @@ acf_info_context;
 int uf_dref_string_read(XPLMDataRef dataref, char *string_buffer, size_t buffer_size);
 int uf_dref_string_wrte(XPLMDataRef dataref, char *string_buffer, size_t buffer_size);
 const char*                                 acf_type_get_name(acf_type aircraft_type);
-int                                         acf_type_set_fuel(acf_info_context *info);
+void                                        acf_type_totalizr(acf_info_context *info);
 acf_info_context*                           acf_type_info_get                  (void);
 int                                         acf_type_info_reset                (void);
 acf_info_context*                           acf_type_info_update               (void);

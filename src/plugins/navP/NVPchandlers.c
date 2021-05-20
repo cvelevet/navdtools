@@ -500,6 +500,11 @@ typedef struct
         XPLMDataRef  axis[3];
         float sensitivity[3];
     } axes;
+
+    struct
+    {
+        chandler_callback cc;
+    } xfse;
 } chandler_context;
 
 /* Callout default values */
@@ -638,6 +643,7 @@ static int chandler_apbef(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_apaft(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_p2vvi(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_xecon(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_flap_cmmd (                                        float, float, int, void*);
 static float flc_flap_func (                                        float, float, int, void*);
 static float flc_oatc_func (                                        float, float, int, void*);
@@ -1177,6 +1183,7 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->throt.                pt);
     UNREGSTR_CHANDLER(ctx->throt.                dd);
     UNREGSTR_CHANDLER(ctx->throt.                uu);
+    UNREGSTR_CHANDLER(ctx->xfse.                 cc);
 
     /* …and all datarefs */
     if (ctx->callouts.ref_speedbrake)
@@ -5720,6 +5727,20 @@ static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0; // suppress all default "contact ATC" functionality
 }
 
+static int chandler_xecon(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        if (inRefcon)
+        {
+            acf_type_totalizr(inRefcon);
+            return 1;
+        }
+        return 1;
+    }
+    return 1;
+}
+
 static float flc_flap_cmmd(float inElapsedSinceLastCall,
                            float inElapsedTimeSinceLastFlightLoop,
                            int   inCounter,
@@ -7676,6 +7697,12 @@ static int first_fcall_do(chandler_context *ctx)
         REGISTER_CHANDLER(ctx->vvi.up, chandler_p2vvi, 1, &ctx->vvi);
         REGISTER_CHANDLER(ctx->vvi.pd, chandler_p2vvi, 1, &ctx->vvi);
         REGISTER_CHANDLER(ctx->vvi.pu, chandler_p2vvi, 1, &ctx->vvi);
+    }
+
+    /* reset XP11 fuel totalizer when starting an FSE flight ("fse/flight/start" @ xplm_CommandEnd) */
+    if ((ctx->xfse.cc.command == NULL) && (ctx->xfse.cc.command = XPLMFindCommand("fse/flight/start")))
+    {
+        REGISTER_CHANDLER(ctx->xfse.cc, chandler_xecon, 0/*after X-Economy (hopefully)*/, &ctx->info);
     }
 
 #if TIM_ONLY
