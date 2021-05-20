@@ -242,6 +242,11 @@ typedef struct
         XPLMDataRef zulu_time_min;
         XPLMDataRef zulu_time_hrs;
     } time;
+    struct
+    {
+        acf_info_context *info;
+        int status_flying;
+    } xfse;
 } refcon_ground;
 
 typedef struct
@@ -500,11 +505,6 @@ typedef struct
         XPLMDataRef  axis[3];
         float sensitivity[3];
     } axes;
-
-    struct
-    {
-        chandler_callback cc;
-    } xfse;
 } chandler_context;
 
 /* Callout default values */
@@ -643,7 +643,6 @@ static int chandler_apbef(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_apaft(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_p2vvi(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int chandler_xecon(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_flap_cmmd (                                        float, float, int, void*);
 static float flc_flap_func (                                        float, float, int, void*);
 static float flc_oatc_func (                                        float, float, int, void*);
@@ -1183,7 +1182,6 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->throt.                pt);
     UNREGSTR_CHANDLER(ctx->throt.                dd);
     UNREGSTR_CHANDLER(ctx->throt.                uu);
-    UNREGSTR_CHANDLER(ctx->xfse.                 cc);
 
     /* …and all datarefs */
     if (ctx->callouts.ref_speedbrake)
@@ -1278,6 +1276,7 @@ int nvp_chandlers_reset(void *inContext)
     ctx->throt.            tbm9erng = NULL;
     ctx->throt.            throttle = NULL;
     ctx->callouts.   ref_flaps_e55p = NULL;
+    ctx->ground.xfse.status_flying  = -1;
     ctx->acfspec.t319.        ready = 0;
     ctx->acfspec.i733.        ready = 0;
     ctx->acfspec.x738.        ready = 0;
@@ -1548,7 +1547,7 @@ int nvp_chandlers_update(void *inContext)
     XPLMDataRef d_ref;
 
     /* aircraft-specific custom commands and miscellaneous stuff */
-    switch ((ctx->throt.info = ctx->info)->ac_type)
+    switch ((ctx->ground.xfse.info = ctx->throt.info = ctx->info)->ac_type)
     {
         case ACF_TYP_A320_FF:
             ctx->otto.conn.cc.name = "private/ff320/ap_conn";
@@ -2404,6 +2403,7 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     XPLMCommandOnce(cmd);
                 }
                 XPLMCommandOnce(ctx->views.cbs[1].command);
+                ctx->ground.xfse.status_flying = 0;
                 XPLMSpeakString("turn around set");
             }
         }
@@ -5727,20 +5727,6 @@ static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0; // suppress all default "contact ATC" functionality
 }
 
-static int chandler_xecon(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
-{
-    if (inPhase == xplm_CommandEnd)
-    {
-        if (inRefcon)
-        {
-            acf_type_totalizr(inRefcon);
-            return 1;
-        }
-        return 1;
-    }
-    return 1;
-}
-
 static float flc_flap_cmmd(float inElapsedSinceLastCall,
                            float inElapsedTimeSinceLastFlightLoop,
                            int   inCounter,
@@ -5958,6 +5944,24 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             }
         }
 #endif//TIM_ONLY
+
+        /* XXX: was an FSE flight started since we last checked? */
+        if (grndp->xfse.status_flying > -1)
+        {
+            XPLMDataRef status_flying_ref = XPLMFindDataRef("fse/status/flying");
+            if (NULL != status_flying_ref)
+            {
+                int status_flying = XPLMGetDatai(status_flying_ref);
+                if (status_flying != grndp->xfse.status_flying)
+                {
+                    if (status_flying != 0)
+                    {
+                        acf_type_totalizr(grndp->xfse.info);
+                    }
+                    grndp->xfse.status_flying = status_flying;
+                }
+            }
+        }
 
         /* XXX: check whether we just connected to PilotEdge or VATSIM */
         if (grndp->oatc.pe_is_on)
@@ -7697,12 +7701,6 @@ static int first_fcall_do(chandler_context *ctx)
         REGISTER_CHANDLER(ctx->vvi.up, chandler_p2vvi, 1, &ctx->vvi);
         REGISTER_CHANDLER(ctx->vvi.pd, chandler_p2vvi, 1, &ctx->vvi);
         REGISTER_CHANDLER(ctx->vvi.pu, chandler_p2vvi, 1, &ctx->vvi);
-    }
-
-    /* reset XP11 fuel totalizer when starting an FSE flight ("fse/flight/start" @ xplm_CommandEnd) */
-    if ((ctx->xfse.cc.command == NULL) && (ctx->xfse.cc.command = XPLMFindCommand("fse/flight/start")))
-    {
-        REGISTER_CHANDLER(ctx->xfse.cc, chandler_xecon, 0/*after X-Economy (hopefully)*/, &ctx->info);
     }
 
 #if TIM_ONLY
