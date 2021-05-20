@@ -2291,10 +2291,7 @@ adjust_done:
                      * Zero-fuel center of gravity (super-simplified):
                      * * +20.00% MAC while empty (payload == 00,000kgs)
                      * * +25.00% MAC when loaded (payload == 16,666kgs)
-                     *
-                     * Takeoff center of gravity, offset (simplified):
-                     * * -0.50% with wing tanks only (fuel <= 9,000kgs)
-                     * * -6.00% with all tanks full (fuel == 16,000kgs)
+                     * shift +/- ~5.0%: final range +15.00% to +30.00%
                      *
                      * Translation to X-Plane's cgz_ref_to_default:
                      * * -16.0f (dataref) ~= -450.6% MAC
@@ -2302,32 +2299,27 @@ adjust_done:
                      * * +16.0f (dataref) ~= +490.6% MAC
                      * Factor: 1.00% MAC ~= 16.0f/470.6f
                      */
-                    float offset, zfw_cgz = (20.0f + (5.0f * (load / 16666.0f)));
-                    if (fuel > 9000.0f)
-                    {
-                        offset = ((((fuel - 9000.0f) / 7000.0f) * -5.5f) - 0.5f);
-                    }
-                    else
-                    {
-                        offset = ((fuel / 9000.0f) * -0.5f);
-                    }
-                    ndt_log("navP [info]: IXEG B733 Classic: ZFWCG %+.1f GWCG %+.1f\n", (zfw_cgz), (zfw_cgz + offset));
-                    XPLMSetDataf(ctx->data.refuel_dialg.ic->weight.gwcgz_m, (((zfw_cgz + offset) - 20.0f) / 29.4125f));
+                    srand(time(NULL)); // -0.17f to +0.17f (+/- ~5.0% MAC shift)
+                    float zfw_cg_initial = (20.0f + (5.0f * (load / 16666.0f)));
+                    float zfw_cgz_offset = (((rand() / (float)RAND_MAX) * 0.34f) - .17f);
+                    ndt_log("navP [info]: IXEG B733 Classic: ZFWCG %+.1f\n", ((zfw_cg_initial + zfw_cgz_offset)));
+                    XPLMSetDataf(ctx->data.refuel_dialg.ic->weight.zfwcgzm, (((zfw_cg_initial + zfw_cgz_offset) - 20.0f) / 29.4125f));
                 }
                 break;
 
             case ACF_TYP_LEGA_XC:
                 {
                     srand(time(NULL)); // -0.25f to +0.25f (28.45 to 30.56% MAC)
-                    float rand_gwcgz = -0.25f + 0.5f * rand() / (float)RAND_MAX;
-                    XPLMSetDataf(ctx->data.refuel_dialg.ic->weight.gwcgz_m, rand_gwcgz);
+                    float zfw_cgz = (((rand() / (float)RAND_MAX) * 0.5f) - .25f);
+                    XPLMSetDataf(ctx->data.refuel_dialg.ic->weight.zfwcgzm, zfw_cgz);
                 }
                 break;
 
             default:
+                acf_type_totalizr(ctx->data.refuel_dialg.ic);
                 break;
         }
-        ndt_log("navP [info]: aircraft GW %.0f ZFW %.0f load %.0f fuel %.0f cgz_ref_to_default %+.3f\n", grwt, zfwt, lowt, fuwt, XPLMGetDataf(ctx->data.refuel_dialg.ic->weight.gwcgz_m));
+        ndt_log("navP [info]: aircraft GW %.0f ZFW %.0f load %.0f fuel %.0f cgz_ref_to_default %+.3f\n", grwt, zfwt, lowt, fuwt, XPLMGetDataf(ctx->data.refuel_dialg.ic->weight.zfwcgzm));
         return 0;
     }
     return 1.0f;

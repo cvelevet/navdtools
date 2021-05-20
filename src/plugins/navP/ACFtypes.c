@@ -75,6 +75,25 @@ const char* acf_type_get_name(acf_type type)
     return acf_type_kvps[0].name;
 }
 
+void acf_type_totalizr(acf_info_context *info)
+{
+    if (info)
+    {
+        XPLMDataRef fuel_totalizer_sum_kg, fuel_totalizer_init_kg;
+        if ((fuel_totalizer_sum_kg = XPLMFindDataRef("sim/cockpit2/fuel/fuel_totalizer_sum_kg")) &&
+            (fuel_totalizer_init_kg = XPLMFindDataRef("sim/cockpit2/fuel/fuel_totalizer_init_kg")))
+        {
+            ndt_log("navP [info]: acf_type_totalizr: fuel totalizer reset\n");
+            float fuel; acf_type_fuel_get(info, &fuel);
+            XPLMSetDataf(fuel_totalizer_init_kg, fuel);
+            XPLMSetDataf(fuel_totalizer_sum_kg, 0.0f);
+            return;
+        }
+        return;
+    }
+    return;
+}
+
 acf_info_context* acf_type_info_get()
 {
     if (global_info == NULL)
@@ -83,7 +102,7 @@ acf_info_context* acf_type_info_get()
         {
             return NULL;
         }
-        global_info->weight.gwcgz_m = XPLMFindDataRef("sim/flightmodel/misc/cgz_ref_to_default");
+        global_info->weight.zfwcgzm = XPLMFindDataRef("sim/flightmodel/misc/cgz_ref_to_default");
         global_info->weight.minimum = XPLMFindDataRef("sim/aircraft/weight/acf_m_empty");
         global_info->weight.payload = XPLMFindDataRef("sim/flightmodel/weight/m_fixed");
         global_info->weight.current = XPLMFindDataRef("sim/flightmodel/weight/m_total");
@@ -92,7 +111,7 @@ acf_info_context* acf_type_info_get()
         global_info->fuel.tankrat   = XPLMFindDataRef("sim/aircraft/overflow/acf_tank_rat");
         global_info->fuel.maximum   = XPLMFindDataRef("sim/aircraft/weight/acf_m_fuel_tot");
         global_info->fuel.current   = XPLMFindDataRef("sim/flightmodel/weight/m_fuel_total");
-        if (global_info->weight.gwcgz_m == NULL ||
+        if (global_info->weight.zfwcgzm == NULL ||
             global_info->weight.minimum == NULL ||
             global_info->weight.payload == NULL ||
             global_info->weight.current == NULL ||
