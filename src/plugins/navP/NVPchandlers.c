@@ -1918,19 +1918,23 @@ static int tol_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
         }
         return 1; // pass through
     }
-    int w[3], cdu0 = 0, cdu1 = 0, ext_v = 1;
+    int w[3], h[2], x[2], y[2];
+    int l[2], r[2], t[2], b[2], m[2];
+    int cdu0 = 0, cdu1 = 0, ext_v = 1;
     XPLMGetDatavi(tkb.datar[0], &w[0], 0, 2);
     if (w[0] > 0 || w[1] > 0)
     {
-        int h[2], m[2], x[2], y[2];
         ext_v = XPLMGetDatai(tkb.datar[4]);
         XPLMGetMouseLocation(&m[0], &m[1]);
         XPLMGetDatavi(tkb.datar[0], &w[2], 9, 1);
         XPLMGetDatavi(tkb.datar[1], &h[0], 0, 2);
         XPLMGetDatavi(tkb.datar[2], &x[0], 0, 2);
         XPLMGetDatavi(tkb.datar[3], &y[0], 0, 2);
-        if (w[0] > 0) cdu0 = ((m[0] > x[0]) && (m[0] < (x[0] + w[0])) && (m[1] > y[0]) && (m[1] < (y[0] + h[0])));
-        if (w[1] > 0) cdu1 = ((m[0] > x[1]) && (m[0] < (x[1] + w[1])) && (m[1] > y[1]) && (m[1] < (y[1] + h[1])));
+        // XXX: MCDU widths advertized as 449 pixels, but actually 415 pixels
+        l[0] = x[0]; r[0] = l[0] + w[0] - 34; b[0] = y[0]; t[0] = b[0] + h[0];
+        l[1] = x[1]; r[1] = l[1] + w[1] - 34; b[1] = y[1]; t[1] = b[1] + h[1];
+        if (w[0] > 0) cdu0 = ((m[0] > l[0]) && (m[0] < r[0]) && (m[1] > b[0]) && (m[1] < t[0]));
+        if (w[1] > 0) cdu1 = ((m[0] > l[1]) && (m[0] < r[1]) && (m[1] > b[1]) && (m[1] < t[1]));
     }
     if (ext_v || (!cdu0 && !cdu1)) // mouse must be over MCDU with internal view
     {
