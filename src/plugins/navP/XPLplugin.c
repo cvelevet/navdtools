@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "XPLM/XPLMDataAccess.h"
 #include "XPLM/XPLMPlugin.h"
 #include "XPLM/XPLMUtilities.h"
 
@@ -34,6 +35,9 @@ static int log_with_sdk(const char *format, va_list ap);
 
 /* Miscellaneous data */
 int navp_init_ok = 0;
+#if TIM_ONLY
+int firstmessage = 1;
+#endif
 
 #if IBM
 #include <windows.h>
@@ -117,6 +121,22 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
     /* forward all messages to out sub-plugins */
     if (navp_init_ok == 1)
     {
+#if TIM_ONLY
+        if (firstmessage == 1)
+        {
+            if (XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
+            {
+                XPLMDataRef cars = XPLMFindDataRef("sim/private/controls/reno/draw_cars_05");
+                XPLMDataRef fors = XPLMFindDataRef("sim/private/controls/reno/draw_for_05");
+                if (cars && fors)
+                {
+                    XPLMDebugString("navP [info]: XXX: disabling tree and car drawing\n");
+                    XPLMSetDatai(cars, 0); XPLMSetDatai(fors, 0);
+                }
+            }
+            firstmessage = 0;
+        }
+#endif
         nvp_plugin_message(inFromWho, inMessage, inParam);
     }
 }
