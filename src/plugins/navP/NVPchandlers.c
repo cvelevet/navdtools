@@ -1400,12 +1400,28 @@ static int fuel_tank_select(int acf_num_engines, int acf_num_tanks)
 {
     if (acf_num_engines == 1)
     {
-        XPLMDataRef d_ref = XPLMFindDataRef("sim/cockpit2/fuel/fuel_tank_selector");
+        XPLMCommandRef cd; XPLMDataRef d_ref = XPLMFindDataRef("sim/cockpit2/fuel/fuel_tank_selector");
         if (d_ref)
         {
             int fuel_tank_selector = XPLMGetDatai(d_ref);
             if (fuel_tank_selector < 1 ||  fuel_tank_selector > 3 || fuel_tank_selector > acf_num_tanks)
             {
+                if ((d_ref = XPLMFindDataRef("aerobask/legacy/fuel_selector"))) // acf_has_fuel_all incorrectly set to 1 :-(
+                {
+                    if ((cd = XPLMFindCommand("aerobask/legacy/fuel_sel_left")))
+                    {
+                        float fuelsel = XPLMGetDataf(d_ref);
+                        if (1.5f > fuelsel)
+                        {
+                            if (0.5f > fuelsel)
+                            {
+                                XPLMCommandOnce(cd); // off -> right
+                            }
+                            XPLMCommandOnce(cd); // right -> left
+                        }
+                        return 1; // dataref set
+                    }
+                }
                 if ((d_ref = XPLMFindDataRef("sim/aircraft/overflow/acf_has_fuel_all")))
                 {
                     if (XPLMGetDatai(d_ref))
