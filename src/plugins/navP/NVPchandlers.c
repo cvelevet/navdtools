@@ -375,10 +375,13 @@ typedef struct
         } ret;
 
         XPLMDataRef    ha4t;
+        XPLMDataRef    leg2;
         XPLMDataRef    srat;
-        XPLMCommandRef e55e;
+        XPLMCommandRef e55p;
+        XPLMCommandRef sexf;
         XPLMCommandRef sext;
         XPLMCommandRef e55r;
+        XPLMCommandRef sref;
         XPLMCommandRef sret;
     } spbrk;
 
@@ -744,11 +747,14 @@ void* nvp_chandlers_init(void)
     /* Custom commands: speedbrakes/spoilers */
     ctx->spbrk.ext.cb.command = XPLMCreateCommand("navP/spoilers/extend",  "speedbrakes extend one");
     ctx->spbrk.ret.cb.command = XPLMCreateCommand("navP/spoilers/retract", "speedbrakes retract one");
+    ctx->spbrk.sexf           = XPLMFindCommand  ("sim/flight_controls/speed_brakes_down_all");
     ctx->spbrk.sext           = XPLMFindCommand  ("sim/flight_controls/speed_brakes_down_one");
     ctx->spbrk.sret           = XPLMFindCommand  ("sim/flight_controls/speed_brakes_up_one");
+    ctx->spbrk.sref           = XPLMFindCommand  ("sim/flight_controls/speed_brakes_up_all");
     ctx->spbrk.srat           = XPLMFindDataRef  ("sim/cockpit2/controls/speedbrake_ratio");
     if (!ctx->spbrk.ext.cb.command || !ctx->spbrk.ret.cb.command ||
-        !ctx->spbrk.sext || !ctx->spbrk.sret || !ctx->spbrk.srat)
+        !ctx->spbrk.sext || !ctx->spbrk.sret || !ctx->spbrk.srat ||
+        !ctx->spbrk.sexf || !ctx->spbrk.sref)
     {
         ndt_log("navP [error]: nvp_chandlers_init: command or dataref not found\n");
         goto fail;
@@ -1276,6 +1282,9 @@ int nvp_chandlers_reset(void *inContext)
     ctx->throt.            tbm9erng = NULL;
     ctx->throt.            throttle = NULL;
     ctx->callouts.   ref_flaps_e55p = NULL;
+    ctx->spbrk.                e55p = NULL;
+    ctx->spbrk.                ha4t = NULL;
+    ctx->spbrk.                leg2 = NULL;
     ctx->ground.xfse.status_flying  = -1;
     ctx->acfspec.t319.        ready = 0;
     ctx->acfspec.i733.        ready = 0;
@@ -2520,14 +2529,14 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 break;
 
             case ACF_TYP_E55P_AB:
-                if (ctx->spbrk.e55e == NULL)
+                if (ctx->spbrk.e55p == NULL)
                 {
-                    ctx->spbrk.e55e = XPLMFindCommand("aerobask/speedbrakes_open");
+                    ctx->spbrk.e55p = XPLMFindCommand("aerobask/speedbrakes_open");
                 }
-                if (ctx->spbrk.e55e)
+                if (ctx->spbrk.e55p)
                 {
                     if (speak > 0) XPLMSpeakString("speedbrake");
-                    XPLMCommandOnce(ctx->spbrk.e55e);
+                    XPLMCommandOnce(ctx->spbrk.e55p);
                     return 0;
                 }
                 return 0;
@@ -2560,6 +2569,16 @@ static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 return 0;
 
             default:
+                if (ctx->spbrk.leg2 == NULL)
+                {
+                    ctx->spbrk.leg2 = XPLMFindDataRef("aerobask/legacy/speedbrakes_switch");
+                }
+                if (ctx->spbrk.leg2 && ctx->spbrk.sexf)
+                {
+                    if (speak > 0) XPLMSpeakString("speedbrake");
+                    XPLMCommandOnce(ctx->spbrk.sexf);
+                    return 0;
+                }
                 if (ctx->spbrk.sext)
                 {
                     XPLMCommandOnce(ctx->spbrk.sext);
@@ -2715,6 +2734,16 @@ static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 {
                     // already retracted, we can't/needn't arm (automatic)
                     if (speak > 0) XPLMSpeakString("speedbrake retracted");
+                    return 0;
+                }
+                if (ctx->spbrk.leg2 == NULL)
+                {
+                    ctx->spbrk.leg2 = XPLMFindDataRef("aerobask/legacy/speedbrakes_switch");
+                }
+                if (ctx->spbrk.leg2 && ctx->spbrk.sref)
+                {
+                    if (speak > 0) XPLMSpeakString("speedbrake retracted");
+                    XPLMCommandOnce(ctx->spbrk.sref);
                     return 0;
                 }
                 if (ctx->spbrk.sret)
