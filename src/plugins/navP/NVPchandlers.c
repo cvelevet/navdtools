@@ -4662,7 +4662,7 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 if (!strcasecmp(ctx->info->icaoid, "LEG2"))
                 {
-                    return 1; // comntinuous flap extension/retraction :-(
+                    return 1; // continuous flap extension/retraction (callouts 1.5s after releasing would be somewhat pointless) :-(
                 }
                 if (!strcasecmp(ctx->info->icaoid, "MD80") ||
                     !strcasecmp(ctx->info->icaoid, "MD82") ||
