@@ -5593,8 +5593,8 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         case 0:
                             XPLMCommandOnce(cdu->command[0]); // PFD: show
                             XPLMCommandOnce(cdu->command[3]); // A/P: show
-                            XPLMCommandOnce(cdu->command[2]); // ATC: show
-                            XPLMCommandOnce(cdu->command[1]); // COM: show
+/*                          XPLMCommandOnce(cdu->command[2]); // ATC: show */
+/*                          XPLMCommandOnce(cdu->command[1]); // COM: show */
 //                          XPLMCommandOnce(cdu->command[4]); // ENG: already hidden
 //                          XPLMCommandOnce(cdu->command[5]); // GPS: already hidden
                             cdu->i_cycle_id = 1;
@@ -5614,8 +5614,8 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         default:
                             XPLMCommandOnce(cdu->command[0]); // PFD: hide
                             XPLMCommandOnce(cdu->command[3]); // A/P: hide
-                            XPLMCommandOnce(cdu->command[2]); // ATC: hide
-                            XPLMCommandOnce(cdu->command[1]); // COM: hide
+/*                          XPLMCommandOnce(cdu->command[2]); // ATC: hide */
+/*                          XPLMCommandOnce(cdu->command[1]); // COM: hide */
                             XPLMCommandOnce(cdu->command[4]); // ENG: hide
                             XPLMCommandOnce(cdu->command[5]); // GPS: hide
                             cdu->i_cycle_id = 0;
