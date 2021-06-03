@@ -5028,7 +5028,8 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     if (*cdu->auth || *cdu->desc) // we may see "" description
                     {
                         if (!STRN_CASECMP_AUTO(cdu->auth, "Aerobask") ||
-                            !STRN_CASECMP_AUTO(cdu->auth, "Stephane Buon"))
+                            !STRN_CASECMP_AUTO(cdu->auth, "Stephane Buon") ||
+                            !STRN_CASECMP_AUTO(cdu->auth, "Cameron Garner, Lionel Zamouth, Stephane Buon"))
                         {
                             if (!STRN_CASECMP_AUTO(cdu->icao, "DA62"))
                             {
@@ -5073,6 +5074,19 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                                 {
                                     cdu->i_cycletyp = 3; // GTN650 + GTN750 + Skyview (x2)
                                     cdu->i_disabled = 0; break; // Aerobask double SkyView
+                                }
+                            }
+                            if (!STRN_CASECMP_AUTO(cdu->icao, "LEG2"))
+                            {
+                                if ((cdu->command[0] = XPLMFindCommand("aerobask/exp5000/popup")) &&
+                                    (cdu->command[1] = XPLMFindCommand("aerobask/sl30_2/popup" )) &&
+                                    (cdu->command[2] = XPLMFindCommand("aerobask/sl70/popup"   )) &&
+                                    (cdu->command[3] = XPLMFindCommand("aerobask/dfc90/popup"  )) &&
+                                    (cdu->command[4] = XPLMFindCommand("aerobask/vm1000c/popup")) &&
+                                    (cdu->command[5] = XPLMFindCommand("sim/GPS/g430n1_popup" )))
+                                {
+                                    cdu->i_cycletyp = 5; // EXP5000 + DFC90 + X-530
+                                    cdu->i_disabled = 0; break; // Aerobask AviDyne
                                 }
                             }
                             if ((cdu->command[0] = XPLMFindCommand("aerobask/skyview/toggle_left")))
@@ -5568,6 +5582,42 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 //                          XPLMCommandOnce(cdu->command[1]); // EIS: popup (hide) (already hidden - we only have a toggle command)
                             XPLMCommandOnce(cdu->command[3]); // GNS2 popup (hide)
                             XPLMCommandOnce(cdu->command[2]); // GNS1 popup (hide)
+                            cdu->i_cycle_id = 0;
+                            return 0;
+                    }
+                }
+                if (cdu->i_cycletyp == 5)
+                {
+                    switch (cdu->i_cycle_id)
+                    {
+                        case 0:
+                            XPLMCommandOnce(cdu->command[0]); // PFD: show
+                            XPLMCommandOnce(cdu->command[3]); // A/P: show
+                            XPLMCommandOnce(cdu->command[2]); // ATC: show
+                            XPLMCommandOnce(cdu->command[1]); // COM: show
+//                          XPLMCommandOnce(cdu->command[4]); // ENG: already hidden
+//                          XPLMCommandOnce(cdu->command[5]); // GPS: already hidden
+                            cdu->i_cycle_id = 1;
+                            return 0;
+
+                        case 1:
+//                          XPLMCommandOnce(cdu->command[0]); // PFD: already showing
+//                          XPLMCommandOnce(cdu->command[3]); // A/P: already showing
+//                          XPLMCommandOnce(cdu->command[2]); // ATC: already showing
+//                          XPLMCommandOnce(cdu->command[1]); // COM: already showing
+                            XPLMCommandOnce(cdu->command[4]); // ENG: show
+                            XPLMCommandOnce(cdu->command[5]); // GPS: show
+                            cdu->i_cycle_id = 2;
+                            return 0;
+
+                        case 2:
+                        default:
+                            XPLMCommandOnce(cdu->command[0]); // PFD: hide
+                            XPLMCommandOnce(cdu->command[3]); // A/P: hide
+                            XPLMCommandOnce(cdu->command[2]); // ATC: hide
+                            XPLMCommandOnce(cdu->command[1]); // COM: hide
+                            XPLMCommandOnce(cdu->command[4]); // ENG: hide
+                            XPLMCommandOnce(cdu->command[5]); // GPS: hide
                             cdu->i_cycle_id = 0;
                             return 0;
                     }
