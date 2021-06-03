@@ -28,8 +28,6 @@
 
 #ifndef TIM_ONLY
 #define TIM_ONLY 1
-#define TDFDRCAR 1
-#define TDFDRFOR 2
 #define TDFDRVEC 1
 #endif
 

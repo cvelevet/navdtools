@@ -5942,10 +5942,9 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
          *
          * Reset on pause or UI/menu activity.
          */
-        if ((inElapsedSinceLastCall - flightLoopCallbackInterval) > 1.0f || // triggered by e.g. UI/menu activity
-            (XPLMGetDatai(grndp->time.sim_pause) > 0))
+        if (grndp->last_cycle_number < -1)
         {
-            grndp->last_cycle_number = -1; // reset, start counting again on next call
+            // do nothing, cloud show/hide is controlled manually
         }
         else if (grndp->last_cycle_number < 0)
         {
@@ -5953,6 +5952,14 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
             grndp->last_cycle_number = inCounter;
             grndp->curr_period_durr = 10.0f;
             grndp->elapsed_fr_reset = 0.0f;
+        }
+        else if ((inElapsedSinceLastCall - flightLoopCallbackInterval) > 1.0f) // triggered by e.g. UI/menu activity
+        {
+            grndp->last_cycle_number = -1; // reset, start counting again on next call
+        }
+        else if (XPLMGetDatai(grndp->time.sim_pause) > 0)
+        {
+            grndp->last_cycle_number = -1; // reset, start counting again on next call
         }
         else
         {
@@ -6005,6 +6012,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                                             avg_fps, vlo_fps, grndp->elapsed_fr_reset);
                                 }
                                 nvp_menu_ckill(grndp->nvp_menu, xplm_Menu_Checked);
+                                XPLMSpeakString("disabling default clouds\n");
                                 grndp->last_cycle_number = inCounter;
                                 grndp->curr_period_durr = 60.0f;
                                 grndp->elapsed_fr_reset = 0.0f;
@@ -6019,6 +6027,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                                             avg_fps, vhi_fps, grndp->elapsed_fr_reset);
                                 }
                                 nvp_menu_ckill(grndp->nvp_menu, xplm_Menu_NoCheck);
+                                XPLMSpeakString("enabling default clouds\n");
                                 grndp->last_cycle_number = inCounter;
                                 grndp->curr_period_durr = 22.5f;
                                 grndp->elapsed_fr_reset = 0.0f;
@@ -7903,7 +7912,18 @@ static int first_fcall_do(chandler_context *ctx)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
     }
-    ctx->ground.last_cycle_number = -1;
+    if (XPLMFindDataRef("sim/version/xplane_internal_version"))
+    {
+        if (ctx->menu_context)
+        {
+            nvp_menu_ckill(ctx->menu_context, xplm_Menu_Checked); // XP11-only: boost frame rates by disabling cloud drawing altogether
+        }
+        ctx->ground.last_cycle_number = -2;
+    }
+    else
+    {
+        ctx->ground.last_cycle_number = -1; // X-Plane 10, hide/show clouds based on fps
+    }
     XPLMRegisterFlightLoopCallback((ctx->ground.flc_g = &gnd_stab_hdlr), 1, &ctx->ground);
 
     /* mixture and prop pitch command handlers */
@@ -7984,15 +8004,6 @@ static int first_fcall_do(chandler_context *ctx)
         return EINVAL;
     }
     acf_volume_set(volume_context, 0.10f, ctx->info->ac_type);
-
-    /* XP v11 experimental tweaks */
-    if (volume_context->x_plane_v11)
-    {
-        _DO(1, XPLMSetDatai, 0, "sim/private/controls/reno/draw_fft_water");
-//      _DO(1, XPLMSetDatai, TDFDRFOR, "sim/private/controls/reno/draw_for_05");
-//      _DO(1, XPLMSetDatai, TDFDRCAR, "sim/private/controls/reno/draw_cars_05");
-        _DO(1, XPLMSetDatai, TDFDRVEC, "sim/private/controls/reno/draw_vecs_03");
-    }
 #endif
 
     return (ctx->first_fcall = 0);
