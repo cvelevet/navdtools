@@ -126,12 +126,15 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
         {
             if (XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
             {
+                XPLMDataRef watr = XPLMFindDataRef("sim/private/controls/reno/draw_fft_water");
                 XPLMDataRef cars = XPLMFindDataRef("sim/private/controls/reno/draw_cars_05");
+                XPLMDataRef vecs = XPLMFindDataRef("sim/private/controls/reno/draw_vecs_03");
                 XPLMDataRef fors = XPLMFindDataRef("sim/private/controls/reno/draw_for_05");
-                if (cars && fors)
+                if (watr && cars && vecs && fors)
                 {
                     XPLMDebugString("navP [info]: XXX: disabling tree and car drawing\n");
-                    XPLMSetDatai(cars, 0); XPLMSetDatai(fors, 0);
+                    XPLMSetDatai(watr, 0); XPLMSetDatai(cars, 0); XPLMSetDatai(fors, 0);
+                    XPLMSetDatai(vecs, TDFDRVEC);
                 }
             }
             firstmessage = 0;
