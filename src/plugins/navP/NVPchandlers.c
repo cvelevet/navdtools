@@ -1789,6 +1789,10 @@ int nvp_chandlers_update(void *inContext)
                     ctx->otto.clmb.rc.init_cl_speed = 160.0f; // SkyView (G1000 version: custom SASL signature)
                 } // else G1000 (FLC speed sync, defsult climb speed pointless)
             }
+            else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "LEG2"))
+            {
+                ctx->otto.clmb.rc.init_cl_speed = 120.0f; // AviDyne
+            }
             else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "PC12"))
             {
                 if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
@@ -4509,7 +4513,6 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     !strcasecmp(ctx->info->icaoid, "EA50") ||
                     !strcasecmp(ctx->info->icaoid, "EPIC") ||
                     !strcasecmp(ctx->info->icaoid, "EVIC") ||
-                    !strcasecmp(ctx->info->icaoid, "LEG2") ||
                     !strcasecmp(ctx->info->icaoid, "P180") ||
                     !strcasecmp(ctx->info->icaoid, "SF50") ||
                     !strcasecmp(ctx->info->icaoid, "TBM9"))
@@ -4656,6 +4659,10 @@ static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 {
                     flap_callout_setst(_flap_names_HA4T, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
                     break;
+                }
+                if (!strcasecmp(ctx->info->icaoid, "LEG2"))
+                {
+                    return 1; // comntinuous flap extension/retraction :-(
                 }
                 if (!strcasecmp(ctx->info->icaoid, "MD80") ||
                     !strcasecmp(ctx->info->icaoid, "MD82") ||
@@ -7546,7 +7553,8 @@ static int first_fcall_do(chandler_context *ctx)
                     }
                 }
                 if (!STRN_CASECMP_AUTO(ctx->info->author, "Aerobask") ||
-                    !STRN_CASECMP_AUTO(ctx->info->author, "Stephane Buon"))
+                    !STRN_CASECMP_AUTO(ctx->info->author, "Stephane Buon") ||
+                    !STRN_CASECMP_AUTO(ctx->info->author, "Cameron Garner, Lionel Zamouth, Stephane Buon"))
                 {
                     absk = 1;
                 }
@@ -7630,6 +7638,45 @@ static int first_fcall_do(chandler_context *ctx)
                         _DO(0, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_pitot_heat_on_pilot");
                         _DO(0, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_AOA_heat_on_copilot");
                         _DO(0, XPLMSetDatai, 1, "sim/cockpit2/ice/ice_AOA_heat_on");
+                    }
+                    else if (!strcasecmp(ctx->info->icaoid, "LEG2"))
+                    {
+                        if (acf_type_is_engine_running() == 0) // cold & dark
+                        {
+                            if ((d_ref = XPLMFindDataRef("aerobask/legacy/canopy_switch")) &&
+                                (cr = XPLMFindCommand("aerobask/legacy/canopy_toggle")))
+                            {
+                                if (XPLMGetDatai(d_ref) != 0)
+                                {
+                                    XPLMCommandOnce(cr);
+                                }
+                            }
+                            if ((d_ref = XPLMFindDataRef("aerobask/tablet/deployed")) &&
+                                (cr = XPLMFindCommand("aerobask/tablet/deploy_toggle")))
+                            {
+                                if (XPLMGetDatai(d_ref) != 1)
+                                {
+                                    XPLMCommandOnce(cr);
+                                }
+                            }
+                            if ((cr = XPLMFindCommand("sim/electrical/GPU_on")))
+                            {
+                                XPLMCommandOnce(cr);
+                            }
+                        }
+                        else
+                        {
+                            if ((d_ref = XPLMFindDataRef("aerobask/tablet/deployed")) &&
+                                (cr = XPLMFindCommand("aerobask/tablet/deploy_toggle")))
+                            {
+                                if (XPLMGetDatai(d_ref) == 1)
+                                {
+                                    XPLMCommandOnce(cr);
+                                }
+                            }
+                        }
+                        _DO(1, XPLMSetDatai, 1, "aerobask/ground_objects_kill");
+                        xgps = 1;
                     }
                 }
             }
