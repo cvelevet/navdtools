@@ -2378,7 +2378,7 @@ static void xplm_nav_nfo(XPLMNavRef inRef)
         float outLat = 0.0f, outLon = 0.0f;
         XPLMNavType outTyp = xplm_Nav_Unknown; char outID[33] = "", outName[257] = "";
         XPLMGetNavAidInfo(inRef, &outTyp, &outLat, &outLon, NULL, NULL, NULL, outID, outName, NULL);
-        ndt_log("DEBUG type(s) %-4d lat %+010.6f lon %+010.6f ID \"%s\" name \"%s\" ref 0x%x\n", outTyp, outLat, outLon, outID, outName, inRef);
+        ndt_log("DEBUG type(s) %-4d lat %+010.6f lon %+011.6f ID \"%s\" name \"%s\" ref 0x%x\n", outTyp, outLat, outLon, outID, outName, inRef);
     }
 }
 
