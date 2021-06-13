@@ -105,7 +105,7 @@ static XPLMNavRef xplm_find_navaid(ndt_waypoint *wpt)
             ndt_position positn = ndt_position_init((double)*outLati, (double)*outLong, distce_zero);
             ndt_distance dstnce = ndt_position_calcdistance(wpt->position, positn);
             ndt_log("YFMS [debug]: XPLMFindNavAid(NULL, %s, %+f, %+f, %d): 0x%x\n", inIDFrag, inLatit, inLongi, NULL, navTypes, navRefpt);
-            ndt_log("YFMS [debug]: XPLMGetNavAidInfo(0x%x): %+f %+f %s\n", navRefpt, outLati, outLong, outID);
+            ndt_log("YFMS [debug]: XPLMGetNavAidInfo(0x%x): %+f %+f %s\n", navRefpt, outLati[0], outLong[0], outID);
             /*
              * Example (Navigraph data, AIRAC 1707):
              * > $ grep TRS Waypoints.txt Navaids.txt | grep \,ES

@@ -98,6 +98,7 @@ static int  yfs_mcdubgrh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
 static int  yfs_mcdudish(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
 static int  yfs_captionh(XPWidgetMessage, XPWidgetID, intptr_t, intptr_t);
 static int  chandler_tog(XPLMCommandRef, XPLMCommandPhase, void*inRefcon);
+static int  xplm_nav_dbg(XPLMCommandRef, XPLMCommandPhase, void*inRefcon);
 
 typedef struct
 {
@@ -1280,6 +1281,18 @@ void* yfs_main_init(void)
         goto fail;
     }
 
+    /* log some stuff */
+    if ((yfms->navdbg.command =
+         XPLMCreateCommand("YFMS/nav/debug", "")) == NULL)
+    {
+        ndt_log("YFMS [error]: could not create X-Plane command for nav debug\n");
+        goto fail;
+    }
+    XPLMRegisterCommandHandler(yfms->navdbg.command,
+                               yfms->navdbg.handler = &xplm_nav_dbg,
+                               yfms->navdbg.before  = 0,
+                               yfms->navdbg.refcon  = yfms);
+
     /* easy to use X-Plane command to toggle YFMS window */
     if ((yfms->toggle.command =
          XPLMCreateCommand("YFMS/toggle", "toggle YFMS window")) == NULL)
@@ -1484,6 +1497,15 @@ int yfs_main_close(yfms_context **_yfms)
                                      yfms->toggle.refcon);
         yfms->toggle.command = NULL;
         yfms->toggle.handler = NULL;
+    }
+    if (yfms->navdbg.command && yfms->navdbg.handler)
+    {
+        XPLMUnregisterCommandHandler(yfms->navdbg.command,
+                                     yfms->navdbg.handler,
+                                     yfms->navdbg.before,
+                                     yfms->navdbg.refcon);
+        yfms->navdbg.command = NULL;
+        yfms->navdbg.handler = NULL;
     }
 
     /* and the menu */
@@ -2341,6 +2363,35 @@ static int chandler_tog(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void
     {
         yfms_context  *yfms = inRefcon;
         yfs_main_toggl(yfms);
+    }
+    return 0;
+}
+
+static void xplm_nav_nfo(XPLMNavRef inRef)
+{
+    if (inRef == XPLM_NAV_NOT_FOUND)
+    {
+        ndt_log("DEBUG 0x%x XPLM_NAV_NOT_FOUND\n", inRef);
+    }
+    else
+    {
+        float outLat[1], outLon[1]; char outID[33]; XPLMNavType outTyp[1];
+        XPLMGetNavAidInfo(inRef, outTyp, outLat, outLon, NULL, NULL, NULL, outID, NULL, NULL);
+        ndt_log("DEBUG 0x%x type(s) %d late %+f lon %+f ID \"%s\"\n", inRef, outTyp[0], outLat[0], outLon[0], outID);
+    }
+}
+
+static int xplm_nav_dbg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        ndt_log("DEBUG GPS Destination 0x%x type(s) %d\n", XPLMGetGPSDestination(), XPLMGetGPSDestinationType()); xplm_nav_nfo(XPLMGetGPSDestination());
+        for (int i = 0; i < XPLMCountFMSEntries(); i++)
+        {
+            XPLMNavType outTyp[1]; XPLMNavRef outRef[1]; char outID[33]; XPLMGetFMSEntryInfo(i, outTyp, outID, outRef, NULL, NULL, NULL);
+            ndt_log("DEBUG FMS Entry #%d type(s) %d ID \"%s\" ref 0x%x\n", i, outTyp[0], outID, outRef[0]); xplm_nav_nfo(outRef[0]);
+        }
+        return 0;
     }
     return 0;
 }

@@ -273,6 +273,15 @@ typedef struct
 
     struct
     {
+        int                    before;
+        void                  *refcon;
+        XPLMCommandRef        command;
+        XPLMCommandCallback_f handler;
+    }
+    navdbg;
+
+    struct
+    {
         XPLMMenuID id;
         struct
         {
