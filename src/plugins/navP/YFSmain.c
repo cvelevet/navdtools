@@ -2371,13 +2371,14 @@ static void xplm_nav_nfo(XPLMNavRef inRef)
 {
     if (inRef == XPLM_NAV_NOT_FOUND)
     {
-        ndt_log("DEBUG 0x%x XPLM_NAV_NOT_FOUND\n", inRef);
+        ndt_log("DEBUG XPLM_NAV_NOT_FOUND 0x%x\n", inRef);
     }
     else
     {
-        float outLat[1], outLon[1]; char outID[33]; XPLMNavType outTyp[1];
-        XPLMGetNavAidInfo(inRef, outTyp, outLat, outLon, NULL, NULL, NULL, outID, NULL, NULL);
-        ndt_log("DEBUG 0x%x type(s) %d late %+f lon %+f ID \"%s\"\n", inRef, outTyp[0], outLat[0], outLon[0], outID);
+        float outLat = 0.0f, outLon = 0.0f;
+        XPLMNavType outTyp = xplm_Nav_Unknown; char outID[33] = "", outName[257] = "";
+        XPLMGetNavAidInfo(inRef, &outTyp, &outLat, &outLon, NULL, NULL, NULL, outID, outName, NULL);
+        ndt_log("DEBUG type(s) %-4d lat %+010.6f lon %+010.6f ID \"%s\" name \"%s\" ref 0x%x\n", outTyp, outLat, outLon, outID, outName, inRef);
     }
 }
 
@@ -2385,12 +2386,15 @@ static int xplm_nav_dbg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void
 {
     if (inPhase == xplm_CommandEnd)
     {
-        ndt_log("DEBUG GPS Destination 0x%x type(s) %d\n", XPLMGetGPSDestination(), XPLMGetGPSDestinationType()); xplm_nav_nfo(XPLMGetGPSDestination());
+        ndt_log("---------------------------------------\n");
+        ndt_log("DEBUG GPS Destination type(s) %-4d 0x%x\n", XPLMGetGPSDestinationType(), XPLMGetGPSDestination()); xplm_nav_nfo(XPLMGetGPSDestination());
         for (int i = 0; i < XPLMCountFMSEntries(); i++)
         {
-            XPLMNavType outTyp[1]; XPLMNavRef outRef[1]; char outID[33]; XPLMGetFMSEntryInfo(i, outTyp, outID, outRef, NULL, NULL, NULL);
-            ndt_log("DEBUG FMS Entry #%d type(s) %d ID \"%s\" ref 0x%x\n", i, outTyp[0], outID, outRef[0]); xplm_nav_nfo(outRef[0]);
+            char outName[257] = ""; XPLMNavType outTyp = xplm_Nav_Unknown; XPLMNavType outRef = XPLM_NAV_NOT_FOUND;
+            ndt_log("                  ---                  \n"); XPLMGetFMSEntryInfo(i, &outTyp, outName, &outRef, NULL, NULL, NULL);
+            ndt_log("DEBUG FMS Entry #%-2d type(s) %-4d ID \"%s\" ref 0x%x\n", i, outTyp, outName, outRef); xplm_nav_nfo(outRef);
         }
+        ndt_log("---------------------------------------\n");
         return 0;
     }
     return 0;

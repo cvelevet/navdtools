@@ -101,11 +101,12 @@ static XPLMNavRef xplm_find_navaid(ndt_waypoint *wpt)
         }
         if (XPLM_NAV_NOT_FOUND != navRefpt)
         {
-            XPLMGetNavAidInfo(navRefpt, NULL, outLati, outLong, NULL, NULL, NULL, outID, NULL, NULL);
+            char name[257] = ""; outID[0] = '\0'; outLati[0] = 0.0f; outLong[0] = 0.0f;
+            XPLMGetNavAidInfo(navRefpt, NULL, outLati, outLong, NULL, NULL, NULL, outID, name, NULL);
             ndt_position positn = ndt_position_init((double)*outLati, (double)*outLong, distce_zero);
             ndt_distance dstnce = ndt_position_calcdistance(wpt->position, positn);
-            ndt_log("YFMS [debug]: XPLMFindNavAid(NULL, %s, %+f, %+f, %d): 0x%x\n", inIDFrag, inLatit, inLongi, NULL, navTypes, navRefpt);
-            ndt_log("YFMS [debug]: XPLMGetNavAidInfo(0x%x): %+f %+f %s\n", navRefpt, outLati[0], outLong[0], outID);
+            ndt_log("YFMS [debug]: XPLMFindNavAid(NULL, \"%s\", %+f, %+f, %d): 0x%x\n", inIDFrag, inLatit[0], inLongi[0], navTypes, navRefpt);
+            ndt_log("YFMS [debug]: XPLMGetNavAidInfo(0x%x): %+f %+f \"%s\" \"%s\"\n", navRefpt, outLati[0], outLong[0], outID, name);
             /*
              * Example (Navigraph data, AIRAC 1707):
              * > $ grep TRS Waypoints.txt Navaids.txt | grep \,ES
