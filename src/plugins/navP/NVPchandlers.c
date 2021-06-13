@@ -6007,12 +6007,12 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                                 XPLMDataRef cloud_skip = XPLMFindDataRef("sim/private/controls/clouds/skip_draw");
                                 if (cloud_skip && XPLMGetDataf(cloud_skip) < 0.5f) // clouds showing
                                 {
+                                    XPLMSpeakString("disabling default clouds\n");
                                     ndt_log("navP [info]: fps %.3f < %.3f (%.1f s), "
                                             "disabling clouds for better sim speed\n",
                                             avg_fps, vlo_fps, grndp->elapsed_fr_reset);
                                 }
                                 nvp_menu_ckill(grndp->nvp_menu, xplm_Menu_Checked);
-                                XPLMSpeakString("disabling default clouds\n");
                                 grndp->last_cycle_number = inCounter;
                                 grndp->curr_period_durr = 60.0f;
                                 grndp->elapsed_fr_reset = 0.0f;
@@ -6022,12 +6022,12 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                                 XPLMDataRef cloud_skip = XPLMFindDataRef("sim/private/controls/clouds/skip_draw");
                                 if (cloud_skip && XPLMGetDataf(cloud_skip) > 0.5f) // clouds hidden
                                 {
+                                    XPLMSpeakString("enabling default clouds\n");
                                     ndt_log("navP [info]: fps %.3f > %.3f (%.1f s), "
                                             "enabling clouds for increased realism\n",
                                             avg_fps, vhi_fps, grndp->elapsed_fr_reset);
                                 }
                                 nvp_menu_ckill(grndp->nvp_menu, xplm_Menu_NoCheck);
-                                XPLMSpeakString("enabling default clouds\n");
                                 grndp->last_cycle_number = inCounter;
                                 grndp->curr_period_durr = 22.5f;
                                 grndp->elapsed_fr_reset = 0.0f;
