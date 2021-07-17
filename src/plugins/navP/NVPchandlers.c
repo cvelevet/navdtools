@@ -7981,7 +7981,7 @@ static int first_fcall_do(chandler_context *ctx)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
     }
-    if (XPLMFindDataRef("sim/version/xplane_internal_version"))
+    if (XPLMFindDataRef("sim/version/xplane_internal_version"))//fixme
     {
         if (ctx->menu_context)
         {
@@ -7994,6 +7994,15 @@ static int first_fcall_do(chandler_context *ctx)
         ctx->ground.last_cycle_number = -1; // X-Plane 10, hide/show clouds based on fps
     }
     XPLMRegisterFlightLoopCallback((ctx->ground.flc_g = &gnd_stab_hdlr), 1, &ctx->ground);
+
+    /*
+     * Kill X-Plane ATC (not needed, may/may not cause crashes in some places).
+     * Do it as late as possible (avoid interfering w/init. of X-Plane itself).
+     * Doing it too early might have caused a crash in the PilotEdge plugin :(
+     *
+     * This is all very much guesswork, really :-(
+     */
+    _DO(1, XPLMSetDataf, 1.0f, "sim/private/controls/perf/kill_atc");
 
     /* mixture and prop pitch command handlers */
     switch (ctx->info->engine_type1)
@@ -8053,15 +8062,6 @@ static int first_fcall_do(chandler_context *ctx)
             }
         }
     }
-
-    /*
-     * Kill X-Plane ATC (not needed, may/may not cause crashes in some places).
-     * Do it as late as possible (avoid interfering w/init. of X-Plane itself).
-     * Doing it too early might have caused a crash in the PilotEdge plugin :(
-     *
-     * This is all very much guesswork, really :-(
-     */
-    _DO(1, XPLMSetDataf, 1.0f, "sim/private/controls/perf/kill_atc");
 
     /*
      * Sound: default to 25% volume for all addons.
