@@ -247,6 +247,12 @@ typedef struct
         acf_info_context *info;
         int status_flying;
     } xfse;
+    struct
+    {
+        XPLMDataRef extern_view;
+        XPLMDataRef width_array;
+        XPLMDataRef drawinghack;
+    } mcdu;
 } refcon_ground;
 
 typedef struct
@@ -1237,7 +1243,7 @@ int nvp_chandlers_reset(void *inContext)
     ctx->mcdu.rc.tbm9.flc_t = NULL;
 #endif
 
-    /* Unregister key sniffer for AirbusFBW */
+    /* Unregister key sniffer and MCDU drawing hack for AirbusFBW */
     if (ctx->a319kc.kc_is_registered)
     {
         if (XPLMUnregisterKeySniffer(&tol_keysniffer, 1/*inBeforeWindows*/, &ctx->a319kc) == 1)
@@ -1260,6 +1266,9 @@ int nvp_chandlers_reset(void *inContext)
             ndt_log("navP [warning]: failed to de-register key sniffer for AirbusFBW\n");
         }
     }
+    ctx->ground.mcdu.extern_view = NULL;
+    ctx->ground.mcdu.width_array = NULL;
+    ctx->ground.mcdu.drawinghack = NULL;
 
     /* Reset aircraft properties (type, engine count, retractable gear, etc.) */
     ctx->gear.assert = ctx->ground.assert = ctx->throt.rev.assert = NULL;
@@ -5969,6 +5978,7 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                 case 1017: // chase
                 case 1018: // circle
                 case 1023: // 2D w/HUD
+                case 1024: // 2D w/none
                 case 1026: // 3D cockpit
                 case 1031: // ride-along
                     if ((grndp->elapsed_fr_reset += inElapsedSinceLastCall) > grndp->curr_period_durr)
@@ -6056,6 +6066,47 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                     }
                     grndp->elapsed_fr_reset = 0.0f;
                     break;
+            }
+        }
+
+        /*
+         * Enable sim/private/controls/panel/always_render selectively when an MCDU may be showing in forward with HUD (or nothing) views
+         */
+        if (grndp->mcdu.drawinghack)
+        {
+            if (1 != XPLMGetDatai(grndp->mcdu.extern_view))
+            {
+                switch (XPLMGetDatai(grndp->time.view_type))
+                {
+                    case 1023: // 2D w/HUD
+                    case 1024: // 2D w/none
+                        if (grndp->mcdu.width_array)
+                        {
+                            int mcdu_width_array[9], at_least_one_display_is_popped_up = 0;
+                            XPLMGetDatavi(grndp->mcdu.width_array, mcdu_width_array, 0, 9);
+                            for (int i = 0; i < 9; i++)
+                            {
+                                if (mcdu_width_array[i] > 0)
+                                {
+                                    at_least_one_display_is_popped_up = 1;
+                                    break;
+                                }
+                                continue;
+                            }
+                            XPLMSetDatai(grndp->mcdu.drawinghack, at_least_one_display_is_popped_up);
+                            break;
+                        }
+                        XPLMSetDatai(grndp->mcdu.drawinghack, 1);
+                        break;
+
+                    default:
+                        XPLMSetDatai(grndp->mcdu.drawinghack, 0);
+                        break;
+                }
+            }
+            else
+            {
+                XPLMSetDatai(grndp->mcdu.drawinghack, 0);
             }
         }
 #endif//TIM_ONLY
@@ -6570,8 +6621,18 @@ static int first_fcall_do(chandler_context *ctx)
                     ndt_log("navP [warning]: failed to register key sniffer for AirbusFBW\n");
                     break;
                 }
-                ndt_log("navP [info]: AirbusFBW key sniffer registered\n");
-                break;
+                else
+                {
+                    ndt_log("navP [info]: AirbusFBW key sniffer registered\n");
+                }
+#if TIM_ONLY
+                if ((ctx->ground.mcdu.drawinghack = XPLMFindDataRef("sim/private/controls/panel/always_render")))
+                {
+                    ndt_log("navP [info]: AirbusFBW always_render hack enabled\n");
+                    ctx->ground.mcdu.width_array = ctx->a319kc.datar[0];
+                    ctx->ground.mcdu.extern_view = ctx->a319kc.datar[4];
+                }
+#endif
             }
             nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             break;
@@ -6756,6 +6817,14 @@ static int first_fcall_do(chandler_context *ctx)
                 ndt_log("navP [warning]: failed to register key sniffer for AirbusFBW\n");
                 break;
             }
+#if TIM_ONLY
+            if ((ctx->ground.mcdu.drawinghack = XPLMFindDataRef("sim/private/controls/panel/always_render")))
+            {
+                ndt_log("navP [info]: AirbusFBW always_render hack enabled\n");
+                ctx->ground.mcdu.extern_view = ctx->a350kc.datar[0];
+                ctx->ground.mcdu.width_array = NULL;
+            }
+#endif
             nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             ndt_log("navP [info]: AirbusFBW key sniffer registered\n");
             break;
