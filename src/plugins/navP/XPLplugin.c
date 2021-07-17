@@ -148,6 +148,10 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFromWho,
 #if TIM_ONLY
         if (firstmessage == 1)
         {
+            if (XPLMFindDataRef("sim/private/controls/perf/kill_atc"))
+            {
+                XPLMSetDataf(XPLMFindDataRef("sim/private/controls/perf/kill_atc"), 1.0f);
+            }
             if (XPLMFindDataRef("sim/version/xplane_internal_version")) // lazy XP11+ detection
             {
                 XPLMDataRef watr = XPLMFindDataRef("sim/private/controls/reno/draw_fft_water");
