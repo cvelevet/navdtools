@@ -6082,31 +6082,31 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
                     case 1024: // 2D w/none
                         if (grndp->mcdu.width_array)
                         {
-                            int mcdu_width_array[9], at_least_one_display_is_popped_up = 0;
+                            int mcdu_width_array[9]; float at_least_1_popup_showing = 0.0f;
                             XPLMGetDatavi(grndp->mcdu.width_array, mcdu_width_array, 0, 9);
                             for (int i = 0; i < 9; i++)
                             {
                                 if (mcdu_width_array[i] > 0)
                                 {
-                                    at_least_one_display_is_popped_up = 1;
+                                    at_least_1_popup_showing = 1.0f;
                                     break;
                                 }
                                 continue;
                             }
-                            XPLMSetDatai(grndp->mcdu.drawinghack, at_least_one_display_is_popped_up);
+                            XPLMSetDataf(grndp->mcdu.drawinghack, at_least_1_popup_showing);
                             break;
                         }
-                        XPLMSetDatai(grndp->mcdu.drawinghack, 1);
+                        XPLMSetDataf(grndp->mcdu.drawinghack, 1.0f);
                         break;
 
                     default:
-                        XPLMSetDatai(grndp->mcdu.drawinghack, 0);
+                        XPLMSetDataf(grndp->mcdu.drawinghack, 0.0f);
                         break;
                 }
             }
             else
             {
-                XPLMSetDatai(grndp->mcdu.drawinghack, 0);
+                XPLMSetDataf(grndp->mcdu.drawinghack, 0.0f);
             }
         }
 #endif//TIM_ONLY
