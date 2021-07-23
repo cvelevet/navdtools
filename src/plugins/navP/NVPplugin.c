@@ -54,6 +54,7 @@ int nvp_plugin_start(char *outName,
     /* Initialize command handling context */
     if ((chandler_context = nvp_chandlers_init()) == NULL)
     {
+        XPLMDebugString("navP [error]: nvp_chandlers_init() failed\n");
         return 0;
     }
 
@@ -76,7 +77,8 @@ int nvp_plugin_enable(void)
     /* navP features a menu :-) */
     if ((navpmenu_context = nvp_menu_init()) == NULL)
     {
-        return 0; // menu creation failed :(
+        XPLMDebugString("navP [error]: nvp_menu_init() failed\n");
+        return 0;
     }
     nvp_menu_reset                        (navpmenu_context);
     nvp_chandlers_setmnu(chandler_context, navpmenu_context);
