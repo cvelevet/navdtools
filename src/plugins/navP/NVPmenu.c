@@ -93,7 +93,6 @@ typedef struct
         MENUITEM_XFLTS1_NABLE,
         MENUITEM_XFLTS1_DSBLE,
         MENUITEM_RESET_ALLSYS,
-        MENUITEM_CALLOUTS_STS,
         MENUITEM_SPEEDBOOSTER,
         MENUITEM_CLOUD_KILLER,
         MENUITEM_REFUEL_DIALG,
@@ -164,13 +163,6 @@ typedef struct
 
     struct
     {
-        struct
-        {
-            XPLMDataRef park_brake;
-            XPLMDataRef speedbrake;
-            XPLMDataRef flap_lever;
-        } callouts_sts;
-
         struct
         {
             acf_info_context *ic;
@@ -605,22 +597,8 @@ void* nvp_menu_init(void)
     {
         goto fail;
     }
-
-    /* toggle: callouts on/off */
-    if (get_dataref(&ctx->data.callouts_sts.speedbrake, "navP/callouts/speedbrake") ||
-        get_dataref(&ctx->data.callouts_sts.flap_lever, "navP/callouts/flap_lever"))
-    {
-        // Note: XPLMSetDatai doesn't work from XPluginEnable() either, so the
-        // default dataref/checkbox values can't be set here (no else clause).
-        goto fail;
-    }
     else
     {
-        if (append_menu_item("navP custom callouts", &ctx->items.callouts_sts,
-                             MENUITEM_CALLOUTS_STS,   ctx->id))
-        {
-            goto fail;
-        }
         XPLMAppendMenuSeparator(ctx->id);
     }
 
@@ -824,13 +802,6 @@ int nvp_menu_setup(void *_menu_context)
         XPLMCheckMenuItem(ctx->id, ctx->items.cloud_killer.id, xplm_Menu_NoCheck);
 //      XPLMCheckMenuItem(ctx->id, ctx->items.speedbooster.id, xplm_Menu_NoCheck);
         ndt_log          (   "navP [info]: clouds on, Tachyon Enhancement off\n");
-
-        /* custom brake brake and speedbrake callouts */
-        XPLMCheckMenuItem(ctx->id, ctx->items.callouts_sts.id, xplm_Menu_Checked);
-        XPLMSetDatai     (         ctx->data.callouts_sts.park_brake,         -1);
-        XPLMSetDatai     (         ctx->data.callouts_sts.speedbrake,         -1);
-        XPLMSetDatai     (         ctx->data.callouts_sts.flap_lever,         -1);
-        ndt_log          (         "navP [info]: custom callouts to automatic\n");
 
         /*
          * Create and place the payload & fuel dialog's window and contents.
@@ -1190,27 +1161,6 @@ static void menu_handler(void *inMenuRef, void *inItemRef)
         }
         XPLMCommandOnce(ctx->data.reset.all_sys_op);
         XPLMSpeakString("default failures fixed");
-        return;
-    }
-
-    if (itx->mivalue == MENUITEM_CALLOUTS_STS)
-    {
-        XPLMMenuCheck state = xplm_Menu_Checked;
-        XPLMCheckMenuItemState(ctx->id, itx->id, &state);
-        if (state == xplm_Menu_Checked)
-        {
-            XPLMCheckMenuItem(ctx->id, itx->id,  xplm_Menu_NoCheck);
-            XPLMSetDatai     (ctx->data.callouts_sts.park_brake, 0);
-            XPLMSetDatai     (ctx->data.callouts_sts.speedbrake, 0);
-            XPLMSetDatai     (ctx->data.callouts_sts.flap_lever, 0);
-            ndt_log    ("navP [info]: disabling custom callouts\n");
-            return;
-        }
-        XPLMCheckMenuItem(ctx->id, itx->id,  xplm_Menu_Checked);
-        XPLMSetDatai     (ctx->data.callouts_sts.park_brake, 1);
-        XPLMSetDatai     (ctx->data.callouts_sts.speedbrake, 1);
-        XPLMSetDatai     (ctx->data.callouts_sts.flap_lever, 1);
-        ndt_log     ("navP [info]: enabling custom callouts\n");
         return;
     }
 
