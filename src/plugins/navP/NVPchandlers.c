@@ -341,19 +341,8 @@ typedef struct
     {
         int         var_speedbrake;
         XPLMDataRef ref_speedbrake;
-        int         var_flap_lever;
-        XPLMDataRef ref_flap_lever;
         int         var_gear_lever;
         XPLMDataRef ref_gear_lever;
-
-        // named, plane-specific (hardcoded) flap callouts
-        chandler_callback cb_flapu;
-        chandler_callback cb_flapd;
-        XPLMDataRef ref_flap_ratio;
-        XPLMDataRef ref_flaps_e55p;
-        XPLMFlightLoop_f flc_flapd;
-        XPLMFlightLoop_f flc_flaps;
-        XPLMFlightLoop_f flc_flapu;
     } callouts;
 
     struct
@@ -518,52 +507,7 @@ typedef struct
 
 /* Callout default values */
 #define CALLOUT_SPEEDBRAK (-1)
-#define CALLOUT_FLAPLEVER (-1)
 #define CALLOUT_GEARLEVER (-1)
-
-/* Flap lever position name constants */
-static       char  _flap_callout_st[11];
-static const char* _flap_names_1530[10] = {    "up",    "15",    "30",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_1545[10] = {    "up",    "15",    "45",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_1735[10] = {    "up",    "17",    "35",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_2POS[10] = {    "up",  "half",  "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_1230[10] = {    "up",    "10",    "20",   "30",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_CSNA[10] = {    "up",    "10",    "20", "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_FA78[10] = {    "up",     "1",     "2",    "3",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_HA4T[10] = {    "up",    "12",    "20",   "35",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_NO18[10] = {    "up",     "9",    "22",   "45",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_PC12[10] = {    "up",    "15",    "30",   "40",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_PIPR[10] = {    "up",    "10",    "25",   "40",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_TBM8[10] = { "8 5 0",   "up",  "half",  "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_3POS[10] = {    "up",     "1",     "2", "full",   NULL,   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_EMB1[10] = {    "up",     "9",    "18",   "22",   "45",   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_4POS[10] = {    "up",     "1",     "2",    "3", "full",   NULL,   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_B52G[10] = {    "up",    "10",    "20",   "30",   "40",   "55",   NULL,   NULL,   NULL,   NULL, };
-static const char* _flap_names_BOE1[10] = {    "up",     "1",     "5",   "15",   "20",   "25",   "30",   NULL,   NULL,   NULL, };
-static const char* _flap_names_DC10[10] = {    "up",     "5",    "15",   "25",   "30",   "35",   "40",   NULL,   NULL,   NULL, };
-static const char* _flap_names_EMB2[10] = {    "up",     "1",     "2",    "3",    "4",    "5", "full",   NULL,   NULL,   NULL, };
-static const char* _flap_names_MD80[10] = {    "up",     "0",     "5",   "11",   "15",   "28",   "40",   NULL,   NULL,   NULL, };
-static const char* _flap_names_C130[10] = {    "up",     "1",     "2",    "3",    "4",    "5",    "6", "full",   NULL,   NULL, };
-static const char* _flap_names_BOE2[10] = {    "up",     "1",     "2",    "5",   "10",   "15",   "25",   "30",   "40",   NULL, };
-static       void   flap_callout_setst(const char *names[], int index)
-{
-    if (index < 0) index = 0; else if (index > 9) index = 9;
-    if (names[index])
-    {
-        snprintf(_flap_callout_st, sizeof(_flap_callout_st), "Flaps %s", names[index]);
-    }
-    else
-    {
-        snprintf(_flap_callout_st, sizeof(_flap_callout_st), "%s", "");
-    }
-}
-static void flap_callout_speak(void)
-{
-    if (strnlen(_flap_callout_st, 1))
-    {
-        XPLMSpeakString(_flap_callout_st);
-    }
-}
 
 /* Quicklook view index and accessors */
 static int         _var_ql_idx = 0; // default view minus 1
@@ -640,7 +584,6 @@ static int chandler_thruu(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_sview(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_qlprv(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_ffap1(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_32apc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -652,8 +595,6 @@ static int chandler_apbef(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_apaft(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_p2vvi(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static float flc_flap_cmmd (                                        float, float, int, void*);
-static float flc_flap_func (                                        float, float, int, void*);
 static float flc_oatc_func (                                        float, float, int, void*);
 static float gnd_stab_hdlr (                                        float, float, int, void*);
 static float fuel_t_w_hdlr (                                        float, float, int, void*);
@@ -700,17 +641,6 @@ void* nvp_chandlers_init(void)
                                                             NULL, NULL,
                                                             &ctx->callouts.var_speedbrake,
                                                             &ctx->callouts.var_speedbrake);
-    ctx->callouts.var_flap_lever = CALLOUT_FLAPLEVER;
-    ctx->callouts.ref_flap_lever = XPLMRegisterDataAccessor("navP/callouts/flap_lever",
-                                                            xplmType_Int, 1,
-                                                            &priv_getdata_i, &priv_setdata_i,
-                                                            NULL, NULL,
-                                                            NULL, NULL,
-                                                            NULL, NULL,
-                                                            NULL, NULL,
-                                                            NULL, NULL,
-                                                            &ctx->callouts.var_flap_lever,
-                                                            &ctx->callouts.var_flap_lever);
     ctx->callouts.var_gear_lever = CALLOUT_GEARLEVER;
     ctx->callouts.ref_gear_lever = XPLMRegisterDataAccessor("navP/callouts/gear_lever",
                                                             xplmType_Int, 1,
@@ -723,7 +653,6 @@ void* nvp_chandlers_init(void)
                                                             &ctx->callouts.var_gear_lever,
                                                             &ctx->callouts.var_gear_lever);
     if (!ctx->callouts.ref_speedbrake ||
-        !ctx->callouts.ref_flap_lever ||
         !ctx->callouts.ref_gear_lever)
     {
         ndt_log("navP [error]: nvp_chandlers_init: could not create dataref\n");
@@ -976,26 +905,6 @@ void* nvp_chandlers_init(void)
         REGISTER_CHANDLER(ctx->otto.disc.cb, chandler_swtch, 0, &ctx->otto.disc.cc);
     }
 
-    /* Default commands' handlers: flaps up or down */
-    ctx->callouts.cb_flapu.command = XPLMFindCommand("sim/flight_controls/flaps_up");
-    ctx->callouts.cb_flapd.command = XPLMFindCommand("sim/flight_controls/flaps_down");
-    ctx->callouts.ref_flap_ratio   = XPLMFindDataRef("sim/cockpit2/controls/flap_ratio");
-    if (!ctx->callouts.cb_flapu.command ||
-        !ctx->callouts.cb_flapd.command ||
-        !ctx->callouts.ref_flap_ratio)
-    {
-        ndt_log("navP [error]: nvp_chandlers_init: command or dataref not found\n");
-        goto fail;
-    }
-    else
-    {
-        REGISTER_CHANDLER(ctx->callouts.cb_flapu, chandler_flchg, 0, ctx);
-        REGISTER_CHANDLER(ctx->callouts.cb_flapd, chandler_flchg, 0, ctx);
-    }
-    XPLMRegisterFlightLoopCallback((ctx->callouts.flc_flaps = &flc_flap_func), 0, NULL);
-    XPLMRegisterFlightLoopCallback((ctx->callouts.flc_flapd = &flc_flap_cmmd), 0, ctx->callouts.cb_flapd.command);
-    XPLMRegisterFlightLoopCallback((ctx->callouts.flc_flapu = &flc_flap_cmmd), 0, ctx->callouts.cb_flapu.command);
-
     /* Default commands' handlers: gear up, down, toggle */
     ctx->gear.acf_gear_retract            = XPLMFindDataRef("sim/aircraft/gear/acf_gear_retract"     );
     ctx->gear.gear_handle_down            = XPLMFindDataRef("sim/cockpit2/controls/gear_handle_down" );
@@ -1178,8 +1087,6 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->gear.landing_gear_toggle);
     UNREGSTR_CHANDLER(ctx->gear.  landing_gear_down);
     UNREGSTR_CHANDLER(ctx->gear.    landing_gear_up);
-    UNREGSTR_CHANDLER(ctx->callouts.       cb_flapu);
-    UNREGSTR_CHANDLER(ctx->callouts.       cb_flapd);
     UNREGSTR_CHANDLER(ctx->apd.                 aft);
     UNREGSTR_CHANDLER(ctx->apd.                 bef);
     UNREGSTR_CHANDLER(ctx->vvi.                  dn);
@@ -1201,11 +1108,6 @@ int nvp_chandlers_close(void **_chandler_context)
         XPLMUnregisterDataAccessor(ctx->callouts.ref_speedbrake);
         ctx->callouts.ref_speedbrake = NULL;
     }
-    if (ctx->callouts.ref_flap_lever)
-    {
-        XPLMUnregisterDataAccessor(ctx->callouts.ref_flap_lever);
-        ctx->callouts.ref_flap_lever = NULL;
-    }
     if (ctx->callouts.ref_gear_lever)
     {
         XPLMUnregisterDataAccessor(ctx->callouts.ref_gear_lever);
@@ -1218,7 +1120,6 @@ int nvp_chandlers_close(void **_chandler_context)
     }
 
     /* …and all callbacks */
-    if (ctx->callouts.flc_flaps) XPLMUnregisterFlightLoopCallback(ctx->callouts.flc_flaps,   NULL);
     if (ctx->ground.flc_g)       XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
 
     /* all good */
@@ -1290,7 +1191,6 @@ int nvp_chandlers_reset(void *inContext)
     ctx->throt.rev.          propup = NULL;
     ctx->throt.            tbm9erng = NULL;
     ctx->throt.            throttle = NULL;
-    ctx->callouts.   ref_flaps_e55p = NULL;
     ctx->spbrk.                e55p = NULL;
     ctx->spbrk.                ha4t = NULL;
     ctx->spbrk.                leg2 = NULL;
@@ -1668,7 +1568,6 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.clmb.rc.ptrimto = NULL; // automatic
             ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
             ctx->otto.disc.cc.name = "sim/autopilot/servos_yawd_off_any";
-            ctx->callouts.ref_flaps_e55p = XPLMFindDataRef("aerobask/anim/sw_flap");
             ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
@@ -2419,10 +2318,6 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             if (XPLMGetDatai(ctx->callouts.ref_speedbrake) == -1)
             {
                 XPLMSetDatai(ctx->callouts.ref_speedbrake,     1);
-            }
-            if (XPLMGetDatai(ctx->callouts.ref_flap_lever) == -1)
-            {
-                XPLMSetDatai(ctx->callouts.ref_flap_lever,     1);
             }
             if (XPLMGetDatai(ctx->callouts.ref_gear_lever) == -1)
             {
@@ -4318,392 +4213,6 @@ static int chandler_qlnxt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 0;
 }
 
-static int chandler_flchg(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
-{
-    if (inPhase == xplm_CommandBegin && ((chandler_context*)inRefcon)->info->ac_type == ACF_TYP_TBM9_HS)
-    {
-        if (XPLMGetDatai(((chandler_context*)inRefcon)->callouts.ref_flap_lever) <= 0)
-        {
-            return 1;
-        }
-        int index = lroundf(2.0f * XPLMGetDataf(((chandler_context*)inRefcon)->callouts.ref_flap_ratio));
-        if (inCommand == ((chandler_context*)inRefcon)->callouts.cb_flapd.command)
-        {
-            if ((index += 1) > 2)
-            {
-                (index = 2);
-            }
-        }
-        if (inCommand == ((chandler_context*)inRefcon)->callouts.cb_flapu.command)
-        {
-            if ((index -= 1) < 0)
-            {
-                (index = 0);
-            }
-        }
-        flap_callout_setst(_flap_names_2POS, lroundf(2.0f * XPLMGetDataf(((chandler_context*)inRefcon)->callouts.ref_flap_ratio)));
-        XPLMSetFlightLoopCallbackInterval(((chandler_context*)inRefcon)->callouts.flc_flaps, 1.5f, 1, NULL);
-        return 1;
-    }
-    if (inPhase == xplm_CommandBegin && ((chandler_context*)inRefcon)->info->ac_type == ACF_TYP_E55P_AB)
-    {
-        if (((chandler_context*)inRefcon)->callouts.ref_flaps_e55p)
-        {
-            int index = lroundf(4.0f * XPLMGetDataf(((chandler_context*)inRefcon)->callouts.ref_flaps_e55p));
-            if (inCommand == ((chandler_context*)inRefcon)->callouts.cb_flapd.command)
-            {
-                if ((index += 1) > 4)
-                {
-                    (index = 4);
-                }
-                if (XPLMGetDatai(((chandler_context*)inRefcon)->ground.ongrnd_any) < 1)
-                {
-                    switch (index)
-                    {
-                        case 2:
-                            XPLMSetFlightLoopCallbackInterval(((chandler_context*)inRefcon)->callouts.flc_flapd, 0.75f, 1, ((chandler_context*)inRefcon)->callouts.cb_flapd.command);
-                            return 1;
-                        case 3:
-                            XPLMSetFlightLoopCallbackInterval(((chandler_context*)inRefcon)->callouts.flc_flaps, 0.75f, 1, NULL);
-                            flap_callout_setst(_flap_names_4POS, index);
-                            return 1;
-                        default:
-                            break;
-                    }
-                }
-            }
-            if (inCommand == ((chandler_context*)inRefcon)->callouts.cb_flapu.command)
-            {
-                if ((index -= 1) < 0)
-                {
-                    (index = 0);
-                }
-                if (XPLMGetDatai(((chandler_context*)inRefcon)->ground.ongrnd_any) < 1)
-                {
-                    switch (index)
-                    {
-                        case 2:
-                            XPLMSetFlightLoopCallbackInterval(((chandler_context*)inRefcon)->callouts.flc_flapu, 0.75f, 1, ((chandler_context*)inRefcon)->callouts.cb_flapu.command);
-                            return 1;
-                        case 1:
-                            XPLMSetFlightLoopCallbackInterval(((chandler_context*)inRefcon)->callouts.flc_flaps, 0.75f, 1, NULL);
-                            flap_callout_setst(_flap_names_4POS, index);
-                            return 1;
-                        default:
-                            break;
-                    }
-                }
-            }
-            XPLMSetFlightLoopCallbackInterval(((chandler_context*)inRefcon)->callouts.flc_flaps, 1.5f, 1, NULL);
-            flap_callout_setst(_flap_names_4POS, index);
-            return 1;
-        }
-        return 1;
-    }
-    if (inPhase == xplm_CommandEnd)
-    {
-        chandler_context *ctx = inRefcon;
-        if (XPLMGetDatai(ctx->callouts.ref_flap_lever) <= 0)
-        {
-            return 1;
-        }
-        switch (ctx->info->ac_type)
-        {
-            case ACF_TYP_A319_TL:
-            case ACF_TYP_A321_TL:
-            case ACF_TYP_A350_FF:
-            case ACF_TYP_A320_FF:
-                flap_callout_setst(_flap_names_4POS, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                break;
-            case ACF_TYP_B737_EA:
-            case ACF_TYP_B737_XG:
-                flap_callout_setst(_flap_names_BOE2, lroundf(8.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                break;
-            case ACF_TYP_B757_FF:
-            case ACF_TYP_B767_FF:
-            case ACF_TYP_B777_FF:
-                flap_callout_setst(_flap_names_BOE1, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                break;
-            case ACF_TYP_CL30_DD:
-                flap_callout_setst(_flap_names_1230, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                break;
-            case ACF_TYP_EMBE_SS:
-            case ACF_TYP_EMBE_XC:
-                flap_callout_setst(_flap_names_EMB2, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                break;
-            case ACF_TYP_LEGA_XC:
-                if (ctx->info->flap_detents == 3) // X-Crafts disables position 18 in their ERJ/Legacy
-                {
-                    flap_callout_setst(_flap_names_NO18, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                flap_callout_setst(_flap_names_EMB1, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                break;
-            case ACF_TYP_MD80_RO:
-            {
-                int index = lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio));
-                // there is a delay in the dataref's value (caused by the animation??)
-                if (inCommand == ctx->callouts.cb_flapd.command)
-                {
-                    if (++index == 2) // lever always skips 0.333 (index 2)
-                    {
-                        index++;
-                    }
-                    if (index > 6)
-                    {
-                        index = 6;
-                    }
-                }
-                if (inCommand == ctx->callouts.cb_flapu.command)
-                {
-                    if (--index == 2) // lever always skips 0.333 (index 2)
-                    {
-                        index--;
-                    }
-                    if (index < 0)
-                    {
-                        index = 0;
-                    }
-                }
-                flap_callout_setst(_flap_names_MD80, index);
-                break;
-            }
-            case ACF_TYP_E55P_AB:
-            case ACF_TYP_TBM9_HS:
-                return 1; // handled on command begin, see above
-            default:
-                if (!strcasecmp(ctx->info->icaoid, "A10") ||
-                    !strcasecmp(ctx->info->icaoid, "PIPA"))
-                {
-                    flap_callout_setst(_flap_names_1530, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "A19N") ||
-                    !strcasecmp(ctx->info->icaoid, "A20N") ||
-                    !strcasecmp(ctx->info->icaoid, "A21N") ||
-                    !strcasecmp(ctx->info->icaoid, "A318") ||
-                    !strcasecmp(ctx->info->icaoid, "A319") ||
-                    !strcasecmp(ctx->info->icaoid, "A320") ||
-                    !strcasecmp(ctx->info->icaoid, "A321") ||
-                    !strcasecmp(ctx->info->icaoid, "A330") ||
-                    !strcasecmp(ctx->info->icaoid, "A332") ||
-                    !strcasecmp(ctx->info->icaoid, "A333") ||
-                    !strcasecmp(ctx->info->icaoid, "A337") ||
-                    !strcasecmp(ctx->info->icaoid, "A338") ||
-                    !strcasecmp(ctx->info->icaoid, "A339") ||
-                    !strcasecmp(ctx->info->icaoid, "A340") ||
-                    !strcasecmp(ctx->info->icaoid, "A342") ||
-                    !strcasecmp(ctx->info->icaoid, "A343") ||
-                    !strcasecmp(ctx->info->icaoid, "A345") ||
-                    !strcasecmp(ctx->info->icaoid, "A346") ||
-                    !strcasecmp(ctx->info->icaoid, "A350") ||
-                    !strcasecmp(ctx->info->icaoid, "A359") ||
-                    !strcasecmp(ctx->info->icaoid, "A35K") ||
-                    !strcasecmp(ctx->info->icaoid, "A380") ||
-                    !strcasecmp(ctx->info->icaoid, "A388") ||
-                    !strcasecmp(ctx->info->icaoid, "E50P") ||
-                    !strcasecmp(ctx->info->icaoid, "E55P"))
-                {
-                    flap_callout_setst(_flap_names_4POS, lroundf(8.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "AKOY") ||
-                    !strcasecmp(ctx->info->icaoid, "BE20") ||
-                    !strcasecmp(ctx->info->icaoid, "BE33") ||
-                    !strcasecmp(ctx->info->icaoid, "BE35") ||
-                    !strcasecmp(ctx->info->icaoid, "BE36") ||
-                    !strcasecmp(ctx->info->icaoid, "BE58") ||
-                    !strcasecmp(ctx->info->icaoid, "BE9L") ||
-                    !strcasecmp(ctx->info->icaoid, "C404") ||
-                    !strcasecmp(ctx->info->icaoid, "COL4") ||
-                    !strcasecmp(ctx->info->icaoid, "DA40") ||
-                    !strcasecmp(ctx->info->icaoid, "DA42") ||
-                    !strcasecmp(ctx->info->icaoid, "DA62") ||
-                    !strcasecmp(ctx->info->icaoid, "EA50") ||
-                    !strcasecmp(ctx->info->icaoid, "EPIC") ||
-                    !strcasecmp(ctx->info->icaoid, "EVIC") ||
-                    !strcasecmp(ctx->info->icaoid, "P180") ||
-                    !strcasecmp(ctx->info->icaoid, "SF50") ||
-                    !strcasecmp(ctx->info->icaoid, "TBM9"))
-                {
-                    flap_callout_setst(_flap_names_2POS, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "B190"))
-                {
-                    flap_callout_setst(_flap_names_1735, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "B37M") ||
-                    !strcasecmp(ctx->info->icaoid, "B38M") ||
-                    !strcasecmp(ctx->info->icaoid, "B39M") ||
-                    !strcasecmp(ctx->info->icaoid, "B3XM") ||
-                    !strcasecmp(ctx->info->icaoid, "B732") ||
-                    !strcasecmp(ctx->info->icaoid, "B733") ||
-                    !strcasecmp(ctx->info->icaoid, "B734") ||
-                    !strcasecmp(ctx->info->icaoid, "B735") ||
-                    !strcasecmp(ctx->info->icaoid, "B736") ||
-                    !strcasecmp(ctx->info->icaoid, "B737") ||
-                    !strcasecmp(ctx->info->icaoid, "B738") ||
-                    !strcasecmp(ctx->info->icaoid, "B739") ||
-                    !strcasecmp(ctx->info->icaoid, "E737") ||
-                    !strcasecmp(ctx->info->icaoid, "P8"))
-                {
-                    flap_callout_setst(_flap_names_BOE2, lroundf(8.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "B52"))
-                {
-                    flap_callout_setst(_flap_names_B52G, lroundf(5.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "B74D") ||
-                    !strcasecmp(ctx->info->icaoid, "B74F") ||
-                    !strcasecmp(ctx->info->icaoid, "B74R") ||
-                    !strcasecmp(ctx->info->icaoid, "B74S") ||
-                    !strcasecmp(ctx->info->icaoid, "B741") ||
-                    !strcasecmp(ctx->info->icaoid, "B742") ||
-                    !strcasecmp(ctx->info->icaoid, "B743") ||
-                    !strcasecmp(ctx->info->icaoid, "B744") ||
-                    !strcasecmp(ctx->info->icaoid, "B747") ||
-                    !strcasecmp(ctx->info->icaoid, "B748") ||
-                    !strcasecmp(ctx->info->icaoid, "B752") ||
-                    !strcasecmp(ctx->info->icaoid, "B753") ||
-                    !strcasecmp(ctx->info->icaoid, "B757") ||
-                    !strcasecmp(ctx->info->icaoid, "B762") ||
-                    !strcasecmp(ctx->info->icaoid, "B763") ||
-                    !strcasecmp(ctx->info->icaoid, "B764") ||
-                    !strcasecmp(ctx->info->icaoid, "B767") ||
-                    !strcasecmp(ctx->info->icaoid, "B77F") ||
-                    !strcasecmp(ctx->info->icaoid, "B77L") ||
-                    !strcasecmp(ctx->info->icaoid, "B77W") ||
-                    !strcasecmp(ctx->info->icaoid, "B772") ||
-                    !strcasecmp(ctx->info->icaoid, "B773") ||
-                    !strcasecmp(ctx->info->icaoid, "B777") ||
-                    !strcasecmp(ctx->info->icaoid, "B778") ||
-                    !strcasecmp(ctx->info->icaoid, "B779") ||
-                    !strcasecmp(ctx->info->icaoid, "B787") ||
-                    !strcasecmp(ctx->info->icaoid, "B788") ||
-                    !strcasecmp(ctx->info->icaoid, "B789") ||
-                    !strcasecmp(ctx->info->icaoid, "B78X") ||
-                    !strcasecmp(ctx->info->icaoid, "BLCF") ||
-                    !strcasecmp(ctx->info->icaoid, "BSCA"))
-                {
-                    flap_callout_setst(_flap_names_BOE1, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "BD5J") ||
-                    !strcasecmp(ctx->info->icaoid, "CL30") ||
-                    !strcasecmp(ctx->info->icaoid, "CL35"))
-                {
-                    flap_callout_setst(_flap_names_1230, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "C130"))
-                {
-                    flap_callout_setst(_flap_names_C130, lroundf(7.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "C150") ||
-                    !strcasecmp(ctx->info->icaoid, "C152") ||
-                    !strcasecmp(ctx->info->icaoid, "C170") ||
-                    !strcasecmp(ctx->info->icaoid, "C172") ||
-                    !strcasecmp(ctx->info->icaoid, "C180") ||
-                    !strcasecmp(ctx->info->icaoid, "C182") ||
-                    !strcasecmp(ctx->info->icaoid, "C185") ||
-                    !strcasecmp(ctx->info->icaoid, "C206") ||
-                    !strcasecmp(ctx->info->icaoid, "C207") ||
-                    !strcasecmp(ctx->info->icaoid, "C208") ||
-                    !strcasecmp(ctx->info->icaoid, "C210") ||
-                    !strcasecmp(ctx->info->icaoid, "P210") ||
-                    !strcasecmp(ctx->info->icaoid, "T210") ||
-                    !strcasecmp(ctx->info->icaoid, "PA46"))
-                {
-                    flap_callout_setst(_flap_names_CSNA, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "C340"))
-                {
-                    flap_callout_setst(_flap_names_1545, lroundf(2.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "CRUZ"))
-                {
-                    flap_callout_setst(_flap_names_3POS, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "DC10"))
-                {
-                    flap_callout_setst(_flap_names_DC10, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "E135") ||
-                    !strcasecmp(ctx->info->icaoid, "E145") ||
-                    !strcasecmp(ctx->info->icaoid, "E35L") ||
-                    !strcasecmp(ctx->info->icaoid, "E45X"))
-                {
-                    flap_callout_setst(_flap_names_EMB1, lroundf(4.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "E170") ||
-                    !strcasecmp(ctx->info->icaoid, "E175") ||
-                    !strcasecmp(ctx->info->icaoid, "E190") ||
-                    !strcasecmp(ctx->info->icaoid, "E195") ||
-                    !strcasecmp(ctx->info->icaoid, "E275") ||
-                    !strcasecmp(ctx->info->icaoid, "E290") ||
-                    !strcasecmp(ctx->info->icaoid, "E295") ||
-                    !strcasecmp(ctx->info->icaoid, "E75L") ||
-                    !strcasecmp(ctx->info->icaoid, "E75S"))
-                {
-                    flap_callout_setst(_flap_names_EMB2, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "FA7X") ||
-                    !strcasecmp(ctx->info->icaoid, "FA8X"))
-                {
-                    flap_callout_setst(_flap_names_FA78, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "HA4T"))
-                {
-                    flap_callout_setst(_flap_names_HA4T, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "LEG2"))
-                {
-                    return 1; // continuous flap extension/retraction (callouts 1.5s after releasing would be somewhat pointless) :-(
-                }
-                if (!strcasecmp(ctx->info->icaoid, "MD80") ||
-                    !strcasecmp(ctx->info->icaoid, "MD82") ||
-                    !strcasecmp(ctx->info->icaoid, "MD83") ||
-                    !strcasecmp(ctx->info->icaoid, "MD88"))
-                {
-                    flap_callout_setst(_flap_names_MD80, lroundf(6.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "PA32") ||
-                    !strcasecmp(ctx->info->icaoid, "PA34"))
-                {
-                    flap_callout_setst(_flap_names_PIPR, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "PC12"))
-                {
-                    flap_callout_setst(_flap_names_PC12, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                if (!strcasecmp(ctx->info->icaoid, "TBM8"))
-                {
-                    flap_callout_setst(_flap_names_TBM8, lroundf(3.0f * XPLMGetDataf(ctx->callouts.ref_flap_ratio)));
-                    break;
-                }
-                return 1;
-        }
-        XPLMSetFlightLoopCallbackInterval(ctx->callouts.flc_flaps, 1.5f, 1, NULL);
-    }
-    return 1;
-}
-
 #if ((APL) && (CGFLOAT_IS_DOUBLE))
 static float tbm9mousehdlr(float inElapsedSinceLastCall,
                            float inElapsedTimeSinceLastFlightLoop,
@@ -5840,28 +5349,6 @@ static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
     }
     return 0; // suppress all default "contact ATC" functionality
-}
-
-static float flc_flap_cmmd(float inElapsedSinceLastCall,
-                           float inElapsedTimeSinceLastFlightLoop,
-                           int   inCounter,
-                           void *inRefcon)
-{
-    if (inRefcon)
-    {
-        XPLMCommandOnce(inRefcon);
-        return 0;
-    }
-    return 0;
-}
-
-static float flc_flap_func(float inElapsedSinceLastCall,
-                           float inElapsedTimeSinceLastFlightLoop,
-                           int   inCounter,
-                           void *inRefcon)
-{
-    flap_callout_speak();
-    return 0;
 }
 
 static float flc_oatc_func(float inElapsedSinceLastCall,
@@ -8140,7 +7627,6 @@ static void priv_setdata_f(void *inRefcon, float inValue)
 #undef REGISTER_CHANDLER
 #undef UNREGSTR_CHANDLER
 #undef CALLOUT_SPEEDBRAK
-#undef CALLOUT_FLAPLEVER
 #undef CALLOUT_GEARLEVER
 #undef AFTER_7X_PATH
 #undef A320T_CLMB
