@@ -62,7 +62,8 @@ int yfs_plugin_enable(void)
     /* initialize FMGS context and its menu */
     if ((navpyfms_context = yfs_main_init()) == NULL)
     {
-        return 0; // menu creation failed :(
+        XPLMDebugString("YFMS [error]: yfs_main_init() failed\n");
+        return 0;
     }
     yfs_menu_resetall(navpyfms_context);
 
