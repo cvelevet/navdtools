@@ -120,9 +120,6 @@ typedef struct
     chandler_callback md;
     XPLMDataRef mixratio;
 
-    chandler_callback rp;
-    XPLMDataRef rpmratio;
-
     chandler_callback dn;
     XPLMCommandRef thrdn;
 
@@ -574,7 +571,6 @@ static int chandler_r_rev(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_mixdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_mixdt(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_mixut(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int chandler_rpmdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -792,7 +788,6 @@ void* nvp_chandlers_init(void)
     }
 
     /* Custom commands and handlers: thrust control */
-    ctx->throt.  rpmratio = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/prop_rotation_speed_rad_sec_all");
     ctx->throt.  mixratio = XPLMFindDataRef  ("sim/cockpit2/engine/actuators/mixture_ratio_all");
     ctx->throt.dd.command = XPLMCreateCommand("navP/thrust/dn_cont", "throttle down + once");
     ctx->throt.dn.command = XPLMCreateCommand("navP/thrust/dn_once", "throttle down once");
@@ -800,27 +795,26 @@ void* nvp_chandlers_init(void)
     ctx->throt.up.command = XPLMCreateCommand("navP/thrust/up_once", "throttle up once");
     ctx->throt.ul.command = XPLMCreateCommand("navP/thrust/up_lots", "throttle up 12pc");
     ctx->throt.pt.command = XPLMCreateCommand("private/ptt/dn/once", "NOT TO BE USED");
-    ctx->throt.md.command = XPLMFindCommand  ("sim/engines/mixture_down");
-    ctx->throt.mu.command = XPLMFindCommand  ("sim/engines/mixture_up");
-    ctx->throt.rp.command = XPLMFindCommand  ("sim/engines/prop_down");
     ctx->throt.     thrdn = XPLMFindCommand  ("sim/engines/throttle_down");
+    ctx->throt.md.command = XPLMFindCommand  ("sim/engines/mixture_down");
     ctx->throt.     thrup = XPLMFindCommand  ("sim/engines/throttle_up");
-    if (!ctx->throt.dn.command || !ctx->throt.thrdn || !ctx->throt.md.command || !ctx->throt.mixratio ||
-        !ctx->throt.up.command || !ctx->throt.thrup || !ctx->throt.mu.command || !ctx->throt.rpmratio ||
-        !ctx->throt.rp.command || !ctx->throt.ul.command || !ctx->throt.pt.command || !ctx->throt.dd.command || !ctx->throt.uu.command)
+    ctx->throt.mu.command = XPLMFindCommand  ("sim/engines/mixture_up");
+    if (!ctx->throt.dd.command || !ctx->throt.dn.command || !ctx->throt.uu.command || !ctx->throt.up.command ||
+        !ctx->throt.ul.command || !ctx->throt.pt.command || !ctx->throt.md.command || !ctx->throt.mu.command ||
+        !ctx->throt.mixratio || !ctx->throt.thrdn || !ctx->throt.thrup)
     {
         ndt_log("navP [error]: nvp_chandlers_init: command not found or created\n");
         goto fail;
     }
     else
     {
+        REGISTER_CHANDLER(ctx->throt.dd, chandler_thrdd, 0, &ctx->throt);
         REGISTER_CHANDLER(ctx->throt.dn, chandler_thrdn, 0, &ctx->throt);
         REGISTER_CHANDLER(ctx->throt.up, chandler_thrup, 0, &ctx->throt);
+        REGISTER_CHANDLER(ctx->throt.uu, chandler_thruu, 0, &ctx->throt);
         REGISTER_CHANDLER(ctx->throt.ul, chandler_thrul, 0, &ctx->throt);
         REGISTER_CHANDLER(ctx->throt.pt, chandler_thptt, 0, &ctx->throt);
-        REGISTER_CHANDLER(ctx->throt.dd, chandler_thrdd, 0, &ctx->throt);
-        REGISTER_CHANDLER(ctx->throt.uu, chandler_thruu, 0, &ctx->throt);
-        ctx->throt.thptt = NULL; ctx->throt.atc_is_connected = 0;
+        ctx->throt.atc_is_connected = 0; ctx->throt.thptt = NULL;
         ctx->throt.thrdo = ctx->throt.dn.command;
         ctx->throt.thrul = ctx->throt.ul.command;
     }
@@ -1069,7 +1063,6 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->throt.rev.rev.cb);
     UNREGSTR_CHANDLER(ctx->throt.        md);
     UNREGSTR_CHANDLER(ctx->throt.        mu);
-    UNREGSTR_CHANDLER(ctx->throt.        rp);
     UNREGSTR_CHANDLER(ctx->throt.        dn);
     UNREGSTR_CHANDLER(ctx->throt.        up);
     UNREGSTR_CHANDLER(ctx->throt.        ul);
@@ -1237,7 +1230,6 @@ int nvp_chandlers_reset(void *inContext)
     UNREGSTR_CHANDLER(ctx->vvi.           pu);
     UNREGSTR_CHANDLER(ctx->throt.         md);
     UNREGSTR_CHANDLER(ctx->throt.         mu);
-    UNREGSTR_CHANDLER(ctx->throt.         rp);
 
     /* Re-enable Gizmo64 if present */
     XPLMPluginID g64 = XPLMFindPluginBySignature("gizmo.x-plugins.com");
@@ -3711,20 +3703,6 @@ static int chandler_mixut(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             return 0;
         }
         return 0;
-    }
-    return 0;
-}
-
-static int chandler_rpmdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
-{
-    if (inPhase == xplm_CommandEnd && inRefcon)
-    {
-        // maximum precision: 60rpm == (2 * Pi) ~= 6.283 < 7.0f
-        float rpm = 7.0f * roundf(XPLMGetDataf(inRefcon) / 7.0f);
-        if   (rpm > 6.0f)
-        {
-            XPLMSetDataf(inRefcon, rpm - 7.0f);
-        }
     }
     return 0;
 }
@@ -7490,7 +7468,6 @@ static int first_fcall_do(chandler_context *ctx)
             if (STRN_CASECMP_AUTO(ctx->info->icaoid, "DA62") != 0)
             {
                 REGISTER_CHANDLER(ctx->throt.md, chandler_mixdn, 1, ctx->throt.mixratio);
-                REGISTER_CHANDLER(ctx->throt.rp, chandler_rpmdn, 1, ctx->throt.rpmratio);
                 break;
             }
             break;
@@ -7500,10 +7477,6 @@ static int first_fcall_do(chandler_context *ctx)
         case 9: // turbine (XPL11)
             if (ctx->info->ac_type != ACF_TYP_TBM9_HS)
             {
-                if (STRN_CASECMP_AUTO(ctx->info->icaoid, "PC12") != 0)
-                {
-                    REGISTER_CHANDLER(ctx->throt.rp, chandler_rpmdn, 1, ctx->throt.rpmratio);
-                }
                 REGISTER_CHANDLER(ctx->throt.md, chandler_mixdt, 1, ctx->throt.mixratio);
                 REGISTER_CHANDLER(ctx->throt.mu, chandler_mixut, 1, ctx->throt.mixratio);
                 break;
