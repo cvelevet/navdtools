@@ -57,15 +57,45 @@ extern "C" {
 #define	ALIGN64(__var__)	ALIGN(__var__, 64)
 
 #if	defined(__GNUC__) || defined(__clang__)
+#define	DEPRECATED_FUNC(f)	f __attribute__((deprecated))
 #define	PRINTF_ATTR(x)		__attribute__((format(printf, x, x + 1)))
 #define	PRINTF_ATTR2(x,y)	__attribute__((format(printf, x, y)))
+#define	PRINTF_FORMAT(f)	f
+#define	SENTINEL_ATTR		__attribute__((sentinel))
+#define	HOT_ATTR		__attribute__((hot))
+#define	PURE_ATTR		__attribute__((pure))
 #ifndef	BSWAP32
 #define	BSWAP16(x)	__builtin_bswap16((x))
 #define	BSWAP32(x)	__builtin_bswap32((x))
 #define	BSWAP64(x)	__builtin_bswap64((x))
 #endif	/* BSWAP32 */
+
+#define	COND_LIKELY(x)		__builtin_expect(x, 1)
+#define	COND_UNLIKELY(x)	__builtin_expect(x, 0)
+
 #else	/* !__GNUC__ && !__clang__ */
+
 #define	PRINTF_ATTR(x)
+#define	PRINTF_ATTR2(x,y)
+#define	SENTINEL_ATTR
+#define	HOT_ATTR
+#define	PURE_ATTR
+
+#define	COND_LIKELY(x)		x
+#define	COND_UNLIKELY(x)	x
+
+#if	_MSC_VER >= 1400
+# define	DEPRECATED_FUNC(f)	__declspec(deprecated) f
+# include <sal.h>
+# if	_MSC_VER > 1400
+#  define	PRINTF_FORMAT(f)	_Printf_format_string_ f
+# else	/* _MSC_VER == 1400 */
+#  define	PRINTF_FORMAT(f)	__format_string f
+# endif /* FORMAT_STRING */
+#else	/* _MSC_VER < 1400 */
+# define	PRINTF_FORMAT(f)	f
+#endif	/* _MSC_VER */
+
 #ifndef	BSWAP32
 #define	BSWAP16(x)	\
 	((((x) & 0xff00u) >> 8) | \
@@ -129,7 +159,17 @@ extern "C" {
 
 /*
  * Compile-time assertion. The condition 'x' must be constant.
+ * TYPE_ASSERT is a compile-time assertion, but which checks that
+ * the type of `x' is `type'.
  */
+#if	__STDC_VERSION__ >= 201112L
+#define	CTASSERT(x) _Static_assert((x), #x)
+#define	TYPE_ASSERT(x, type) \
+	CTASSERT(_Generic((x), type: 1, default: 0) != 0)
+#define	NOT_TYPE_ASSERT(x, type) \
+	CTASSERT(_Generic((x), type: 0, default: 1) != 0)
+#else	/* __STDC_VERSION__ < 201112L */
+#define	TYPE_ASSERT(x, type)
 #if	defined(__GNUC__) || defined(__clang__)
 #define	CTASSERT(x)		_CTASSERT(x, __LINE__)
 #define	_CTASSERT(x, y)		__CTASSERT(x, y)
@@ -139,6 +179,7 @@ extern "C" {
 #else	/* !defined(__GNUC__) && !defined(__clang__) */
 #define	CTASSERT(x)
 #endif	/* !defined(__GNUC__) && !defined(__clang__) */
+#endif	/* __STDC_VERSION__ < 201112L */
 
 #if	defined(__GNUC__) || defined(__clang__)
 
@@ -166,11 +207,15 @@ highbit64(unsigned long long x)
 #error	"Compiler platform unsupported, please add highbit definition"
 #endif
 
-#if	!defined(MIN) && !defined(MAX) && !defined(AVG)
+#ifndef	MIN
 #define	MIN(x, y)	((x) < (y) ? (x) : (y))
+#endif
+#ifndef	MAX
 #define	MAX(x, y)	((x) > (y) ? (x) : (y))
-#define	AVG(x, y)	(((x) + (y)) / 2)
-#endif	/* MIN or MAX */
+#endif
+#ifndef	AVG
+#define	AVG(x, y)	(((x) + (y)) / 2.0)
+#endif
 /*
  * Provides a gradual method of integrating an old value until it approaches
  * a new target value. This is used in iterative processes by calling the
@@ -184,6 +229,7 @@ highbit64(unsigned long long x)
 	do { \
 		__typeof__(old_val) o = (old_val); \
 		__typeof__(new_val) n = (new_val); \
+		ASSERT(!isnan(o)); \
 		(old_val) += (n - o) * ((d_t) / (lag)); \
 		/* Prevent an overshoot */ \
 		if ((o < n && (old_val) > n) || \
@@ -217,6 +263,8 @@ highbit64(unsigned long long x)
 		double o = (old_val); \
 		double t = (tgt); \
 		double s; \
+		if (isnan(o)) \
+			o = t; \
 		if (o < t) \
 			s = (d_t) * (step); \
 		else \
@@ -226,6 +274,9 @@ highbit64(unsigned long long x)
 		else \
 			(old_val) += s; \
 	} while (0)
+
+#define	SCANF_STR_AUTOLEN_IMPL(_str_)	#_str_
+#define	SCANF_STR_AUTOLEN(_str_)	SCANF_STR_AUTOLEN_IMPL(_str_)
 
 #ifdef	__cplusplus
 }

@@ -16,13 +16,13 @@
    GLM_MAT4_ZERO_INIT
    GLM_MAT4_IDENTITY
    GLM_MAT4_ZERO
-   glm_mat4_udup(mat, dest)
-   glm_mat4_dup(mat, dest)
 
  Functions:
    CGLM_INLINE void  glm_mat4_ucopy(mat4 mat, mat4 dest);
    CGLM_INLINE void  glm_mat4_copy(mat4 mat, mat4 dest);
    CGLM_INLINE void  glm_mat4_identity(mat4 mat);
+   CGLM_INLINE void  glm_mat4_identity_array(mat4 * restrict mat, size_t count);
+   CGLM_INLINE void  glm_mat4_zero(mat4 mat);
    CGLM_INLINE void  glm_mat4_pick3(mat4 mat, mat3 dest);
    CGLM_INLINE void  glm_mat4_pick3t(mat4 mat, mat3 dest);
    CGLM_INLINE void  glm_mat4_ins3(mat3 mat, mat4 dest);
@@ -30,6 +30,9 @@
    CGLM_INLINE void  glm_mat4_mulN(mat4 *matrices[], int len, mat4 dest);
    CGLM_INLINE void  glm_mat4_mulv(mat4 m, vec4 v, vec4 dest);
    CGLM_INLINE void  glm_mat4_mulv3(mat4 m, vec3 v, vec3 dest);
+   CGLM_INLINE float glm_mat4_trace(mat4 m);
+   CGLM_INLINE float glm_mat4_trace3(mat4 m);
+   CGLM_INLINE void  glm_mat4_quat(mat4 m, versor dest) ;
    CGLM_INLINE void  glm_mat4_transpose_to(mat4 m, mat4 dest);
    CGLM_INLINE void  glm_mat4_transpose(mat4 m);
    CGLM_INLINE void  glm_mat4_scale_p(mat4 m, float s);
@@ -39,13 +42,15 @@
    CGLM_INLINE void  glm_mat4_inv_fast(mat4 mat, mat4 dest);
    CGLM_INLINE void  glm_mat4_swap_col(mat4 mat, int col1, int col2);
    CGLM_INLINE void  glm_mat4_swap_row(mat4 mat, int row1, int row2);
+   CGLM_INLINE float glm_mat4_rmc(vec4 r, mat4 m, vec4 c);
  */
 
 #ifndef cglm_mat_h
 #define cglm_mat_h
 
 #include "common.h"
-#include "quat.h"
+#include "vec4.h"
+#include "vec3.h"
 
 #ifdef CGLM_SSE_FP
 #  include "simd/sse2/mat4.h"
@@ -96,7 +101,15 @@
 CGLM_INLINE
 void
 glm_mat4_ucopy(mat4 mat, mat4 dest) {
-  glm__memcpy(float, dest, mat, sizeof(mat4));
+  dest[0][0] = mat[0][0];  dest[1][0] = mat[1][0];
+  dest[0][1] = mat[0][1];  dest[1][1] = mat[1][1];
+  dest[0][2] = mat[0][2];  dest[1][2] = mat[1][2];
+  dest[0][3] = mat[0][3];  dest[1][3] = mat[1][3];
+
+  dest[2][0] = mat[2][0];  dest[3][0] = mat[3][0];
+  dest[2][1] = mat[2][1];  dest[3][1] = mat[3][1];
+  dest[2][2] = mat[2][2];  dest[3][2] = mat[3][2];
+  dest[2][3] = mat[2][3];  dest[3][3] = mat[3][3];
 }
 
 /*!
@@ -109,13 +122,18 @@ CGLM_INLINE
 void
 glm_mat4_copy(mat4 mat, mat4 dest) {
 #ifdef __AVX__
-  _mm256_store_ps(dest[0], _mm256_load_ps(mat[0]));
-  _mm256_store_ps(dest[2], _mm256_load_ps(mat[2]));
+  glmm_store256(dest[0], glmm_load256(mat[0]));
+  glmm_store256(dest[2], glmm_load256(mat[2]));
 #elif defined( __SSE__ ) || defined( __SSE2__ )
-  _mm_store_ps(dest[0], _mm_load_ps(mat[0]));
-  _mm_store_ps(dest[1], _mm_load_ps(mat[1]));
-  _mm_store_ps(dest[2], _mm_load_ps(mat[2]));
-  _mm_store_ps(dest[3], _mm_load_ps(mat[3]));
+  glmm_store(dest[0], glmm_load(mat[0]));
+  glmm_store(dest[1], glmm_load(mat[1]));
+  glmm_store(dest[2], glmm_load(mat[2]));
+  glmm_store(dest[3], glmm_load(mat[3]));
+#elif defined(CGLM_NEON_FP)
+  vst1q_f32(dest[0], vld1q_f32(mat[0]));
+  vst1q_f32(dest[1], vld1q_f32(mat[1]));
+  vst1q_f32(dest[2], vld1q_f32(mat[2]));
+  vst1q_f32(dest[3], vld1q_f32(mat[3]));
 #else
   glm_mat4_ucopy(mat, dest);
 #endif
@@ -138,7 +156,38 @@ glm_mat4_copy(mat4 mat, mat4 dest) {
 CGLM_INLINE
 void
 glm_mat4_identity(mat4 mat) {
-  mat4 t = GLM_MAT4_IDENTITY_INIT;
+  CGLM_ALIGN_MAT mat4 t = GLM_MAT4_IDENTITY_INIT;
+  glm_mat4_copy(t, mat);
+}
+
+/*!
+ * @brief make given matrix array's each element identity matrix
+ *
+ * @param[in, out]  mat   matrix array (must be aligned (16/32)
+ *                        if alignment is not disabled)
+ *
+ * @param[in]       count count of matrices
+ */
+CGLM_INLINE
+void
+glm_mat4_identity_array(mat4 * __restrict mat, size_t count) {
+  CGLM_ALIGN_MAT mat4 t = GLM_MAT4_IDENTITY_INIT;
+  size_t i;
+
+  for (i = 0; i < count; i++) {
+    glm_mat4_copy(t, mat[i]);
+  }
+}
+
+/*!
+ * @brief make given matrix zero.
+ *
+ * @param[in, out]  mat  matrix
+ */
+CGLM_INLINE
+void
+glm_mat4_zero(mat4 mat) {
+  CGLM_ALIGN_MAT mat4 t = GLM_MAT4_ZERO_INIT;
   glm_mat4_copy(t, mat);
 }
 
@@ -231,7 +280,7 @@ glm_mat4_mul(mat4 m1, mat4 m2, mat4 dest) {
   glm_mat4_mul_avx(m1, m2, dest);
 #elif defined( __SSE__ ) || defined( __SSE2__ )
   glm_mat4_mul_sse2(m1, m2, dest);
-#elif defined( __ARM_NEON_FP )
+#elif defined(CGLM_NEON_FP)
   glm_mat4_mul_neon(m1, m2, dest);
 #else
   float a00 = m1[0][0], a01 = m1[0][1], a02 = m1[0][2], a03 = m1[0][3],
@@ -309,6 +358,8 @@ void
 glm_mat4_mulv(mat4 m, vec4 v, vec4 dest) {
 #if defined( __SSE__ ) || defined( __SSE2__ )
   glm_mat4_mulv_sse2(m, v, dest);
+#elif defined(CGLM_NEON_FP)
+  glm_mat4_mulv_neon(m, v, dest);
 #else
   vec4 res;
   res[0] = m[0][0] * v[0] + m[1][0] * v[1] + m[2][0] * v[2] + m[3][0] * v[3];
@@ -320,9 +371,35 @@ glm_mat4_mulv(mat4 m, vec4 v, vec4 dest) {
 }
 
 /*!
+ * @brief trace of matrix
+ *
+ * sum of the elements on the main diagonal from upper left to the lower right
+ *
+ * @param[in]  m matrix
+ */
+CGLM_INLINE
+float
+glm_mat4_trace(mat4 m) {
+  return m[0][0] + m[1][1] + m[2][2] + m[3][3];
+}
+
+/*!
+ * @brief trace of matrix (rotation part)
+ *
+ * sum of the elements on the main diagonal from upper left to the lower right
+ *
+ * @param[in]  m matrix
+ */
+CGLM_INLINE
+float
+glm_mat4_trace3(mat4 m) {
+  return m[0][0] + m[1][1] + m[2][2];
+}
+
+/*!
  * @brief convert mat4's rotation part to quaternion
  *
- * @param[in]  m    left matrix
+ * @param[in]  m    affine matrix
  * @param[out] dest destination quaternion
  */
 CGLM_INLINE
@@ -369,20 +446,23 @@ glm_mat4_quat(mat4 m, versor dest) {
 }
 
 /*!
- * @brief multiply vector with mat4's mat3 part(rotation)
+ * @brief multiply vector with mat4
+ *
+ * actually the result is vec4, after multiplication the last component
+ * is trimmed. if you need it don't use this func.
  *
  * @param[in]  m    mat4(affine transform)
  * @param[in]  v    vec3
- * @param[out] dest vec3
+ * @param[in]  last 4th item to make it vec4
+ * @param[out] dest result vector (vec3)
  */
 CGLM_INLINE
 void
-glm_mat4_mulv3(mat4 m, vec3 v, vec3 dest) {
-  vec3 res;
-  res[0] = m[0][0] * v[0] + m[1][0] * v[1] + m[2][0] * v[2];
-  res[1] = m[0][1] * v[0] + m[1][1] * v[1] + m[2][1] * v[2];
-  res[2] = m[0][2] * v[0] + m[1][2] * v[1] + m[2][2] * v[2];
-  glm_vec_copy(res, dest);
+glm_mat4_mulv3(mat4 m, vec3 v, float last, vec3 dest) {
+  vec4 res;
+  glm_vec4(v, last, res);
+  glm_mat4_mulv(m, res, res);
+  glm_vec3(res, dest);
 }
 
 /*!
@@ -398,6 +478,8 @@ void
 glm_mat4_transpose_to(mat4 m, mat4 dest) {
 #if defined( __SSE__ ) || defined( __SSE2__ )
   glm_mat4_transp_sse2(m, dest);
+#elif defined(CGLM_NEON_FP)
+  glm_mat4_transp_neon(m, dest);
 #else
   dest[0][0] = m[0][0]; dest[1][0] = m[0][1];
   dest[0][1] = m[1][0]; dest[1][1] = m[1][1];
@@ -420,12 +502,12 @@ void
 glm_mat4_transpose(mat4 m) {
 #if defined( __SSE__ ) || defined( __SSE2__ )
   glm_mat4_transp_sse2(m, m);
+#elif defined(CGLM_NEON_FP)
+  glm_mat4_transp_neon(m, m);
 #else
   mat4 d;
-
   glm_mat4_transpose_to(m, d);
-
-  glm__memcpy(float, m, d, sizeof(mat4));
+  glm_mat4_ucopy(d, m);
 #endif
 }
 
@@ -459,6 +541,8 @@ void
 glm_mat4_scale(mat4 m, float s) {
 #if defined( __SSE__ ) || defined( __SSE2__ )
   glm_mat4_scale_sse2(m, s);
+#elif defined(CGLM_NEON_FP)
+  glm_mat4_scale_neon(m, s);
 #else
   glm_mat4_scale_p(m, s);
 #endif
@@ -585,7 +669,7 @@ glm_mat4_inv_fast(mat4 mat, mat4 dest) {
 CGLM_INLINE
 void
 glm_mat4_swap_col(mat4 mat, int col1, int col2) {
-  vec4 tmp;
+  CGLM_ALIGN(16) vec4 tmp;
   glm_vec4_copy(mat[col1], tmp);
   glm_vec4_copy(mat[col2], mat[col1]);
   glm_vec4_copy(tmp, mat[col2]);
@@ -601,7 +685,7 @@ glm_mat4_swap_col(mat4 mat, int col1, int col2) {
 CGLM_INLINE
 void
 glm_mat4_swap_row(mat4 mat, int row1, int row2) {
-  vec4 tmp;
+  CGLM_ALIGN(16) vec4 tmp;
   tmp[0] = mat[0][row1];
   tmp[1] = mat[1][row1];
   tmp[2] = mat[2][row1];
@@ -616,6 +700,28 @@ glm_mat4_swap_row(mat4 mat, int row1, int row2) {
   mat[1][row2] = tmp[1];
   mat[2][row2] = tmp[2];
   mat[3][row2] = tmp[3];
+}
+
+/*!
+ * @brief helper for  R (row vector) * M (matrix) * C (column vector)
+ *
+ * rmc stands for Row * Matrix * Column
+ *
+ * the result is scalar because R * M = Matrix1x4 (row vector),
+ * then Matrix1x4 * Vec4 (column vector) = Matrix1x1 (Scalar)
+ *
+ * @param[in]  r   row vector or matrix1x4
+ * @param[in]  m   matrix4x4
+ * @param[in]  c   column vector or matrix4x1
+ *
+ * @return scalar value e.g. B(s)
+ */
+CGLM_INLINE
+float
+glm_mat4_rmc(vec4 r, mat4 m, vec4 c) {
+  vec4 tmp;
+  glm_mat4_mulv(m, c, tmp);
+  return glm_vec4_dot(r, tmp);
 }
 
 #endif /* cglm_mat_h */

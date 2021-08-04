@@ -20,36 +20,51 @@
  * CDDL HEADER END
  */
 /*
- * Copyright 2018 Saso Kiselkov. All rights reserved.
+ * Copyright 2021 Saso Kiselkov. All rights reserved.
  */
 
 #ifndef	_ACF_UTILS_GLUTILS_H_
 #define	_ACF_UTILS_GLUTILS_H_
 
-#include <GL/glew.h>
+#include <stdio.h>
 
-#include <acfutils/assert.h>
-#include <acfutils/geom.h>
-#include <acfutils/log.h>
+#include "assert.h"
+#include "geom.h"
+#include "glew.h"
+#include "log.h"
+#include "safe_alloc.h"
+#include "sysmacros.h"
+
+#include <cglm/cglm.h>
 
 #ifdef	__cplusplus
 extern "C" {
 #endif
 
 typedef struct {
+	GLuint	vao;
 	GLuint	vbo;
+	GLuint	ibo;
+	bool_t	setup;
 	size_t	num_vtx;
 } glutils_quads_t;
 
 typedef struct {
+	GLuint	vao;
 	GLuint	vbo;
+	bool_t	setup;
 	size_t	num_vtx;
 } glutils_lines_t;
+
+typedef struct glutils_cache_s glutils_cache_t;
 
 typedef void (*glutils_texsz_enum_cb_t)(const char *token, int64_t bytes,
     void *userinfo);
 
+API_EXPORT void glutils_sys_init(void);
+
 API_EXPORT void glutils_disable_all_client_state(void);
+API_EXPORT void glutils_disable_all_vtx_attrs(void);
 
 API_EXPORT GLuint glutils_make_quads_IBO(size_t num_vtx);
 
@@ -57,25 +72,39 @@ API_EXPORT GLuint glutils_make_quads_IBO(size_t num_vtx);
 	glutils_init_2D_quads_impl((__quads), log_basename(__FILE__), \
 	    __LINE__, (__p), (__t), (__num_pts))
 API_EXPORT void glutils_init_2D_quads_impl(glutils_quads_t *quads,
-    const char *filename, int line, vect2_t *p, vect2_t *t, size_t num_pts);
+    const char *filename, int line, const vect2_t *p, const vect2_t *t,
+    size_t num_pts);
 
 #define	glutils_init_3D_quads(__quads, __p, __t, __num_pts) \
 	glutils_init_3D_quads_impl((__quads), log_basename(__FILE__), \
 	    __LINE__, (__p), (__t), (__num_pts))
 API_EXPORT void glutils_init_3D_quads_impl(glutils_quads_t *quads,
-    const char *filename, int line, vect3_t *p, vect2_t *t, size_t num_pts);
+    const char *filename, int line, const vect3_t *p, const vect2_t *t,
+    size_t num_pts);
 
 API_EXPORT void glutils_destroy_quads(glutils_quads_t *quads);
-API_EXPORT void glutils_draw_quads(const glutils_quads_t *quads, GLint prog);
+API_EXPORT void glutils_draw_quads(glutils_quads_t *quads, GLint prog);
 
 #define	glutils_init_3D_lines(__lines, __p, __num_pts) \
 	glutils_init_3D_lines_impl((__lines), log_basename(__FILE__), \
 	    __LINE__, (__p), (__num_pts))
 API_EXPORT void glutils_init_3D_lines_impl(glutils_lines_t *lines,
-    const char *filename, int line, vect3_t *p, size_t num_pts);
+    const char *filename, int line, const vect3_t *p, size_t num_pts);
 
 API_EXPORT void glutils_destroy_lines(glutils_lines_t *lines);
-API_EXPORT void glutils_draw_lines(const glutils_lines_t *lines, GLint prog);
+API_EXPORT void glutils_draw_lines(glutils_lines_t *lines, GLint prog);
+
+/*
+ * glutils cache is a generic quads/lines object cache.
+ */
+API_EXPORT glutils_cache_t *glutils_cache_new(size_t cap_bytes);
+API_EXPORT void glutils_cache_destroy(glutils_cache_t *cache);
+API_EXPORT glutils_quads_t *glutils_cache_get_2D_quads(
+    glutils_cache_t *cache, const vect2_t *p, const vect2_t *t, size_t num_pts);
+API_EXPORT glutils_quads_t *glutils_cache_get_3D_quads(
+    glutils_cache_t *cache, const vect3_t *p, const vect2_t *t, size_t num_pts);
+API_EXPORT glutils_lines_t *glutils_cache_get_3D_lines(
+    glutils_cache_t *cache, const vect3_t *p, size_t num_pts);
 
 API_EXPORT void glutils_vp2pvm(GLfloat pvm[16]);
 
@@ -111,7 +140,7 @@ API_EXPORT void glutils_vp2pvm(GLfloat pvm[16]);
  *
  * TEXSZ_MK_TOKEN(efis_textures);
  *
- * Don't put strings into the token name, the name must be a valid C
+ * Don't put spaces into the token name, the name must be a valid C
  * identifier. You can subsequently track allocations to this token using
  * the TEXSZ_ALLOC and TEXSZ_FREE macros. These macros take 5 arguments:
  *	1) the token name
@@ -124,6 +153,16 @@ API_EXPORT void glutils_vp2pvm(GLfloat pvm[16]);
  * offending token name(s) are printed in sequence, with the amount of
  * bytes leaked in them. In this mode, no filenames or line numbers are
  * printed.
+ *
+ * Please note that TEXSZ_MK_TOKEN creates a static (single-module) token
+ * that cannot be shared between multiple C files. If you plan on using a
+ * TEXSZ token from more than one C/C++ file, you must declare the token
+ * in a header file using the TEXSZ_DECL_TOKEN_GLOB macro instead. Then
+ * define the token in a single C file using TEXSZ_DEF_TOKEN_GLOB:
+ *
+ *	TEXSZ_DECL_TOKEN_GLOB(efis_textures);	<--- goes in a header file
+ *
+ *	TEXSZ_DEF_TOKEN_GLOB(efis_textures);	<--- goes in a single C file
  *
  * In case you are using a generic facility (e.g. a picture loader) to
  * provide texturing service to other parts of the code, a simple token
@@ -155,6 +194,10 @@ API_EXPORT void glutils_vp2pvm(GLfloat pvm[16]);
 
 #define	TEXSZ_MK_TOKEN(name) \
 	static const char *__texsz_token_ ## name = #name
+#define	TEXSZ_DECL_TOKEN_GLOB(name) \
+	extern const char *__texsz_token_ ## name
+#define	TEXSZ_DEF_TOKEN_GLOB(name) \
+	const char *__texsz_token_ ## name = #name
 #define	TEXSZ_ALLOC(__token_id, __format, __type, __w, __h) \
 	TEXSZ_ALLOC_INSTANCE(__token_id, NULL, NULL, -1, (__format), \
 	    (__type), (__w), (__h))
@@ -207,6 +250,110 @@ API_EXPORT void glutils_texsz_enum(glutils_texsz_enum_cb_t cb, void *userinfo);
 		} \
 	} while (0)
 API_EXPORT bool_t glutils_texsz_inited(void);
+
+#ifndef	_LACF_RENDER_DEBUG
+#define	_LACF_RENDER_DEBUG	0
+#endif
+
+#if	_LACF_RENDER_DEBUG
+#define	GLUTILS_ASSERT_NO_ERROR()	VERIFY3U(glGetError(), ==, GL_NO_ERROR)
+#define	GLUTILS_ASSERT(_x_)		VERIFY(_x_)
+#define	GLUTILS_ASSERT_MSG(_x_, ...)	VERIFY(_x_, __VA_ARGS__)
+#define	GLUTILS_ASSERT3S(_x_, _y_, _z_)	VERIFY3S(_x_, _y_, _z_)
+#define	GLUTILS_ASSERT3U(_x_, _y_, _z_)	VERIFY3U(_x_, _y_, _z_)
+#define	GLUTILS_ASSERT3P(_x_, _y_, _z_)	VERIFY3P(_x_, _y_, _z_)
+#define	GLUTILS_RESET_ERRORS()		glutils_reset_errors()
+#else	/* !_LACF_RENDER_DEBUG */
+#define	GLUTILS_ASSERT_NO_ERROR()
+#define	GLUTILS_ASSERT(_x_)
+#define	GLUTILS_ASSERT_MSG(_x_, ...)
+#define	GLUTILS_ASSERT3S(_x_, _y_, _z_)
+#define	GLUTILS_ASSERT3U(_x_, _y_, _z_)
+#define	GLUTILS_ASSERT3P(_x_, _y_, _z_)
+#define	GLUTILS_RESET_ERRORS()
+#endif	/* !_LACF_RENDER_DEBUG */
+
+API_EXPORT bool_t glutils_nsight_debugger_present(void);
+
+static inline void
+glutils_reset_errors(void)
+{
+	while (glGetError() != GL_NO_ERROR)
+		;
+}
+
+/*
+ * MacOS doesn't support OpenGL 4.3.
+ */
+#if	_LACF_RENDER_DEBUG && !APL
+static inline void glutils_debug_push(GLuint id,
+    PRINTF_FORMAT(const char *format), ...) PRINTF_ATTR(2);
+
+static inline void
+glutils_debug_push(GLuint msgid, const char *format, ...)
+{
+	char buf_stack[128];
+	int len;
+	va_list ap;
+
+	va_start(ap, format);
+	len = vsnprintf(buf_stack, sizeof (buf_stack), format, ap);
+	va_end(ap);
+
+	if (len >= (int)sizeof (buf_stack)) {
+		char *buf_heap = safe_malloc(len + 1);
+
+		va_start(ap, format);
+		vsnprintf(buf_heap, len + 1, format, ap);
+		va_end(ap);
+
+		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, msgid, len,
+		    buf_heap);
+
+		free(buf_heap);
+	} else {
+		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, msgid, len,
+		    buf_stack);
+	}
+}
+
+static inline void
+glutils_debug_pop(void)
+{
+	glPopDebugGroup();
+}
+#else	/* !_LACF_RENDER_DEBUG || APL */
+#define	glutils_debug_push(msgid, format, ...)
+#define	glutils_debug_pop()
+#endif	/* !_LACF_RENDER_DEBUG || APL */
+
+typedef struct glutils_nl_s glutils_nl_t;
+
+API_EXPORT glutils_nl_t *glutils_nl_alloc_2D(const vec2 *pts, size_t num_pts);
+API_EXPORT glutils_nl_t *glutils_nl_alloc_3D(const vec3 *pts, size_t num_pts);
+API_EXPORT void glutils_nl_free(glutils_nl_t *nl);
+API_EXPORT void glutils_nl_draw(glutils_nl_t *nl, float width, GLuint prog);
+
+static inline void
+glutils_enable_vtx_attr_ptr(GLint index, GLint size, GLenum type,
+    GLboolean normalized, size_t stride, size_t offset)
+{
+	if (index != -1) {
+		glEnableVertexAttribArray(index);
+		glVertexAttribPointer(index, size, type, normalized,
+		    stride, (void *)offset);
+	}
+}
+
+static inline void
+glutils_disable_vtx_attr_ptr(GLint index)
+{
+	if (index != -1)
+		glDisableVertexAttribArray(index);
+}
+
+API_EXPORT bool_t glutils_png2gltexfmt(int png_color_type, int png_bit_depth,
+    GLint *int_fmt, GLint *fmt, GLint *type);
 
 #ifdef	__cplusplus
 }
