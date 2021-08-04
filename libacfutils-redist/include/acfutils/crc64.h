@@ -21,7 +21,8 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include <acfutils/core.h>
+
+#include "acfutils/assert.h"
 
 #ifdef	__cplusplus
 extern "C" {
@@ -29,6 +30,15 @@ extern "C" {
 
 #define	crc64_init		ACFSYM(crc64_init)
 API_EXPORT void crc64_init();
+
+static inline void
+crc64_state_init(uint64_t *crc)
+{
+	ASSERT(crc != NULL);
+	*crc = (uint64_t)-1;
+}
+#define	crc64_append		ACFSYM(crc64_append)
+API_EXPORT uint64_t crc64_append(uint64_t crc, const void *input, size_t sz);
 #define	crc64			ACFSYM(crc64)
 API_EXPORT uint64_t crc64(const void *input, size_t sz);
 
@@ -38,6 +48,8 @@ API_EXPORT void crc64_srand(uint64_t seed);
 API_EXPORT uint64_t crc64_rand(void);
 #define	crc64_rand_fract	ACFSYM(crc64_rand_fract)
 API_EXPORT double crc64_rand_fract(void);
+#define	crc64_rand_normal	ACFSYM(crc64_rand_normal)
+API_EXPORT double crc64_rand_normal(double sigma);
 
 #ifdef	__cplusplus
 }

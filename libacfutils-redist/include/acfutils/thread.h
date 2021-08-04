@@ -13,17 +13,18 @@
  * CDDL HEADER END
 */
 /*
- * Copyright 2017 Saso Kiselkov. All rights reserved.
+ * Copyright 2021 Saso Kiselkov. All rights reserved.
  */
 
 #ifndef	_ACF_UTILS_THREAD_H_
 #define	_ACF_UTILS_THREAD_H_
 
 #include <errno.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
-#if APL || LIN
+#if	APL || LIN
 #include <pthread.h>
 #include <stdint.h>
 #include <time.h>
@@ -31,9 +32,23 @@
 #include <windows.h>
 #endif	/* !APL && !LIN */
 
-#include <acfutils/assert.h>
-#include <acfutils/helpers.h>
-#include <acfutils/time.h>
+#if	__STDC_VERSION__ >= 201112L && !defined(__STDC_NO_ATOMICS__)
+#include <stdatomic.h>
+#elif	APL
+#include <libkern/OSAtomic.h>
+#endif
+
+#if	LIN
+#include <sys/syscall.h>
+#include <unistd.h>
+#endif	/* LIN */
+
+#include "assert.h"
+#include "helpers.h"
+#include "list.h"
+#include "time.h"
+#include "tls.h"
+#include "safe_alloc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -111,6 +126,59 @@ extern "C" {
  *		mutex_exit(&my_lock);			-- release the lock
  */
 
+typedef struct {
+	void		(*proc)(void *);
+	void		*arg;
+	const char	*filename;
+	int		linenum;
+	list_node_t	node;
+} lacf_thread_info_t;
+
+/*
+ * !!!! CAUTION !!!!
+ * MacOS's kernel API contains a function named `thread_create' that'll
+ * clash with the naming below. To work around this, we declare the
+ * function name to be a macro to our own scoped version. The user must
+ * include /usr/include/mach/task.h before us, otherwise we could be
+ * rewriting the function name in the header too. The flip side is that
+ * the user will get calls to libacfutils' thread_create instead.
+ */
+#if	!APL || !defined(_task_user_)
+#define	thread_create(thrp, start_proc, arg) \
+	lacf_thread_create((thrp), (start_proc), (arg), \
+	    log_basename(__FILE__), __LINE__)
+#endif
+
+#if	__STDC_VERSION__ >= 201112L && !defined(__STDC_NO_ATOMICS__)
+#define	atomic32_t		_Atomic int32_t
+#define	atomic_inc_32(x)	atomic_fetch_add((x), 1)
+#define	atomic_dec_32(x)	atomic_fetch_add((x), -1)
+#define	atomic64_t		_Atomic int64_t
+#define	atomic_inc_64(x)	atomic_fetch_add((x), 1)
+#define	atomic_dec_64(x)	atomic_fetch_add((x), -1)
+#elif	IBM
+#define	atomic32_t		volatile LONG
+#define	atomic_inc_32(x)	InterlockedIncrement((x))
+#define	atomic_dec_32(x)	InterlockedDecrement((x))
+#define	atomic64_t		volatile LONG64
+#define	atomic_inc_64(x)	InterlockedIncrement64((x))
+#define	atomic_dec_64(x)	InterlockedDecrement64((x))
+#elif	APL
+#define	atomic32_t		volatile int32_t
+#define	atomic_inc_32(x)	OSAtomicAdd32(1, (x))
+#define	atomic_dec_32(x)	OSAtomicAdd32(-1, (x))
+#define	atomic64_t		volatile int64_t
+#define	atomic_inc_64(x)	OSAtomicAdd64(1, (x))
+#define	atomic_dec_64(x)	OSAtomicAdd64(-1, (x))
+#else	/* LIN */
+#define	atomic32_t		volatile int32_t
+#define	atomic_inc_32(x)	__sync_add_and_fetch((x), 1)
+#define	atomic_dec_32(x)	__sync_add_and_fetch((x), -1)
+#define	atomic64_t		volatile int64_t
+#define	atomic_inc_64(x)	__sync_add_and_fetch((x), 1)
+#define	atomic_dec_64(x)	__sync_add_and_fetch((x), -1)
+#endif	/* LIN */
+
 #if	APL || LIN
 
 #define	thread_t		pthread_t
@@ -130,28 +198,15 @@ extern "C" {
 #define	mutex_enter(mtx)	pthread_mutex_lock((mtx))
 #define	mutex_exit(mtx)		pthread_mutex_unlock((mtx))
 
-#define	thread_create(thrp, proc, arg) \
-	(pthread_create(thrp, NULL, (void *(*)(void *))proc, \
-	    arg) == 0)
-#define	thread_join(thrp)	pthread_join(*(thrp), NULL)
-
 #if	LIN
-#define	thread_set_name(name)	pthread_setname_np(pthread_self(), (name))
+#define	VERIFY_MUTEX_HELD(mtx)	\
+	VERIFY((mtx)->__data.__owner == syscall(SYS_gettid))
+#define	VERIFY_MUTEX_NOT_HELD(mtx) \
+	VERIFY((mtx)->__data.__owner != syscall(SYS_gettid))
 #else	/* APL */
-#define	thread_set_name(name)	pthread_setname_np((name))
+#define	VERIFY_MUTEX_HELD(mtx)		(void)1
+#define	VERIFY_MUTEX_NOT_HELD(mtx)	(void)1
 #endif	/* APL */
-
-#define	cv_wait(cv, mtx)	pthread_cond_wait((cv), (mtx))
-static inline int
-cv_timedwait(condvar_t *cv, mutex_t *mtx, uint64_t limit)
-{
-	struct timespec ts = { .tv_sec = limit / 1000000,
-	    .tv_nsec = (limit % 1000000) * 1000 };
-	return (pthread_cond_timedwait(cv, mtx, &ts));
-}
-#define	cv_init(cv)		pthread_cond_init((cv), NULL)
-#define	cv_destroy(cv)		pthread_cond_destroy((cv))
-#define	cv_broadcast(cv)	pthread_cond_broadcast((cv))
 
 #else	/* !APL && !LIN */
 
@@ -185,12 +240,209 @@ typedef struct {
 		ASSERT((x)->inited); \
 		LeaveCriticalSection(&(x)->cs); \
 	} while (0)
+#define	VERIFY_MUTEX_HELD(mtx)		(void)1
+#define	VERIFY_MUTEX_NOT_HELD(mtx)	(void)1
 
-#define	thread_create(thrp, proc, arg) \
-	((*(thrp) = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)proc, arg, \
-	    0, NULL)) != NULL)
+#endif	/* !APL && !LIN */
+
+/*
+ * This is the thread cleanup tracking machinery. Due to how the global
+ * nature of these variables, this system cannot be used in shared/DLL
+ * builds of libacfutils.
+ */
+#ifndef	ACFUTILS_DLL
+
+extern bool_t	lacf_thread_list_inited;
+extern mutex_t	lacf_thread_list_lock;
+extern list_t	lacf_thread_list;
+
+static inline void
+_lacf_thread_list_init(void)
+{
+	if (!lacf_thread_list_inited) {
+		mutex_init(&lacf_thread_list_lock);
+		list_create(&lacf_thread_list, sizeof (lacf_thread_info_t),
+		    offsetof(lacf_thread_info_t, node));
+		lacf_thread_list_inited = B_TRUE;
+	}
+}
+
+static inline void
+_lacf_thread_list_fini(void)
+{
+	if (lacf_thread_list_inited) {
+		mutex_enter(&lacf_thread_list_lock);
+		if (list_count(&lacf_thread_list) == 0) {
+			list_destroy(&lacf_thread_list);
+			mutex_exit(&lacf_thread_list_lock);
+			mutex_destroy(&lacf_thread_list_lock);
+			lacf_thread_list_inited = B_FALSE;
+		} else {
+			mutex_exit(&lacf_thread_list_lock);
+		}
+	}
+}
+
+static inline void
+_lacf_thread_list_add(lacf_thread_info_t *ti)
+{
+	ASSERT(ti != NULL);
+	ASSERT(lacf_thread_list_inited);
+	mutex_enter(&lacf_thread_list_lock);
+	list_insert_tail(&lacf_thread_list, ti);
+	mutex_exit(&lacf_thread_list_lock);
+}
+
+static inline void
+_lacf_thread_list_remove(lacf_thread_info_t *ti)
+{
+	ASSERT(ti != NULL);
+	ASSERT(lacf_thread_list_inited);
+	mutex_enter(&lacf_thread_list_lock);
+	list_remove(&lacf_thread_list, ti);
+	mutex_exit(&lacf_thread_list_lock);
+}
+
+/*
+ * Checks to see if all threads that were created using thread_create
+ * have been properly disposed of. If not, this trips an assertion
+ * failure and lists all threads (including filenames and line numbers
+ * where they have been spawned) that weren't properly stopped. You
+ * should call this just as your plugin is exiting.
+ */
+static inline void
+lacf_threads_fini(void)
+{
+	if (!lacf_thread_list_inited)
+		return;
+
+	mutex_enter(&lacf_thread_list_lock);
+	for (lacf_thread_info_t *ti =
+	    (lacf_thread_info_t *)list_head(&lacf_thread_list); ti != NULL;
+	    ti = (lacf_thread_info_t *)list_next(&lacf_thread_list, ti)) {
+		logMsg("Leaked thread, created here %s:%d", ti->filename,
+		    ti->linenum);
+	}
+	VERIFY0(list_count(&lacf_thread_list));
+	mutex_exit(&lacf_thread_list_lock);
+
+	_lacf_thread_list_fini();
+}
+
+#else	/* defined(ACFUTILS_DLL) */
+
+#define	_lacf_thread_list_init()
+#define	_lacf_thread_list_fini()
+#define	_lacf_thread_list_add(ti)
+#define	_lacf_thread_list_remove(ti)
+#define	lacf_threads_fini
+
+#endif	/* defined(ACFUTILS_DLL) */
+
+#if	APL || LIN
+
+static void *_lacf_thread_start_routine(void *arg) UNUSED_ATTR;
+static void *
+_lacf_thread_start_routine(void *arg)
+{
+	lacf_thread_info_t *ti = (lacf_thread_info_t *)arg;
+	ti->proc(ti->arg);
+	_lacf_thread_list_remove(ti);
+	free(ti);
+	return (NULL);
+}
+
+static inline bool_t
+lacf_thread_create(thread_t *thrp, void (*proc)(void *), void *arg,
+    const char *filename, int linenum)
+{
+	lacf_thread_info_t *ti =
+	    (lacf_thread_info_t *)safe_calloc(1, sizeof (*ti));
+	ti->proc = proc;
+	ti->arg = arg;
+	ti->filename = filename;
+	ti->linenum = linenum;
+	_lacf_thread_list_init();
+	_lacf_thread_list_add(ti);
+	if (pthread_create(thrp, NULL, _lacf_thread_start_routine, ti) == 0) {
+		/* Start success */
+		return (B_TRUE);
+	}
+	/* Start failure - remove from list and try to destroy the list */
+	_lacf_thread_list_remove(ti);
+	_lacf_thread_list_fini();
+	free(ti);
+	return (B_FALSE);
+}
+
 #define	thread_join(thrp) \
-	VERIFY3S(WaitForSingleObject(*(thrp), INFINITE), ==, WAIT_OBJECT_0)
+	do { \
+		pthread_join(*(thrp), NULL); \
+		_lacf_thread_list_fini(); \
+	} while (0)
+
+#if	LIN
+#define	thread_set_name(name)	pthread_setname_np(pthread_self(), (name))
+#else	/* APL */
+#define	thread_set_name(name)	pthread_setname_np((name))
+#endif	/* APL */
+
+#define	cv_wait(cv, mtx)	pthread_cond_wait((cv), (mtx))
+static inline int
+cv_timedwait(condvar_t *cv, mutex_t *mtx, uint64_t limit)
+{
+	struct timespec ts = { .tv_sec = (time_t)(limit / 1000000),
+	    .tv_nsec = (long)((limit % 1000000) * 1000) };
+	return (pthread_cond_timedwait(cv, mtx, &ts));
+}
+#define	cv_init(cv)		pthread_cond_init((cv), NULL)
+#define	cv_destroy(cv)		pthread_cond_destroy((cv))
+#define	cv_signal(cv)		pthread_cond_signal((cv))
+#define	cv_broadcast(cv)	pthread_cond_broadcast((cv))
+
+#else	/* !APL && !LIN */
+
+static DWORD _lacf_thread_start_routine(void *arg) UNUSED_ATTR;
+static DWORD
+_lacf_thread_start_routine(void *arg)
+{
+	lacf_thread_info_t *ti = (lacf_thread_info_t *)arg;
+	ti->proc(ti->arg);
+	_lacf_thread_list_remove(ti);
+	free(ti);
+	return (0);
+}
+
+static inline bool_t
+lacf_thread_create(thread_t *thrp, void (*proc)(void *), void *arg,
+    const char *filename, int linenum)
+{
+	lacf_thread_info_t *ti =
+	    (lacf_thread_info_t *)safe_calloc(1, sizeof (*ti));
+	ti->proc = proc;
+	ti->arg = arg;
+	ti->filename = filename;
+	ti->linenum = linenum;
+	_lacf_thread_list_init();
+	_lacf_thread_list_add(ti);
+	if ((*(thrp) = CreateThread(NULL, 0, _lacf_thread_start_routine, ti,
+	    0, NULL)) != NULL) {
+		/* Start success */
+		return (B_TRUE);
+	}
+	/* Start failure - remove from list and try to destroy the list */
+	_lacf_thread_list_remove(ti);
+	_lacf_thread_list_fini();
+	free(ti);
+	return (B_FALSE);
+}
+
+#define	thread_join(thrp) \
+	do { \
+		VERIFY3S(WaitForSingleObject(*(thrp), INFINITE), ==, \
+		    WAIT_OBJECT_0); \
+		_lacf_thread_list_fini(); \
+	} while (0)
 #define	thread_set_name(name)		UNUSED(name)
 
 #define	cv_wait(cv, mtx) \
@@ -200,8 +452,13 @@ cv_timedwait(condvar_t *cv, mutex_t *mtx, uint64_t limit)
 {
 	uint64_t now = microclock();
 	if (now < limit) {
+		/*
+		 * The only way to guarantee that when we return due to a
+		 * timeout the full microsecond-accurate quantum has elapsed
+		 * is to round-up to the nearest millisecond.
+		 */
 		if (SleepConditionVariableCS(cv, &mtx->cs,
-		    (limit - now) / 1000) != 0) {
+		    ceil((limit - now) / 1000.0)) != 0) {
 			return (0);
 		}
 		if (GetLastError() == ERROR_TIMEOUT)
@@ -212,6 +469,7 @@ cv_timedwait(condvar_t *cv, mutex_t *mtx, uint64_t limit)
 }
 #define	cv_init		InitializeConditionVariable
 #define	cv_destroy(cv)	/* no-op */
+#define	cv_signal	WakeConditionVariable
 #define	cv_broadcast	WakeAllConditionVariable
 
 #endif	/* !APL && !LIN */
@@ -302,6 +560,14 @@ rwmutex_held_write(rwmutex_t *rw)
 {
 	return (rw->writer == curthread);
 }
+
+#ifdef	DEBUG
+#define	ASSERT_MUTEX_HELD(mtx)		VERIFY_MUTEX_HELD(mtx)
+#define	ASSERT_MUTEX_NOT_HELD(mtx)	VERIFY_MUTEX_NOT_HELD(mtx)
+#else	/* !DEBUG */
+#define	ASSERT_MUTEX_HELD(mtx)
+#define	ASSERT_MUTEX_NOT_HELD(mtx)
+#endif	/* !DEBUG */
 
 #ifdef __cplusplus
 }

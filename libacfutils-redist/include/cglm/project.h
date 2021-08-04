@@ -8,9 +8,10 @@
 #ifndef cglm_project_h
 #define cglm_project_h
 
-#include "mat4.h"
+#include "common.h"
 #include "vec3.h"
 #include "vec4.h"
+#include "mat4.h"
 
 /*!
  * @brief maps the specified viewport coordinates into specified space [1]
@@ -100,7 +101,7 @@ glm_unproject(vec3 pos, mat4 m, vec4 vp, vec3 dest) {
 CGLM_INLINE
 void
 glm_project(vec3 pos, mat4 m, vec4 vp, vec3 dest) {
-  vec4 pos4, vone = GLM_VEC4_ONE_INIT;
+  CGLM_ALIGN(16) vec4 pos4, vone = GLM_VEC4_ONE_INIT;
 
   glm_vec4(pos, 1.0f, pos4);
 

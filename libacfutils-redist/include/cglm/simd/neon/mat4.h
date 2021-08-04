@@ -14,6 +14,32 @@
 
 CGLM_INLINE
 void
+glm_mat4_scale_neon(mat4 m, float s) {
+  float32x4_t v0;
+  
+  v0 = vdupq_n_f32(s);
+
+  vst1q_f32(m[0], vmulq_f32(vld1q_f32(m[0]), v0));
+  vst1q_f32(m[1], vmulq_f32(vld1q_f32(m[1]), v0));
+  vst1q_f32(m[2], vmulq_f32(vld1q_f32(m[2]), v0));
+  vst1q_f32(m[3], vmulq_f32(vld1q_f32(m[3]), v0));
+}
+
+CGLM_INLINE
+void
+glm_mat4_transp_neon(mat4 m, mat4 dest) {
+  float32x4x4_t vmat;
+  
+  vmat = vld4q_f32(m[0]);
+
+  vst1q_f32(dest[0], vmat.val[0]);
+  vst1q_f32(dest[1], vmat.val[1]);
+  vst1q_f32(dest[2], vmat.val[2]);
+  vst1q_f32(dest[3], vmat.val[3]);
+}
+
+CGLM_INLINE
+void
 glm_mat4_mul_neon(mat4 m1, mat4 m2, mat4 dest) {
   /* D = R * L (Column-Major) */
   float32x4_t l0, l1, l2, l3, r, d0, d1, d2, d3;
@@ -51,6 +77,28 @@ glm_mat4_mul_neon(mat4 m1, mat4 m2, mat4 dest) {
   vst1q_f32(dest[1], d1);
   vst1q_f32(dest[2], d2);
   vst1q_f32(dest[3], d3);
+}
+
+CGLM_INLINE
+void
+glm_mat4_mulv_neon(mat4 m, vec4 v, vec4 dest) {
+  float32x4_t l0, l1, l2, l3;
+  float32x2_t vlo, vhi;
+  
+  l0  = vld1q_f32(m[0]);
+  l1  = vld1q_f32(m[1]);
+  l2  = vld1q_f32(m[2]);
+  l3  = vld1q_f32(m[3]);
+
+  vlo = vld1_f32(&v[0]);
+  vhi = vld1_f32(&v[2]);
+
+  l0  = vmulq_lane_f32(l0, vlo, 0);
+  l0  = vmlaq_lane_f32(l0, l1, vlo, 1);
+  l0  = vmlaq_lane_f32(l0, l2, vhi, 0);
+  l0  = vmlaq_lane_f32(l0, l3, vhi, 1);
+
+  vst1q_f32(dest, l0);
 }
 
 #endif

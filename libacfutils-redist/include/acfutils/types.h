@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <limits.h>
 
-#include <acfutils/core.h>
+#include "core.h"
 
 #ifdef	__cplusplus
 extern "C" {
@@ -39,10 +39,23 @@ typedef unsigned int bool_t;
 #ifdef	_MSC_VER
 
 #include <basetsd.h>
-#define	ssize_t	SSIZE_T
-#define	restrict
 
-#endif	/* _MSC_VER */
+#ifndef	ssize_t
+#define	ssize_t	SSIZE_T
+#endif
+
+#ifndef	restrict
+#define	restrict
+#endif
+
+#elif	defined(__cplusplus)
+
+/* C++ doesn't understand restrict */
+#ifndef	restrict
+#define	restrict
+#endif
+
+#endif	/* (_MSC_VER) */
 
 #ifdef	__cplusplus
 }

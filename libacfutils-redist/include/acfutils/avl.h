@@ -31,7 +31,7 @@ extern "C" {
 #endif
 
 #include <sys/types.h>
-#include <acfutils/types.h>
+#include "types.h"
 
 #define	_AVL_IMPL_INCLUDED_FROM_AVL_H
 #include "avl_impl.h"
@@ -228,7 +228,7 @@ API_EXPORT extern void *avl_last(const avl_tree_t *tree);
  *	else
  *		less = avl_nearest(tree, where, AVL_BEFORE);
  */
-API_EXPORT extern void *avl_nearest(avl_tree_t *tree, avl_index_t where,
+API_EXPORT extern void *avl_nearest(const avl_tree_t *tree, avl_index_t where,
     int direction);
 
 

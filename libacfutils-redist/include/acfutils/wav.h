@@ -76,13 +76,15 @@ typedef struct wav_s {
 API_EXPORT char **openal_list_output_devs(size_t *num_p);
 API_EXPORT alc_t *openal_init(const char *devname, bool_t shared);
 API_EXPORT alc_t *openal_init2(const char *devname, bool_t shared,
-    const int *attrs, bool_t thread_local);
+    const int *attrs, bool_t thr_local);
 API_EXPORT void openal_fini(alc_t *alc);
 
 API_EXPORT wav_t *wav_load(const char *filename, const char *descr_name,
     alc_t *alc);
 API_EXPORT void wav_free(wav_t *wav);
 
+API_EXPORT void wav_set_offset(wav_t *wav, float offset_sec);
+API_EXPORT float wav_get_offset(wav_t *wav);
 API_EXPORT void wav_set_gain(wav_t *wav, float gain);
 API_EXPORT float wav_get_gain(wav_t *wav);
 API_EXPORT void wav_set_loop(wav_t *wav, bool_t loop);

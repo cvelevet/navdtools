@@ -20,33 +20,83 @@
  * CDDL HEADER END
  */
 /*
- * Copyright 2017 Saso Kiselkov. All rights reserved.
+ * Copyright 2019 Saso Kiselkov. All rights reserved.
  */
 
 #ifndef	_ACFUTILS_CORE_H_
 #define	_ACFUTILS_CORE_H_
 
+#include <stdlib.h>
+
+#include "libconfig.h"
+
 #ifdef	__cplusplus
 extern "C" {
 #endif
 
+#if	defined(__GNUC__) || defined(__clang__)
 #define	UNUSED_ATTR	__attribute__((unused))
+#else
+#define	UNUSED_ATTR
+#endif
 #define	UNUSED(x)	(void)(x)
 
 #define	ACFSYM(__sym__)	__libacfutils_ ## __sym__
 
-#if	(IBM || defined(_MSC_VER)) && ACFUTILS_DLL
+#if	IBM && (!defined(__MINGW32__) || defined(ACFUTILS_DLL))
 #define	API_EXPORT	__declspec(dllexport)
+#ifdef	ACFUTILS_BUILD
 #define	API_EXPORT_DATA	__declspec(dllexport)
-#else	/* !IBM && !defined(_MSC_VER) */
+#else
+#define	API_EXPORT_DATA	__declspec(dllimport)
+#endif
+#else	/* !IBM || (defined(__MINGW32__) && !defined(ACFUTILS_DLL)) */
 #define	API_EXPORT
-#define	API_EXPORT_DATA
-#endif	/* !IBM && !defined(_MSC_VER) */
+#define	API_EXPORT_DATA	extern
+#endif	/* !IBM || (defined(__MINGW32__) && !defined(ACFUTILS_DLL)) */
 
-API_EXPORT extern const char *libacfutils_version;
+#ifdef	__cplusplus
+# ifndef	restrict
+#  if		defined(_MSC_VER)
+#   define	restrict	__restrict
+#  else
+#   define	restrict	__restrict__
+#  endif
+# endif		/* !defined(restrict) */
+#elif	__STDC_VERSION__ < 199901L
+# ifndef	restrict
+#  if	defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER)
+#   define	restrict	__restrict
+#  else
+#   define	restrict
+#  endif
+# endif		/* !defined(restrict) */
+# ifndef	inline
+#  if		defined(_MSC_VER)
+#   define	inline	__inline
+#  else
+#   define	inline
+#  endif
+# endif		/* !defined(inline) */
+#endif	/* __STDC_VERSION__ < 199901L */
 
-#define	lacf_free	ACFSYM(lacf_free)
+API_EXPORT_DATA const char *libacfutils_version;
+
+API_EXPORT void *lacf_malloc(size_t n);
+#define	LACF_DESTROY(ptr) \
+	do { \
+		if ((ptr) != NULL) { \
+			lacf_free((ptr)); \
+			(ptr) = NULL; \
+		} \
+	} while (0)
 API_EXPORT void lacf_free(void *buf);
+
+/*
+ * Simple shorthand for calculating number of elements in an array at
+ * compile time. Useful for arrays with flexible sizing.
+ */
+#define	ARRAY_NUM_ELEM(_array) (sizeof (_array) / sizeof (*(_array)))
 
 #ifdef	__cplusplus
 }

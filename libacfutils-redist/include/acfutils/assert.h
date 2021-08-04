@@ -50,10 +50,9 @@ extern "C" {
 
 #define	VERIFY_MSG(x, fmt, ...) \
 	do { \
-		if (!(x)) { \
+		if (COND_UNLIKELY(!(x))) { \
 			log_impl(log_basename(__FILE__), __LINE__, \
 			    "assertion \"%s\" failed: " fmt, #x, __VA_ARGS__); \
-			log_backtrace(0); \
 			abort(); \
 		} \
 	} while (0)
@@ -64,19 +63,29 @@ extern "C" {
 	do { \
 		type tmp_x = (type)(x); \
 		type tmp_y = (type)(y); \
-		if (!(tmp_x op tmp_y)) { \
+		if (COND_UNLIKELY(!(tmp_x op tmp_y))) { \
 			log_impl(log_basename(__FILE__), __LINE__, \
 			    "assertion %s %s %s failed (" fmt " %s " \
 			    fmt ")", #x, #op, #y, tmp_x, #op, tmp_y); \
-			log_backtrace(0); \
 			abort(); \
 		} \
 	} while (0)
 #define	VERIFY3S(x, op, y)	VERIFY3_impl(x, op, y, long, "%lu")
-#define	VERIFY3U(x, op, y)	VERIFY3_impl(x, op, y, unsigned long, "0x%lx")
+#if	IBM
+#define	VERIFY3U(x, op, y)	\
+	VERIFY3_impl(x, op, y, unsigned long long, "0x%I64x")
+#else	/* !IBM */
+#define	VERIFY3U(x, op, y)	\
+	VERIFY3_impl(x, op, y, unsigned long long, "0x%llx")
+#endif	/* !IBM */
 #define	VERIFY3F(x, op, y)	VERIFY3_impl(x, op, y, double, "%f")
 #define	VERIFY3P(x, op, y)	VERIFY3_impl(x, op, y, void *, "%p")
 #define	VERIFY0(x)		VERIFY3S((x), ==, 0)
+#define	VERIFY_FAIL()		\
+	do { \
+		log_impl(log_basename(__FILE__), __LINE__, "Internal error"); \
+		abort(); \
+	} while (0)
 
 #ifdef	DEBUG
 #define	ASSERT(x)		VERIFY(x)

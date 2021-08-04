@@ -20,18 +20,20 @@
  * CDDL HEADER END
  */
 /*
- * Copyright 2018 Saso Kiselkov. All rights reserved.
+ * Copyright 2021 Saso Kiselkov. All rights reserved.
  */
 
 #ifndef	_ACF_UTILS_HELPERS_H_
 #define	_ACF_UTILS_HELPERS_H_
 
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
 #include <math.h>
 #if	APL || LIN
+#include <sys/stat.h>
 #include <dirent.h>	/* to bring in DIR, opendir, readdir & friends */
 #include <unistd.h>
 #endif
@@ -40,8 +42,13 @@
 #include <windows.h>
 #endif	/* IBM */
 
+#define	_LACF_GETLINE_INCLUDED
+#include "lacf_getline_impl.h"
+#define	_LACF_PARSER_FUNCS_INCLUDED
+#include "parser_funcs.h"
 #include "math_core.h"
 #include "sysmacros.h"
+#include "safe_alloc.h"
 #include "types.h"
 
 #ifdef	__cplusplus
@@ -117,6 +124,16 @@ normalize_hdg(double hdg)
 	return (hdg);
 }
 
+static inline double
+normalize_lon(double lon)
+{
+	while (lon > 180.0)
+		lon -= 360.0;
+	while (lon < -180.0)
+		lon += 360.0;
+	return (clamp(lon, -180, 180));
+}
+
 static inline bool_t
 is_valid_arc_radius(double radius)
 {
@@ -131,6 +148,8 @@ is_valid_bool(bool_t b)
 
 #define	is_valid_icao_code		ACFSYM(is_valid_icao_code)
 API_EXPORT bool_t is_valid_icao_code(const char *icao);
+#define	is_valid_iata_code		ACFSYM(is_valid_iata_code)
+API_EXPORT bool_t is_valid_iata_code(const char *iata);
 #define	extract_icao_country_code	ACFSYM(extract_icao_country_code)
 API_EXPORT const char *extract_icao_country_code(const char *icao);
 
@@ -138,10 +157,22 @@ API_EXPORT const char *extract_icao_country_code(const char *icao);
 API_EXPORT bool_t is_valid_xpdr_code(int code);
 #define	is_valid_vor_freq	ACFSYM(is_valid_vor_freq)
 API_EXPORT bool_t is_valid_vor_freq(double freq_mhz);
+static inline bool_t is_valid_vor_freq_hz(uint32_t freq_hz)
+{
+	return (is_valid_vor_freq(freq_hz / 1000000.0));
+}
 #define	is_valid_loc_freq	ACFSYM(is_valid_loc_freq)
 API_EXPORT bool_t is_valid_loc_freq(double freq_mhz);
+static inline bool_t is_valid_loc_freq_hz(uint32_t freq_hz)
+{
+	return (is_valid_loc_freq(freq_hz / 1000000.0));
+}
 #define	is_valid_ndb_freq	ACFSYM(is_valid_ndb_freq)
 API_EXPORT bool_t is_valid_ndb_freq(double freq_khz);
+static inline bool_t is_valid_ndb_freq_hz(uint32_t freq_hz)
+{
+	return (is_valid_ndb_freq(freq_hz / 1000.0));
+}
 #define	is_valid_tacan_freq	ACFSYM(is_valid_tacan_freq)
 API_EXPORT bool_t is_valid_tacan_freq(double freq_mhz);
 #define	is_valid_rwy_ID	ACFSYM(is_valid_rwy_ID)
@@ -152,46 +183,110 @@ API_EXPORT void copy_rwy_ID(const char *src, char dst[4]);
 /* AIRAC date functions */
 #define	airac_cycle2eff_date	ACFSYM(airac_cycle2eff_date)
 API_EXPORT const char *airac_cycle2eff_date(int cycle);
+#define	airac_cycle2eff_date2	ACFSYM(airac_cycle2eff_date2)
+API_EXPORT time_t airac_cycle2eff_date2(int cycle);
 #define	airac_cycle2exp_date	ACFSYM(airac_cycle2exp_date)
-API_EXPORT bool_t airac_cycle2exp_date(int cycle, char buf[16]);
+API_EXPORT bool_t airac_cycle2exp_date(int cycle, char buf[16],
+    time_t *cycle_end_p);
 #define	airac_time2cycle	ACFSYM(airac_time2cycle)
 API_EXPORT int airac_time2cycle(time_t t);
 
 /* CSV file & string processing helpers */
-#define	parser_get_next_line		ACFSYM(parser_get_next_line)
-API_EXPORT ssize_t parser_get_next_line(FILE *fp, char **linep,
-    size_t *linecap, unsigned *linenum);
-#define	parser_get_next_quoted_str	ACFSYM(parser_get_next_quoted_str)
-API_EXPORT char *parser_get_next_quoted_str(FILE *fp);
+/*
+ * Grabs the next non-empty, non-comment line from a file, having stripped
+ * away all leading and trailing whitespace. Any tab characters are also
+ * replaced with spaces.
+ *
+ * @param fp File from which to retrieve the line.
+ * @param linep Line buffer which will hold the new line. If the buffer pointer
+ *	is set to NULL, it will be allocated. If it is not long enough, it
+ *	will be expanded.
+ * @param linecap The capacity of *linep. If set to zero a new buffer is
+ *	allocated.
+ * @param linenum The current line number. Will be advanced by 1 for each
+ *	new line read.
+ *
+ * @return The number of characters in the line (after stripping whitespace)
+ *	without the terminating NUL.
+ */
+UNUSED_ATTR static ssize_t
+parser_get_next_line(FILE *fp, char **linep, size_t *linecap, unsigned *linenum)
+{
+#ifdef	ACFUTILS_BUILD
+	return (parser_get_next_line_impl(fp, linep, linecap, linenum,
+	    B_FALSE));
+#else	/* !defined(ACFUTILS_BUILD) */
+	return (parser_get_next_line_impl(fp, linep, linecap, linenum));
+#endif	/* !defined(ACFUTILS_BUILD) */
+}
+
+#ifdef	ACFUTILS_BUILD
+/*
+ * Same as parser_get_next_line, but for gzip-compressed files.
+ */
+UNUSED_ATTR static ssize_t
+parser_get_next_gzline(void *gz_fp, char **linep, size_t *linecap,
+    unsigned *linenum)
+{
+	return (parser_get_next_line_impl(gz_fp, linep, linecap, linenum,
+	    B_TRUE));
+}
+#endif	/* defined(ACFUTILS_BUILD) */
+
+UNUSED_ATTR static char *
+parser_get_next_quoted_str(FILE *fp)
+{
+	return (parser_get_next_quoted_str2(fp, NULL));
+}
+
 #define	explode_line			ACFSYM(explode_line)
 API_EXPORT ssize_t explode_line(char *line, char delim, char **comps,
     size_t capacity);
-#define	strip_space			ACFSYM(strip_space)
-API_EXPORT void strip_space(char *line);
 #define	append_format			ACFSYM(append_format)
-API_EXPORT void append_format(char **str, size_t *sz, const char *format, ...)
-    PRINTF_ATTR(3);
+API_EXPORT void append_format(char **str, size_t *sz,
+    PRINTF_FORMAT(const char *format), ...) PRINTF_ATTR(3);
+static inline void
+normalize_whitespace(char *str)
+{
+	for (int i = 0, n = strlen(str); i < n; i++) {
+		if (isspace(str[i]))
+			str[i] = ' ';
+	}
+}
 
 /* string processing helpers */
 #define	strsplit			ACFSYM(strsplit)
-API_EXPORT char **strsplit(const char *input, char *sep, bool_t skip_empty,
-    size_t *num);
+API_EXPORT char **strsplit(const char *input, const char *sep,
+    bool_t skip_empty, size_t *num);
+#define	DESTROY_STRLIST(comps, len) \
+	do { \
+		free_strlist((comps), (len)); \
+		(comps) = NULL; \
+		(len) = 0; \
+	} while (0)
 #define	free_strlist			ACFSYM(free_strlist)
 API_EXPORT void free_strlist(char **comps, size_t len);
 #define	unescape_percent		ACFSYM(unescape_percent)
 API_EXPORT void unescape_percent(char *str);
 
 #define	mkpathname			ACFSYM(mkpathname)
-API_EXPORT char *mkpathname(const char *comp, ...);
+API_EXPORT char *mkpathname(const char *comp, ...) SENTINEL_ATTR;
 #define	mkpathname_v			ACFSYM(mkpathname_v)
 API_EXPORT char *mkpathname_v(const char *comp, va_list ap);
 #define	fix_pathsep			ACFSYM(fix_pathsep)
 API_EXPORT void fix_pathsep(char *str);
 
+#define	path_last_comp_subst		ACFSYM(path_last_comp_subst)
+API_EXPORT char *path_last_comp_subst(const char *path, const char *replace);
+#define	path_last_comp			ACFSYM(path_last_comp)
+API_EXPORT char *path_last_comp(const char *path);
+#define	path_ext_subst			ACFSYM(path_ext_subst)
+API_EXPORT char *path_ext_subst(const char *path, const char *ext);
+
 #define	file2str			ACFSYM(file2str)
-API_EXPORT char *file2str(const char *comp, ...);
+API_EXPORT char *file2str(const char *comp, ...) SENTINEL_ATTR;
 #define	file2str_ext			ACFSYM(file2str_ext)
-API_EXPORT char *file2str_ext(long *len_p, const char *comp, ...);
+API_EXPORT char *file2str_ext(long *len_p, const char *comp, ...) SENTINEL_ATTR;
 #define	file2str_name			ACFSYM(file2str_name)
 API_EXPORT char *file2str_name(long *len_p, const char *filename);
 #define	file2buf			ACFSYM(file2buf)
@@ -209,37 +304,117 @@ API_EXPORT ssize_t filesz(const char *filename);
 static inline void
 lacf_strlcpy(char *restrict dest, const char *restrict src, size_t cap)
 {
+	size_t l;
+
+	ASSERT(cap != 0);
+	/*
+	 * We MUSTN'T use strlen here, because src may be SIGNIFICANTLY
+	 * larger than dest and we don't want to measure the ENTIRE body
+	 * of src. We only care for length UP TO the destination capacity.
+	 */
+	for (l = 0; l + 1 < cap && src[l] != '\0'; l++)
+		;
+	/*
+	 * Due to a bug in GCC, we can't use strncpy, as it sometimes throws
+	 * "call to __builtin___strncpy_chk will always overflow destination
+	 * buffer", even when it's absolutely NOT the case.
+	 */
+	memcpy(dest, src, MIN(cap - 1, l + 1));
+	/* Insure the string is ALWAYS terminated */
 	dest[cap - 1] = '\0';
-	strncpy(dest, src, cap - 1);
 }
 
+static inline const char *
+lacf_basename(const char *str)
+{
+	const char *sep = strrchr(str, DIRSEP);
+
 #if	IBM
-#define	getline				ACFSYM(getline)
-API_EXPORT ssize_t getline(char **lineptr, size_t *n, FILE *stream);
+	const char *sep2 = strrchr(str, '/');
+	if (sep2 > sep)
+		sep = sep2;
 #endif	/* IBM */
+
+	if (sep == NULL)
+		return (str);
+	return (&sep[1]);
+}
+
+/*
+ * C getline is a POSIX function, so on Windows, we need to roll our own.
+ */
+UNUSED_ATTR static ssize_t
+lacf_getline(char **line_p, size_t *cap_p, FILE *fp)
+{
+#ifdef	ACFUTILS_BUILD
+	return (lacf_getline_impl(line_p, cap_p, fp, B_FALSE));
+#else
+	return (lacf_getline_impl(line_p, cap_p, fp));
+#endif
+}
+
+#if	IBM && (defined(_GNU_SOURCE) || defined(_POSIX_C_SOURCE))
+#define	getline				lacf_getline
+#endif	/* IBM && (defined(_GNU_SOURCE) || defined(_POSIX_C_SOURCE)) */
 
 #define	strtolower			ACFSYM(strtolower)
 API_EXPORT void strtolower(char *str);
 #define	strtoupper			ACFSYM(strtoupper)
 API_EXPORT void strtoupper(char *str);
 
+#define	sprintf_alloc			ACFSYM(sprintf_alloc)
+static inline char *sprintf_alloc(PRINTF_FORMAT(const char *fmt), ...)
+    PRINTF_ATTR(1);
+
+#define	vsprintf_alloc			ACFSYM(vsprintf_alloc)
+static inline char *vsprintf_alloc(const char *fmt, va_list ap);
+
 static inline char *
 sprintf_alloc(const char *fmt, ...)
 {
 	va_list ap;
-	int l;
 	char *str;
 
+	ASSERT(fmt != NULL);
+
 	va_start(ap, fmt);
-	l = vsnprintf(NULL, 0, fmt, ap);
-	va_end(ap);
-	ASSERT(l >= 0);
-	str = (char *)malloc(l + 1);
-	va_start(ap, fmt);
-	VERIFY3S(vsnprintf(str, l + 1, fmt, ap), ==, l);
+	str = vsprintf_alloc(fmt, ap);
 	va_end(ap);
 
 	return (str);
+}
+
+static inline char *
+vsprintf_alloc(const char *fmt, va_list ap)
+{
+	va_list ap2;
+	int l;
+	char *str;
+
+	ASSERT(fmt != NULL);
+
+	va_copy(ap2, ap);
+	l = vsnprintf(NULL, 0, fmt, ap2);
+	va_end(ap2);
+
+	ASSERT(l >= 0);
+	str = (char *)safe_malloc(l + 1);
+	VERIFY3S(vsnprintf(str, l + 1, fmt, ap), ==, l);
+
+	return (str);
+}
+
+static inline int
+fixed_decimals(double x, int digits)
+{
+	if (x > -1e-10 && x < 1e-10)
+		return (MAX(digits - 1, 0));
+	if (x < 0)
+		x *= -1;
+	/* This avoids the leading "0." not counting to the digit number */
+	if (x < 1)
+		digits = MAX(digits - 1, 0);
+	return (clampi(digits - ceil(log10(x)), 0, digits));
 }
 
 #define	utf8_charlen	ACFSYM(utf8_charlen)
@@ -278,7 +453,7 @@ API_EXPORT bool_t remove_file(const char *filename, bool_t notfound_ok);
 
 API_EXPORT char *lacf_dirname(const char *filename);
 
-#if	IBM
+#if	IBM && (defined(_GNU_SOURCE) || defined(_POSIX_C_SOURCE))
 
 /* A minimally compatible POSIX-style directory reading implementation */
 struct dirent {
@@ -303,18 +478,27 @@ API_EXPORT void closedir(DIR *dirp);
 #define	stat		ACFSYM(stat)
 struct stat {
 	uint64_t	st_size;
-	uint64_t	st_atime;
-	uint64_t	st_mtime;
+	time_t		st_atime;
+	time_t		st_mtime;
 };
 API_EXPORT int stat(const char *pathname, struct stat *buf);
 #endif	/* !defined(_MSC_VER) */
 
-#define	win_perror	ACFSYM(win_perror)
-API_EXPORT void win_perror(DWORD err, const char *fmt, ...) PRINTF_ATTR(2);
-
 #define	sleep(x)	SleepEx((x) * 1000, FALSE)
+#define	usleep(x)	SleepEx((x) / 1000, FALSE)
+
+#endif	/* IBM && (defined(_GNU_SOURCE) || defined(_POSIX_C_SOURCE)) */
+
+#if	IBM
+
+#define	win_perror	ACFSYM(win_perror)
+API_EXPORT void win_perror(DWORD err, PRINTF_FORMAT(const char *fmt), ...)
+    PRINTF_ATTR(2);
 
 #endif	/* IBM */
+
+API_EXPORT void lacf_qsort_r(void *base, size_t nmemb, size_t size,
+    int (*compar)(const void *, const void *, void *), void *arg);
 
 #ifdef	__cplusplus
 }
