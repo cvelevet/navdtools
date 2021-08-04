@@ -6,7 +6,7 @@ ND_INCLUDE = -I$(SOURCE_DIR)
 XP_INCLUDE = -I$(SOURCE_SDK)/CHeaders
 XP_LD_LIBS = -F$(SOURCE_SDK)/Libraries/Mac -framework XPLM -framework XPWidgets -framework CoreFoundation -framework CoreGraphics -framework OpenGL
 XPCPPFLAGS = -DXPLM200 -DXPLM210 -DAPL=1 -DIBM=0 -DLIN=0
-CFLAGS     = -O3 -std=c99 -mmacosx-version-min=10.10
+CFLAGS     = -O3 -std=c99 -mmacosx-version-min=10.13
 TARGETARCH = -arch x86_64
 CC         = clang
 CPPFLAGS   =
