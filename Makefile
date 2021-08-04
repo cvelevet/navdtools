@@ -6,7 +6,7 @@ NDTINCLUDE = -I$(SOURCE_DIR)
 SDKINCLUDE = -I$(SOURCE_SDK)/CHeaders
 SDKLDPATHS = -F$(SOURCE_SDK)/Libraries/Mac
 SDKLDLINKS = -framework XPLM -framework XPWidgets -framework CoreFoundation -framework CoreGraphics
-CFLAGS     = -O3 -std=c99 -mmacosx-version-min=10.10
+CFLAGS     = -O3 -std=c99 -mmacosx-version-min=10.13
 TARGETARCH = -arch x86_64
 GITVERSION = $(shell find . -name ".git" -type d -exec git describe --long --always --dirty=/m --abbrev=1 --tags \;)
 
