@@ -1,12 +1,12 @@
 SOURCE_DIR = src
-SOURCE_SDK = XPSDK213
+SOURCE_SDK = XPSDK303
 NDCONV_EXE = navdconv
 NAVP_XPDLL = navP.xpl
 NDTINCLUDE = -I$(SOURCE_DIR)
 SDKINCLUDE = -I$(SOURCE_SDK)/CHeaders
 SDKLDPATHS = -F$(SOURCE_SDK)/Libraries/Mac
 SDKLDLINKS = -framework XPLM -framework XPWidgets -framework CoreFoundation -framework CoreGraphics
-CFLAGS     = -O3 -std=c99 -mmacosx-version-min=10.9
+CFLAGS     = -O3 -std=c99 -mmacosx-version-min=10.10
 TARGETARCH = -arch x86_64
 GITVERSION = $(shell find . -name ".git" -type d -exec git describe --long --always --dirty=/m --abbrev=1 --tags \;)
 
