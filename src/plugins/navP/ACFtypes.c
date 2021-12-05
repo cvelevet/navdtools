@@ -133,8 +133,7 @@ static void toliss_info_reset(acf_info_context *info)
 {
     if (info)
     {
-        if (info->ac_type == ACF_TYP_A319_TL ||
-            info->ac_type == ACF_TYP_A321_TL)
+        if ((info->ac_type & ACF_TYP_MASK_TOL))
         {
             info->toliss.initialized = 0;
             info->toliss.npax = NULL;
@@ -154,8 +153,7 @@ static int toliss_info_init(acf_info_context *info)
 {
     if (info)
     {
-        if (info->ac_type == ACF_TYP_A319_TL ||
-            info->ac_type == ACF_TYP_A321_TL)
+        if ((info->ac_type & ACF_TYP_MASK_TOL))
         {
             if (info->toliss.initialized != 1)
             {
@@ -440,17 +438,22 @@ acf_info_context* acf_type_info_update()
             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(  "XP10.ToLiss.A321.systems") ||
             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(  "XP11.ToLiss.A321.systems"))
         {
-            if (!STRN_CASECMP_AUTO(global_info->descrp, "A319") &&
-                !STRN_CASECMP_AUTO(global_info->icaoid, "A319"))
+            if (!STRN_CASECMP_AUTO(global_info->icaoid, "A319"))
             {
                 global_info->ac_type = ACF_TYP_A319_TL;
                 toliss_info_reset(global_info);
                 break;
             }
-            if (!STRN_CASECMP_AUTO(global_info->descrp, "A321") &&
-                !STRN_CASECMP_AUTO(global_info->icaoid, "A321"))
+            if (!STRN_CASECMP_AUTO(global_info->icaoid, "A321") ||
+                !STRN_CASECMP_AUTO(global_info->icaoid, "A21N"))
             {
                 global_info->ac_type = ACF_TYP_A321_TL;
+                toliss_info_reset(global_info);
+                break;
+            }
+            if (!STRN_CASECMP_AUTO(global_info->icaoid, "A346"))
+            {
+                global_info->ac_type = ACF_TYP_A346_TL;
                 toliss_info_reset(global_info);
                 break;
             }
@@ -720,6 +723,7 @@ acf_info_context* acf_type_info_update()
         case ACF_TYP_A320_FF:
         case ACF_TYP_A319_TL:
         case ACF_TYP_A321_TL:
+        case ACF_TYP_A346_TL:
         case ACF_TYP_A350_FF:
         case ACF_TYP_B737_EA:
         case ACF_TYP_B737_XG:
@@ -990,6 +994,16 @@ int acf_type_load_set(acf_info_context *info, float *weight)
                 max_cargo_aft = 7167.0f;
 //              max_pax_count = 170; // ceil((79,200 - 5600 - 7100 - 49,500) / 100)
                 max_pax_count = 174; // ceil((77,800 - 5600 - 7100 - 47,700) / 100)
+                break;
+            case ACF_TYP_A346_TL:
+                /*
+                 *  Pseudo-random value between 0.4375f (somewhat forward) and 0.6875f (somewhat aft).
+                 */
+                srand(time(NULL));
+                pax_dist_zfcg = 0.4375f + (0.6875f - 0.4375f) * rand() / (float)RAND_MAX;
+                max_cargo_fwd = 30482.0f;
+                max_cargo_aft = 26329.0f;
+                max_pax_count = 328; // ceil(((251,000 - 185,500) / 2) / 100)
                 break;
             default:
                 return EINVAL;
