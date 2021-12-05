@@ -361,6 +361,7 @@ void acf_volume_set(acf_volume_context *ctx, float volume, acf_type type)
         {
             case ACF_TYP_A319_TL:
             case ACF_TYP_A321_TL:
+            case ACF_TYP_A346_TL:
                 if (ctx->x_plane_v11)
                 {
                     XPLMSetDataf(ctx->sound.xp11.mas, 2.0f * volume);

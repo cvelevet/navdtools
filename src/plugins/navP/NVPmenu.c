@@ -1095,6 +1095,7 @@ static void wb_handler(menu_context *ctx)
     {
         case ACF_TYP_A319_TL:
         case ACF_TYP_A321_TL:
+        case ACF_TYP_A346_TL:
         case ACF_TYP_A350_FF:
         case ACF_TYP_A320_FF:
         case ACF_TYP_B737_XG:
@@ -1786,7 +1787,8 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
             float current_load; acf_type_load_get(ctx->data.refuel_dialg.ic, &current_load);
             float current_zfwt; acf_type_zfwt_get(ctx->data.refuel_dialg.ic, &current_zfwt);
             if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A319_TL ||
-                ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A321_TL)
+                ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A321_TL ||
+                ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A346_TL)
             {
                 if (fabsf(target_zero_weight - current_zfwt) > LOAD_MINIMUM_DIFF)
                 {
@@ -1884,7 +1886,8 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
                 }
             }
             if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A319_TL ||
-                ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A321_TL)
+                ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A321_TL ||
+                ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_A346_TL)
             {
                 if (XPIsWidgetVisible(inWidget))
                 {

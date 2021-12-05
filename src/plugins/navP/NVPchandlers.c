@@ -1484,6 +1484,7 @@ int nvp_chandlers_update(void *inContext)
 
         case ACF_TYP_A319_TL:
         case ACF_TYP_A321_TL:
+        case ACF_TYP_A346_TL:
             ctx->otto.conn.cc.name = "toliss_airbus/ap1_push";
             ctx->otto.disc.cc.name = "toliss_airbus/ap_disc_left_stick";
             ctx->throt.throttle = XPLMFindDataRef("AirbusFBW/throttle_input");
@@ -3713,6 +3714,7 @@ static int toliss_throttle_set(XPLMDataRef throttle, int acf_type, float next)
     {
         case ACF_TYP_A319_TL:
         case ACF_TYP_A321_TL:
+        case ACF_TYP_A346_TL:
             XPLMSetDatavf(throttle, &next, 4, 1);
             break;
 
@@ -3773,6 +3775,7 @@ static int nvp_throttle_all(refcon_thrust *t, const float *presets, int directio
         {
             case ACF_TYP_A319_TL:
             case ACF_TYP_A321_TL:
+            case ACF_TYP_A346_TL:
             case ACF_TYP_A350_FF:
                 XPLMGetDatavf(t->throttle, l, 0, 2);
                 current = ((l[0] + l[1]) / 2.0f);
@@ -3787,6 +3790,7 @@ static int nvp_throttle_all(refcon_thrust *t, const float *presets, int directio
         {
             case ACF_TYP_A319_TL:
             case ACF_TYP_A321_TL:
+            case ACF_TYP_A346_TL:
             case ACF_TYP_A350_FF:
                 return toliss_throttle_set(t->throttle, t->info->ac_type, custom_detents_toliss(next, direction));
 
@@ -3845,6 +3849,7 @@ static int chandler_thrdn(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 case ACF_TYP_A319_TL:
                 case ACF_TYP_A321_TL:
+                case ACF_TYP_A346_TL:
                 case ACF_TYP_A350_FF:
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets1_toli, NVP_DIRECTION_DN);
                 case ACF_TYP_CL30_DD:
@@ -3893,6 +3898,7 @@ static int chandler_thrup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 case ACF_TYP_A319_TL:
                 case ACF_TYP_A321_TL:
+                case ACF_TYP_A346_TL:
                 case ACF_TYP_A350_FF:
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets1_toli, NVP_DIRECTION_UP);
                 case ACF_TYP_CL30_DD:
@@ -3941,6 +3947,7 @@ static int chandler_thrul(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 case ACF_TYP_A319_TL:
                 case ACF_TYP_A321_TL:
+                case ACF_TYP_A346_TL:
                 case ACF_TYP_A350_FF:
                     return nvp_throttle_all(inRefcon, nvp_thrust_presets2_toli, NVP_DIRECTION_UP);
                 case ACF_TYP_CL30_DD:
@@ -4287,6 +4294,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
                 case ACF_TYP_A319_TL:
                 case ACF_TYP_A321_TL:
+                case ACF_TYP_A346_TL:
                     if (NULL == (cdu->command[0] = XPLMFindCommand("AirbusFBW/UndockMCDU1"     )) ||
                         NULL == (cdu->command[1] = XPLMFindCommand("AirbusFBW/UndockMCDU2"     )) ||
                         NULL == (cdu->dataref[0] = XPLMFindDataRef("AirbusFBW/PopUpHeightArray")) ||
@@ -4742,6 +4750,7 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         {
             case ACF_TYP_A319_TL:
             case ACF_TYP_A321_TL:
+            case ACF_TYP_A346_TL:
             {
                 int PopUpHeightArray[2]; XPLMGetDatavi(cdu->dataref[0], PopUpHeightArray, 0, 2);
                 if (PopUpHeightArray[0] <= 0 && PopUpHeightArray[1] <= 0) // both popups hidden
@@ -5805,6 +5814,7 @@ static int first_fcall_do(chandler_context *ctx)
         case ACF_TYP_A319_TL:
         case ACF_TYP_A320_FF:
         case ACF_TYP_A321_TL:
+        case ACF_TYP_A346_TL:
         case ACF_TYP_A350_FF:
             _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_heading_augment");
             _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_pitch_augment");
@@ -5864,6 +5874,7 @@ static int first_fcall_do(chandler_context *ctx)
 
         case ACF_TYP_A319_TL:
         case ACF_TYP_A321_TL:
+        case ACF_TYP_A346_TL:
             if (acf_type_is_engine_running() == 0) // cold & dark
             {
                 switch (ctx->info->ac_type)
@@ -5880,12 +5891,14 @@ static int first_fcall_do(chandler_context *ctx)
                         float fuel = 4200.0f; acf_type_fuel_set(ctx->info, &fuel);
                         break;
                     }
-                    default:
+                    case ACF_TYP_A346_TL:
                     {
-                        float load = 700.00f; acf_type_load_set(ctx->info, &load);
-                        float fuel = 4200.0f; acf_type_fuel_set(ctx->info, &fuel);
+                        float load = 1500.0f; acf_type_load_set(ctx->info, &load);
+                        float fuel = 8400.0f; acf_type_fuel_set(ctx->info, &fuel);
                         break;
                     }
+                    default:
+                        break;
                 }
                 _DO(1, XPLMSetDatai, 0, "AirbusFBW/GroundLPAir");                   // lo pressure ground air: off
                 _DO(1, XPLMSetDatai, 0, "AirbusFBW/GroundHPAir");                   // hi pressure ground air: off
@@ -5918,7 +5931,7 @@ static int first_fcall_do(chandler_context *ctx)
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/EFIS/EFIS_2_selection_pilot");    // VOR2 on ND1 off
             _DO(0, XPLMSetDatai, 1, "sim/cockpit2/radios/actuators/audio_selection_com1"); // C1:TX/RX
             _DO(0, XPLMSetDatai, 6, "sim/cockpit2/radios/actuators/audio_com_selection");  // C1:TX/RX
-            if (ctx->info->ac_type == ACF_TYP_A319_TL || ctx->info->ac_type == ACF_TYP_A321_TL)
+            if (ctx->info->ac_type == ACF_TYP_A319_TL || ctx->info->ac_type == ACF_TYP_A321_TL || ctx->info->ac_type == ACF_TYP_A346_TL)
             {
                 float PopUpScale[9] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, };
                 int   PopUpXArry[9] = {  962, 1377,    0,  500,  500,    0, 1292,  792,  300, };
@@ -7322,6 +7335,7 @@ static int first_fcall_do(chandler_context *ctx)
             break;
         case ACF_TYP_A319_TL:
         case ACF_TYP_A321_TL:
+        case ACF_TYP_A346_TL:
             _DO(1, XPLMSetDatai, 2, "AirbusFBW/XPDR4");
             _DO(1, XPLMSetDatai, 0, "AirbusFBW/XPDR3");
             _DO(1, XPLMSetDatai, 0, "AirbusFBW/XPDR2");
@@ -7446,7 +7460,7 @@ static int first_fcall_do(chandler_context *ctx)
     {
         XPLMUnregisterFlightLoopCallback(ctx->ground.flc_g, &ctx->ground);
     }
-    if (XPLMFindDataRef("sim/version/xplane_internal_version"))//fixme
+    if (XPLMFindDataRef("sim/version/xplane_internal_version"))
     {
         if (ctx->menu_context)
         {
