@@ -1660,13 +1660,17 @@ int nvp_chandlers_update(void *inContext)
                     ctx->otto.clmb.rc.ap_toga = NULL;
                 }
             }
+            else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "DA62"))
+            {
+                ctx->otto.clmb.rc.init_cl_speed = 93.0f;
+            }
             else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "EA50"))
             {
                 if ((d_ref = XPLMFindDataRef("sim/cockpit2/autopilot/TOGA_pitch_deg")))
                 {
                     XPLMSetDataf(d_ref, 10.0f);
                 }
-                ctx->otto.clmb.rc.init_cl_speed = 160.0f; // SkyView
+                ctx->otto.clmb.rc.init_cl_speed = 160.0f;
             }
             else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "EPIC"))
             {
@@ -1674,10 +1678,7 @@ int nvp_chandlers_update(void *inContext)
                 {
                     XPLMSetDataf(d_ref, 10.0f);
                 }
-                if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim.sasl"))
-                {
-                    ctx->otto.clmb.rc.init_cl_speed = 160.0f; // SkyView (G1000 version: custom SASL signature)
-                } // else G1000 (FLC speed sync, defsult climb speed pointless)
+                ctx->otto.clmb.rc.init_cl_speed = 160.0f;
             }
             else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "EVIC"))
             {
@@ -1685,14 +1686,11 @@ int nvp_chandlers_update(void *inContext)
                 {
                     XPLMSetDataf(d_ref, 10.0f);
                 }
-                if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("1-sim.sasl"))
-                {
-                    ctx->otto.clmb.rc.init_cl_speed = 160.0f; // SkyView (G1000 version: custom SASL signature)
-                } // else G1000 (FLC speed sync, defsult climb speed pointless)
+                ctx->otto.clmb.rc.init_cl_speed = 160.0f;
             }
             else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "LEG2"))
             {
-                ctx->otto.clmb.rc.init_cl_speed = 120.0f; // AviDyne
+                ctx->otto.clmb.rc.init_cl_speed = 120.0f;
             }
             else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "PC12"))
             {
@@ -1706,10 +1704,11 @@ int nvp_chandlers_update(void *inContext)
                      */
                     XPLMSetDataf(d_ref, 7.5f);
                 }
+                ctx->otto.clmb.rc.init_cl_speed = 130.0f; // https://contentzone.eurocontrol.int/aircraftperformance/details.aspx?ICAO=PC12&
             }
             else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "PIPA"))
             {
-                ctx->otto.clmb.rc.init_cl_speed = 120.0f; // SkyView
+                ctx->otto.clmb.rc.init_cl_speed = 135.0f; // https://www.flyingmag.com/we-fly-pipistrel-panthera/
             }
             ctx->throt.throttle = ctx->ground.thrott_all;
             break;
@@ -4537,12 +4536,14 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                         {
                             if (!STRN_CASECMP_AUTO(cdu->icao, "DA62"))
                             {
-                                if ((cdu->command[0] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
-                                    (cdu->command[1] = XPLMFindCommand("sim/GPS/g1000n3_popup")))
+                                if ((cdu->command[0] = XPLMFindCommand("aerobask/gcu476_popup_show")) &&
+                                    (cdu->command[1] = XPLMFindCommand("aerobask/gcu476_popup_hide")) &&
+                                    (cdu->command[2] = XPLMFindCommand("sim/GPS/g1000n1_popup")) &&
+                                    (cdu->command[3] = XPLMFindCommand("sim/GPS/g1000n3_popup")))
                                 {
                                     cdu->i_cycle_id = 0;
-                                    cdu->i_cycletyp = 1; // MD-302 + GFC700 + G1000 (x2)
-                                    cdu->i_disabled = 0; break; // Aerobask G1000 (DA62)
+                                    cdu->i_cycletyp = 1; // GCU476 + MD-302 + GFC700 + G1000 (x2)
+                                    cdu->i_disabled = 0; break; // Aerobask G1000 (DA62 ver.2.0+)
                                 }
                             }
                             if (!STRN_CASECMP_AUTO(cdu->icao, "EPIC") ||
@@ -4954,20 +4955,29 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     switch (cdu->i_cycle_id)
                     {
                         case 0:
-                            XPLMCommandOnce(cdu->command[1]); // G1000: Ct display (show below)
-                            XPLMCommandOnce(cdu->command[0]); // G1000: Lt display (show above)
+                            XPLMCommandOnce(cdu->command[3]); // G1000: Ct display (show below)
+                            XPLMCommandOnce(cdu->command[2]); // G1000: Lt display (show above)
+                            XPLMCommandOnce(cdu->command[1]); // GCU-476: keyboard (hide)
                             cdu->i_cycle_id = 1;
                             break;
                         case 1:
-                            XPLMCommandOnce(cdu->command[1]); // G1000: Ct display (hide first)
-                            XPLMCommandOnce(cdu->command[1]); // G1000: Ct display (show above)
-//                          XPLMCommandOnce(cdu->command[0]); // G1000: Lt display (show) (already showing, we only have a toggle command)
+                            XPLMCommandOnce(cdu->command[3]); // G1000: Ct display (hide first)
+                            XPLMCommandOnce(cdu->command[3]); // G1000: Ct display (show above)
+//                          XPLMCommandOnce(cdu->command[2]); // G1000: Lt display (show) (already showing, we only have a toggle command)
+                            XPLMCommandOnce(cdu->command[1]); // GCU-476: keyboard (hide)
                             cdu->i_cycle_id = 2;
                             break;
                         case 2:
+//                          XPLMCommandOnce(cdu->command[3]); // G1000: Ct display (show) (already showing, we only have a toggle command)
+//                          XPLMCommandOnce(cdu->command[2]); // G1000: Lt display (show) (already showing, we only have a toggle command)
+                            XPLMCommandOnce(cdu->command[0]); // GCU-476: keyboard (show above)
+                            cdu->i_cycle_id = 3;
+                            break;
+                        case 3:
                         default:
-                            XPLMCommandOnce(cdu->command[0]); // G1000: Lt display (hide)
-                            XPLMCommandOnce(cdu->command[1]); // G1000: Ct display (hide)
+                            XPLMCommandOnce(cdu->command[3]); // G1000: Ct display (hide)
+                            XPLMCommandOnce(cdu->command[2]); // G1000: Lt display (hide)
+                            XPLMCommandOnce(cdu->command[1]); // GCU-476: keyboard (hide)
                             cdu->i_cycle_id = 0;
                             break;
                     }
