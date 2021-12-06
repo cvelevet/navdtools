@@ -5910,9 +5910,13 @@ static int first_fcall_do(chandler_context *ctx)
                     default:
                         break;
                 }
+                if (ctx->info->ac_type == ACF_TYP_A346_TL)
+                {
+                    _DO(1, XPLMSetDatai, 1, "AirbusFBW/EnableExternalPowerB");      // ensure we have ground power
+                }
+                _DO(1, XPLMSetDatai, 1, "AirbusFBW/EnableExternalPower");           // ensure we have ground power
                 _DO(1, XPLMSetDatai, 0, "AirbusFBW/GroundLPAir");                   // lo pressure ground air: off
                 _DO(1, XPLMSetDatai, 0, "AirbusFBW/GroundHPAir");                   // hi pressure ground air: off
-                _DO(1, XPLMSetDatai, 1, "AirbusFBW/EnableExternalPower");           // ensure we have ground power
             }
             if ((d_ref = XPLMFindDataRef("AirbusFBW/DUBrightness")))
             {
@@ -5924,7 +5928,10 @@ static int first_fcall_do(chandler_context *ctx)
                 _DO(1, XPLMSetDataf, 0.8f, "AirbusFBW/WXAlphaND1");                 // ND1 weather to 80%
                 _DO(1, XPLMSetDataf, 0.8f, "AirbusFBW/WXAlphaND2");                 // ND2 weather to 80%
             }
-            _DO(1, XPLMSetDatai, 1, "params/wheel");                                // use scrollwheel
+            if (ctx->info->ac_type != ACF_TYP_A346_TL)
+            {
+                _DO(1, XPLMSetDatai, 1, "params/wheel");                            // use scrollwheel
+            }
             _DO(1, XPLMSetDatai, 0, "AirbusFBW/ALT100_1000");                       // FCU alt. sel. incre. (100ft)
             _DO(1,XPLMSetDataf,1.0f,"AirbusFBW/AuralVolume");                       // Loudspeaker vol. (cap. side)
             _DO(1,XPLMSetDataf,1.0f,"AirbusFBW/AuralVolumeFO");                     // Loudspeaker vol. (f/o. side)
