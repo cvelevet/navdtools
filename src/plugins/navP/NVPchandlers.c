@@ -7237,7 +7237,7 @@ static int first_fcall_do(chandler_context *ctx)
                     {
                         x1000 = 1;
                         _DO(0, XPLMSetDataf,           0.0f, "aerobask/tablet/anim_x");
-                        _DO(0, XPLMSetDataf, 73.0f / 150.0f, "aerobask/tablet/anim_z");
+                        _DO(0, XPLMSetDataf, 73.0f / 150.0f, "aerobask/tablet/anim_y");
                     }
                     else if (!strcasecmp(ctx->info->icaoid, "EA50"))
                     {
