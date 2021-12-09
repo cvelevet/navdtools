@@ -6768,9 +6768,15 @@ static int first_fcall_do(chandler_context *ctx)
                 acf_type_load_set(ctx->info, &pload);
                 acf_type_fuel_set(ctx->info, &fuelq);
             }
-            _DO(0, XPLMSetDatai, 0, "aerobask/show_reflections_instruments");
-            _DO(0, XPLMSetDatai, 0, "aerobask/show_reflections_windows");
-            _DO(1, XPLMSetDatai, 0, "sim/graphics/view/hide_yoke");
+            _DO(0, XPLMSetDatai,   0, "aerobask/show_reflections_instruments");
+            _DO(0, XPLMSetDatai,   0, "aerobask/show_reflections_windows");
+            _DO(1, XPLMSetDatai,   0, "sim/graphics/view/hide_yoke");
+            _DO(0, XPLMSetDatai, 138, "aerobask/vspeed/vfst");
+            _DO(0, XPLMSetDatai, 132, "aerobask/vspeed/vfsl");
+            _DO(0, XPLMSetDatai, 117, "aerobask/vspeed/vref");
+            _DO(0, XPLMSetDatai, 127, "aerobask/vspeed/vac");
+            _DO(0, XPLMSetDatai, 115, "aerobask/vspeed/v1r");
+            _DO(0, XPLMSetDatai, 120, "aerobask/vspeed/v2");
             nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             nvp_x1000_setup();
             break;
