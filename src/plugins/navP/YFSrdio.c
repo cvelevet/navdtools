@@ -747,7 +747,7 @@ static int has_transponder_mode(yfms_context *yfms, int mode)
 
         case XPDR_AUT:
             return (yfms->xpl.atyp == YFS_ATYP_ASRT ||
-                    yfms->xpl.atyp == YFS_ATYP_IXEG);
+                    yfms->xpl.atyp == YFS_ATYP_IXEG || (yfms->xpl.atyp == YFS_ATYP_TOLI && yfms->xpl.qpac.xpdr_panel_typ2));
 
         case XPDR_GND:
             return (yfms->xpl.atyp == YFS_ATYP_ASRT ||
@@ -855,6 +855,30 @@ static int get_transponder_mode(yfms_context *yfms)
     }
     if (yfms->xpl.atyp == YFS_ATYP_TOLI)
     {
+        if (yfms->xpl.qpac.xpdr_panel_typ2) // A346
+        {
+            if (XPLMGetDatai(yfms->xpl.qpac.XPDRPower) > 0) // AUTO or ON
+            {
+                if (XPLMGetDatai(yfms->xpl.qpac.XPDRTCASMode) > 1) // TA/RA
+                {
+                    return XPDR_TAR;
+                }
+                if (XPLMGetDatai(yfms->xpl.qpac.XPDRTCASMode) > 0) // TA ONLY
+                {
+                    return XPDR_TAO;
+                }
+                if (XPLMGetDatai(yfms->xpl.qpac.XPDRPower) > 1) // ON
+                {
+                    if (XPLMGetDatai(yfms->xpl.qpac.XPDRAltitude) > 0) // ON
+                    {
+                        return XPDR_ALT;
+                    }
+                    return XPDR_GND;
+                }
+                return XPDR_AUT;
+            }
+            return XPDR_SBY;
+        }
         switch (XPLMGetDatai(yfms->xpl.qpac.XPDRPower))
         {
             case 4:
@@ -1022,39 +1046,86 @@ static void set_transponder_mode(yfms_context *yfms, int mode)
     }
     if (yfms->xpl.atyp == YFS_ATYP_TOLI)
     {
+        if (yfms->xpl.qpac.xpdr_panel_typ2) // A346
+        {
+            switch (mode)
+            {
+                case XPDR_OFF:
+                case XPDR_SBY:
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 0); // STBY
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 0); // OFF
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 0); // STBY
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, -1); // THRT
+                    return;
+                case XPDR_AUT:
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 1); // AUTO
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1); // ON
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 0); // STBY
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, -1); // THRT
+                    return;
+                case XPDR_TAO:
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 2); // ON
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1); // ON
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 1); // TA
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 0); // ALL
+                    return;
+                case XPDR_TAR:
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 2); // ON
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1); // ON
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 2); // TA/RA
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 0); // ALL
+                    return;
+                case XPDR_GND:
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 2); // ON
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 0); // OFF
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 0); // STBY
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, -1); // THRT
+                    return;
+                case XPDR_ALT:
+                default:
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 2); // ON
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1); // ON
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 0); // STBY
+                    XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, -1); // THRT
+                    return;
+            }
+        }
         switch (mode)
         {
             case XPDR_OFF:
             case XPDR_SBY:
             case XPDR_AUT:
                 XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 0); // STBY
+                XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 0); // OFF
                 XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 0); // AUTO
-                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
-                break;
+//              XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
+                return;
             case XPDR_TAO:
                 XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 3); // TA ONLY
+                XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1); // ON
                 XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 1); // ON
-                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
-                break;
+//              XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
+                return;
             case XPDR_TAR:
                 XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 4); // TA/RA
+                XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1); // ON
                 XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 1); // ON
-                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
-                break;
+//              XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
+                return;
             case XPDR_GND:
                 XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 1); // ALT RPTG OFF
+                XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 0); // OFF
                 XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 0); // AUTO
-                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
-                break;
+//              XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
+                return;
             case XPDR_ALT:
             default:
                 XPLMSetDatai(yfms->xpl.qpac.XPDRPower, 2); // XPDR
+                XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 1); // ON
                 XPLMSetDatai(yfms->xpl.qpac.XPDRTCASMode, 0); // AUTO
-                XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
-                break;
+//              XPLMSetDatai(yfms->xpl.qpac.XPDRTCASAltSelect, 1); // N
+                return;
         }
-        XPLMSetDatai(yfms->xpl.qpac.XPDRAltitude, 0);
-        return;
     }
     if (yfms->xpl.atyp == YFS_ATYP_FB76)
     {

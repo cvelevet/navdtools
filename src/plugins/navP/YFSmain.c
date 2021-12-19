@@ -1037,6 +1037,7 @@ static void toggle_main_window(yfms_context *yfms)
             yfms->xpl.tekt.HA4T_shared_KIAS       = XPLMFindDataRef("Hawker4000/shared/KIAS_MACH"               );
             yfms->xpl.tekt.E175_mouse_x_pos       = XPLMFindDataRef("XCrafts/ERJ_175/mouse_x_pos"               );
             yfms->xpl.tekt.E195_mouse_x_pos       = XPLMFindDataRef("XCrafts/ERJ_195/mouse_x_pos"               );
+            char icao[5]; icao[XPLMGetDatab(yfms->xpl.acf_ICAO, icao, 0, sizeof(icao) - 1)] = 0;
 
            /*
             * FlightFactor A320 Ultimate
@@ -1123,6 +1124,7 @@ static void toggle_main_window(yfms_context *yfms)
                 yfms->xpl.qpac.com1_sby_hz_833 = XPLMGetDatai(yfms->xpl.com1_standby_frequency_hz_833);
                 yfms->xpl.qpac.com2_sby_hz_833 = XPLMGetDatai(yfms->xpl.com2_standby_frequency_hz_833);
                 yfms->xpl.has_custom_nav_radios= yfms->xpl.has_custom_navigation = 1;
+                yfms->xpl.qpac.xpdr_panel_typ2 = !strncmp(icao, "A34", 3);
                 yfms->xpl.atyp = YFS_ATYP_TOLI; break;
             }
             if (yfms->xpl.q350.pressModeLeft    && yfms->xpl.q350.pressModeRight  &&

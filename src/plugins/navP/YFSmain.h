@@ -558,6 +558,7 @@ typedef struct
         } ixeg;
         struct
         {
+            int xpdr_panel_typ2;
             int com1_sby_hz_833;
             int com2_sby_hz_833;
             XPLMDataRef XPDR[4];
