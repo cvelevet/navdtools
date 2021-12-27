@@ -1724,7 +1724,19 @@ int nvp_chandlers_update(void *inContext)
                      */
                     XPLMSetDataf(d_ref, 7.5f);
                 }
-                ctx->otto.clmb.rc.init_cl_speed = 130.0f; // https://contentzone.eurocontrol.int/aircraftperformance/details.aspx?ICAO=PC12&
+                /*
+                 * REP-pc12-checklists-references.pdf
+                 *     VRE (rotation)               80 KIAS
+                 *     Vx (best angle of climb)    110 KIAS
+                 *     VY (best rate of climb)     120 KIAS
+                 *     VCLIMB (climb airspeeds)
+                 *                      00,000’    160 KIAS
+                 *                      15,000’    150 KIAS
+                 *                      20,000’    140 KIAS
+                 *                      25,000’    130 KIAS
+                 *                      30,000’    115 KIAS
+                 */
+                ctx->otto.clmb.rc.init_cl_speed = 130.0f; // https://contentzone.eurocontrol.int/aircraftperformance/details.aspx?ICAO=PC12
             }
             else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "PIPA"))
             {
