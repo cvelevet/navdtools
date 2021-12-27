@@ -5826,21 +5826,31 @@ static int first_fcall_do(chandler_context *ctx)
         case ACF_TYP_A321_TL:
         case ACF_TYP_A346_TL:
         case ACF_TYP_A350_FF:
-            _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_heading_augment");
-            _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_pitch_augment");
-            _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_roll_augment");
-            break;
-
         case ACF_TYP_E55P_AB:
-            _DO(1, XPLMSetDataf, 1.0f, "sim/joystick/joystick_heading_sensitivity");
-            _DO(1, XPLMSetDataf, 1.0f, "sim/joystick/joystick_pitch_sensitivity");
-            _DO(1, XPLMSetDataf, 1.0f, "sim/joystick/joystick_roll_sensitivity");
+            if (ctx->info->ac_type == ACF_TYP_E55P_AB)
+            {
+                _DO(1, XPLMSetDataf, 1.0f, "sim/joystick/joystick_heading_sensitivity"); // always full non-linear (less sensitive)
+                _DO(1, XPLMSetDataf, 1.0f, "sim/joystick/joystick_pitch_sensitivity");   // always full non-linear (less sensitive)
+                _DO(1, XPLMSetDataf, 1.0f, "sim/joystick/joystick_roll_sensitivity");    // always full non-linear (less sensitive)
+            }
+            else if (ctx->axes.sensitivity[0] >= .75f)
+            {
+                _DO(1, XPLMSetDataf, 0.5f, "sim/joystick/joystick_heading_sensitivity"); // not -> half linear (controller)
+                _DO(1, XPLMSetDataf, 0.5f, "sim/joystick/joystick_pitch_sensitivity");   // not -> half linear (controller)
+                _DO(1, XPLMSetDataf, 0.5f, "sim/joystick/joystick_roll_sensitivity");    // not -> half linear (controller)
+            }
+            else
+            {
+                _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_heading_sensitivity"); // half -> full linear (joystick)
+                _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_pitch_sensitivity");   // half -> full linear (joystick)
+                _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_roll_sensitivity");    // half -> full linear (joystick)
+            }
             _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_heading_augment");
             _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_pitch_augment");
             _DO(1, XPLMSetDataf, 0.0f, "sim/joystick/joystick_roll_augment");
             break;
 
-        default:
+        default: // already gets reset to nominal values earlier
             break;
     }
     switch (ctx->info->ac_type)
