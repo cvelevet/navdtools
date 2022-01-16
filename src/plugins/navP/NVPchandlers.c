@@ -3506,7 +3506,7 @@ static int chandler_r_tog(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     if (inPhase == xplm_CommandEnd)
     {
         int beta = at_least_one_engine_in_beta(inRefcon), reverse = at_least_one_engine_in_reverse(inRefcon);
-        int beta_supported = beta >= 0, reverse_supported = reverse >= 0;
+        int beta_supported = beta >= 0, reverse_supported = reverse >= 0; // above return -1 if unsupported
         int in_beta = beta >= 1, in_reverse = reverse >= 1;
         if (in_beta)
         {

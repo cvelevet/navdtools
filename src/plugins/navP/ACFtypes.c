@@ -428,6 +428,11 @@ acf_info_context* acf_type_info_update()
             global_info->assert.initialized = 0;
             break;
         }
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("hotstart.cl650"))
+        {
+            global_info->ac_type = ACF_TYP_CL60_HS;
+            break;
+        }
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(           "QPAC.airbus.fbw") ||
             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(      "QPAC.A380.airbus.fbw") ||
             XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature(     "ToLiSs.Airbus.systems") ||
@@ -734,6 +739,12 @@ acf_info_context* acf_type_info_update()
         case ACF_TYP_EMBE_XC:
         case ACF_TYP_HA4T_RW:
         case ACF_TYP_MD80_RO:
+            global_info->has_auto_thr = 1;
+            break;
+
+        case ACF_TYP_CL60_HS: // apparently it has engine type 7 (tip rockets) :-D
+            global_info->has_rvrs_thr = 1;
+            global_info->has_beta_thr = 0;
             global_info->has_auto_thr = 1;
             break;
 
