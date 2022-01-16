@@ -5991,6 +5991,7 @@ static int first_fcall_do(chandler_context *ctx)
                 _DO(1, XPLMSetDatai, 1, "AirbusFBW/EnableExternalPower");           // ensure we have ground power
                 _DO(1, XPLMSetDatai, 0, "AirbusFBW/GroundLPAir");                   // lo pressure ground air: off
                 _DO(1, XPLMSetDatai, 0, "AirbusFBW/GroundHPAir");                   // hi pressure ground air: off
+                _DO(1, XPLMSetDatai, 0, "AirbusFBW/Chocks");                        // chocks: we get rid of them!
             }
             if ((d_ref = XPLMFindDataRef("AirbusFBW/DUBrightness")))
             {
