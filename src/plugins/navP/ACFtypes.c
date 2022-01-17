@@ -906,16 +906,38 @@ int acf_type_is_engine_running(void)
 {
     if (global_info && global_info->up_to_date)
     {
-        int nbe, run[9]; XPLMDataRef ref;
-        if ((ref = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running")))
+        if (global_info->ac_type == ACF_TYP_CL60_HS)
         {
-            if ((nbe = XPLMGetDatavi(ref, run, 0, global_info->engine_count)))
+            XPLMDataRef ref;
+            if ((ref = XPLMFindDataRef("CL650/pedestal/throttle/shutoff_L_value")))
             {
-                for (int i = 0; i < nbe && i < global_info->engine_count; i++)
+                if (XPLMGetDatai(ref) > 0)
                 {
-                    if (run[i])
+                    return 1;
+                }
+            }
+            if ((ref = XPLMFindDataRef("CL650/pedestal/throttle/shutoff_R_value")))
+            {
+                if (XPLMGetDatai(ref) > 0)
+                {
+                    return 1;
+                }
+            }
+        }
+        else
+        {
+            XPLMDataRef ref;
+            if ((ref = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running")))
+            {
+                int nbe, run[9];
+                if ((nbe = XPLMGetDatavi(ref, run, 0, global_info->engine_count)))
+                {
+                    for (int i = 0; i < nbe && i < global_info->engine_count; i++)
                     {
-                        return 1;
+                        if (run[i])
+                        {
+                            return 1;
+                        }
                     }
                 }
             }
