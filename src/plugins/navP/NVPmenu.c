@@ -1098,6 +1098,7 @@ static void wb_handler(menu_context *ctx)
         case ACF_TYP_A346_TL:
         case ACF_TYP_A350_FF:
         case ACF_TYP_A320_FF:
+        case ACF_TYP_CL60_HS:
         case ACF_TYP_B737_XG:
             XPShowWidget(ctx->data.refuel_dialg.f_txtl_id);
             XPShowWidget(ctx->data.refuel_dialg.f_txtf_id);
@@ -1748,7 +1749,16 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
             float current_fuel; acf_type_fuel_get(ctx->data.refuel_dialg.ic, &current_fuel);
             float maximum_fuel; acf_type_fmax_get(ctx->data.refuel_dialg.ic, &maximum_fuel);
             float minim_fuel = maximum_fuel / 8.0f; minim_fuel = fminf(minim_fuel, 4000.0f);
-            if (fabsf(target_fuel_weight - current_fuel) > LOAD_MINIMUM_DIFF)
+            if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_CL60_HS)
+            {
+                if (fabsf(target_fuel_weight - current_fuel) > LOAD_MINIMUM_DIFF)
+                {
+                    ndt_log("navP [info]: use Challenger's custom fuel loader (truck)\n");
+                }
+                ctx->data.refuel_dialg.fuel_target_kg = current_fuel;
+                ctx->data.refuel_dialg.adjust_fuel = NVP_MENU_DONE;
+            }
+            else if (fabsf(target_fuel_weight - current_fuel) > LOAD_MINIMUM_DIFF)
             {
                 if (target_fuel_weight > current_fuel)
                 {
@@ -1807,11 +1817,20 @@ static int widget_hdlr1(XPWidgetMessage inMessage,
                     ctx->data.refuel_dialg.adjust_load = NVP_MENU_DONE;
                 }
             }
+            else if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_CL60_HS)
+            {
+                if (fabsf(target_load_weight - current_load) > LOAD_MINIMUM_DIFF)
+                {
+                    ndt_log("navP [info]: use Challenger's custom load manager (FBO)\n");
+                }
+                ctx->data.refuel_dialg.load_target_kg = current_load;
+                ctx->data.refuel_dialg.adjust_load = NVP_MENU_DONE;
+            }
             else if (ctx->data.refuel_dialg.ic->ac_type == ACF_TYP_TBM9_HS)
             {
                 if (fabsf(target_load_weight - current_load) > LOAD_MINIMUM_DIFF)
                 {
-                    ndt_log("navP [info]: use TBM-900's custom load manager\n");
+                    ndt_log("navP [info]: use TBM's custom load manager\n");
                 }
                 ctx->data.refuel_dialg.load_target_kg = current_load;
                 ctx->data.refuel_dialg.adjust_load = NVP_MENU_DONE;

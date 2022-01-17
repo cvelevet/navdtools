@@ -135,6 +135,9 @@ static int acf_radios_set(acf_volume_context *ctx, float volume)
     {
         if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("com.pilotedge.plugin.xplane"))
         {
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.cl60.v1, ctx->custom.atc.pe.vol1);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.cl60.v2, ctx->custom.atc.pe.vol1);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.cl60.v3, ctx->custom.atc.pe.vol1);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v1, ctx->custom.atc.pe.vol1);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v2, ctx->custom.atc.pe.vol1);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v1, ctx->custom.atc.pe.vol1);
@@ -149,15 +152,33 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.pe.vol1);
             XPLMSetDataf(ctx->radio.vol.com2,     ctx->custom.atc.pe.vol1);
             XPLMSetDataf(ctx->radio.volume,       ctx->custom.atc.pe.vol0);
             XPLMSetDatai(ctx->radio.atctxt,                 volume > .01f); // Text-to-speech overlays
-            int tx = XPLMGetDatai(ctx->radio.tx.comm);
-            if (tx < 6 || tx > 7)
+            if (ctx->custom.atc.cl60.tx && ctx->custom.atc.cl60.r1 &&
+                ctx->custom.atc.cl60.r2 && ctx->custom.atc.cl60.r3)
             {
-                XPLMSetDatai(ctx->radio.tx.comm, 6);
+                int tx = XPLMGetDatai(ctx->custom.atc.cl60.tx);
+                if (tx < 0 || tx > 2)
+                {
+                    XPLMSetDatai(ctx->custom.atc.cl60.tx, 0); // transmit on VHF 1
+                }
+                if (XPLMGetDatai(ctx->custom.atc.cl60.r1) == 0 &&
+                    XPLMGetDatai(ctx->custom.atc.cl60.r2) == 0 &&
+                    XPLMGetDatai(ctx->custom.atc.cl60.r3) == 0)
+                {
+                    XPLMSetDatai(ctx->custom.atc.cl60.r1, 1); // monitor VHF 1
+                }
             }
-            if (XPLMGetDatai(ctx->radio.rx.com1) <= 0 &&
-                XPLMGetDatai(ctx->radio.rx.com2) <= 0)
+            else
             {
-                XPLMSetDatai(ctx->radio.rx.com1, 1);
+                int tx = XPLMGetDatai(ctx->radio.tx.comm);
+                if (tx < 6 || tx > 7)
+                {
+                    XPLMSetDatai(ctx->radio.tx.comm, 6); // transmit on COM 1
+                }
+                if (XPLMGetDatai(ctx->radio.rx.com1) <= 0 &&
+                    XPLMGetDatai(ctx->radio.rx.com2) <= 0)
+                {
+                    XPLMSetDatai(ctx->radio.rx.com1, 1); // monitor COM 1
+                }
             }
             if (ctx->x_plane_v11)
             {
@@ -173,6 +194,9 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, ctx->custom.atc.pe.vol1);
         else if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("vatsim.protodev.clients.xsquawkbox"))
         {
             float atc_controller_volume = sqrtf(7.0f / 8.0f); // (VATSIM: ~93.5%)
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.cl60.v1,          atc_controller_volume);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.cl60.v2,          atc_controller_volume);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.cl60.v3,          atc_controller_volume);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v1,          atc_controller_volume);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v2,          atc_controller_volume);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v1,          atc_controller_volume);
@@ -189,25 +213,53 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.tlss.animc2, 270.0f * atc_controller_volume
             XPLMSetDataf(ctx->radio.vol.com2,              atc_controller_volume);
             XPLMSetDataf(ctx->radio.volume,              ctx->custom.atc.xb.vol0);
             XPLMSetDatai(ctx->radio.atctxt,                      (volume > .01f)); // Text-to-speech overlays
-            int tx = XPLMGetDatai(ctx->radio.tx.comm);
-            if (XPLMGetDatai(ctx->radio.rx.com1) == 1 &&
-                XPLMGetDatai(ctx->radio.rx.com2) == 1 && tx == 0)
+            if (ctx->custom.atc.cl60.tx && ctx->custom.atc.cl60.r1 &&
+                ctx->custom.atc.cl60.r2 && ctx->custom.atc.cl60.r3)
             {
-                // XXX: XSquawkBox-specific, don't start
-                // with both radios on for first connect
-                // rx=both tx=none set in NVPchandlers.c
-                XPLMSetDatai(ctx->radio.tx.comm, (tx = 6));
-                XPLMSetDatai(ctx->radio.rx.com1, 1);
-                XPLMSetDatai(ctx->radio.rx.com1, 0);
+                int tx = XPLMGetDatai(ctx->custom.atc.cl60.tx);
+                if (XPLMGetDatai(ctx->custom.atc.cl60.r1) == 1 &&
+                    XPLMGetDatai(ctx->custom.atc.cl60.r2) == 1)
+                {
+                    // XXX: XSquawkBox-specific, don't start
+                    // with both radios on for first connect
+                    // rx=both tx=none set in NVPchandlers.c
+                    XPLMSetDatai(ctx->custom.atc.cl60.tx, (tx = 0));
+                    XPLMSetDatai(ctx->custom.atc.cl60.r1, 1);
+                    XPLMSetDatai(ctx->custom.atc.cl60.r2, 0);
+                }
+                if (tx < 0 || tx > 2)
+                {
+                    XPLMSetDatai(ctx->custom.atc.cl60.tx, 0); // transmit on VHF 1
+                }
+                if (XPLMGetDatai(ctx->custom.atc.cl60.r1) == 0 &&
+                    XPLMGetDatai(ctx->custom.atc.cl60.r2) == 0 &&
+                    XPLMGetDatai(ctx->custom.atc.cl60.r3) == 0)
+                {
+                    XPLMSetDatai(ctx->custom.atc.cl60.r1, 1); // monitor VHF 1
+                }
             }
-            if (tx < 6 || tx > 7)
+            else
             {
-                XPLMSetDatai(ctx->radio.tx.comm, 6);
-            }
-            if (XPLMGetDatai(ctx->radio.rx.com1) <= 0 &&
-                XPLMGetDatai(ctx->radio.rx.com2) <= 0)
-            {
-                XPLMSetDatai(ctx->radio.rx.com1, 1);
+                int tx = XPLMGetDatai(ctx->radio.tx.comm);
+                if (XPLMGetDatai(ctx->radio.rx.com1) == 1 &&
+                    XPLMGetDatai(ctx->radio.rx.com2) == 1 && tx == 0)
+                {
+                    // XXX: XSquawkBox-specific, don't start
+                    // with both radios on for first connect
+                    // rx=both tx=none set in NVPchandlers.c
+                    XPLMSetDatai(ctx->radio.tx.comm, (tx = 6));
+                    XPLMSetDatai(ctx->radio.rx.com1, 1);
+                    XPLMSetDatai(ctx->radio.rx.com2, 0);
+                }
+                if (tx < 6 || tx > 7)
+                {
+                    XPLMSetDatai(ctx->radio.tx.comm, 6);
+                }
+                if (XPLMGetDatai(ctx->radio.rx.com1) <= 0 &&
+                    XPLMGetDatai(ctx->radio.rx.com2) <= 0)
+                {
+                    XPLMSetDatai(ctx->radio.rx.com1, 1);
+                }
             }
             if (ctx->x_plane_v11)
             {
@@ -222,6 +274,9 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.tlss.animc2, 270.0f * atc_controller_volume
         }
         else
         {
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.cl60.v1, V1_DEFAULT_AL);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.cl60.v2, V1_DEFAULT_AL);
+SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.cl60.v3, V1_DEFAULT_AL);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v1, V1_DEFAULT_AL);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.ea50.v2, V1_DEFAULT_AL);
 SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v1, V1_DEFAULT_AL);
@@ -236,6 +291,34 @@ SETDR_CHECK(XPLMSetDataf,ctx->custom.atc.pipa.v2, V1_DEFAULT_AL);
             XPLMSetDataf(ctx->radio.vol.com2,     V1_DEFAULT_AL);
             XPLMSetDataf(ctx->radio.volume,       sqrtf(volume));
             XPLMSetDatai(ctx->radio.atctxt,       volume > .01f); // Text-to-speech overlays
+            if (ctx->custom.atc.cl60.tx && ctx->custom.atc.cl60.r1 &&
+                ctx->custom.atc.cl60.r2 && ctx->custom.atc.cl60.r3)
+            {
+                int tx = XPLMGetDatai(ctx->custom.atc.cl60.tx);
+                if (tx < 0 || tx > 2)
+                {
+                    XPLMSetDatai(ctx->custom.atc.cl60.tx, 0); // transmit on VHF 1
+                }
+                if (XPLMGetDatai(ctx->custom.atc.cl60.r1) == 0 &&
+                    XPLMGetDatai(ctx->custom.atc.cl60.r2) == 0 &&
+                    XPLMGetDatai(ctx->custom.atc.cl60.r3) == 0)
+                {
+                    XPLMSetDatai(ctx->custom.atc.cl60.r1, 1); // monitor VHF 1
+                }
+            }
+            else
+            {
+                int tx = XPLMGetDatai(ctx->radio.tx.comm);
+                if (tx < 6 || tx > 7)
+                {
+                    XPLMSetDatai(ctx->radio.tx.comm, 6); // transmit on COM 1
+                }
+                if (XPLMGetDatai(ctx->radio.rx.com1) <= 0 &&
+                    XPLMGetDatai(ctx->radio.rx.com2) <= 0)
+                {
+                    XPLMSetDatai(ctx->radio.rx.com1, 1); // monitor COM 1
+                }
+            }
             if (ctx->x_plane_v11)
             {
                 float radio = 2.0f * XPLMGetDataf(ctx->radio.volume);
@@ -333,7 +416,14 @@ void acf_volume_set(acf_volume_context *ctx, float volume, acf_type type)
         ctx->custom.tlss.animc2 = XPLMFindDataRef("ckpt/oh/vhf2/1/anim");
         ctx->custom.ddnn.volext = XPLMFindDataRef("cl300/ext_sound_vol");
         ctx->custom.a350.volume = XPLMFindDataRef("1-sim/options/Volume");
+        ctx->custom.atc.cl60.tx = XPLMFindDataRef("CL650/ACP/1/mic_value");
         ctx->custom.absk.mtrack = XPLMFindDataRef("aerobask/eclipse/m_trk");
+        ctx->custom.atc.cl60.r1 = XPLMFindDataRef("CL650/ACP/1/vhf1_tog_value");
+        ctx->custom.atc.cl60.r2 = XPLMFindDataRef("CL650/ACP/1/vhf1_tog_value");
+        ctx->custom.atc.cl60.r3 = XPLMFindDataRef("CL650/ACP/1/vhf1_tog_value");
+        ctx->custom.atc.cl60.v1 = XPLMFindDataRef("CL650/ACP/1/vhf1_vol_value");
+        ctx->custom.atc.cl60.v2 = XPLMFindDataRef("CL650/ACP/1/vhf2_vol_value");
+        ctx->custom.atc.cl60.v3 = XPLMFindDataRef("CL650/ACP/1/vhf3_vol_value");
         ctx->custom.tlss.master = XPLMFindDataRef("toliss_airbus/master_volume");
         ctx->custom.atc.ea50.v1 = XPLMFindDataRef("aerobask/eclipse/gtn750_vol");
         ctx->custom.atc.ea50.v2 = XPLMFindDataRef("aerobask/eclipse/gtn650_vol");

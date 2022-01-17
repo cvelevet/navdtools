@@ -5814,6 +5814,13 @@ static float gnd_stab_hdlr(float inElapsedSinceLastCall,
 /*XXX:XSB-specific*/XPLMSetDatai(XPLMFindDataRef("sim/cockpit2/radios/actuators/audio_com_selection" ), 0);
 /*XXX:XSB-specific*/XPLMSetDatai(XPLMFindDataRef("sim/cockpit2/radios/actuators/audio_selection_com1"), 1);
 /*XXX:XSB-specific*/XPLMSetDatai(XPLMFindDataRef("sim/cockpit2/radios/actuators/audio_selection_com2"), 1);
+                    if (grndp->oatc.aircraft_type[0] == ACF_TYP_CL60_HS)
+                    {
+                        /*XXX:XSB-specific*/XPLMSetDatai(XPLMFindDataRef("CL650/ACP/1/mic_value"     ), 3);
+                        /*XXX:XSB-specific*/XPLMSetDatai(XPLMFindDataRef("CL650/ACP/1/vhf1_tog_value"), 1);
+                        /*XXX:XSB-specific*/XPLMSetDatai(XPLMFindDataRef("CL650/ACP/1/vhf2_tog_value"), 1);
+                        /*XXX:XSB-specific*/XPLMSetDatai(XPLMFindDataRef("CL650/ACP/1/vhf3_tog_value"), 0);
+                    }
                     XPLMSetFlightLoopCallbackInterval(grndp->oatc.flc, 9.0f, 1, grndp->oatc.aircraft_type);
                     grndp->pt->thptt = XPLMFindCommand("xsquawkbox/voice/ptt");
                 }

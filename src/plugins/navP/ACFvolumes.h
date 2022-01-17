@@ -105,6 +105,16 @@ typedef struct
             } xb;
             struct
             {
+                XPLMDataRef r1;
+                XPLMDataRef r2;
+                XPLMDataRef r3;
+                XPLMDataRef tx;
+                XPLMDataRef v1;
+                XPLMDataRef v2;
+                XPLMDataRef v3;
+            } cl60;
+            struct
+            {
                 XPLMDataRef v1;
                 XPLMDataRef v2;
             } ea50;
