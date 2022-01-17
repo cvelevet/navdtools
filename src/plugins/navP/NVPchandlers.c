@@ -1571,6 +1571,9 @@ int nvp_chandlers_update(void *inContext)
             ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
+        case ACF_TYP_CL60_HS://fixme
+            break;
+
         case ACF_TYP_E55P_AB:
             // custom G1000 PFD (always shows speed)
             ctx->otto.clmb.rc.init_cl_speed = 180.0f;
@@ -4402,6 +4405,9 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     }
                     cdu->i_disabled = 0; break;
 
+                case ACF_TYP_CL60_HS://fixme
+                    cdu->i_disabled = 1; break; // check for YFMS presence
+
                 case ACF_TYP_E55P_AB:
                     if ((cdu->command[0] = XPLMFindCommand("aerobask/gfc700_popup_show")) &&
                         (cdu->command[1] = XPLMFindCommand("aerobask/gfc700_popup_hide")) &&
@@ -4860,6 +4866,9 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
             case ACF_TYP_CL30_DD:
                 XPLMCommandOnce(cdu->command[0]); // toggle custom radio panel
+                return 0;
+
+            case ACF_TYP_CL60_HS://fixme
                 return 0;
 
             case ACF_TYP_E55P_AB:
@@ -6668,6 +6677,23 @@ static int first_fcall_do(chandler_context *ctx)
             }
             nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
             nvp_efis_setup();
+            break;
+
+        case ACF_TYP_CL60_HS:
+            nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
+            _DO(1, XPLMSetDatai, 0, "CL650/overhead/hud_combiner_value");
+            _DO(1, XPLMSetDatai, 0, "CL650/covers/pitot/copilot_value");
+            _DO(1, XPLMSetDatai, 0, "CL650/covers/pitot/standby_value");
+            _DO(1, XPLMSetDatai, 0, "CL650/covers/pitot/pilot_value");
+            _DO(1, XPLMSetDatai, 0, "CL650/covers/aoa/copilot_value");
+            _DO(1, XPLMSetDatai, 0, "CL650/covers/ice/copilot_value");
+            _DO(1, XPLMSetDatai, 1, "CL650/contcoll/0/compact_value");
+            _DO(1, XPLMSetDatai, 1, "CL650/contcoll/1/compact_value");
+            _DO(1, XPLMSetDatai, 0, "CL650/covers/aoa/pilot_value");
+            _DO(1, XPLMSetDatai, 0, "CL650/covers/ice/pilot_value");
+            _DO(1, XPLMSetDatai, 0, "CL650/tablet/copilot_value");
+            _DO(1, XPLMSetDatai, 0, "CL650/covers/static_value");
+            _DO(1, XPLMSetDatai, 0, "CL650/tablet/pilot_value");
             break;
 
         case ACF_TYP_E55P_AB:
