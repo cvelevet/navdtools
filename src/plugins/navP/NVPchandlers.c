@@ -139,6 +139,9 @@ typedef struct
 
     XPLMDataRef tbm9erng;
 
+    XPLMDataRef cl60revl;
+    XPLMDataRef cl60revr;
+
     XPLMDataRef throttle;
 } refcon_thrust;
 
@@ -1198,6 +1201,8 @@ int nvp_chandlers_reset(void *inContext)
     ctx->throt.               thptt = NULL;
     ctx->throt.rev.          propdn = NULL;
     ctx->throt.rev.          propup = NULL;
+    ctx->throt.            cl60revl = NULL;
+    ctx->throt.            cl60revr = NULL;
     ctx->throt.            tbm9erng = NULL;
     ctx->throt.            throttle = NULL;
     ctx->spbrk.                e55p = NULL;
@@ -2384,6 +2389,16 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         }
         else
         {
+            /* Chalenger 650: autopilot panel popup toggle */
+            if (ctx->info->ac_type == ACF_TYP_CL60_HS)
+            {
+                if ((cmd = XPLMFindCommand("CL650/panels/toggle_ap_panel")))
+                {
+                    XPLMCommandOnce(cmd);
+                    return 0; // skip other checks
+                }
+                return 0; // skip other checks
+            }
             /* Restore FOV after e.g. IXEG 733 */
             if (XPLMGetDatai(ctx->fov.nonp) == 0)
             {
@@ -3416,6 +3431,34 @@ static int in_reverse_at_index(refcon_thrust *t, int index)
             if (index == 2)
             {
                 return XPLMGetDataf(a32->dat.engine_reverse2) > 0.5f;
+            }
+            return -1;
+        }
+        if (t->info->ac_type == ACF_TYP_CL60_HS)
+        {
+            if (index == 1)
+            {
+                if (t->cl60revl == NULL)
+                {
+                    t->cl60revl = XPLMFindDataRef("CL650/pedestal/throttle/reverse_L_value");
+                }
+                if (t->cl60revl)
+                {
+                    return XPLMGetDataf(t->cl60revl) > 0.1f;
+                }
+                return -1;
+            }
+            if (index == 2)
+            {
+                if (t->cl60revr == NULL)
+                {
+                    t->cl60revr = XPLMFindDataRef("CL650/pedestal/throttle/reverse_R_value");
+                }
+                if (t->cl60revr)
+                {
+                    return XPLMGetDataf(t->cl60revr) > 0.1f;
+                }
+                return -1;
             }
             return -1;
         }
