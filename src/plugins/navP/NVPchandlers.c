@@ -1571,7 +1571,16 @@ int nvp_chandlers_update(void *inContext)
             ctx->throt.throttle = ctx->ground.thrott_all;
             break;
 
-        case ACF_TYP_CL60_HS://fixme
+        case ACF_TYP_CL60_HS:
+            // we don't interfere in any way w/custom TO/GA (for realism)
+            ctx->otto.clmb.rc.ap_toga = "CL650/pedestal/throttle/toga_L";
+            ctx->otto.disc.cc.name = "CL650/contwheel/0/ap_disc";
+            ctx->otto.conn.cc.name = "CL650/FCP/ap_eng";
+            ctx->otto.clmb.rc.init_cl_pitch = -1.0f;
+            ctx->otto.clmb.rc.init_cl_speed = -1.0f;
+            ctx->otto.clmb.rc.f_pitch = NULL;
+            ctx->otto.clmb.rc.ptrimto = NULL;
+            ctx->otto.clmb.rc.vfpitch = NULL;
             break;
 
         case ACF_TYP_E55P_AB:
@@ -4405,7 +4414,16 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     }
                     cdu->i_disabled = 0; break;
 
-                case ACF_TYP_CL60_HS://fixme
+                case ACF_TYP_CL60_HS:
+                    if ((cdu->command[0] = XPLMFindCommand("CL650/PFD_1/popup_tog")) &&
+                        (cdu->command[1] = XPLMFindCommand("CL650/MFD_1/popup_tog")) &&
+                        (cdu->command[2] = XPLMFindCommand("CL650/MFD_2/popup_tog")) &&
+                        (cdu->command[3] = XPLMFindCommand("CL650/CCP/2/popup_tog")) &&
+                        (cdu->command[4] = XPLMFindCommand("CL650/CCP/1/popup_tog")) &&
+                        (cdu->command[5] = XPLMFindCommand("CL650/DCP/1/popup_tog")))
+                    {
+                        cdu->i_cycle_id = cdu->i_disabled = 0; break;
+                    }
                     cdu->i_disabled = 1; break; // check for YFMS presence
 
                 case ACF_TYP_E55P_AB:
@@ -4868,7 +4886,42 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 XPLMCommandOnce(cdu->command[0]); // toggle custom radio panel
                 return 0;
 
-            case ACF_TYP_CL60_HS://fixme
+            case ACF_TYP_CL60_HS:
+                switch (cdu->i_cycle_id)
+                {
+                    /*
+                     * cdu->command[0] = XPLMFindCommand("CL650/PFD_1/popup_tog")
+                     * cdu->command[1] = XPLMFindCommand("CL650/MFD_1/popup_tog")
+                     * cdu->command[2] = XPLMFindCommand("CL650/MFD_2/popup_tog")
+                     * cdu->command[3] = XPLMFindCommand("CL650/CCP/2/popup_tog")
+                     * cdu->command[4] = XPLMFindCommand("CL650/CCP/1/popup_tog")
+                     * cdu->command[5] = XPLMFindCommand("CL650/DCP/1/popup_tog")
+                     */
+                    case 0:
+                        XPLMCommandOnce(cdu->command[0]);
+                        cdu->i_cycle_id++;
+                        return 0;
+                    case 1:
+                        XPLMCommandOnce(cdu->command[1]);
+                        cdu->i_cycle_id++;
+                        return 0;
+                    case 2:
+                        XPLMCommandOnce(cdu->command[2]);
+                        XPLMCommandOnce(cdu->command[3]);
+                        XPLMCommandOnce(cdu->command[4]);
+                        XPLMCommandOnce(cdu->command[5]);
+                        cdu->i_cycle_id++;
+                        return 0;
+                    default:
+                        XPLMCommandOnce(cdu->command[5]);
+                        XPLMCommandOnce(cdu->command[4]);
+                        XPLMCommandOnce(cdu->command[3]);
+                        XPLMCommandOnce(cdu->command[2]);
+                        XPLMCommandOnce(cdu->command[1]);
+                        XPLMCommandOnce(cdu->command[0]);
+                        cdu->i_cycle_id = 0;
+                        break;
+                }
                 return 0;
 
             case ACF_TYP_E55P_AB:
