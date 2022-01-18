@@ -1613,7 +1613,7 @@ int nvp_chandlers_update(void *inContext)
 
         case ACF_TYP_CL60_HS:
             // we don't interfere in any way w/custom TO/GA (for realism)
-            ctx->otto.clmb.rc.ap_toga = "CL650/pedestal/throttle/toga_L";//fixme requires actual pressing, not XPLMCommandOnce :-(
+            ctx->otto.clmb.rc.ap_toga = "CL650/pedestal/throttle/toga_L";
 /* C+NONE */ctx->camhack.rc.fc.name = "CL650/checklist/check_item";
 /* C+SHFT */ctx->camhack.rc.cv.name = "CL650/checklist/skip_item";
             ctx->otto.disc.cc.name = "CL650/contwheel/0/ap_disc";
@@ -4182,18 +4182,30 @@ static int chandler_thruu(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 
 static int chandler_apclb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    if (inPhase == xplm_CommandEnd)
+    if (inPhase == xplm_CommandBegin)
     {
-        XPLMDataRef d_ref; XPLMCommandRef cr;
         if (((refcon_app*)inRefcon)->ap_toga)
         {
+            XPLMCommandRef cr;
             if ((cr = XPLMFindCommand("sim/autopilot/fdir_on")))
             {
                 XPLMCommandOnce(cr);
             }
             if ((cr = XPLMFindCommand(((refcon_app*)inRefcon)->ap_toga)))
             {
-                XPLMCommandOnce(cr);
+                XPLMCommandBegin(cr); // required for e.g. "CL650/pedestal/throttle/toga_L"
+            }
+        }
+        return 0;
+    }
+    if (inPhase == xplm_CommandEnd)
+    {
+        XPLMDataRef d_ref; XPLMCommandRef cr;
+        if (((refcon_app*)inRefcon)->ap_toga)
+        {
+            if ((cr = XPLMFindCommand(((refcon_app*)inRefcon)->ap_toga)))
+            {
+                XPLMCommandEnd(cr); // required for e.g. "CL650/pedestal/throttle/toga_L"
             }
         }
         else if ((d_ref = ((refcon_app*)inRefcon)->f_pitch) || (d_ref = ((refcon_app*)inRefcon)->vfpitch))
