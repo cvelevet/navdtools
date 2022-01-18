@@ -357,6 +357,7 @@ typedef struct
         refcon_ixeg733 i733;
         refcon_eadt738 x738;
         refcon_cl60pdu h650;
+        chandler_callback y;
     } acfspec;
 
     struct
@@ -495,14 +496,6 @@ typedef struct
             chandler_command  cc;
             refcon_app        rc;
         } clmb;
-
-        struct
-        {
-            chandler_callback cb;
-            chandler_callback c1;
-            chandler_command  ap;
-            chandler_command  yd;
-        } apyd;
     } otto;
 
     struct
@@ -583,7 +576,6 @@ static int tol_keysniffer(char inCh, XPLMKeyFlags inFlags, char inVirtualKey, vo
 static int a35_keysniffer(char inCh, XPLMKeyFlags inFlags, char inVirtualKey, void *inRefcon);
 static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
-static int chandler_swtc1(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_apclb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_sp_ex(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_sp_re(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
@@ -925,14 +917,12 @@ void* nvp_chandlers_init(void)
     ctx->asrt.ap_conn.command = XPLMCreateCommand( "private/ff320/ap_conn", "NOT TO BE USED");
     ctx->asrt.ap_disc.command = XPLMCreateCommand( "private/ff320/ap_disc", "NOT TO BE USED");
     ctx->otto.ffst.cb.command = XPLMCreateCommand( "private/ffsts/ap_cmdl", "NOT TO BE USED");
-    ctx->otto.apyd.cb.command = XPLMCreateCommand( "private/a_pilot/ap_yd", "NOT TO BE USED");
     ctx->otto.clmb.cb.command = XPLMCreateCommand( "navP/special/ap_to_ga", "A/P mode: TOGA"); // note: keep: custom behavior on ground
     ctx->otto.conn.cb.command = XPLMCreateCommand( "navP/switches/ap_conn", "A/P engagement"); // TODO: move to x-nullzones
     ctx->otto.disc.cb.command = XPLMCreateCommand( "navP/switches/ap_disc", "A/P disconnect"); // TODO: move to x-nullzones
     if (!ctx->asrt.ap_conn.command ||
         !ctx->asrt.ap_disc.command ||
         !ctx->otto.ffst.cb.command ||
-        !ctx->otto.apyd.cb.command ||
         !ctx->otto.clmb.cb.command ||
         !ctx->otto.conn.cb.command ||
         !ctx->otto.disc.cb.command)
@@ -942,9 +932,6 @@ void* nvp_chandlers_init(void)
     }
     else
     {
-        ctx->otto.apyd.c1.command = ctx->otto.apyd.cb.command;
-        REGISTER_CHANDLER(ctx->otto.apyd.c1, chandler_swtc1, 0, &ctx->otto.apyd.yd); // as tested: registered first -> called first -> use chandler_swtc1
-        REGISTER_CHANDLER(ctx->otto.apyd.cb, chandler_swtch, 0, &ctx->otto.apyd.ap); // enable YD before AP
         REGISTER_CHANDLER(ctx->asrt.ap_conn, chandler_32apc, 0, &ctx->info->assert);
         REGISTER_CHANDLER(ctx->asrt.ap_disc, chandler_32apd, 0, &ctx->info->assert);
         REGISTER_CHANDLER(ctx->otto.ffst.cb, chandler_ffap1, 0, &ctx->otto.ffst.dr);
@@ -1125,8 +1112,6 @@ int nvp_chandlers_close(void **_chandler_context)
     UNREGSTR_CHANDLER(ctx->asrt.    ap_conn);
     UNREGSTR_CHANDLER(ctx->asrt.    ap_disc);
     UNREGSTR_CHANDLER(ctx->otto.    ffst.cb);
-    UNREGSTR_CHANDLER(ctx->otto.    apyd.cb);
-    UNREGSTR_CHANDLER(ctx->otto.    apyd.c1);
     UNREGSTR_CHANDLER(ctx->otto.    conn.cb);
     UNREGSTR_CHANDLER(ctx->otto.    disc.cb);
     UNREGSTR_CHANDLER(ctx->views.   prev.cb);
@@ -1235,8 +1220,6 @@ int nvp_chandlers_reset(void *inContext)
     ctx->otto.clmb.rc.      f_pitch = NULL;
     ctx->otto.clmb.rc.      vfpitch = NULL;
     ctx->otto.ffst.              dr = NULL;
-    ctx->otto.apyd.ap.         name = NULL;
-    ctx->otto.apyd.yd.         name = NULL;
     ctx->otto.conn.cc.         name = NULL;
     ctx->otto.disc.cc.         name = NULL;
     ctx->throt.               thptt = NULL;
@@ -1293,6 +1276,7 @@ int nvp_chandlers_reset(void *inContext)
     UNREGSTR_CHANDLER(ctx->acfspec.h650.du[1]);
     UNREGSTR_CHANDLER(ctx->acfspec.h650.du[0]);
     UNREGSTR_CHANDLER(ctx->acfspec.t319. mwcb);
+    UNREGSTR_CHANDLER(ctx->acfspec.         y);
     UNREGSTR_CHANDLER(ctx->apd.           aft);
     UNREGSTR_CHANDLER(ctx->apd.           bef);
     UNREGSTR_CHANDLER(ctx->vvi.            dn);
@@ -1747,11 +1731,18 @@ int nvp_chandlers_update(void *inContext)
             }
             else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "DA62"))
             {
+                ctx->acfspec.y.command = XPLMFindCommand("sim/autopilot/servos_on");
                 ctx->otto.disc.cc.name = "sim/autopilot/servos_yawd_off_any";
-                ctx->otto.apyd.yd.name = "sim/systems/yaw_damper_on";
-                ctx->otto.apyd.ap.name = "sim/autopilot/servos_on";
-                ctx->otto.conn.cc.name = "private/a_pilot/ap_yd";
+                ctx->otto.conn.cc.name = "sim/autopilot/servos_on";
                 ctx->otto.clmb.rc.init_cl_speed = 93.0f;
+                if (ctx->acfspec.y.command)
+                {
+                    // force-eanble YD before AP
+                    REGISTER_CHANDLER(ctx->acfspec.y,
+                                      chandler_2ndcb,
+                                      1 /* before X-Plane */,
+                                      XPLMFindCommand("sim/systems/yaw_damper_on"));
+                }
             }
             else if (!STRN_CASECMP_AUTO(ctx->info->icaoid, "EA50"))
             {
@@ -1831,8 +1822,6 @@ int nvp_chandlers_update(void *inContext)
 #endif
 
     // new addon type: clear datarefs
-    ctx->otto.apyd.ap.xpcr = NULL;
-    ctx->otto.apyd.yd.xpcr = NULL;
     ctx->otto.conn.cc.xpcr = NULL;
     ctx->otto.disc.cc.xpcr = NULL;
 
@@ -4318,35 +4307,6 @@ static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         return 0;
     }
     return 0;
-}
-
-/*
- * we may want to add multiple handlers for the same command, in which
- * case we must return 1 and let any subsequent switch(es) run too :-)
- */
-static int chandler_swtc1(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
-{
-    if (inPhase == xplm_CommandEnd)
-    {
-        chandler_command *cc = inRefcon;
-        if (cc->name)
-        {
-            if (cc->xpcr == NULL)
-            {
-                if ((cc->xpcr = XPLMFindCommand(cc->name)) == NULL)
-                {
-                    ndt_log("navP [error]: command not found: \"%s\"\n", cc->name);
-                    XPLMSpeakString("failed to resolve command");
-                    cc->name = NULL; return 1;
-                }
-            }
-//          ndt_log("navP [debug]: chandler_swtc1: \"%s\"\n", cc->name);
-            XPLMCommandOnce(cc->xpcr);
-            return 1;
-        }
-        return 1;
-    }
-    return 1;
 }
 
 /*
@@ -7719,8 +7679,6 @@ static int first_fcall_do(chandler_context *ctx)
     /* resolve addon-specific references early (might be faster?) */
     chandler_command *list[] =
     {
-        &ctx->otto.apyd.ap,
-        &ctx->otto.apyd.yd,
         &ctx->otto.conn.cc,
         &ctx->otto.disc.cc,
         NULL,
