@@ -361,6 +361,18 @@ typedef struct
     {
         struct
         {
+            chandler_command cv;
+            chandler_command fc;
+        } rc;
+
+        chandler_callback fc;
+        chandler_callback cv;
+    } camhack;
+
+    struct
+    {
+        struct
+        {
             chandler_callback cb;
         } ext;
 
@@ -601,6 +613,7 @@ static int chandler_apbef(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_apaft(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_p2vvi(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_chack(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_oatc_func (                                        float, float, int, void*);
 static float gnd_stab_hdlr (                                        float, float, int, void*);
 static float fuel_t_w_hdlr (                                        float, float, int, void*);
@@ -683,6 +696,22 @@ void* nvp_chandlers_init(void)
     else
     {
         REGISTER_CHANDLER(ctx->turnaround.cb, chandler_turna, 0, ctx);
+    }
+
+    /* default command handlers: override some camera views */
+    ctx->camhack.cv.command = XPLMFindCommand("sim/view/cinema_verite");
+    ctx->camhack.fc.command = XPLMFindCommand("sim/view/free_camera");
+    if (!ctx->camhack.cv.command || !ctx->camhack.fc.command)
+    {
+        ndt_log("navP [error]: nvp_chandlers_init: command or dataref not found\n");
+        goto fail;
+    }
+    else
+    {
+        REGISTER_CHANDLER(ctx->camhack.cv, chandler_chack, 1 /* before X-Plane */, &ctx->camhack.rc.cv);
+        REGISTER_CHANDLER(ctx->camhack.fc, chandler_chack, 1 /* before X-Plane */, &ctx->camhack.rc.fc);
+        ctx->camhack.rc.cv.name = ctx->camhack.rc.fc.name = NULL;
+        ctx->camhack.rc.cv.xpcr = ctx->camhack.rc.fc.xpcr = NULL;
     }
 
     /* Custom commands: speedbrakes/spoilers */
@@ -1064,6 +1093,8 @@ int nvp_chandlers_close(void **_chandler_context)
 
     /* unregister all handlers… */
     UNREGSTR_CHANDLER(ctx->turnaround.   cb);
+    UNREGSTR_CHANDLER(ctx->camhack.      cv);
+    UNREGSTR_CHANDLER(ctx->camhack.      fc);
     UNREGSTR_CHANDLER(ctx->spbrk.    ext.cb);
     UNREGSTR_CHANDLER(ctx->spbrk.    ret.cb);
     UNREGSTR_CHANDLER(ctx->trims. pch.up.cb);
@@ -1208,6 +1239,10 @@ int nvp_chandlers_reset(void *inContext)
     ctx->spbrk.                e55p = NULL;
     ctx->spbrk.                ha4t = NULL;
     ctx->spbrk.                leg2 = NULL;
+    ctx->camhack.        rc.cv.name = NULL;
+    ctx->camhack.        rc.cv.xpcr = NULL;
+    ctx->camhack.        rc.fc.name = NULL;
+    ctx->camhack.        rc.fc.xpcr = NULL;
     ctx->ground.xfse.status_flying  = -1;
     ctx->acfspec.t319.        ready = 0;
     ctx->acfspec.i733.        ready = 0;
@@ -1578,7 +1613,9 @@ int nvp_chandlers_update(void *inContext)
 
         case ACF_TYP_CL60_HS:
             // we don't interfere in any way w/custom TO/GA (for realism)
-            ctx->otto.clmb.rc.ap_toga = "CL650/pedestal/throttle/toga_L";
+            ctx->otto.clmb.rc.ap_toga = "CL650/pedestal/throttle/toga_L";//fixme requires actual pressing, not XPLMCommandOnce :-(
+/* C+NONE */ctx->camhack.rc.fc.name = "CL650/checklist/check_item";
+/* C+SHFT */ctx->camhack.rc.cv.name = "CL650/checklist/skip_item";
             ctx->otto.disc.cc.name = "CL650/contwheel/0/ap_disc";
             ctx->otto.conn.cc.name = "CL650/FCP/ap_eng";
             ctx->otto.clmb.rc.init_cl_pitch = -1.0f;
@@ -5534,6 +5571,39 @@ static float flc_oatc_func(float inElapsedSinceLastCall,
         return 0;
     }
     return 0;
+}
+
+static int chandler_chack(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inRefcon)
+    {
+        switch (inPhase)
+        {
+            case xplm_CommandEnd:
+                if (((chandler_command*)inRefcon)->name != NULL)
+                {
+                    if (((chandler_command*)inRefcon)->xpcr == NULL)
+                    {
+                        ((chandler_command*)inRefcon)->xpcr = XPLMFindCommand(((chandler_command*)inRefcon)->name);
+                    }
+                    if (((chandler_command*)inRefcon)->xpcr != NULL)
+                    {
+                        XPLMCommandOnce(((chandler_command*)inRefcon)->xpcr);
+                        return 0; // consume
+                    }
+                    return 0; // consume
+                }
+                return 1; // pass through
+            default:
+                if (((chandler_command*)inRefcon)->name != NULL)
+                {
+                    return 0; // consume
+                }
+                return 1; // pass through
+        }
+        return 1; // pass through
+    }
+    return 1; // pass through
 }
 
 static float gnd_stab_hdlr(float inElapsedSinceLastCall,
