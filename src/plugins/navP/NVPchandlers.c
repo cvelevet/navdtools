@@ -156,6 +156,12 @@ typedef struct
 
 typedef struct
 {
+    int               ready;
+    chandler_callback du[4];
+} refcon_cl60pdu;
+
+typedef struct
+{
     int    kc_is_registered;
     XPLMDataRef    datar[5];
     XPLMCommandRef c[3][48];
@@ -350,6 +356,7 @@ typedef struct
         refcon_tolifbw t319;
         refcon_ixeg733 i733;
         refcon_eadt738 x738;
+        refcon_cl60pdu h650;
     } acfspec;
 
     struct
@@ -614,6 +621,8 @@ static int chandler_apaft(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_p2vvi(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_chack(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_2ndcb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_2ndce(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_oatc_func (                                        float, float, int, void*);
 static float gnd_stab_hdlr (                                        float, float, int, void*);
 static float fuel_t_w_hdlr (                                        float, float, int, void*);
@@ -622,6 +631,7 @@ static int   first_fcall_do(                                           chandler_
 static int   tliss_fbw_init(                                             refcon_tolifbw *fbw);
 static int   boing_733_init(                                             refcon_ixeg733 *i33);
 static int   boing_738_init(                                             refcon_eadt738 *x38);
+static int   chall_650_init(                                             refcon_cl60pdu *h65);
 static int   priv_getdata_i(                                   void *inRefcon               );
 static void  priv_setdata_i(                                   void *inRefcon, int   inValue);
 static float priv_getdata_f(                                   void *inRefcon               );
@@ -1247,6 +1257,7 @@ int nvp_chandlers_reset(void *inContext)
     ctx->acfspec.t319.        ready = 0;
     ctx->acfspec.i733.        ready = 0;
     ctx->acfspec.x738.        ready = 0;
+    ctx->acfspec.h650.        ready = 0;
     ctx->throt.    atc_is_connected = 0;
 
     /* Reset some datarefs to match X-Plane's defaults at startup */
@@ -1277,15 +1288,19 @@ int nvp_chandlers_reset(void *inContext)
     }
 
     /* Unregister aircraft-specific command handlers */
-    UNREGSTR_CHANDLER(ctx->acfspec.t319.mwcb);
-    UNREGSTR_CHANDLER(ctx->apd.          aft);
-    UNREGSTR_CHANDLER(ctx->apd.          bef);
-    UNREGSTR_CHANDLER(ctx->vvi.           dn);
-    UNREGSTR_CHANDLER(ctx->vvi.           up);
-    UNREGSTR_CHANDLER(ctx->vvi.           pd);
-    UNREGSTR_CHANDLER(ctx->vvi.           pu);
-    UNREGSTR_CHANDLER(ctx->throt.         md);
-    UNREGSTR_CHANDLER(ctx->throt.         mu);
+    UNREGSTR_CHANDLER(ctx->acfspec.h650.du[3]);
+    UNREGSTR_CHANDLER(ctx->acfspec.h650.du[2]);
+    UNREGSTR_CHANDLER(ctx->acfspec.h650.du[1]);
+    UNREGSTR_CHANDLER(ctx->acfspec.h650.du[0]);
+    UNREGSTR_CHANDLER(ctx->acfspec.t319. mwcb);
+    UNREGSTR_CHANDLER(ctx->apd.           aft);
+    UNREGSTR_CHANDLER(ctx->apd.           bef);
+    UNREGSTR_CHANDLER(ctx->vvi.            dn);
+    UNREGSTR_CHANDLER(ctx->vvi.            up);
+    UNREGSTR_CHANDLER(ctx->vvi.            pd);
+    UNREGSTR_CHANDLER(ctx->vvi.            pu);
+    UNREGSTR_CHANDLER(ctx->throt.          md);
+    UNREGSTR_CHANDLER(ctx->throt.          mu);
 
     /* Re-enable Gizmo64 if present */
     XPLMPluginID g64 = XPLMFindPluginBySignature("gizmo.x-plugins.com");
@@ -2390,6 +2405,13 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             if (ctx->acfspec.t319.ready == 0)
             {
                 tliss_fbw_init(&ctx->acfspec.t319);
+            }
+        }
+        if (ctx->info->ac_type == ACF_TYP_CL60_HS)
+        {
+            if (ctx->acfspec.h650.ready == 0)
+            {
+                chall_650_init(&ctx->acfspec.h650);
             }
         }
         if (ctx->first_fcall)
@@ -4507,12 +4529,9 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     cdu->i_disabled = 0; break;
 
                 case ACF_TYP_CL60_HS:
-                    if ((cdu->command[0] = XPLMFindCommand("CL650/PFD_1/popup_tog")) &&
-                        (cdu->command[1] = XPLMFindCommand("CL650/MFD_1/popup_tog")) &&
-                        (cdu->command[2] = XPLMFindCommand("CL650/MFD_2/popup_tog")) &&
-                        (cdu->command[3] = XPLMFindCommand("CL650/CCP/2/popup_tog")) &&
-                        (cdu->command[4] = XPLMFindCommand("CL650/CCP/1/popup_tog")) &&
-                        (cdu->command[5] = XPLMFindCommand("CL650/DCP/1/popup_tog")))
+                    if ((cdu->command[0] = XPLMFindCommand("CL650/CDU/1/popup_tog")) &&
+                        (cdu->command[1] = XPLMFindCommand("CL650/CDU/2/popup_tog")) &&
+                        (cdu->command[2] = XPLMFindCommand("CL650/CDU/3/popup_tog")))
                     {
                         cdu->i_cycle_id = cdu->i_disabled = 0; break;
                     }
@@ -4979,42 +4998,48 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 return 0;
 
             case ACF_TYP_CL60_HS:
-                switch (cdu->i_cycle_id)
-                {
-                    /*
-                     * cdu->command[0] = XPLMFindCommand("CL650/PFD_1/popup_tog")
-                     * cdu->command[1] = XPLMFindCommand("CL650/MFD_1/popup_tog")
-                     * cdu->command[2] = XPLMFindCommand("CL650/MFD_2/popup_tog")
-                     * cdu->command[3] = XPLMFindCommand("CL650/CCP/2/popup_tog")
-                     * cdu->command[4] = XPLMFindCommand("CL650/CCP/1/popup_tog")
-                     * cdu->command[5] = XPLMFindCommand("CL650/DCP/1/popup_tog")
-                     */
-                    case 0:
-                        XPLMCommandOnce(cdu->command[0]);
-                        cdu->i_cycle_id++;
-                        return 0;
-                    case 1:
-                        XPLMCommandOnce(cdu->command[1]);
-                        cdu->i_cycle_id++;
-                        return 0;
-                    case 2:
-                        XPLMCommandOnce(cdu->command[2]);
-                        XPLMCommandOnce(cdu->command[3]);
-                        XPLMCommandOnce(cdu->command[4]);
-                        XPLMCommandOnce(cdu->command[5]);
-                        cdu->i_cycle_id++;
-                        return 0;
-                    default:
-                        XPLMCommandOnce(cdu->command[5]);
-                        XPLMCommandOnce(cdu->command[4]);
-                        XPLMCommandOnce(cdu->command[3]);
-                        XPLMCommandOnce(cdu->command[2]);
-                        XPLMCommandOnce(cdu->command[1]);
-                        XPLMCommandOnce(cdu->command[0]);
-                        cdu->i_cycle_id = 0;
-                        break;
-                }
+                /*
+                 * cdu->command[0] = XPLMFindCommand("CL650/CDU/1/popup_tog")
+                 * cdu->command[1] = XPLMFindCommand("CL650/CDU/2/popup_tog")
+                 * cdu->command[2] = XPLMFindCommand("CL650/CDU/3/popup_tog")
+                 */
+//              XPLMCommandOnce(cdu->command[2]);
+                XPLMCommandOnce(cdu->command[1]);
+                XPLMCommandOnce(cdu->command[0]);
                 return 0;
+//          case ACF_TYP_CL60_HS:
+//              /*
+//               * cdu->command[0] = XPLMFindCommand("CL650/CDU/1/popup_tog")
+//               * cdu->command[1] = XPLMFindCommand("CL650/CDU/2/popup_tog")
+//               * cdu->command[2] = XPLMFindCommand("CL650/CDU/3/popup_tog")
+//               */
+//              switch (cdu->i_cycle_id)
+//              {
+//                  case 0:
+//                      cdu->i_cycle_id++;
+//                      return 0;
+//                  case 1:
+//                      XPLMCommandOnce(cdu->command[1]);
+//                      cdu->i_cycle_id++;
+//                      return 0;
+//                  case 2:
+//                      XPLMCommandOnce(cdu->command[2]);
+//                      XPLMCommandOnce(cdu->command[3]);
+//                      XPLMCommandOnce(cdu->command[4]);
+//                      XPLMCommandOnce(cdu->command[5]);
+//                      cdu->i_cycle_id++;
+//                      return 0;
+//                  default:
+//                      XPLMCommandOnce(cdu->command[5]);
+//                      XPLMCommandOnce(cdu->command[4]);
+//                      XPLMCommandOnce(cdu->command[3]);
+//                      XPLMCommandOnce(cdu->command[2]);
+//                      XPLMCommandOnce(cdu->command[1]);
+//                      XPLMCommandOnce(cdu->command[0]);
+//                      cdu->i_cycle_id = 0;
+//                      break;
+//              }
+//              return 0;
 
             case ACF_TYP_E55P_AB:
                 switch (cdu->i_cycle_id)
@@ -5616,6 +5641,34 @@ static int chandler_chack(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         return 1; // pass through
     }
     return 1; // pass through
+}
+
+static int chandler_2ndcb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandBegin)
+    {
+        if (inRefcon)
+        {
+            XPLMCommandOnce(inRefcon); // automatically trigger a second command -- that's it :-)
+            return 1;
+        }
+        return 1;
+    }
+    return 1;
+}
+
+static int chandler_2ndce(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        if (inRefcon)
+        {
+            XPLMCommandOnce(inRefcon); // automatically trigger a second command -- that's it :-)
+            return 1;
+        }
+        return 1;
+    }
+    return 1;
 }
 
 static float gnd_stab_hdlr(float inElapsedSinceLastCall,
@@ -7895,6 +7948,28 @@ static int boing_738_init(refcon_eadt738 *x38)
             (x38->pt_dn = XPLMFindCommand("x737/trim/CAPT_STAB_TRIM_DOWN_ALL")))
         {
             (x38->ready = 1); return 0;
+        }
+        return -1;
+    }
+    return 0;
+}
+
+static int chall_650_init(refcon_cl60pdu *h65)
+{
+    if (h65 && h65->ready == 0)
+    {
+        if ((h65->du[0].command = XPLMFindCommand("CL650/PFD_1/popup_tog")) &&
+            (h65->du[1].command = XPLMFindCommand("CL650/PFD_2/popup_tog")) &&
+            (h65->du[2].command = XPLMFindCommand("CL650/MFD_1/popup_tog")) &&
+            (h65->du[3].command = XPLMFindCommand("CL650/MFD_2/popup_tog")))
+        {
+            XPLMCommandRef cr;
+            REGISTER_CHANDLER(h65->du[0], chandler_2ndcb, 0, XPLMFindCommand("CL650/DCP/1/popup_tog"));
+            REGISTER_CHANDLER(h65->du[1], chandler_2ndcb, 0, XPLMFindCommand("CL650/DCP/2/popup_tog"));
+            REGISTER_CHANDLER(h65->du[2], chandler_2ndcb, 0, XPLMFindCommand("CL650/CCP/1/popup_tog"));
+            REGISTER_CHANDLER(h65->du[3], chandler_2ndcb, 0, XPLMFindCommand("CL650/CCP/2/popup_tog"));
+            h65->ready = 1;
+            return 0;
         }
         return -1;
     }
