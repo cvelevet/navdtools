@@ -538,12 +538,19 @@ typedef struct
             YFS_ATYP_XPLN =  1,
             YFS_ATYP_TOLI = 31,
             YFS_ATYP_Q350 = 35,
+            YFS_ATYP_H650 = 65,
             YFS_ATYP_IXEG = 73,
             YFS_ATYP_FB76 = 76,
             YFS_ATYP_FB77 = 77,
             YFS_ATYP_ASRT = 99,
         }
         atyp;
+        struct
+        {
+            XPLMCommandRef c1popup_tog;
+            XPLMCommandRef c2popup_tog;
+            XPLMCommandRef c3popup_tog;
+        } h650;
         struct
         {
             XPLMDataRef xpdr_mode_act;

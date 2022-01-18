@@ -915,6 +915,26 @@ static void toggle_main_window(yfms_context *yfms)
         XPLoseKeyboardFocus(yfms->mwindow.id);
         return;
     }
+    if (yfms->xpl.atyp == YFS_ATYP_H650)
+    {
+        XPLMCommandOnce(yfms->xpl.h650.c2popup_tog);
+        XPLMCommandOnce(yfms->xpl.h650.c1popup_tog);
+        return;
+    }
+    if (yfms->xpl.atyp == YFS_ATYP_NSET && XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("hotstart.cl650"))
+    {
+        if ((yfms->xpl.h650.c1popup_tog = XPLMFindCommand("CL650/CDU/1/popup_tog")) &&
+            (yfms->xpl.h650.c2popup_tog = XPLMFindCommand("CL650/CDU/2/popup_tog")) &&
+            (yfms->xpl.h650.c3popup_tog = XPLMFindCommand("CL650/CDU/3/popup_tog")))
+        {
+            XPLMCommandOnce(yfms->xpl.h650.c2popup_tog);
+            XPLMCommandOnce(yfms->xpl.h650.c1popup_tog);
+            yfms->xpl.has_custom_nav_radios = 1;
+            yfms->xpl.has_custom_navigation = 1;
+            yfms->xpl.atyp = YFS_ATYP_H650;
+            return;
+        }
+    }
     if (yfms->mwindow.win_state == 0)
     {
         int windowW, windowH; XPLMPluginID pid; XPLMGetScreenSize(&windowW, &windowH);
