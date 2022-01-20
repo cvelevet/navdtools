@@ -500,6 +500,9 @@ typedef struct
         XPLMDataRef tropopause;
         XPLMDataRef g_sealevel;
         XPLMDataRef groundspeed;
+        int groundcontact_value;
+        XPLMDataRef m_fuel_total;
+        XPLMDataRef groundcontact;
         XPLMDataRef true_airspeed;
         XPLMDataRef elevation_agl;
         XPLMDataRef elevation_msl;

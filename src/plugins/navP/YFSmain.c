@@ -1434,6 +1434,8 @@ void* yfs_main_init(void)
         (yfms->xpl.longitude                       = XPLMFindDataRef("sim/flightmodel/position/longitude"                           )) == NULL ||
         (yfms->xpl.g_sealevel                      = XPLMFindDataRef("sim/physics/g_sealevel"                                       )) == NULL ||
         (yfms->xpl.groundspeed                     = XPLMFindDataRef("sim/flightmodel/position/groundspeed"                         )) == NULL ||
+        (yfms->xpl.m_fuel_total                    = XPLMFindDataRef("sim/flightmodel/weight/m_fuel_total"                          )) == NULL ||
+        (yfms->xpl.groundcontact                   = XPLMFindDataRef("sim/flightmodel/failures/onground_any"                        )) == NULL ||
         (yfms->xpl.true_airspeed                   = XPLMFindDataRef("sim/flightmodel/position/true_airspeed"                       )) == NULL ||
         (yfms->xpl.elevation_agl                   = XPLMFindDataRef("sim/flightmodel/position/y_agl"                               )) == NULL ||
         (yfms->xpl.elevation_msl                   = XPLMFindDataRef("sim/flightmodel/position/elevation"                           )) == NULL ||

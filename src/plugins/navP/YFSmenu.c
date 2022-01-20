@@ -187,6 +187,7 @@ void yfs_menu_resetall(yfms_context *yfms)
     /* flight phase */
     ndt_log("YFMS [debug]: phase change: full FMGS reset\n");
     yfms->data.phase = FMGS_PHASE_END;
+    yfms->xpl.groundcontact_value = 1;
 
     /* may need to re-position the window on a per-aircraft basis */
     yfms->mwindow.win_state = 0;
@@ -401,7 +402,9 @@ void yfs_fmgs_phase_set(yfms_context *yfms, int new_phase)
             {
                 index = 1; XPLMSetDatavi(swtid, &index, 2, 1); // XXX: Falcon 7X by after
             }
+            ndt_log("YFMS [info]: take-off: fuel quantity %.0f (kg)\n", XPLMGetDataf(yfms->xpl.m_fuel_total));
             ndt_log("YFMS [debug]: phase change: FMGS_PHASE_TOF (was %d)\n", yfms->data.phase);
+            yfms->xpl.groundcontact_value = 0; // still in takeoff roll, but not for long
             yfms->data.phase = FMGS_PHASE_TOF;
             yfs_fpln_trackleg(yfms, -1);
             return;
@@ -448,7 +451,9 @@ void yfs_fmgs_phase_set(yfms_context *yfms, int new_phase)
             {
                 index = 4; XPLMSetDatavi(swtid, &index, 2, 1); XPLMSetDatai(sendv, 0); // XXX: Falcon 7X by after
             }
+            ndt_log("YFMS [info]: landing: fuel quantity %.0f (kg)\n", XPLMGetDataf(yfms->xpl.m_fuel_total));
             ndt_log("YFMS [debug]: phase change: FMGS_PHASE_END (was %d)\n", yfms->data.phase);
+            yfms->xpl.groundcontact_value = XPLMGetDatai(yfms->xpl.groundcontact);
             yfs_init_fplreset(yfms); yfms->data.phase = FMGS_PHASE_END;
             if (open_radio_1_on_end)
             {
@@ -514,12 +519,30 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     /* if main window visible, update currently displayed page */
     yfs_curr_pageupdt(yfms);
 
-    /* skip some computations when we're in the "done" flight phase */
-    if (yfms->data.phase <= FMGS_PHASE_END &&
-        yfms->xpl.otto.vclb_vdes == 0 &&
-        yfms->xpl.otto.vmax_auto == 0)
+    if (yfms->data.phase <= FMGS_PHASE_END)
     {
-        return DEFAULT_CALLBACK_RATE;
+        /* not using YFMS for navigation: print takeoff/landing fuel here */
+        int groundcontact_value = XPLMGetDatai(yfms->xpl.groundcontact);
+        if (groundcontact_value != yfms->xpl.groundcontact_value)
+        {
+            if (groundcontact_value <= 0) // 1 -> 0: liftoff :-)
+            {
+                ndt_log("YFMS [info]: take-off (detected): fuel quantity %.0f (kg)\n", XPLMGetDataf(yfms->xpl.m_fuel_total));
+                yfms->xpl.groundcontact_value = groundcontact_value;
+            }
+            else if (50.0f > (XPLMGetDataf(yfms->xpl.groundspeed) * 3.6f / 1.852f)) // 1 -> 0 + slowing down: landing
+            {
+                ndt_log("YFMS [info]: landing (detected): fuel quantity %.0f (kg)\n", XPLMGetDataf(yfms->xpl.m_fuel_total));
+                yfms->xpl.groundcontact_value = groundcontact_value;
+            }
+        }
+
+        /* are we automating IAS/MACH switch for this aircraft? */
+        if (yfms->xpl.otto.vclb_vdes || yfms->xpl.otto.vmax_auto)
+        {
+            goto vclb_vdes_vmax_auto;
+        }
+        goto vclb_vdes_vmax_auto_done; /* skip unused calculations when we're in the "done" phase */
     }
 
     /* update FMGS phase (inspired by switching conditions, in FMGS P. Guide) */
@@ -532,9 +555,6 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
     int vvi_fpm = XPLMGetDataf(yfms->xpl.vvi_fpm_pilot);
     switch (yfms->data.phase)
     {
-        case FMGS_PHASE_END:
-            goto vclb_vdes_vmax_auto;
-
         case FMGS_PHASE_PRE:
             if (crzfeet > 1000)
             {
@@ -626,7 +646,7 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
                 break; // TODO: activate GOA when applicable
             }
             break;
-	default:
+        default:
             break;
     }
     if (yfms->data.phase >= FMGS_PHASE_TOF) // don't reset before takeoff, duh!
@@ -762,5 +782,6 @@ vclb_vdes_vmax_auto:
         }
     }
 
+vclb_vdes_vmax_auto_done:
     return DEFAULT_CALLBACK_RATE;
 }
