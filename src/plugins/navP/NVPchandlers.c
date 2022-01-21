@@ -291,6 +291,7 @@ typedef struct
 {
     XPLMDataRef f_pitch;
     XPLMDataRef vfpitch;
+    const char *ap_fdir;
     const char *ap_toga;
     const char *ptrimto;
     float init_cl_speed;
@@ -1215,6 +1216,7 @@ int nvp_chandlers_reset(void *inContext)
     /* Don't use 3rd-party commands/datarefs until we know the plane we're in */
     ctx->otto.clmb.rc.      ptrimto = "sim/flight_controls/pitch_trim_takeoff";
     ctx->otto.clmb.rc.      ap_toga = "sim/autopilot/take_off_go_around";
+    ctx->otto.clmb.rc.      ap_fdir = "sim/autopilot/fdir_on";
     ctx->otto.clmb.rc.init_cl_pitch = -1.0f;
     ctx->otto.clmb.rc.init_cl_speed = -1.0f;
     ctx->otto.clmb.rc.      f_pitch = NULL;
@@ -1619,6 +1621,7 @@ int nvp_chandlers_update(void *inContext)
             ctx->otto.conn.cc.name = "CL650/FCP/ap_eng";
             ctx->otto.clmb.rc.init_cl_pitch = -1.0f;
             ctx->otto.clmb.rc.init_cl_speed = -1.0f;
+            ctx->otto.clmb.rc.ap_fdir = NULL;
             ctx->otto.clmb.rc.f_pitch = NULL;
             ctx->otto.clmb.rc.ptrimto = NULL;
             ctx->otto.clmb.rc.vfpitch = NULL;
@@ -4198,9 +4201,12 @@ static int chandler_apclb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (((refcon_app*)inRefcon)->ap_toga)
         {
             XPLMCommandRef cr;
-            if ((cr = XPLMFindCommand("sim/autopilot/fdir_on")))
+            if (((refcon_app*)inRefcon)->ap_fdir)
             {
-                XPLMCommandOnce(cr);
+                if ((cr = XPLMFindCommand(((refcon_app*)inRefcon)->ap_fdir)))
+                {
+                    XPLMCommandOnce(cr);
+                }
             }
             if ((cr = XPLMFindCommand(((refcon_app*)inRefcon)->ap_toga)))
             {
