@@ -915,7 +915,7 @@ static void toggle_main_window(yfms_context *yfms)
         XPLoseKeyboardFocus(yfms->mwindow.id);
         return;
     }
-    if (yfms->xpl.atyp == YFS_ATYP_H650)
+    if (yfms->xpl.atyp == YFS_ATYP_H650)//fixme314
     {
         XPLMCommandOnce(yfms->xpl.h650.c2popup_tog);
         XPLMCommandOnce(yfms->xpl.h650.c1popup_tog);
