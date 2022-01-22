@@ -159,6 +159,12 @@ typedef struct
     int               ready;
     XPLMDataRef      cp[11];
     XPLMDataRef       na[5];
+    XPLMDataRef       aexfl;
+    XPLMDataRef       battv;
+    XPLMDataRef       mdoor;
+    XPLMDataRef       oxydr;
+    XPLMCommandRef    oxycd;
+    XPLMCommandRef    appnl;
     chandler_callback cc[2];
     chandler_callback du[4];
     chandler_callback vp[4];
@@ -2352,39 +2358,53 @@ static int a35_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
 
 static int cl650_walkaround_required(refcon_cl60pdu *h65)
 {
-    if (h65)
+    if (h65 && h65->ready)
     {
         if (acf_type_is_engine_running() != 0)
         {
-            if (XPLMGetDatai(h65->na[2]) != 1) // "CL650/contcoll/0/compact_value"
-            {
-                XPLMSetDatai(h65->na[2], 1); // since we map this command, we cannot compact this column using the manipulator
-                return 0;
-            }
             return 0;
         }
         if (XPLMGetDatai(h65->na[0]) != 0 &&
             XPLMGetDatai(h65->na[1]) != 1 &&
-            XPLMGetDatai(h65->na[2]) != 1 &&
+//          XPLMGetDatai(h65->na[2]) != 1 && // will be reset before call to cl650_walkaround_required() so re-checking here breaks its logic
             XPLMGetDatai(h65->na[3]) != 0 &&
-            XPLMGetDatai(h65->na[4]) != 0)
+            XPLMGetDatai(h65->na[4]) != 0)// custom cockpit setup fully undone: most likely, new airframe being used w/out reloading aircraft
         {
-            return 1; // custom cockpit setup fully undone: most likely, new airframe being used w/out reloading aircraft
+            return 1;
         }
-        if (XPLMGetDatai(h65->cp[ 0]) != 0 ||
-            XPLMGetDatai(h65->cp[ 1]) != 0 ||
-            XPLMGetDatai(h65->cp[ 2]) != 0 ||
-            XPLMGetDatai(h65->cp[ 3]) != 0 ||
-            XPLMGetDatai(h65->cp[ 4]) != 0 ||
-            XPLMGetDatai(h65->cp[ 5]) != 0 ||
-            XPLMGetDatai(h65->cp[ 6]) != 0 ||
-            XPLMGetDatai(h65->cp[ 7]) != 0 ||
-            XPLMGetDatai(h65->cp[ 8]) != 0 ||
-            XPLMGetDatai(h65->cp[ 9]) != 0 ||
-            XPLMGetDatai(h65->cp[10]) != 0)
+        if (XPLMGetDatai(h65->battv) == 0 && XPLMGetDataf(h65->mdoor) > 0.5f) // battery master is off, door open: (probably) ending a flight
         {
-            // TODO: check that we are ready for another flight???
-            return 1; // some gear and/or pins were left on
+            if (XPLMGetDatai(h65->cp[ 0]) == 0 &&
+                XPLMGetDatai(h65->cp[ 1]) == 0 &&
+                XPLMGetDatai(h65->cp[ 2]) == 0 &&
+                XPLMGetDatai(h65->cp[ 3]) == 0 &&
+                XPLMGetDatai(h65->cp[ 4]) == 0 &&
+                XPLMGetDatai(h65->cp[ 5]) == 0 &&
+                XPLMGetDatai(h65->cp[ 6]) == 0 &&
+                XPLMGetDatai(h65->cp[ 7]) == 0 &&
+                XPLMGetDatai(h65->cp[ 8]) == 0 &&
+                XPLMGetDatai(h65->cp[ 9]) == 0 &&
+                XPLMGetDatai(h65->cp[10]) == 0)// all covers and gear pins are off
+            {
+                return 1; // reverse walkaround
+            }
+        }
+        else // not the above, therefore we're most likely starting a new flight
+        {
+            if (XPLMGetDatai(h65->cp[ 0]) != 0 ||
+                XPLMGetDatai(h65->cp[ 1]) != 0 ||
+                XPLMGetDatai(h65->cp[ 2]) != 0 ||
+                XPLMGetDatai(h65->cp[ 3]) != 0 ||
+                XPLMGetDatai(h65->cp[ 4]) != 0 ||
+                XPLMGetDatai(h65->cp[ 5]) != 0 ||
+                XPLMGetDatai(h65->cp[ 6]) != 0 ||
+                XPLMGetDatai(h65->cp[ 7]) != 0 ||
+                XPLMGetDatai(h65->cp[ 8]) != 0 ||
+                XPLMGetDatai(h65->cp[ 9]) != 0 ||
+                XPLMGetDatai(h65->cp[10]) != 0)// some covers and/or gear pins were left on
+            {
+                return 1;
+            }
         }
         return 0;
     }
@@ -2393,9 +2413,33 @@ static int cl650_walkaround_required(refcon_cl60pdu *h65)
 
 static void cl650_walkaround(refcon_cl60pdu *h65)
 {
-    if (h65)
+    if (h65 && h65->ready)
     {
-        XPLMSpeakString("walk around done");
+        if (XPLMGetDataf(h65->oxydr) < 1500.0f)
+        {
+            XPLMCommandOnce(h65->oxycd);
+        }
+        if (XPLMGetDatai(h65->battv) == 0 && XPLMGetDataf(h65->mdoor) > 0.5f)
+        {
+            XPLMSetDatai(h65->cp[ 0], 1);
+            XPLMSetDatai(h65->cp[ 1], 1);
+            XPLMSetDatai(h65->cp[ 2], 1);
+            XPLMSetDatai(h65->cp[ 3], 1);
+            XPLMSetDatai(h65->cp[ 4], 1);
+            XPLMSetDatai(h65->cp[ 5], 1);
+            XPLMSetDatai(h65->cp[ 6], 1);
+            XPLMSetDatai(h65->cp[ 7], 1);
+            XPLMSetDatai(h65->cp[ 8], 1);
+            XPLMSetDatai(h65->cp[ 9], 1);
+            XPLMSetDatai(h65->cp[10], 1);
+            XPLMSetDatai(h65->na[ 0], 0);
+            XPLMSetDatai(h65->na[ 1], 1);
+            XPLMSetDatai(h65->na[ 2], 1);
+            XPLMSetDatai(h65->na[ 3], 0);
+            XPLMSetDatai(h65->na[ 4], 0);
+            XPLMSpeakString("covers and pins in place");
+            return;
+        }
         XPLMSetDatai(h65->cp[ 0], 0);
         XPLMSetDatai(h65->cp[ 1], 0);
         XPLMSetDatai(h65->cp[ 2], 0);
@@ -2412,7 +2456,7 @@ static void cl650_walkaround(refcon_cl60pdu *h65)
         XPLMSetDatai(h65->na[ 2], 1);
         XPLMSetDatai(h65->na[ 3], 0);
         XPLMSetDatai(h65->na[ 4], 0);
-        return;
+        XPLMSpeakString("walk around done");
     }
     return;
 }
@@ -2454,6 +2498,11 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 /*
                  * CL650: custom walkaround: may need to be performed multiple times (when e.g. switching airframes).
                  */
+                if (XPLMGetDatai(ctx->acfspec.h650.na[2]) != 1) // "CL650/contcoll/0/compact_value"
+                {
+                    XPLMSetDatai(ctx->acfspec.h650.na[2], 1); // since we map this command, we cannot compact this column using the manipulator
+                    return 0; // skip other checks
+                }
                 if (cl650_walkaround_required(&ctx->acfspec.h650))
                 {
                     cl650_walkaround(&ctx->acfspec.h650);
@@ -2462,9 +2511,10 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 /*
                  * Subsequent calls: additional functionality: toggle A/P popup panel.
                  */
-                if ((cmd = XPLMFindCommand("CL650/panels/toggle_ap_panel")))
+                if (XPLMGetDatai(ctx->acfspec.h650.battv) == 1 && // avionics
+                    XPLMGetDataf(ctx->acfspec.h650.aexfl) < 0.1f) // available
                 {
-                    XPLMCommandOnce(cmd);
+                    XPLMCommandOnce(ctx->acfspec.h650.appnl);
                     return 0; // skip other checks
                 }
                 return 0; // skip other checks
@@ -8020,6 +8070,20 @@ static int chall_650_init(refcon_cl60pdu *h65)
             ndt_log("navP [error]: ACF_TYP_CL60_HS: missing datarefs (covers and pins)\n");
             return -1;
         }
+        if (NULL == (h65->aexfl = XPLMFindDataRef("CL650/lamps/overhead/elec/ac_ess_xfer")) ||
+            NULL == (h65->battv = XPLMFindDataRef("CL650/overhead/elec/batt_master_value")) ||
+            NULL == (h65->appnl = XPLMFindCommand("CL650/panels/toggle_ap_panel")) ||
+            NULL == (h65->mdoor = XPLMFindDataRef("CL650/doors/main/door")))
+        {
+            ndt_log("navP [error]: ACF_TYP_CL60_HS: missing datarefs (overhead and main door)\n");
+            return -1;
+        }
+        if (NULL == (h65->oxycd = XPLMFindCommand("CL650/oxysvc/refill_gnd")) ||
+            NULL == (h65->oxydr = XPLMFindDataRef("CL650/oxysvc/press")))
+        {
+            ndt_log("navP [error]: ACF_TYP_CL60_HS: missing references (oxygen system)\n");
+            return -1;
+        }
         if ((h65->du[0].command = XPLMFindCommand("CL650/PFD_1/popup_tog")) &&
             (h65->du[1].command = XPLMFindCommand("CL650/PFD_2/popup_tog")) &&
             (h65->du[2].command = XPLMFindCommand("CL650/MFD_1/popup_tog")) &&
@@ -8037,14 +8101,14 @@ static int chall_650_init(refcon_cl60pdu *h65)
         }
         if ((h65->vp[0].command = XPLMFindCommand("sim/view/forward_with_hud")) &&
             (h65->vp[1].command = XPLMFindCommand("CL650/contcoll/0/compact")) &&
-            (h65->vp[2].command = XPLMFindCommand("CL650/seats/sit/3")) &&
+            (h65->vp[2].command = XPLMFindCommand("CL650/contcoll/0/compact")) &&
             (h65->vp[3].command = XPLMFindCommand("CL650/seats/sit/1")))
         {
             REGISTER_CHANDLER(h65->vp[0], chandler_cmapb, 1 /* before X-Plane */, XPLMFindCommand("sim/view/forward_no_hud"));
             /*
              * XXX: we cannot intercept CL650/contcoll/0/compact before the CL650 itself; thus,
              * knowing the column will be un-compacted when using the manipulator, we register a
-             * custom handler for the target command that always re-compacts it using the dataref.
+             * custom handler for the source command that always re-compacts it using the dataref.
              */
             REGISTER_CHANDLER(h65->vp[1], chandler_2ndcb, 0, XPLMFindCommand("CL650/seats/sit/3"));
             REGISTER_CHANDLER(h65->vp[2], chandler_sdr1i, 0, XPLMFindDataRef("CL650/contcoll/0/compact_value"));
