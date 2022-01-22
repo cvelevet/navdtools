@@ -161,7 +161,7 @@ typedef struct
     XPLMDataRef       na[5];
     chandler_callback cc[2];
     chandler_callback du[4];
-    chandler_callback vp[3];
+    chandler_callback vp[4];
 } refcon_cl60pdu;
 
 typedef struct
@@ -609,6 +609,7 @@ static int chandler_cmapb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_cmape(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_2ndcb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_2ndce(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_sdr1i(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_oatc_func (                                        float, float, int, void*);
 static float gnd_stab_hdlr (                                        float, float, int, void*);
 static float fuel_t_w_hdlr (                                        float, float, int, void*);
@@ -1244,6 +1245,7 @@ int nvp_chandlers_reset(void *inContext)
     }
 
     /* Unregister aircraft-specific command handlers */
+    UNREGSTR_CHANDLER(ctx->acfspec.h650.vp[3]);
     UNREGSTR_CHANDLER(ctx->acfspec.h650.vp[2]);
     UNREGSTR_CHANDLER(ctx->acfspec.h650.vp[1]);
     UNREGSTR_CHANDLER(ctx->acfspec.h650.vp[0]);
@@ -5637,6 +5639,7 @@ static float flc_oatc_func(float inElapsedSinceLastCall,
     return 0;
 }
 
+// note: if inRefcon is NULL pass through to others (preserve source command's functionality)
 static int chandler_cmapb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandBegin)
@@ -5655,6 +5658,7 @@ static int chandler_cmapb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 1;
 }
 
+// note: if inRefcon is NULL pass through to others (preserve source command's functionality)
 static int chandler_cmape(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandEnd)
@@ -5694,6 +5698,20 @@ static int chandler_2ndce(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
         if (inRefcon)
         {
             XPLMCommandOnce(inRefcon); // automatically trigger a second command -- that's it :-)
+            return 1;
+        }
+        return 1;
+    }
+    return 1;
+}
+
+static int chandler_sdr1i(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        if (inRefcon)
+        {
+            XPLMSetDatai(inRefcon, 1); // (re-)set provided dataref to one -- that's it :-)
             return 1;
         }
         return 1;
@@ -8019,11 +8037,18 @@ static int chall_650_init(refcon_cl60pdu *h65)
         }
         if ((h65->vp[0].command = XPLMFindCommand("sim/view/forward_with_hud")) &&
             (h65->vp[1].command = XPLMFindCommand("CL650/contcoll/0/compact")) &&
-            (h65->vp[2].command = XPLMFindCommand("CL650/seats/sit/1")))
+            (h65->vp[2].command = XPLMFindCommand("CL650/seats/sit/3")) &&
+            (h65->vp[3].command = XPLMFindCommand("CL650/seats/sit/1")))
         {
-            REGISTER_CHANDLER(h65->vp[0], chandler_cmapb, 0, XPLMFindCommand("sim/view/forward_no_hud"));
-            REGISTER_CHANDLER(h65->vp[1], chandler_cmapb, 0, XPLMFindCommand("CL650/seats/sit/3"));
-            REGISTER_CHANDLER(h65->vp[2], chandler_cmapb, 0, XPLMFindCommand("CL650/seats/sit/4"));
+            REGISTER_CHANDLER(h65->vp[0], chandler_cmapb, 1 /* before X-Plane */, XPLMFindCommand("sim/view/forward_no_hud"));
+            /*
+             * XXX: we cannot intercept CL650/contcoll/0/compact before the CL650 itself; thus,
+             * knowing the column will be un-compacted when using the manipulator, we register a
+             * custom handler for the target command that always re-compacts it using the dataref.
+             */
+            REGISTER_CHANDLER(h65->vp[1], chandler_2ndcb, 0, XPLMFindCommand("CL650/seats/sit/3"));
+            REGISTER_CHANDLER(h65->vp[2], chandler_sdr1i, 0, XPLMFindDataRef("CL650/contcoll/0/compact_value"));
+            REGISTER_CHANDLER(h65->vp[3], chandler_cmapb, 0, XPLMFindCommand("CL650/seats/sit/4"));
         }
         else
         {
@@ -8033,8 +8058,8 @@ static int chall_650_init(refcon_cl60pdu *h65)
         if ((h65->cc[0].command = XPLMFindCommand("sim/view/cinema_verite")) && // default keyboard mapping: shift + 'C'
             (h65->cc[1].command = XPLMFindCommand("sim/view/free_camera")))     // default keyboard mapping: 'C'
         {
-            REGISTER_CHANDLER(h65->cc[0], chandler_cmapb, 0, XPLMFindCommand("CL650/checklist/skip_item"));  // shift + 'C'
-            REGISTER_CHANDLER(h65->cc[1], chandler_cmapb, 0, XPLMFindCommand("CL650/checklist/check_item")); // 'C'
+            REGISTER_CHANDLER(h65->cc[0], chandler_cmapb, 1 /* before X-Plane */, XPLMFindCommand("CL650/checklist/skip_item"));  // shift + 'C'
+            REGISTER_CHANDLER(h65->cc[1], chandler_cmapb, 1 /* before X-Plane */, XPLMFindCommand("CL650/checklist/check_item")); // 'C'
         }
         else
         {
