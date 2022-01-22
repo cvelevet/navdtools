@@ -157,7 +157,10 @@ typedef struct
 typedef struct
 {
     int               ready;
+    XPLMDataRef      cp[11];
+    XPLMDataRef       na[5];
     chandler_callback du[4];
+    chandler_callback vp[3];
 } refcon_cl60pdu;
 
 typedef struct
@@ -614,6 +617,8 @@ static int chandler_apaft(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
 static int chandler_p2vvi(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_coatc(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_chack(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_cmapb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
+static int chandler_cmape(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_2ndcb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static int chandler_2ndce(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon);
 static float flc_oatc_func (                                        float, float, int, void*);
@@ -1273,6 +1278,9 @@ int nvp_chandlers_reset(void *inContext)
     }
 
     /* Unregister aircraft-specific command handlers */
+    UNREGSTR_CHANDLER(ctx->acfspec.h650.vp[2]);
+    UNREGSTR_CHANDLER(ctx->acfspec.h650.vp[1]);
+    UNREGSTR_CHANDLER(ctx->acfspec.h650.vp[0]);
     UNREGSTR_CHANDLER(ctx->acfspec.h650.du[3]);
     UNREGSTR_CHANDLER(ctx->acfspec.h650.du[2]);
     UNREGSTR_CHANDLER(ctx->acfspec.h650.du[1]);
@@ -2374,6 +2382,73 @@ static int a35_keysniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, 
     return 1; // pass through
 }
 
+static int cl650_walkaround_required(refcon_cl60pdu *h65)
+{
+    if (h65)
+    {
+        if (acf_type_is_engine_running() != 0)
+        {
+            if (XPLMGetDatai(h65->na[2]) != 1) // "CL650/contcoll/0/compact_value"
+            {
+                XPLMSetDatai(h65->na[2], 1); // since we map this command, we cannot compact this column using the manipulator
+                return 0;
+            }
+            return 0;
+        }
+        if (XPLMGetDatai(h65->na[0]) != 0 &&
+            XPLMGetDatai(h65->na[1]) != 1 &&
+            XPLMGetDatai(h65->na[2]) != 1 &&
+            XPLMGetDatai(h65->na[3]) != 0 &&
+            XPLMGetDatai(h65->na[4]) != 0)
+        {
+            return 1; // custom cockpit setup fully undone: most likely, new airframe being used w/out reloading aircraft
+        }
+        if (XPLMGetDatai(h65->cp[ 0]) != 0 ||
+            XPLMGetDatai(h65->cp[ 1]) != 0 ||
+            XPLMGetDatai(h65->cp[ 2]) != 0 ||
+            XPLMGetDatai(h65->cp[ 3]) != 0 ||
+            XPLMGetDatai(h65->cp[ 4]) != 0 ||
+            XPLMGetDatai(h65->cp[ 5]) != 0 ||
+            XPLMGetDatai(h65->cp[ 6]) != 0 ||
+            XPLMGetDatai(h65->cp[ 7]) != 0 ||
+            XPLMGetDatai(h65->cp[ 8]) != 0 ||
+            XPLMGetDatai(h65->cp[ 9]) != 0 ||
+            XPLMGetDatai(h65->cp[10]) != 0)
+        {
+            // TODO: check that we are ready for another flight???
+            return 1; // some gear and/or pins were left on
+        }
+        return 0;
+    }
+    return 0;
+}
+
+static void cl650_walkaround(refcon_cl60pdu *h65)
+{
+    if (h65)
+    {
+        XPLMSpeakString("walk around done");
+        XPLMSetDatai(h65->cp[ 0], 0);
+        XPLMSetDatai(h65->cp[ 1], 0);
+        XPLMSetDatai(h65->cp[ 2], 0);
+        XPLMSetDatai(h65->cp[ 3], 0);
+        XPLMSetDatai(h65->cp[ 4], 0);
+        XPLMSetDatai(h65->cp[ 5], 0);
+        XPLMSetDatai(h65->cp[ 6], 0);
+        XPLMSetDatai(h65->cp[ 7], 0);
+        XPLMSetDatai(h65->cp[ 8], 0);
+        XPLMSetDatai(h65->cp[ 9], 0);
+        XPLMSetDatai(h65->cp[10], 0);
+        XPLMSetDatai(h65->na[ 0], 0);
+        XPLMSetDatai(h65->na[ 1], 1);
+        XPLMSetDatai(h65->na[ 2], 1);
+        XPLMSetDatai(h65->na[ 3], 0);
+        XPLMSetDatai(h65->na[ 4], 0);
+        return;
+    }
+    return;
+}
+
 /*
  * action: set an aircraft's turnaround state to a pilot-friendly cold & dark variant.
  */
@@ -2389,6 +2464,7 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             nvp_chandlers_reset (inRefcon);
             nvp_chandlers_update(inRefcon);
         }
+
         /*
          * Do any additional aircraft-specific stuff that can't be done earlier.
          */
@@ -2405,7 +2481,31 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
             {
                 chall_650_init(&ctx->acfspec.h650);
             }
+            if (ctx->acfspec.h650.ready && ctx->first_fcall == 0)
+            {
+                /*
+                 * CL650: custom walkaround: may need to be performed multiple times (when e.g. switching airframes).
+                 */
+                if (cl650_walkaround_required(&ctx->acfspec.h650))
+                {
+                    cl650_walkaround(&ctx->acfspec.h650);
+                    return 0; // skip other checks
+                }
+                /*
+                 * Subsequent calls: additional functionality: toggle A/P popup panel.
+                 */
+                if ((cmd = XPLMFindCommand("CL650/panels/toggle_ap_panel")))
+                {
+                    XPLMCommandOnce(cmd);
+                    return 0; // skip other checks
+                }
+                return 0; // skip other checks
+            }
         }
+
+        /*
+         * First call since context reset: set turnaround configuration
+         */
         if (ctx->first_fcall)
         {
             // if set to automatic, callouts become enabled on first turnaround
@@ -2435,43 +2535,38 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                 }
                 XPLMCommandOnce(ctx->views.cbs[1].command);
                 ctx->ground.xfse.status_flying = 0;
-                XPLMSpeakString("turn around set");
+            }
+            return 0;
+        }
+
+        /*
+         * Subsequent calls: additional functionality: restore FOV after e.g. IXEG 733 changes it
+         */
+        if (XPLMGetDatai(ctx->fov.nonp) == 0)
+        {
+            if (ctx->fov.round_value != (int)roundf(XPLMGetDataf(ctx->fov.data)))
+            {
+                XPLMSetDataf(ctx->fov.data, ctx->fov.float_value);
+                XPLMSpeakString("F O V set");
+                return 0;
             }
         }
-        else
+
+        /*
+         * Subsequent calls: additional functionality: stop BetterPushback if there actually is a currently ongoing pushback operation
+         */
+        if (XPLM_NO_PLUGIN_ID != (pid = XPLMFindPluginBySignature("skiselkov.BetterPushback")))
         {
-            /* Chalenger 650: autopilot panel popup toggle */
-            if (ctx->info->ac_type == ACF_TYP_CL60_HS)
+            if (XPLMIsPluginEnabled(pid))
             {
-                if ((cmd = XPLMFindCommand("CL650/panels/toggle_ap_panel")))
+                if ((data = XPLMFindDataRef("bp/connected")))
                 {
-                    XPLMCommandOnce(cmd);
-                    return 0; // skip other checks
-                }
-                return 0; // skip other checks
-            }
-            /* Restore FOV after e.g. IXEG 733 */
-            if (XPLMGetDatai(ctx->fov.nonp) == 0)
-            {
-                if (ctx->fov.round_value != (int)roundf(XPLMGetDataf(ctx->fov.data)))
-                {
-                    XPLMSetDataf(ctx->fov.data, ctx->fov.float_value);
-                    XPLMSpeakString("F O V set");
-                }
-            }
-            /* Stop BetterPushback if there actually is a currently ongoing pushback operation */
-            if (XPLM_NO_PLUGIN_ID != (pid = XPLMFindPluginBySignature("skiselkov.BetterPushback")))
-            {
-                if (XPLMIsPluginEnabled(pid))
-                {
-                    if ((data = XPLMFindDataRef("bp/connected")))
+                    if (XPLMGetDatai(data))
                     {
-                        if (XPLMGetDatai(data))
+                        if ((cmd = XPLMFindCommand("BetterPushback/stop")))
                         {
-                            if ((cmd = XPLMFindCommand("BetterPushback/stop")))
-                            {
-                                XPLMCommandOnce(cmd);
-                            }
+                            XPLMCommandOnce(cmd);
+                            return 0;
                         }
                     }
                 }
@@ -5609,6 +5704,42 @@ static int chandler_chack(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
     return 1; // pass through
 }
 
+static int chandler_cmapb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandBegin)
+    {
+        if (inRefcon)
+        {
+            XPLMCommandOnce(inRefcon); // automatically map one command to another -- that's it :-)
+            return 0;
+        }
+        return 1;
+    }
+    if (inRefcon)
+    {
+        return 0;
+    }
+    return 1;
+}
+
+static int chandler_cmape(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
+{
+    if (inPhase == xplm_CommandEnd)
+    {
+        if (inRefcon)
+        {
+            XPLMCommandOnce(inRefcon); // automatically map one command to another -- that's it :-)
+            return 0;
+        }
+        return 1;
+    }
+    if (inRefcon)
+    {
+        return 0;
+    }
+    return 1;
+}
+
 static int chandler_2ndcb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
     if (inPhase == xplm_CommandBegin)
@@ -6885,19 +7016,7 @@ static int first_fcall_do(chandler_context *ctx)
 
         case ACF_TYP_CL60_HS:
             nvp_xnz_setup(ctx->info->engine_count, acf_type_is_engine_running());
-            _DO(1, XPLMSetDatai, 0, "CL650/overhead/hud_combiner_value");
-            _DO(1, XPLMSetDatai, 0, "CL650/covers/pitot/copilot_value");
-            _DO(1, XPLMSetDatai, 0, "CL650/covers/pitot/standby_value");
-            _DO(1, XPLMSetDatai, 0, "CL650/covers/pitot/pilot_value");
-            _DO(1, XPLMSetDatai, 0, "CL650/covers/aoa/copilot_value");
-            _DO(1, XPLMSetDatai, 0, "CL650/covers/ice/copilot_value");
-            _DO(1, XPLMSetDatai, 1, "CL650/contcoll/0/compact_value");
-            _DO(1, XPLMSetDatai, 1, "CL650/contcoll/1/compact_value");
-            _DO(1, XPLMSetDatai, 0, "CL650/covers/aoa/pilot_value");
-            _DO(1, XPLMSetDatai, 0, "CL650/covers/ice/pilot_value");
-            _DO(1, XPLMSetDatai, 0, "CL650/tablet/copilot_value");
-            _DO(1, XPLMSetDatai, 0, "CL650/covers/static_value");
-            _DO(1, XPLMSetDatai, 0, "CL650/tablet/pilot_value");
+            cl650_walkaround(&ctx->acfspec.h650);
             break;
 
         case ACF_TYP_E55P_AB:
@@ -7868,6 +7987,10 @@ static int first_fcall_do(chandler_context *ctx)
     acf_volume_set(volume_context, 0.10f, ctx->info->ac_type);
 #endif
 
+    if (ctx->info->ac_type != ACF_TYP_CL60_HS)
+    {
+        XPLMSpeakString("turn around set");
+    }
     return (ctx->first_fcall = 0);
 }
 
@@ -7922,20 +8045,60 @@ static int chall_650_init(refcon_cl60pdu *h65)
 {
     if (h65 && h65->ready == 0)
     {
+        if (NULL == (h65->na[0] = XPLMFindDataRef("CL650/overhead/hud_combiner_value")) ||
+            NULL == (h65->na[1] = XPLMFindDataRef("CL650/contcoll/1/compact_value")) ||
+            NULL == (h65->na[2] = XPLMFindDataRef("CL650/contcoll/0/compact_value")) ||
+            NULL == (h65->na[3] = XPLMFindDataRef("CL650/tablet/copilot_value")) ||
+            NULL == (h65->na[4] = XPLMFindDataRef("CL650/tablet/pilot_value")))
+        {
+            ndt_log("navP [error]: ACF_TYP_CL60_HS: missing datarefs (cockpit configuration)\n");
+            return -1;
+        }
+        if (NULL == (h65->cp[ 0] = XPLMFindDataRef("CL650/covers/pitot/copilot_value")) ||
+            NULL == (h65->cp[ 1] = XPLMFindDataRef("CL650/covers/pitot/standby_value")) ||
+            NULL == (h65->cp[ 2] = XPLMFindDataRef("CL650/covers/pitot/pilot_value")) ||
+            NULL == (h65->cp[ 3] = XPLMFindDataRef("CL650/covers/aoa/copilot_value")) ||
+            NULL == (h65->cp[ 4] = XPLMFindDataRef("CL650/covers/ice/copilot_value")) ||
+            NULL == (h65->cp[ 5] = XPLMFindDataRef("CL650/covers/aoa/pilot_value")) ||
+            NULL == (h65->cp[ 6] = XPLMFindDataRef("CL650/covers/ice/pilot_value")) ||
+            NULL == (h65->cp[ 7] = XPLMFindDataRef("CL650/gear/pins/right_value")) ||
+            NULL == (h65->cp[ 8] = XPLMFindDataRef("CL650/gear/pins/left_value")) ||
+            NULL == (h65->cp[ 9] = XPLMFindDataRef("CL650/gear/pins/nose_value")) ||
+            NULL == (h65->cp[10] = XPLMFindDataRef("CL650/covers/static_value")))
+        {
+            ndt_log("navP [error]: ACF_TYP_CL60_HS: missing datarefs (covers and pins)\n");
+            return -1;
+        }
         if ((h65->du[0].command = XPLMFindCommand("CL650/PFD_1/popup_tog")) &&
             (h65->du[1].command = XPLMFindCommand("CL650/PFD_2/popup_tog")) &&
             (h65->du[2].command = XPLMFindCommand("CL650/MFD_1/popup_tog")) &&
             (h65->du[3].command = XPLMFindCommand("CL650/MFD_2/popup_tog")))
         {
-            XPLMCommandRef cr;
             REGISTER_CHANDLER(h65->du[0], chandler_2ndcb, 0, XPLMFindCommand("CL650/DCP/1/popup_tog"));
             REGISTER_CHANDLER(h65->du[1], chandler_2ndcb, 0, XPLMFindCommand("CL650/DCP/2/popup_tog"));
             REGISTER_CHANDLER(h65->du[2], chandler_2ndcb, 0, XPLMFindCommand("CL650/CCP/1/popup_tog"));
             REGISTER_CHANDLER(h65->du[3], chandler_2ndcb, 0, XPLMFindCommand("CL650/CCP/2/popup_tog"));
-            h65->ready = 1;
-            return 0;
         }
-        return -1;
+        else
+        {
+            ndt_log("navP [error]: ACF_TYP_CL60_HS: missing commands (display popups)\n");
+            return -1;
+        }
+        if ((h65->vp[0].command = XPLMFindCommand("sim/view/forward_with_hud")) &&
+            (h65->vp[1].command = XPLMFindCommand("CL650/contcoll/0/compact")) &&
+            (h65->vp[2].command = XPLMFindCommand("CL650/seats/sit/1")))
+        {
+            REGISTER_CHANDLER(h65->vp[0], chandler_cmapb, 0, XPLMFindCommand("sim/view/forward_no_hud"));
+            REGISTER_CHANDLER(h65->vp[1], chandler_cmapb, 0, XPLMFindCommand("CL650/seats/sit/3"));
+            REGISTER_CHANDLER(h65->vp[2], chandler_cmapb, 0, XPLMFindCommand("CL650/seats/sit/4"));
+        }
+        else
+        {
+            ndt_log("navP [error]: ACF_TYP_CL60_HS: missing commands (view presets)\n");
+            return -1;
+        }
+        h65->ready = 1;
+        return 0;
     }
     return 0;
 }
