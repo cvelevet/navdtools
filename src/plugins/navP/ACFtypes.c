@@ -906,9 +906,9 @@ int acf_type_is_engine_running(void)
 {
     if (global_info && global_info->up_to_date)
     {
+        XPLMDataRef ref;
         if (global_info->ac_type == ACF_TYP_CL60_HS)
         {
-            XPLMDataRef ref;
             if ((ref = XPLMFindDataRef("CL650/pedestal/throttle/shutoff_L_value")))
             {
                 if (XPLMGetDatai(ref) > 0)
@@ -924,20 +924,16 @@ int acf_type_is_engine_running(void)
                 }
             }
         }
-        else
+        if ((ref = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running")))
         {
-            XPLMDataRef ref;
-            if ((ref = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running")))
+            int nbe, run[9];
+            if ((nbe = XPLMGetDatavi(ref, run, 0, global_info->engine_count)))
             {
-                int nbe, run[9];
-                if ((nbe = XPLMGetDatavi(ref, run, 0, global_info->engine_count)))
+                for (int i = 0; i < nbe && i < global_info->engine_count; i++)
                 {
-                    for (int i = 0; i < nbe && i < global_info->engine_count; i++)
+                    if (run[i])
                     {
-                        if (run[i])
-                        {
-                            return 1;
-                        }
+                        return 1;
                     }
                 }
             }
