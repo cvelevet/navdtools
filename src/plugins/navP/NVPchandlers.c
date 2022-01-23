@@ -2549,7 +2549,7 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     ctx->fov.float_value = XPLMGetDataf(ctx->fov.data);
                     ctx->fov.round_value = roundf(ctx->fov.float_value);
                 }
-                if ((cmd = XPLMFindCommand("xnz/brakes/park/on/set")))
+                if ((cmd = XPLMFindCommand("xnz/internal/brake/park"))) // no callout
                 {
                     XPLMCommandOnce(cmd);
                 }
