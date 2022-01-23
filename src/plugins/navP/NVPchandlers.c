@@ -2549,7 +2549,8 @@ static int chandler_turna(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     ctx->fov.float_value = XPLMGetDataf(ctx->fov.data);
                     ctx->fov.round_value = roundf(ctx->fov.float_value);
                 }
-                if ((cmd = XPLMFindCommand("xnz/internal/brake/park"))) // no callout
+                if ((ctx->info->ac_type != ACF_TYP_CL60_HS) && // no hydraulics: noop
+                    (cmd = XPLMFindCommand("xnz/internal/brake/park"))) // no callout
                 {
                     XPLMCommandOnce(cmd);
                 }
