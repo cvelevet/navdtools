@@ -550,10 +550,9 @@ typedef struct
         atyp;
         struct
         {
-            XPLMCommandRef c1popup_tog;
-            XPLMCommandRef c2popup_tog;
-            XPLMCommandRef c3popup_tog;
-        } h650;//fixme314
+            XPLMDataRef    dphone[2];
+            XPLMCommandRef cphone[2];
+        } h650;
         struct
         {
             XPLMDataRef xpdr_mode_act;

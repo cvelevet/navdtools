@@ -903,6 +903,26 @@ create_button_fail:
     return r_value;
 }
 
+static void cl650_phone_toggle(yfms_context *yfms)
+{
+    if (yfms)
+    {
+        if (XPLMGetDatai(yfms->xpl.h650.dphone[0]) == 1)
+        {
+            if (XPLMGetDatai(yfms->xpl.h650.dphone[1]) == 1)
+            {
+                XPLMCommandOnce(yfms->xpl.h650.cphone[0]); // neither phone showing: bring up cellular phone
+                return;
+            }
+            XPLMCommandOnce(yfms->xpl.h650.cphone[1]); // satellite phone showing: toggle it back to hidden
+            return;
+        }
+        XPLMCommandOnce(yfms->xpl.h650.cphone[1]); // cellular phone showing: toggle satellite phone
+        return;
+    }
+    return; // no context
+}
+
 static void toggle_main_window(yfms_context *yfms)
 {
     if (!yfms)
@@ -915,23 +935,22 @@ static void toggle_main_window(yfms_context *yfms)
         XPLoseKeyboardFocus(yfms->mwindow.id);
         return;
     }
-    if (yfms->xpl.atyp == YFS_ATYP_H650)//fixme314
+    if (yfms->xpl.atyp == YFS_ATYP_H650)
     {
-        XPLMCommandOnce(yfms->xpl.h650.c2popup_tog);
-        XPLMCommandOnce(yfms->xpl.h650.c1popup_tog);
+        cl650_phone_toggle(yfms);
         return;
     }
     if (yfms->xpl.atyp == YFS_ATYP_NSET && XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("hotstart.cl650"))
     {
-        if ((yfms->xpl.h650.c1popup_tog = XPLMFindCommand("CL650/CDU/1/popup_tog")) &&
-            (yfms->xpl.h650.c2popup_tog = XPLMFindCommand("CL650/CDU/2/popup_tog")) &&
-            (yfms->xpl.h650.c3popup_tog = XPLMFindCommand("CL650/CDU/3/popup_tog")))
+        if ((yfms->xpl.h650.cphone[0] = XPLMFindCommand("CL650/phone/toggle")) &&
+            (yfms->xpl.h650.cphone[1] = XPLMFindCommand("CL650/phone/toggle_sat")) &&
+            (yfms->xpl.h650.dphone[0] = XPLMFindDataRef("CL650/phone/visible")) &&
+            (yfms->xpl.h650.dphone[1] = XPLMFindDataRef("CL650/phone/visible_sat")))
         {
-            XPLMCommandOnce(yfms->xpl.h650.c2popup_tog);
-            XPLMCommandOnce(yfms->xpl.h650.c1popup_tog);
             yfms->xpl.has_custom_nav_radios = 1;
             yfms->xpl.has_custom_navigation = 1;
             yfms->xpl.atyp = YFS_ATYP_H650;
+            cl650_phone_toggle(yfms);
             return;
         }
     }
