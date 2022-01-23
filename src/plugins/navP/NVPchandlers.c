@@ -165,8 +165,8 @@ typedef struct
     XPLMDataRef       oxydr;
     XPLMCommandRef    oxycd;
     XPLMCommandRef    appnl;
-    chandler_callback cc[2];
-    chandler_callback du[4];
+    chandler_callback cc[3];
+    chandler_callback du[5];
     chandler_callback vp[4];
 } refcon_cl60pdu;
 
@@ -1255,10 +1255,12 @@ int nvp_chandlers_reset(void *inContext)
     UNREGSTR_CHANDLER(ctx->acfspec.h650.vp[2]);
     UNREGSTR_CHANDLER(ctx->acfspec.h650.vp[1]);
     UNREGSTR_CHANDLER(ctx->acfspec.h650.vp[0]);
+    UNREGSTR_CHANDLER(ctx->acfspec.h650.du[4]);
     UNREGSTR_CHANDLER(ctx->acfspec.h650.du[3]);
     UNREGSTR_CHANDLER(ctx->acfspec.h650.du[2]);
     UNREGSTR_CHANDLER(ctx->acfspec.h650.du[1]);
     UNREGSTR_CHANDLER(ctx->acfspec.h650.du[0]);
+    UNREGSTR_CHANDLER(ctx->acfspec.h650.cc[2]);
     UNREGSTR_CHANDLER(ctx->acfspec.h650.cc[1]);
     UNREGSTR_CHANDLER(ctx->acfspec.h650.cc[0]);
     UNREGSTR_CHANDLER(ctx->acfspec.t319. mwcb);
@@ -5082,9 +5084,9 @@ static int chandler_mcdup(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                  * cdu->command[1] = XPLMFindCommand("CL650/CDU/2/popup_tog")
                  * cdu->command[2] = XPLMFindCommand("CL650/CDU/3/popup_tog")
                  */
-//              XPLMCommandOnce(cdu->command[2]);
-                XPLMCommandOnce(cdu->command[1]);
-                XPLMCommandOnce(cdu->command[0]);
+//              XPLMCommandOnce(cdu->command[2]); // third CDU -- rarely used, keep manual
+//              XPLMCommandOnce(cdu->command[1]); // gets linked to CDU1 in chall_650_init
+                XPLMCommandOnce(cdu->command[0]); // trigger CL650/CDU/1/popup_tog command
                 return 0;
 //          case ACF_TYP_CL60_HS:
 //              /*
@@ -8087,12 +8089,14 @@ static int chall_650_init(refcon_cl60pdu *h65)
         if ((h65->du[0].command = XPLMFindCommand("CL650/PFD_1/popup_tog")) &&
             (h65->du[1].command = XPLMFindCommand("CL650/PFD_2/popup_tog")) &&
             (h65->du[2].command = XPLMFindCommand("CL650/MFD_1/popup_tog")) &&
-            (h65->du[3].command = XPLMFindCommand("CL650/MFD_2/popup_tog")))
+            (h65->du[3].command = XPLMFindCommand("CL650/MFD_2/popup_tog")) &&
+            (h65->du[4].command = XPLMFindCommand("CL650/CDU/1/popup_tog")))
         {
             REGISTER_CHANDLER(h65->du[0], chandler_2ndcb, 0, XPLMFindCommand("CL650/DCP/1/popup_tog"));
             REGISTER_CHANDLER(h65->du[1], chandler_2ndcb, 0, XPLMFindCommand("CL650/DCP/2/popup_tog"));
             REGISTER_CHANDLER(h65->du[2], chandler_2ndcb, 0, XPLMFindCommand("CL650/CCP/1/popup_tog"));
             REGISTER_CHANDLER(h65->du[3], chandler_2ndcb, 0, XPLMFindCommand("CL650/CCP/2/popup_tog"));
+            REGISTER_CHANDLER(h65->du[4], chandler_2ndcb, 0, XPLMFindCommand("CL650/CDU/2/popup_tog"));
         }
         else
         {
@@ -8120,10 +8124,12 @@ static int chall_650_init(refcon_cl60pdu *h65)
             return -1;
         }
         if ((h65->cc[0].command = XPLMFindCommand("sim/view/cinema_verite")) && // default keyboard mapping: shift + 'C'
-            (h65->cc[1].command = XPLMFindCommand("sim/view/free_camera")))     // default keyboard mapping: 'C'
+            (h65->cc[1].command = XPLMFindCommand("sim/view/free_camera"  )) && // default keyboard mapping: 'C'
+            (h65->cc[2].command = XPLMFindCommand("sim/view/night_vision")))    // default keyboard mapping: 'N'
         {
-            REGISTER_CHANDLER(h65->cc[0], chandler_cmapb, 1 /* before X-Plane */, XPLMFindCommand("CL650/checklist/skip_item"));  // shift + 'C'
-            REGISTER_CHANDLER(h65->cc[1], chandler_cmapb, 1 /* before X-Plane */, XPLMFindCommand("CL650/checklist/check_item")); // 'C'
+            REGISTER_CHANDLER(h65->cc[0], chandler_cmapb, 1 /* before X-Plane */, XPLMFindCommand("CL650/checklist/skip_item"    )); // shift + 'C'
+            REGISTER_CHANDLER(h65->cc[1], chandler_cmapb, 1 /* before X-Plane */, XPLMFindCommand("CL650/checklist/check_item"   )); // 'C'
+            REGISTER_CHANDLER(h65->cc[2], chandler_cmapb, 1 /* before X-Plane */, XPLMFindCommand("CL650/galley_ctrl_panel/popup")); // 'N'
         }
         else
         {
