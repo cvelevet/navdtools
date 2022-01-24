@@ -402,7 +402,7 @@ void yfs_fmgs_phase_set(yfms_context *yfms, int new_phase)
             {
                 index = 1; XPLMSetDatavi(swtid, &index, 2, 1); // XXX: Falcon 7X by after
             }
-            ndt_log("YFMS [info]: take-off: fuel quantity %.0f (kg)\n", XPLMGetDataf(yfms->xpl.m_fuel_total));
+            ndt_log("YFMS [info]: takeoff: fuel quantity %.0f (kg)\n", XPLMGetDataf(yfms->xpl.m_fuel_total));
             ndt_log("YFMS [debug]: phase change: FMGS_PHASE_TOF (was %d)\n", yfms->data.phase);
             yfms->xpl.groundcontact_value = 0; // still in takeoff roll, but not for long
             yfms->data.phase = FMGS_PHASE_TOF;
@@ -525,15 +525,21 @@ static float yfs_flight_loop_cback(float inElapsedSinceLastCall,
         int groundcontact_value = XPLMGetDatai(yfms->xpl.groundcontact);
         if (groundcontact_value != yfms->xpl.groundcontact_value)
         {
-            if (groundcontact_value <= 0) // 1 -> 0: liftoff :-)
+            if (groundcontact_value <= 0) // 1 -> 0
             {
-                ndt_log("YFMS [info]: take-off (detected): fuel quantity %.0f (kg)\n", XPLMGetDataf(yfms->xpl.m_fuel_total));
-                yfms->xpl.groundcontact_value = groundcontact_value;
+                if (50.0f < (XPLMGetDataf(yfms->xpl.groundspeed) * 3.6f / 1.852f)) // make sure we're fast enough for takeoff before logging
+                {
+                    ndt_log("YFMS [info]: takeoff (detected): fuel quantity %.0f (kg)\n", XPLMGetDataf(yfms->xpl.m_fuel_total));
+                    yfms->xpl.groundcontact_value = groundcontact_value;
+                }
             }
-            else if (50.0f > (XPLMGetDataf(yfms->xpl.groundspeed) * 3.6f / 1.852f)) // 1 -> 0 + slowing down: landing
+            else // 0 -> 1
             {
-                ndt_log("YFMS [info]: landing (detected): fuel quantity %.0f (kg)\n", XPLMGetDataf(yfms->xpl.m_fuel_total));
-                yfms->xpl.groundcontact_value = groundcontact_value;
+                if (50.0f > (XPLMGetDataf(yfms->xpl.groundspeed) * 3.6f / 1.852f)) // make sure we're slow enough for landing before logging
+                {
+                    ndt_log("YFMS [info]: landing (detected): fuel quantity %.0f (kg)\n", XPLMGetDataf(yfms->xpl.m_fuel_total));
+                    yfms->xpl.groundcontact_value = groundcontact_value;
+                }
             }
         }
 
