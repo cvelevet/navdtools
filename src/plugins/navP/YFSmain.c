@@ -940,7 +940,8 @@ static void toggle_main_window(yfms_context *yfms)
         cl650_phone_toggle(yfms);
         return;
     }
-    if (yfms->xpl.atyp == YFS_ATYP_NSET && XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("hotstart.cl650"))
+    if (yfms->xpl.atyp == YFS_ATYP_NSET && (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("hotstart.challenger650") ||
+                                            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("hotstart.cl650")))
     {
         if ((yfms->xpl.h650.cphone[0] = XPLMFindCommand("CL650/phone/toggle")) &&
             (yfms->xpl.h650.cphone[1] = XPLMFindCommand("CL650/phone/toggle_sat")) &&
