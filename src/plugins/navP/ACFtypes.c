@@ -428,7 +428,8 @@ acf_info_context* acf_type_info_update()
             global_info->assert.initialized = 0;
             break;
         }
-        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("hotstart.cl650"))
+        if (XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("hotstart.challenger650") ||
+            XPLM_NO_PLUGIN_ID != XPLMFindPluginBySignature("hotstart.cl650"))
         {
             global_info->ac_type = ACF_TYP_CL60_HS;
             break;
