@@ -4405,10 +4405,13 @@ static int chandler_apclb(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
  *
  * rationale: easier to map a joystick button to a single command for
  *            all planes than to a custom one on a plane-specific basis.
+ *
+ * behavior: command begin/continue/end (required mostly
+ *           by the CL60_HS, works w/other aircraft too)
  */
 static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void *inRefcon)
 {
-    if (inPhase == xplm_CommandEnd)
+    if (inPhase == xplm_CommandBegin)
     {
         chandler_command *cc = inRefcon;
         if (cc->name)
@@ -4422,8 +4425,18 @@ static int chandler_swtch(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, vo
                     cc->name = NULL; return 0;
                 }
             }
+            XPLMCommandBegin(cc->xpcr);
+            return 0;
+        }
+        return 0;
+    }
+    if (inPhase == xplm_CommandEnd)
+    {
+        chandler_command *cc = inRefcon;
+        if (cc->xpcr)
+        {
 //          ndt_log("navP [debug]: chandler_swtch: \"%s\"\n", cc->name);
-            XPLMCommandOnce(cc->xpcr);
+            XPLMCommandEnd(cc->xpcr);
             return 0;
         }
         return 0;
